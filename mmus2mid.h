@@ -27,7 +27,7 @@ typedef enum
 
 typedef unsigned char UBYTE;  // a one-byte int 
 typedef unsigned short UWORD; // a two-byte int 
-typedef unsigned int ULONG;   // a four-byte int (assumes int 4 bytes) 
+typedef unsigned long ULONG;   // a four-byte int (assumes int 4 bytes) 
 
 extern int mmus2mid(UBYTE *mus,MIDI *mid, UWORD division, int nocomp);
 extern int MIDIToMidi(MIDI *mididata,UBYTE **mid,int *midlen);
@@ -37,7 +37,11 @@ extern int MidiToMIDI(UBYTE *mid,MIDI *mididata);
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2001-01-14 21:08:01  fraggle
+// Revision 1.2  2001-01-15 01:34:33  fraggle
+// fix ULONG typedef - need to remove this if possible to get rid of the
+// conflicts with the windows.h version
+//
+// Revision 1.1  2001/01/14 21:08:01  fraggle
 // Move mmus2mid to system-nonspecific so other platforms can use it
 //
 // Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
