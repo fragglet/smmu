@@ -26,6 +26,8 @@
 //
 //-----------------------------------------------------------------------------
 
+#ifdef HAVE_LIBAA
+
 #include <aalib.h>
 
 //#include "keyboard.h"
@@ -257,3 +259,5 @@ viddriver_t aalib_driver =
   
   aalib_modenames,
 };
+
+#endif

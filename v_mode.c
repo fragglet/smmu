@@ -344,14 +344,17 @@ extern viddriver_t alleg_driver;
 extern viddriver_t vga_driver;
 extern viddriver_t text_driver;
 #endif
-#ifdef XWIN    /* X Window */
+#ifdef HAVE_LIBX11    /* X Window */
 extern viddriver_t xwin_driver;
 #endif
-#ifdef SVGA    /* svgalib */
+#ifdef HAVE_LIBVGA    /* svgalib */
 extern viddriver_t svga_driver;
 #endif
-#ifdef _WIN32  /* windows driver */
+#ifdef _WIN32         /* windows driver/cygwin */
 extern viddriver_t win32_driver;
+#endif
+#ifdef HAVE_LIBAA     /* aalib */
+extern viddriver_t aalib_driver;
 #endif
 
 static viddriver_t *drivers[] =
@@ -361,14 +364,17 @@ static viddriver_t *drivers[] =
   &vga_driver,
   &text_driver,
 #endif
-#ifdef XWIN
+#ifdef HAVE_LIBX11
   &xwin_driver,
 #endif
-#ifdef SVGA
+#ifdef HAVE_LIBVGA
   &svga_driver,
 #endif
 #ifdef _WIN32
   &win32_driver,
+#endif
+#ifdef HAVE_LIBAA
+  &aalib_driver,
 #endif
 };
 
@@ -475,7 +481,11 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.7  2000-08-16 12:16:01  fraggle
+// Revision 1.8  2001-01-13 02:29:46  fraggle
+// changed library #defines to standard HAVE_LIBxyz
+// for autoconfing
+//
+// Revision 1.7  2000/08/16 12:16:01  fraggle
 // text mode driver
 //
 // Revision 1.6  2000/07/29 22:40:18  fraggle

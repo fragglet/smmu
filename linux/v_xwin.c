@@ -31,7 +31,7 @@
 static const char
 rcsid[] = "$Id$";
 
-#ifdef XWIN /* define to allow compile w/out x-win support */
+#ifdef HAVE_LIBX11 /* define to allow compile w/out x-win support */
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -1626,12 +1626,16 @@ viddriver_t xwin_driver =
     xwin_modenames
   };
 
-#endif /* #ifdef XWIN */
+#endif /* #ifdef HAVE_LIBX11 */
 
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-08-17 14:29:47  fraggle
+// Revision 1.6  2001-01-13 02:28:23  fraggle
+// changed library #defines to standard HAVE_LIBxyz
+// for autoconfing
+//
+// Revision 1.5  2000/08/17 14:29:47  fraggle
 // Fix #include ordering so X window version actually compiles
 //
 // Revision 1.4  2000/06/20 21:09:50  fraggle

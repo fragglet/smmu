@@ -12,13 +12,12 @@
 //#include <stdlib.h>
 
 #define NOASM
-#define DIRECTX
 
 // proff 07/04/98: Added for CYGWIN32 compatibility
 #ifdef _MSC_VER
-#define DIRECTX
+#define HAVE_LIBDDRAW
 #endif
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
 //#define __BYTEBOOL__
 //#define false 0
 //#define true !false
@@ -87,7 +86,7 @@ static int MouseButtons = 0;
 static boolean noidle=false;
 
 //boolean noDDraw = true;
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
 LPDIRECTDRAW lpDD;
 LPDIRECTDRAWSURFACE lpDDPSF;
 LPDIRECTDRAWSURFACE lpDDBSF;
@@ -581,7 +580,7 @@ static void Init_Mouse(void)
 }
 
 
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
 static void Done_DDraw(void)
 {
     if (lpDD)
@@ -863,7 +862,7 @@ static boolean Win32_SetMode(int mode)
  
  FullscreenProc = WinFullscreen;
 
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
   if (!M_CheckParm("-noddraw"))
     Init_DDraw();
 #endif
@@ -879,7 +878,7 @@ static void Win32_UnsetMode()
 {
   if(ghWnd)
     DestroyWindow(ghWnd);
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
   Done_DDraw();
 #endif
 
@@ -892,7 +891,7 @@ static void Win32_SetPalette(unsigned char *pal)
   
   if (View_bmi == NULL)
     return;
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
   if ((vidFullScreen) & (lpDDPal != NULL) & (lpDDBSF != NULL))
     {
       col = 0;
@@ -964,7 +963,7 @@ static void Win32_Shutdown(void)
 {
   if (FullscreenProc)
     FullscreenProc(false);
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
   Done_DDraw();
 #endif
   if (ViewDC)
@@ -1058,7 +1057,7 @@ void V_ScaleBy2Ua(void);
 
 static void Win32_FinishUpdate(void)
 {
-#ifdef DIRECTX
+#ifdef HAVE_LIBDDRAW
   HRESULT error;
   DDSURFACEDESC ddSD;
   int y;

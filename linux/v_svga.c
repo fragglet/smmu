@@ -24,7 +24,7 @@
 //
 //----------------------------------------------------------------------------
 
-#ifdef SVGA /* define to allow compile w/out svga support */
+#ifdef HAVE_LIBVGA /* define to allow compile w/out svga support */
 
 #include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
@@ -545,12 +545,16 @@ viddriver_t svga_driver =
     svga_modenames,
   };
 
-#endif /* #ifdef SVGA */
+#endif /* #ifdef HAVE_LIBVGA */
 
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-20 21:09:50  fraggle
+// Revision 1.4  2001-01-13 02:28:23  fraggle
+// changed library #defines to standard HAVE_LIBxyz
+// for autoconfing
+//
+// Revision 1.3  2000/06/20 21:09:50  fraggle
 // tweak gamma correction stuff
 //
 // Revision 1.2  2000/06/09 20:53:50  fraggle
