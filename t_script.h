@@ -1,18 +1,39 @@
 #ifndef __T_SCRIPT_H__
 #define __T_SCRIPT_H__
 
-#include "p_mobj.h"
+typedef struct runningscript_s runningscript_t;
 
+#include "p_mobj.h"
+#include "t_parse.h"
+
+struct runningscript_s
+{
+        script_t *script;
+
+                // where we are
+        char *savepoint;
+        int timer;      // delay time remaining
+
+                // saved variables
+        svariable_t *variables[VARIABLESLOTS];
+
+        runningscript_t *prev, *next;  // for chain
+};
+
+void T_Init();
 void T_ClearScripts();
 void T_RunScript(int n);
+void T_PreprocessScripts();
+void T_DelayedScripts();
 
         // console commands
 void T_Dump();
 void T_ConsRun();
 
-#define NUMSCRIPTS 128
+#define MAXSCRIPTS 128
 
-extern char *scripts[NUMSCRIPTS];       // the scripts
+extern script_t levelscript;
+extern script_t *scripts[MAXSCRIPTS];       // the scripts
 extern mobj_t *t_trigger;
 
 #endif

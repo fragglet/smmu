@@ -50,6 +50,7 @@ rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 #include "p_info.h"
 #include "r_defs.h"
 #include "s_sound.h"
+#include "t_script.h"
 
 //
 // MAP related Lookup tables.
@@ -1115,6 +1116,8 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   // set up world state
   P_SpawnSpecials();
+
+  T_PreprocessScripts();        // preprocess FraggleScript scripts
 
   // preload graphics
   if (precache)

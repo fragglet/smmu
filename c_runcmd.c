@@ -872,6 +872,7 @@ extern void     I_AddCommands();
 extern void     S_AddCommands();
 extern void   net_AddCommands();
 extern void     V_AddCommands();
+extern void     T_AddCommands();
 
 void C_AddCommands()
 {
@@ -886,6 +887,7 @@ void C_AddCommands()
         S_AddCommands();        // s_sound.c
         net_AddCommands();      // d_net.c
         V_AddCommands();        // v_misc.c
+        T_AddCommands();        // t_script.c
 }
 
 

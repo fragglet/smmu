@@ -130,8 +130,15 @@ OBJS=	\
         $(O)/p_genlin.o     \
         $(O)/d_deh.o	    \
 	$(O)/emu8kmid.o     \
+	$(O)/v_misc.o	    \
 	$(O)/t_script.o     \
-	$(O)/v_misc.o
+	$(O)/t_parse.o      \
+	$(O)/t_prepro.o     \
+	$(O)/t_vari.o	    \
+	$(O)/t_func.o       \
+	$(O)/t_oper.o	    \
+	$(O)/t_spec.o       
+
 #        $(O)/hu_lib.o       \
 
 doom all: $(O)/$(EXE)

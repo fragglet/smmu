@@ -111,6 +111,7 @@ typedef enum {
   pr_dropoff,                 // #60
   pr_randomjump,              // #61
   pr_defect,                  // #62
+  pr_script,                  // #63: FraggleScript
   // End of new entries
   NUMPRCLASS                  // MUST be last item in list
 } pr_class_t;

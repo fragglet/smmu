@@ -61,6 +61,7 @@ static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough E
 #include "r_main.h"
 #include "d_main.h"
 #include "d_deh.h"  // Ty 04/08/98 - Externalizations
+#include "t_script.h"    // for FraggleScript init
 
 // DEHacked support - Ty 03/09/97
 // killough 10/98:
@@ -1553,6 +1554,9 @@ void D_DoomMain(void)
 
   startupmsg("M_Init","Init miscellaneous info.");
   M_Init();
+
+  startupmsg("T_Init", "Init FraggleScript.");
+  T_Init();
 
   startupmsg("S_Init","Setting up sound.");
   S_Init(snd_SfxVolume /* *8 */, snd_MusicVolume /* *8*/ );

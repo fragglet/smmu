@@ -28,6 +28,7 @@ rcsid[] = "$Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $";
 #include "p_chase.h"
 #include "p_spec.h"
 #include "p_tick.h"
+#include "t_script.h"
 
 int leveltime;
 boolean reset_viewz;
@@ -255,6 +256,8 @@ void P_Ticker (void)
 
   if(reset_viewz && gamestate == GS_LEVEL)
       P_CalcHeight (players+displayplayer); // Determines view height and bobbing
+
+  T_DelayedScripts();
 }
 
 //----------------------------------------------------------------------------

@@ -35,8 +35,7 @@ char *info_nextlevel;
 char *info_intertext;
 char *info_backdrop;
 char *info_weapons;
-
-static int reading_script = -1;        // the current script being read into
+int info_scripts;       // has the current level got scripts?
 
 static void P_RemoveEqualses(char *line);
 static void P_RemoveComments(char *line);
@@ -44,7 +43,7 @@ static void P_RemoveComments(char *line);
 void P_ParseInfoCmd(char *line);
 void P_ParseLevelVar(char *cmd);
 void P_ParseInfoCmd(char *line);
-void P_ParseLevelCmd(char *line);
+void P_ParseScriptLine(char *line);
 void P_ClearLevelVars();
 void P_ParseInterText(char *line);
 void P_InitWeapons();
@@ -52,9 +51,8 @@ void P_InitWeapons();
 enum
 {
         RT_LEVELINFO,
-        RT_CONSOLECMD,
+        RT_SCRIPT,
         RT_OTHER,
-        RT_LEVELCMD,
         RT_INTERTEXT
 } readtype;
 
@@ -93,18 +91,20 @@ void P_ParseInfoCmd(char *line)
         while(*line == ' ') line++;
         if(!*line) return;
 
-        if((line[0] == '/' && line[1] == '/') ||            // comment
-            line[0] == '#' || line[0] == ';') return;
+        if(readtype != RT_SCRIPT && (      // not for scripts
+           (line[0] == '/' && line[1] == '/') ||            // comment
+            line[0] == '#' || line[0] == ';') ) return;
 
         if(*line == '[')                // a new section seperator
         {
                 line++;
                 if(!strncmp(line, "level info", 10))
                         readtype = RT_LEVELINFO;
-                if(!strncmp(line, "console commands", 16))
-                        readtype = RT_CONSOLECMD;
-                if(!strncmp(line, "level commands", 14))
-                        readtype = RT_LEVELCMD;
+                if(!strncmp(line, "scripts", 7))
+                {
+                        readtype = RT_SCRIPT;
+                        info_scripts = true;    // has scripts
+                }
                 if(!strncmp(line, "intertext", 9))
                         readtype = RT_INTERTEXT;
                 return;
@@ -116,13 +116,8 @@ void P_ParseInfoCmd(char *line)
               P_ParseLevelVar(line);
               break;
 
-              case RT_CONSOLECMD:
-              cmdtype = c_script; // consider it as a script
-              C_RunTextCmd(line);
-              break;
-
-              case RT_LEVELCMD:
-              P_ParseLevelCmd(line);
+              case RT_SCRIPT:
+              P_ParseScriptLine(line);
               break;
 
               case RT_INTERTEXT:
@@ -249,69 +244,31 @@ void P_ClearLevelVars()
         info_intertext = info_backdrop = NULL;
 
         T_ClearScripts();
-        reading_script = -1; // reset script
+        info_scripts = false;
 }
 
 //
-// Level Commands: level commands are console commands called when a
-// player crosses a linedef of a particular type. The particular console
-// commands executed depend on the sector tag number which is used to
-// link it to a level command
+// P_ParseScriptLine
 //
-//  Take the form:
-//
-//      startscript <n>
-//              [command]
-//              [command]; [command] etc..
-//      endscript
 
-/*                      // old script code
-        int cmdnum=-1;
+// Add a line to the levelscript
 
-        P_RemoveEqualses(line);
-
-        sscanf(line, "%i", &cmdnum);
-        if(cmdnum < 0) return;
-
-        info_levelcmd[cmdnum] = Z_Malloc(strlen(line)+5, PU_LEVEL, NULL);
-        strcpy(info_levelcmd[cmdnum], line+intstrlen(cmdnum));
-*/
 
 int intstrlen(int value);
 
-void P_ParseLevelCmd(char *line)
+void P_ParseScriptLine(char *line)
 {
-        if(!strncmp(line, "endscript", 9))
-        {
-                reading_script = -1; // end of script
-        }
+        int allocsize;
 
-        if(reading_script != -1)
-        {
-                int allocsize;
+        allocsize =             // 10 for comfort
+             strlen(line) + strlen(levelscript.data) + 10;
 
-                allocsize =             // 10 for comfort
-                       strlen(line) + strlen(scripts[reading_script]) + 10;
+            // realloc the script bigger
+        levelscript.data =
+                Z_Realloc(levelscript.data, allocsize, PU_LEVEL, 0);
 
-                        // realloc the script bigger
-                scripts[reading_script] =
-                realloc(scripts[reading_script], allocsize);
-
-                      // add the new line to the current data using sprintf
-                sprintf(scripts[reading_script], "%s%s\n",
-                        scripts[reading_script], line);
-        }
-        else
-        if(!strncmp(line, "startscript", 11))   // start of script
-        {
-                        // find script number
-                reading_script = atoi(line + 11);
-
-                        // alloc a small bit of memory
-                scripts[reading_script] = malloc(5);
-                        // make an empty string
-                *scripts[reading_script] = 0;
-        }
+            // add the new line to the current data using sprintf (ugh)
+        sprintf(levelscript.data, "%s%s\n", levelscript.data, line);
 }
 
 int intstrlen(int value)

@@ -18,6 +18,7 @@ extern char *info_creator;
 extern char *info_nextlevel;
 extern char *info_intertext;
 extern char *info_backdrop;
+extern int info_scripts;        // whether the current level has scripts
 
 extern boolean default_weaponowned[NUMWEAPONS];
 

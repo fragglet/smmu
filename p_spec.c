@@ -1560,19 +1560,6 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
       if(side) break;
 
     case 2048:  // console command (2sided)
-      // only if its the console player
-      if(thing != players[consoleplayer].mo) break;
-      t_trigger = thing;
-      T_RunScript(line->tag);
-      break;
-
-    case 2051:  // 1player only console command (1sided)
-      if(side) break;
-
-    case 2050:  // 1player only console command (2sided)
-      if(netgame) break;
-      // only if its the console player
-      if(thing != players[consoleplayer].mo) break;
       t_trigger = thing;
       T_RunScript(line->tag);
       break;

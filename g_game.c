@@ -1283,8 +1283,13 @@ static void G_DoSaveGame(void)
   *save_p++ = compatibility;
 
   *save_p++ = gameskill;
-  *save_p++ = gameepisode;
-  *save_p++ = gamemap;
+
+        // sf: use string rather than episode, map
+  {
+    int i;
+    for(i=0; i<8; i++)
+      *save_p++ = levelmapname[i];
+  }
 
   {  // killough 3/16/98, 12/98: store lump name checksum
     unsigned long long checksum = G_Signature();
@@ -1382,8 +1387,18 @@ static void G_DoLoadGame(void)
   demo_version = VERSION;     // killough 7/19/98: use this version's id
 
   gameskill = *save_p++;
-  gameepisode = *save_p++;
-  gamemap = *save_p++;
+
+        // sf: use string rather than episode, map
+  {
+    int i;
+
+    if(gamemapname) free(gamemapname);    //sf
+    gamemapname = malloc(10);
+
+    for(i=0; i<8; i++)
+      gamemapname[i] = *save_p++;
+    gamemapname[8] = 0;        // ending NULL
+  }
 
   if (!forced_loadgame)
    {  // killough 3/16/98, 12/98: check lump name checksum
@@ -1414,7 +1429,7 @@ static void G_DoLoadGame(void)
   idmusnum = *(signed char *) save_p++;
 
   // load a base level
-  G_InitNewNum(gameskill, gameskill, gamemap);
+  G_InitNew(gameskill, gamemapname);
 
   // killough 3/1/98: Read game options
   // killough 11/98: move down to here

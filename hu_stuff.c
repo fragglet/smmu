@@ -466,6 +466,8 @@ void HU_centremsg(char *s)
         hu_centremessage.y = (SCREENHEIGHT - 8 -
                 ((scaledviewheight==SCREENHEIGHT) ? 0 : (ST_HEIGHT-8)) ) / 2;
         hu_centremessage.cleartic = gametic + (centremessage_timer*35)/1000;
+
+        C_Printf("%s\n", s);
 }
 
         //// level time elapsed so far (automap) ////

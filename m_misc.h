@@ -52,7 +52,8 @@ typedef struct default_s
   int  *const current;                      // possible nondefault variable
   int   const defaultvalue;                 // built-in default value
   struct {int min, max;} const limit;       // numerical limits
-  enum {number, string} const isstr;        // number or string
+        // sf: changed to dt_ for fragglescript
+  enum {dt_number, dt_string} const isstr;        // number or string
   ss_types const setupscreen;               // setup screen this appears on
   enum {wad_no, wad_yes} const wad_allowed; // whether it's allowed in wads
   const char *const help;                   // description of parameter
