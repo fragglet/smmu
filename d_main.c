@@ -95,7 +95,7 @@ char **wadfiles;
 extern char *wadfile_1, *wadfile_2;
 extern char *dehfile_1, *dehfile_2;
 
-int textmode_startup = 1; 
+int textmode_startup = 0; 
 int use_startmap = -1;     // default to -1 for asking in menu
 boolean devparm;           // started game with -devparm
 
@@ -1812,8 +1812,11 @@ boolean D_AddNewFile(char *s)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-07 14:14:09  fraggle
+// default to graphic startup
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
