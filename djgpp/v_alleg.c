@@ -5,18 +5,24 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
-//      DOOM graphics stuff
+//      DJGPP Graphics stuff
 //
 //-----------------------------------------------------------------------------
 
@@ -33,21 +39,17 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include <dos.h>
 #include <go32.h>
 
+#include "../doomdef.h"
 #include "../doomstat.h"
 
-#include "../am_map.h"
 #include "../c_io.h"
 #include "../c_runcmd.h"
 #include "../d_main.h"
-#include "../i_video.h"
+
 #include "../m_argv.h"
-#include "../m_bbox.h"
-#include "../mn_engin.h"
-#include "../r_draw.h"
-#include "../st_stuff.h"
+#include "../v_mode.h"
 #include "../v_video.h"
 #include "../w_wad.h"
-#include "../wi_stuff.h"
 #include "../z_zone.h"
 
 
@@ -65,7 +67,7 @@ extern void I_InitKeyboard();      // i_system.c
 // Based only a little bit on Chi's v0.2 code
 //
 
-int I_ScanCode2DoomCode (int a)
+static int Alleg_ScanCode2DoomCode (int a)
 {
   switch (a)
     {
@@ -88,11 +90,11 @@ int I_ScanCode2DoomCode (int a)
 // Automatic caching inverter, so you don't need to maintain two tables.
 // By Lee Killough
 
-int I_DoomCode2ScanCode (int a)
+static int Alleg_DoomCode2ScanCode (int a)
 {
   static int inverse[256], cache;
   for (;cache<256;cache++)
-    inverse[I_ScanCode2DoomCode(cache)]=cache;
+    inverse[Alleg_ScanCode2DoomCode(cache)]=cache;
   return inverse[a];
 }
 
@@ -112,29 +114,27 @@ extern int joy_b1,joy_b2,joy_b3,joy_b4;
 
 void poll_joystick(void);
 
-// I_JoystickEvents() gathers joystick data and creates an event_t for
+// Alleg_JoystickEvents() gathers joystick data and creates an event_t for
 // later processing by G_Responder().
 
-static void I_JoystickEvents()
+static void Alleg_JoystickEvents()
 {
+  static int old_joy_b1, old_joy_b2, old_joy_b3, old_joy_b4;
   event_t event;
 
   if (!joystickpresent || !usejoystick)
     return;
   poll_joystick(); // Reads the current joystick settings
+
+  // build joystick event
+  
   event.type = ev_joystick;
-  event.data1 = 0;
 
   // read the button settings
 
-  if (joy_b1)
-    event.data1 |= 1;
-  if (joy_b2)
-    event.data1 |= 2;
-  if (joy_b3)
-    event.data1 |= 4;
-  if (joy_b4)
-    event.data1 |= 8;
+  event.data1 =
+    (joy_b1 ? 1 : 0) | (joy_b2 ? 2 : 0) |
+    (joy_b3 ? 4 : 0) | (joy_b4 ? 8 : 0);
 
   // Read the x,y settings. Convert to -1 or 0 or +1.
 
@@ -154,15 +154,47 @@ static void I_JoystickEvents()
   // post what you found
 
   D_PostEvent(&event);
+
+  // build button events (make joystick buttons virtual keyboard keys
+  // as originally suggested by lee killough in the boom suggestions file)
+
+  if(joy_b1 != old_joy_b1)
+    {
+      event.type = joy_b1 ? ev_keydown : ev_keyup;
+      event.data1 = KEYD_JOY1;
+      D_PostEvent(&event);
+      old_joy_b1 = joy_b1;
+    }
+  if(joy_b2 != old_joy_b2)
+    {
+      event.type = joy_b2 ? ev_keydown : ev_keyup;
+      event.data1 = KEYD_JOY2;
+      D_PostEvent(&event);
+      old_joy_b2 = joy_b2;
+    }
+  if(joy_b3 != old_joy_b3)
+    {
+      event.type = joy_b3 ? ev_keydown : ev_keyup;
+      event.data1 = KEYD_JOY3;
+      D_PostEvent(&event);
+      old_joy_b3 = joy_b3;
+    }
+  if(joy_b4 != old_joy_b4)
+    {
+      event.type = joy_b4 ? ev_keydown : ev_keyup;
+      event.data1 = KEYD_JOY4;
+      D_PostEvent(&event);
+      old_joy_b4 = joy_b4;
+    }
 }
 
 
 //
-// I_StartFrame
+// Alleg_StartFrame
 //
-void I_StartFrame (void)
+void Alleg_StartFrame (void)
 {
-  I_JoystickEvents(); // Obtain joystick data                 phares 4/3/98
+  Alleg_JoystickEvents(); // Obtain joystick data                 phares 4/3/98
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -173,7 +205,7 @@ void I_StartFrame (void)
 
 // killough 3/22/98: rewritten to use interrupt-driven keyboard queue
 
-static void I_GetEvent()
+static void Alleg_GetEvent()
 {
   event_t event;
   int tail;
@@ -183,7 +215,7 @@ static void I_GetEvent()
       int k = keyboard_queue.queue[tail];
       keyboard_queue.tail = (tail+1) & (KQSIZE-1);
       event.type = k & 0x80 ? ev_keyup : ev_keydown;
-      event.data1 = I_ScanCode2DoomCode(k & 0x7f);
+      event.data1 = Alleg_ScanCode2DoomCode(k & 0x7f);
       D_PostEvent(&event);
     }
 
@@ -191,39 +223,61 @@ static void I_GetEvent()
     {
       static int lastbuttons;
       int xmickeys,ymickeys,buttons=mouse_b;
+
       get_mouse_mickeys(&xmickeys,&ymickeys);
-      if (xmickeys || ymickeys || buttons!=lastbuttons)
+      if (xmickeys || ymickeys)
         {
-          lastbuttons=buttons;
           event.data1=buttons;
           event.data3=-ymickeys;
           event.data2=xmickeys;
           event.type=ev_mouse;
           D_PostEvent(&event);
         }
+      if(buttons != lastbuttons)
+	{
+	  if((buttons & 1) != (lastbuttons & 1))
+	    {
+	      event.type = buttons & 1 ? ev_keydown : ev_keyup;
+	      event.data1 = KEYD_MOUSE1;
+	      D_PostEvent(&event);
+	    }
+	  if((buttons & 2) != (lastbuttons & 2))
+	    {
+	      event.type = buttons & 2 ? ev_keydown : ev_keyup;
+	      event.data1 = KEYD_MOUSE2;
+	      D_PostEvent(&event);
+	    }
+	  if((buttons & 4) != (lastbuttons & 4))
+	    {
+	      event.type = buttons & 4 ? ev_keydown : ev_keyup;
+	      event.data1 = KEYD_MOUSE3;
+	      D_PostEvent(&event);
+	    }
+          lastbuttons=buttons;
+	}
     }
 }
 
 //
-// I_StartTic
+// Alleg_StartTic
 //
 
-void I_StartTic()
+void Alleg_StartTic()
 {
-  I_GetEvent();
+  Alleg_GetEvent();
 }
 
-////////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Graphics Code
 //
-////////////////////////////////////////////////////////////////////////////
+//===========================================================================
 
 //
-// I_UpdateNoBlit
+// Alleg_UpdateNoBlit
 //
 
-void I_UpdateNoBlit (void)
+void Alleg_UpdateNoBlit (void)
 {
 }
 
@@ -234,66 +288,63 @@ extern void pent_blit(void *, size_t);
 extern void blast(void *destin, void *src);  // blits to VGA planar memory
 extern void ppro_blast(void *destin, void *src);  // same but for PPro CPU
 
-int use_vsync;     // killough 2/8/98: controls whether vsync is called
-int page_flip;     // killough 8/15/98: enables page flipping
-int hires;
-int vesamode;
+static int page_flip;     // killough 8/15/98: enables page flipping
 BITMAP *screens0_bitmap;
-boolean noblit;
+static boolean noblit;
 
-static boolean in_graphics_mode;
+static boolean vga_pageflip;           // X-mode VGA pageflip
 static boolean in_page_flip, in_hires, linear;
 static int scroll_offset;
 static unsigned long screen_base_addr;
 static unsigned destscreen;
+static int border_offset; 
 
-void I_FinishUpdate(void)
+void Alleg_FinishUpdate(void)
 {
-  if (noblit || !in_graphics_mode)
-    return;
+  if(vga_pageflip)
+    {
+      //
+      // killough 8/15/98:
+      //
+      // 320x200 Wait-free page-flipping for flicker-free display
+      //
+      // blast it to the screen
+      
+      destscreen += 0x4000;             // Move address up one page
+      destscreen &= 0xffff;             // Reduce address mod 4 pages
+      
+      // Pentium Pros and above need special consideration in the
+      // planar multiplexing code, to avoid partial stalls. killough
+      
+      if (cpu_family >= 6)
+	ppro_blast((byte *) __djgpp_conventional_base
+		   + 0xa0000 + destscreen, *screens);
+      else
+	blast((byte *) __djgpp_conventional_base  // Other CPUs, e.g. 486
+	      + 0xa0000 + destscreen, *screens);
+      
+      // page flip 
+      outportw(0x3d4, destscreen | 0x0c); 
+      
+      return;
+    }
+  else   
+    {
+      // hires hardware page-flipping (VBE 2.0)
+      if(in_page_flip)
+	scroll_offset = (scroll_offset ? 0 : 400);
+      else        // killough 8/15/98: no page flipping; use other methods
+	if (use_vsync && !timingdemo)
+	  vsync(); // killough 2/7/98: use vsync() to prevent screen breaks.
+    }
 
-  if (in_page_flip)
-    if (!in_hires)
-      {
-	//
-	// killough 8/15/98:
-	//
-	// 320x200 Wait-free page-flipping for flicker-free display
-	//
-	// blast it to the screen
-
-	destscreen += 0x4000;             // Move address up one page
-	destscreen &= 0xffff;             // Reduce address mod 4 pages
-
-	// Pentium Pros and above need special consideration in the
-	// planar multiplexing code, to avoid partial stalls. killough
-
-	if (cpu_family >= 6)
-	  ppro_blast((byte *) __djgpp_conventional_base
-		     + 0xa0000 + destscreen, *screens);
-	else
-	  blast((byte *) __djgpp_conventional_base  // Other CPUs, e.g. 486
-		+ 0xa0000 + destscreen, *screens);
-
-	// page flip 
-	outportw(0x3d4, destscreen | 0x0c); 
-
-	return;
-      }
-    else       // hires hardware page-flipping (VBE 2.0)
-      scroll_offset = scroll_offset ? 0 : 400;
-  else        // killough 8/15/98: no page flipping; use other methods
-    if (use_vsync && !timingdemo)
-      vsync(); // killough 2/7/98: use vsync() to prevent screen breaks.
-
-  if (!linear)  // Banked mode is slower. But just in case it's needed...
-    blit(screens0_bitmap, screen, 0, 0, 0, scroll_offset,
-	 SCREENWIDTH << hires, SCREENHEIGHT << hires);
-  else
+  if (linear)
     {   // 1/16/98 killough: optimization based on CPU type
       int size =
 	in_hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
-      byte *dascreen = screen_base_addr + screen->line[scroll_offset];
+      byte *dascreen =
+	screen_base_addr +
+	screen->line[scroll_offset+border_offset];
       if (cpu_family >= 6)     // PPro, PII
 	ppro_blit(dascreen,size);
       else
@@ -302,16 +353,22 @@ void I_FinishUpdate(void)
 	else                   // Others
 	  memcpy(dascreen,*screens,size);
     }
+  else
+    {
+      // Banked mode is slower. But just in case it's needed...
+      blit(screens0_bitmap, screen, 0, 0, 0, scroll_offset + border_offset,
+	   SCREENWIDTH << hires, SCREENHEIGHT << hires);
+    }
 
   if (in_page_flip)  // hires hardware page-flipping (VBE 2.0)
     scroll_screen(0, scroll_offset);
 }
 
 //
-// I_ReadScreen
+// Alleg_ReadScreen
 //
 
-void I_ReadScreen(byte *scr)
+void Alleg_ReadScreen(byte *scr)
 {
   int size = hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
 
@@ -329,11 +386,9 @@ void I_ReadScreen(byte *scr)
 // killough 10/98: init disk icon
 //
 
-int disk_icon;
-
 static BITMAP *diskflash, *old_data;
 
-static void I_InitDiskFlash(void)
+static void Alleg_InitDiskFlash(void)
 {
   byte temp[32*32];
 
@@ -358,9 +413,9 @@ static void I_InitDiskFlash(void)
 // killough 10/98: draw disk icon
 //
 
-void I_BeginRead(void)
+void Alleg_BeginRead(void)
 {
-  if (!disk_icon || !in_graphics_mode)
+  if (!disk_icon)
     return;
 
   blit(screen, old_data,
@@ -376,21 +431,18 @@ void I_BeginRead(void)
 // killough 10/98: erase disk icon
 //
 
-void I_EndRead(void)
+void Alleg_EndRead(void)
 {
-  if (!disk_icon || !in_graphics_mode)
+  if (!disk_icon)
     return;
 
   blit(old_data, screen, 0, 0, (SCREENWIDTH-16) << hires,
        scroll_offset + ((SCREENHEIGHT-15)<<hires), 16 << hires, 15 << hires);
 }
 
-void I_SetPalette(byte *palette)
+void Alleg_SetPalette(byte *palette)
 {
   int i;
-
-  if (!in_graphics_mode)             // killough 8/11/98
-    return;
 
   if (!timingdemo)
     while (!(inportb(0x3da) & 8));
@@ -404,23 +456,24 @@ void I_SetPalette(byte *palette)
     }
 }
 
-void I_ShutdownGraphics(void)
+//===========================================================================
+//
+// Mode set/unset
+//
+//===========================================================================
+
+//
+// UnsetMode function.
+// Go to text mode
+//
+
+void Alleg_UnsetMode(void)
 {
-  if (in_graphics_mode)  // killough 10/98
-    {
-      clear(screen);
-
-      // Turn off graphics mode
-      set_gfx_mode(GFX_TEXT, 0, 0, 0, 0);
-
-      in_graphics_mode = false;
-      in_textmode = true;
-    }
+  clear(screen);
+  
+  // Turn off graphics mode
+  set_gfx_mode(GFX_TEXT, 0, 0, 0, 0);
 }
-
-#define BADVID "video mode not supported"
-
-extern boolean setsizeneeded;
 
 //
 // killough 11/98: New routine, for setting hires and page flipping
@@ -428,16 +481,17 @@ extern boolean setsizeneeded;
 
 // sf: now returns true if an error occurred
 
-static boolean I_InitGraphicsMode(void)
+boolean Alleg_SetMode(int i)
 {
   set_color_depth(8);     // killough 2/7/98: use allegro set_gfx_mode
   scroll_offset = 0;
+  vga_pageflip = false;
 
-  V_Init();  
+  border_offset = 0;
   
-  // sf: reorganised to use v_mode
+  // sf: reorganised as a switch()
   
-  switch(v_mode)
+  switch(i)
     {
       // mode 1: vga pageflipped, like original doom
       // by lee killough
@@ -460,7 +514,8 @@ static boolean I_InitGraphicsMode(void)
 	  // VGA mode 13h
 	  //
 	  
-	  set_gfx_mode(GFX_AUTODETECT, 320, 200, 0, 0);
+	  if(set_gfx_mode(GFX_AUTODETECT, 320, 200, 0, 0))
+	    return false;       // init failed
 
 	  // 
 	  // turn off chain 4 and odd/even 
@@ -484,24 +539,38 @@ static boolean I_InitGraphicsMode(void)
 	  // clear the entire buffer space, because
 	  // int 10h only did 16 k / plane 
 	  // 
-	  outportw(0x3c4, 0xf02);
-	  blast(0xa0000 + (byte *) __djgpp_conventional_base, *screens);
+
+	  if(screens[0])
+	    {
+	      outportw(0x3c4, 0xf02);
+	      blast(0xa0000 + (byte *) __djgpp_conventional_base, screens[0]);
+	    }
 	  
 	  // Now we do most of this stuff again for Allegro's benefit :)
 	  // All that work above was just to clear the screen first.
-	  set_gfx_mode(GFX_MODEX, 320, 200, 320, 800);
+
+	  if(set_gfx_mode(GFX_MODEX, 320, 200, 320, 800))
+	    return false;
+
+	  // sf: set appropriate variables
+	  vga_pageflip = true;
+	  hires = 0;
 	}
       break;
 
       // 320x200 VESA
-      // can be significantly faster than vga 320x200 
+      // can be significantly faster than vga
+      // 320x200 on some computers
 	
       case 2:
 	if(set_gfx_mode(GFX_VESA2L, 320, 200, 320, 200))
 	  {
-	    I_SetMode(0);        // reset to mode 0
-	    MN_ErrorMsg(BADVID);
-	    return true;
+	    return false;
+	  }
+	else
+	  {
+	    hires = 0;
+	    page_flip = false;
 	  }
 	break;
 	
@@ -510,9 +579,12 @@ static boolean I_InitGraphicsMode(void)
       case 3:
 	if (set_gfx_mode(GFX_AUTODETECT, 640, 400, 0, 0))
 	  {
-	    I_SetMode(0);               // reset to vga low res
-	    MN_ErrorMsg(BADVID);
-	    return true;  // error
+	    return false; 
+	  }
+	else
+	  {
+	    hires = 1;
+	    page_flip = false;
 	  }
 	break;
 	
@@ -521,14 +593,29 @@ static boolean I_InitGraphicsMode(void)
       case 4:
 	if (set_gfx_mode(GFX_AUTODETECT, 640, 400, 640, 800))
           {
-	    // revert to normal non-pageflipped
-	    I_SetMode(3);
-	    MN_ErrorMsg(BADVID);
-	    return true;
+	    return false;
 	  }
 	else
-	  set_clip(screen, 0, 0, 640, 800);    // Allow full access
+	  {
+	    set_clip(screen, 0, 0, 640, 800);    // Allow full access
+	    hires = 1;
+	    page_flip = true;
+	  }
 	  
+	break;
+
+	// 5: 640x480 (640x400 with borders)
+      case 5:
+	if(set_gfx_mode(GFX_AUTODETECT, 640, 480, 640, 480))
+	  {
+	    return false;
+	  }
+	else
+	  {
+	    hires = 1;
+	    page_flip = false;
+	    border_offset = 40;
+	  }
 	break;
 	
       // 0: 320x200 plain ol' VGA
@@ -538,13 +625,17 @@ static boolean I_InitGraphicsMode(void)
       case 0:
 	if(set_gfx_mode(GFX_AUTODETECT, 320, 200, 320, 200))
 	   {
-	     // if we cant set this, we're screwed :)
-	     I_Error("couldn't get 320x200 vga!\n");
+	     return false;
 	   }
+	else
+	  {
+	    hires = 0;
+	    page_flip = false;
+	  }
 	break;
     }
 
-  if(v_mode != 1)
+  if(i != 1)
     {
       linear = is_linear_bitmap(screen);
       
@@ -552,55 +643,30 @@ static boolean I_InitGraphicsMode(void)
       screen_base_addr -= __djgpp_base_address;
     }
 
-  MN_ErrorMsg("");       // clear any error messages
-  
-  in_graphics_mode = true;
-  in_textmode = false;
   in_page_flip = page_flip;
   in_hires = hires;
 
-  setsizeneeded = true;
-
-  I_InitDiskFlash();        // Initialize disk icon
-  I_SetPalette(W_CacheLumpName("PLAYPAL",PU_CACHE));
-
-  return false;
+  //  Alleg_InitDiskFlash();        // Initialize disk icon
+  
+  return true;
 }
 
-void I_ResetScreen(void)
+//===========================================================================
+//
+// Init/Shutdown
+//
+//===========================================================================
+
+void Alleg_ShutdownGraphics()
 {
-  // Switch out of old graphics mode
-  
-  I_ShutdownGraphics();
-  
-  // Switch to new graphics mode
-  // check for errors -- we may be setting to a different mode instead
-  
-  if(I_InitGraphicsMode())
-    return;
-
-  // reset other modules
-  
-  if (automapactive)
-    AM_Start();             // Reset automap dimensions
-
-  ST_Start();               // Reset palette
-
-  if (gamestate == GS_INTERMISSION)
-    {
-      WI_DrawBackground();
-      V_CopyRect(0, 0, 1, SCREENWIDTH, SCREENHEIGHT, 0, 0, 0);
-    }
-
-  Z_CheckHeap();
 }
 
-void I_InitGraphics(void)
+boolean Alleg_InitGraphics(void)
 {
   static int firsttime = true;
 
   if (!firsttime)
-    return;
+    return false;
 
   firsttime = false;
 
@@ -613,7 +679,7 @@ void I_InitGraphics(void)
   timer_simulate_retrace(0);
 
   if (nodrawers) // killough 3/2/98: possibly avoid gfx mode
-    return;
+    return false;
 
   // init keyboard
   I_InitKeyboard();
@@ -622,15 +688,11 @@ void I_InitGraphics(void)
   // enter graphics mode
   //
 
-  atexit(I_ShutdownGraphics);
-
   signal(SIGINT, SIG_IGN);  // ignore CTRL-C in graphics mode
 
   in_page_flip = page_flip;
 
-  V_ResetMode();
-
-  Z_CheckHeap();
+  return true;              // initted ok
 }
 
 // the list of video modes is stored here in i_video.c
@@ -640,62 +702,44 @@ void I_InitGraphics(void)
 // all it asks is that it contains a text value 'description'
 // which describes the mode
         
-videomode_t videomodes[]=
+char *alleg_modenames[]=
 {
-  // hires, pageflip, vesa, description
-  {0, 0, 0, "320x200 VGA"},
-  {0, 1, 0, "320x200 VGA (pageflipped)"},
-  {0, 0, 1, "320x200 VESA"},
-  {1, 0, 0, "640x400"},
-  {1, 1, 0, "640x400 (pageflipped)"},
-  {0, 0, 0,  NULL}  // last one has NULL description
+  "320x200 VGA",
+  "320x200 VGA (pageflipped)",
+  "320x200 VESA",
+  "640x400",
+  "640x400 (pageflipped)",
+  "640x480 (640x400 with borders)",
+  NULL,
 };
 
-void I_SetMode(int i)
+//=========================================================================
+//
+// Driver
+//
+//=========================================================================
+
+viddriver_t alleg_driver = 
 {
-  static int firsttime = true;    // the first time to set mode
+  "dos allegro",
+  "-allegro",
 
-  v_mode = i;
-  
-  hires = videomodes[i].hires;
-  page_flip = videomodes[i].pageflip;
-  vesamode = videomodes[i].vesa;
-  
-  if(firsttime)
-    I_InitGraphicsMode();
-  else
-    I_ResetScreen();
+  Alleg_InitGraphics,
+  Alleg_ShutdownGraphics,
 
-  firsttime = false;
-}        
+  Alleg_SetMode,
+  Alleg_UnsetMode,
 
-/************************
-        CONSOLE COMMANDS
- ************************/
+  Alleg_FinishUpdate,
+  Alleg_SetPalette,
 
-VARIABLE_BOOLEAN(use_vsync, NULL,  yesno);
-VARIABLE_BOOLEAN(disk_icon, NULL,  onoff);
+  Alleg_StartTic,
 
-CONSOLE_VARIABLE(v_diskicon, disk_icon, 0) {}
-CONSOLE_VARIABLE(v_retrace, use_vsync, 0)
-{
-  V_ResetMode();
-}
+  alleg_modenames,
+};
 
-VARIABLE_INT(usemouse, NULL,            0, 1, yesno);
-VARIABLE_INT(usejoystick, NULL,         0, 1, yesno);
 
-CONSOLE_VARIABLE(use_mouse, usemouse, 0) {}
-CONSOLE_VARIABLE(use_joystick, usejoystick, 0) {}
 
-void I_Video_AddCommands()
-{
-  C_AddCommand(use_mouse);
-  C_AddCommand(use_joystick);
-
-  C_AddCommand(v_diskicon);
-  C_AddCommand(v_retrace);
-}
 
 //----------------------------------------------------------------------------
 //

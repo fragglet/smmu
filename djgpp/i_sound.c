@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      System interface for sound.
@@ -28,6 +34,7 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 
 #include "mmus2mid.h"   //jff 1/16/98 declarations for MUS->MIDI converter
 
+#include "../c_io.h"
 #include "../c_runcmd.h"
 #include "../doomstat.h"
 #include "../i_sound.h"
@@ -44,15 +51,18 @@ void I_CacheSound(sfxinfo_t *sound);
 // Factor volume is increased before sending to allegro
 #define VOLSCALE                16
 
-        // sf: adjust temp when changing gamespeed
+// sf: adjust temp when changing gamespeed
 extern int realtic_clock_rate;
 
-int snd_card;   // default.cfg variables for digi and midi drives
-int mus_card;   // jff 1/18/98
+int snd_card = -1;   // default.cfg variables for digi and midi drives
+int mus_card = -1;   // jff 1/18/98
 
-        // sf: default_snd_card and default_mus_card removed (purpose?)
+// sf: default_snd_card and default_mus_card removed (purpose?)
 
-int detect_voices; //jff 3/4/98 enables voice detection prior to install_sound
+//jff 3/4/98 enables voice detection prior to install_sound
+
+int detect_voices = 1;
+
 //jff 1/22/98 make these visible here to disable sound/music on install err
 
 static SAMPLE *raw2SAMPLE(unsigned char *rawdata, int len)
@@ -202,7 +212,7 @@ static SAMPLE channel[NUM_CHANNELS];
 int I_StartSound(sfxinfo_t *sound, int vol, int sep, int pitch, int pri)
 {
   static int handle;
-
+  
   // move up one slot, with wraparound
   if (++handle >= NUM_CHANNELS)
     handle = 0;
@@ -281,9 +291,11 @@ void I_ShutdownSound(void)
 }
 
 // sf: dynamic sound resource loading
+
 void I_CacheSound(sfxinfo_t *sound)
 {
-  if(sound->data) return;     // already cached
+  if(sound->data)
+    return;     // already cached
   
   // sf: changed
   if(sound->link)
@@ -315,7 +327,7 @@ void I_InitSound(void)
   
   if (install_sound(snd_card, mus_card, "none") == -1)
     {
-      usermsg("\tSound init error: %s", allegro_error); // killough 8/8/98
+      C_Printf("\tSound init error: %s", allegro_error); // killough 8/8/98
       //jff 1/22/98 on error, disable sound this invocation
       //in future - nice to detect if either sound or music might be ok
       nosfxparm = true;
@@ -443,17 +455,14 @@ int I_QrySongPlaying(int handle)
 char *sndcardstr[] =
    {"autodetect","none", "SB", "SB 1.0", "SB 1.5",
      "SB 2.0", "SB Pro", "SB16", "GUS"};
+CONSOLE_INT(snd_card, snd_card, NULL,            -1, 7, sndcardstr, 0) {}
+
 char *muscardstr[] =
    {"autodetect","none", "adlib", "OPL2", "2xOPL2",
    "OPL3", "SB MIDI", "MPU-401", "GUS","DIGMID", "AWE32"};
+CONSOLE_INT(mus_card, mus_card, NULL,            -1, 9, muscardstr, 0) {}
 
-VARIABLE_INT(snd_card, NULL,            -1, 7, sndcardstr);
-VARIABLE_INT(mus_card, NULL,            -1, 9, muscardstr);
-VARIABLE_INT(detect_voices, NULL,       0, 1, yesno);
-
-CONSOLE_VARIABLE(snd_card, snd_card, 0) {}
-CONSOLE_VARIABLE(mus_card, mus_card, 0) {} 
-CONSOLE_VARIABLE(detect_voices, detect_voices, 0) {}
+CONSOLE_INT(detect_voices, detect_voices, NULL,  0, 1, yesno, 0) {}
 
 void I_Sound_AddCommands()
 {

@@ -3,6 +3,22 @@
 //
 // $Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $
 //
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Dehacked file support
 // New for the TeamTNT "Boom" engine
 //
@@ -1303,6 +1319,7 @@ extern void A_PlaySound();       // killough 11/98
 extern void A_RandomJump();      // killough 11/98
 extern void A_LineEffect();      // killough 11/98
 extern void A_Nailbomb();
+extern void A_RunScript();
 
 typedef struct {
   actionf_t cptr;  // actual pointer to the subroutine
@@ -1395,7 +1412,8 @@ deh_bexptr deh_bexptrs[] =
   {A_PlaySound,      "A_PlaySound"},      // killough 11/98
   {A_RandomJump,     "A_RandomJump"},     // killough 11/98
   {A_LineEffect,     "A_LineEffect"},     // killough 11/98
-  {A_Nailbomb,       "A_Nailbomb"},      //sf
+  {A_Nailbomb,       "A_Nailbomb"},       //sf
+  {A_RunScript,      "A_RunScript"},    // sf: scripting
 
   // This NULL entry must be the last in the list
   {NULL,             "A_NULL"},  // Ty 05/16/98

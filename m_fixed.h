@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Fixed point arithemtics, implementation.
@@ -21,6 +28,15 @@
 
 #ifndef __M_FIXED__
 #define __M_FIXED__
+
+// sf 19/4/2000:
+// there have been some problems with compiling using the latest versions
+// of DJGPP. The problem seems to come from the changes made to the assembler
+// code by Lee Killough while he was writing MBF. I don't have any knowledge
+// of assembler but the old assembler code from boom apparently still
+// works. If you have any problems, uncomment the following #define:
+
+#define BOOM_ASM
 
 #ifndef __GNUC__
 #define __inline__
@@ -55,6 +71,7 @@ typedef int fixed_t;
 
 #ifdef DJGPP
 
+
 // killough 5/10/98: In djgpp, use inlined assembly for performance
 
 __inline__ static fixed_t FixedMul(fixed_t a, fixed_t b)
@@ -88,6 +105,31 @@ __inline__ static fixed_t FixedMul(fixed_t a, fixed_t b)
 #ifdef DJGPP
 
 // killough 5/10/98: In djgpp, use inlined assembly for performance
+
+#ifdef BOOM_ASM
+
+__inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
+{
+  fixed_t result;
+
+  if (abs(a) >> 14 >= abs(b))
+    return (a^b)<0 ? MININT : MAXINT;
+
+  asm(" movl %0, %%edx ;"
+      " sall $16,%%eax ;"
+      " sarl $16,%%edx ;"
+      " idivl %2 ;"
+      : "=a,=a" (result)    // eax is always the result
+      : "0,0" (a),          // eax is also the first operand
+        "m,r" (b)           // second operand can be mem or reg (not imm)
+      : "%edx", "%cc"       // edx and condition codes are clobbered
+      );
+
+  return result;
+}
+
+#else /* #ifdef BOOM_ASM */
+
 // killough 9/5/98: optimized to reduce the number of branches
 
 __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
@@ -106,6 +148,8 @@ __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
     }
   return ((a^b)>>31) ^ MAXINT;
 }
+
+#endif /* #ifdef BOOM_ASM */
 
 #else // DJGPP
 

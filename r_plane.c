@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Here is a core component: drawing the floors and ceilings,
@@ -201,11 +207,13 @@ static void R_MapPlane(int y, int x1, int x2)
 void R_ClearPlanes(void)
 {
   int i, a;
+  fixed_t temp_xfrac;
   angle_t angle;
 
-  a = consoleactive ?
-      (current_height-viewwindowy) < 0 ? -1: current_height-viewwindowy
-                    : -1;
+  a = (consoleactive
+    ? (current_height-viewwindowy) < 0 ? 0
+    : current_height-viewwindowy : 0)
+    -1;
   
   // opening / clipping determination
   for (i=0 ; i<viewwidth ; i++)
@@ -223,8 +231,10 @@ void R_ClearPlanes(void)
   // left to right mapping
   angle = (viewangle-ANG90)>>ANGLETOFINESHIFT;
   // scale will be unit scale at SCREENWIDTH/2 distance
-  basexscale = FixedDiv (finecosine[angle],centerxfrac*zoom);
-  baseyscale = -FixedDiv (finesine[angle],centerxfrac*zoom);
+
+  temp_xfrac = FixedMul(centerxfrac, zoomscale);
+  basexscale = FixedDiv (finecosine[angle], temp_xfrac);
+  baseyscale = -FixedDiv (finesine[angle], temp_xfrac);
 
   num_visplanes = 0;    // reset
 }
@@ -355,110 +365,113 @@ static void do_draw_plane(visplane_t *pl)
 {
   register int x;
 
-  if (pl->minx <= pl->maxx)
-    if (pl->picnum == skyflatnum || pl->picnum & PL_SKYFLAT)  // sky flat
-      {
-	int texture;
-	angle_t an, flip;
+  if (pl->minx > pl->maxx)
+    return;
 
-	// killough 10/98: allow skies to come from sidedefs.
-	// Allows scrolling and/or animated skies, as well as
-	// arbitrary multiple skies per level without having
-	// to use info lumps.
-
-	an = viewangle;
-
-	if (pl->picnum & PL_SKYFLAT)
-	  { 
-	    // Sky Linedef
-	    const line_t *l = &lines[pl->picnum & ~PL_SKYFLAT];
-
-	    // Sky transferred from first sidedef
-	    const side_t *s = *l->sidenum + sides;
-
-	    // Texture comes from upper texture of reference sidedef
-	    texture = texturetranslation[s->toptexture];
-
-	    // Horizontal offset is turned into an angle offset,
-	    // to allow sky rotation as well as careful positioning.
-	    // However, the offset is scaled very small, so that it
-	    // allows a long-period of sky rotation.
-
-	    an += s->textureoffset;
-
-	    // Vertical offset allows careful sky positioning.
-
-	    dc_texturemid = s->rowoffset - 28*FRACUNIT;
-
-	    // We sometimes flip the picture horizontally.
-	    //
-	    // Doom always flipped the picture, so we make it optional,
-	    // to make it easier to use the new feature, while to still
-	    // allow old sky textures to be used.
-
-	    flip = l->special==272 ? 0u : ~0u;
-	  }
-	else 	 // Normal Doom sky, only one allowed per level
-	  {
-            dc_texturemid = skytexturemid;    // Default y-offset
-            texture = skytexture;             // Default texture
-            flip = 0;                         // Doom flips it
-	  }
-
-        // Sky is always drawn full bright, i.e. colormaps[0] is used.
-        // Because of this hack, sky is not affected by INVUL inverse mapping.
-	//
-	// killough 7/19/98: fix hack to be more realistic:
-
-	if (comp[comp_skymap] || !(dc_colormap = fixedcolormap))
-	  dc_colormap = fullcolormap;          // killough 3/20/98
-
-        dc_texheight = (textureheight[texture])>>FRACBITS; // killough
-
-        dc_iscale = pspriteiscale>>stretchsky;
-
-	// killough 10/98: Use sky scrolling offset, and possibly flip picture
-        for (x = pl->minx; (dc_x = x) <= pl->maxx; x++)
-          if ((dc_yl = pl->top[x]) <= (dc_yh = pl->bottom[x]))
+  if (pl->picnum == skyflatnum || pl->picnum & PL_SKYFLAT)  // sky flat
+    {
+      int texture;
+      angle_t an, flip;
+      
+      // killough 10/98: allow skies to come from sidedefs.
+      // Allows scrolling and/or animated skies, as well as
+      // arbitrary multiple skies per level without having
+      // to use info lumps.
+      
+      an = viewangle;
+      
+      if (pl->picnum & PL_SKYFLAT)
+	{ 
+	  // Sky Linedef
+	  const line_t *l = &lines[pl->picnum & ~PL_SKYFLAT];
+	  
+	  // Sky transferred from first sidedef
+	  const side_t *s = *l->sidenum + sides;
+	  
+	  // Texture comes from upper texture of reference sidedef
+	  texture = texturetranslation[s->toptexture];
+	  
+	  // Horizontal offset is turned into an angle offset,
+	  // to allow sky rotation as well as careful positioning.
+	  // However, the offset is scaled very small, so that it
+	  // allows a long-period of sky rotation.
+	  
+	  an += s->textureoffset;
+	  
+	  // Vertical offset allows careful sky positioning.
+	  
+	  dc_texturemid = s->rowoffset - 28*FRACUNIT;
+	  
+	  // We sometimes flip the picture horizontally.
+	  //
+	  // Doom always flipped the picture, so we make it optional,
+	  // to make it easier to use the new feature, while to still
+	  // allow old sky textures to be used.
+	  
+	  flip = l->special==272 ? 0u : ~0u;
+	}
+      else 	 // Normal Doom sky, only one allowed per level
+	{
+	  dc_texturemid = skytexturemid;    // Default y-offset
+	  texture = skytexture;             // Default texture
+	  flip = 0;                         // Doom flips it
+	}
+      
+      // Sky is always drawn full bright, i.e. colormaps[0] is used.
+      // Because of this hack, sky is not affected by INVUL inverse mapping.
+      //
+      // killough 7/19/98: fix hack to be more realistic:
+      
+      if (comp[comp_skymap] || !(dc_colormap = fixedcolormap))
+	dc_colormap = fullcolormap;          // killough 3/20/98
+      
+      dc_texheight = (textureheight[texture])>>FRACBITS; // killough
+      
+      dc_iscale = pspriteiscale>>stretchsky;
+      
+      // killough 10/98: Use sky scrolling offset, and possibly flip picture
+      for (x = pl->minx; (dc_x = x) <= pl->maxx; x++)
+	if ((dc_yl = pl->top[x]) <= (dc_yh = pl->bottom[x]))
           {
-            dc_source = R_GetColumn(texture,
-             ((an + xtoviewangle[x])^flip) >> (ANGLETOSKYSHIFT));
+            dc_source = 
+	      R_GetColumn(texture,
+			  ((an + xtoviewangle[x])^flip) >> (ANGLETOSKYSHIFT));
             colfunc();
           }
-      }
-    else      // regular flat
-      {
-        int stop, light;
-        int swirling = 0;
-
-        swirling = flattranslation[pl->picnum] == -1;
-        ds_source =  swirling ?
-                R_DistortedFlat(pl->picnum):
-         W_CacheLumpNum(firstflat + flattranslation[pl->picnum],
-                                   PU_STATIC);
-        trans = swirling;
-
-        xoffs = pl->xoffs;  // killough 2/28/98: Add offsets
-        yoffs = pl->yoffs;
-        planeheight = abs(pl->height-viewz);
-        light = (pl->lightlevel >> LIGHTSEGSHIFT) + extralight;
-        trans = pl->trans;
-
-        if (light >= LIGHTLEVELS)
-          light = LIGHTLEVELS-1;
-
-        if (light < 0)
-          light = 0;
-
-        stop = pl->maxx + 1;
-        pl->top[pl->minx-1] = pl->top[stop] = 0xffff;
-        planezlight = pl->colormap[light];//zlight[light];
-
-        for (x = pl->minx ; x <= stop ; x++)
-          R_MakeSpans(x,pl->top[x-1],pl->bottom[x-1],pl->top[x],pl->bottom[x]);
-
-        if(!swirling) Z_ChangeTag (ds_source, PU_CACHE);
-      }
+    }
+  else      // regular flat
+    {
+      int stop, light;
+      int swirling = 0;
+      
+      swirling = flattranslation[pl->picnum] == -1;
+      ds_source =  swirling ?
+	R_DistortedFlat(pl->picnum):
+	W_CacheLumpNum(firstflat + flattranslation[pl->picnum],
+		       PU_STATIC);
+      trans = swirling;
+      
+      xoffs = pl->xoffs;  // killough 2/28/98: Add offsets
+      yoffs = pl->yoffs;
+      planeheight = abs(pl->height-viewz);
+      light = (pl->lightlevel >> LIGHTSEGSHIFT) + extralight;
+      trans = pl->trans;
+      
+      if (light >= LIGHTLEVELS)
+	light = LIGHTLEVELS-1;
+      
+      if (light < 0)
+	light = 0;
+      
+      stop = pl->maxx + 1;
+      pl->top[pl->minx-1] = pl->top[stop] = 0xffff;
+      planezlight = pl->colormap[light];//zlight[light];
+      
+      for (x = pl->minx ; x <= stop ; x++)
+	R_MakeSpans(x,pl->top[x-1],pl->bottom[x-1],pl->top[x],pl->bottom[x]);
+      
+      if(!swirling) Z_ChangeTag (ds_source, PU_CACHE);
+    }
 }
 
 //

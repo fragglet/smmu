@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Zone Memory Allocation. Neat.
@@ -118,9 +125,9 @@ static size_t virtual_memory;
 
 int printstats;                    // killough 8/23/98
 
-char *Z_PrintStats(void)            // Print allocation statistics
+void Z_PrintStats(void)            // Print allocation statistics
 {
-  char tempstr[128];
+  static char tempstr[128];
 
   if (printstats)
     {
@@ -129,7 +136,7 @@ char *Z_PrintStats(void)            // Print allocation statistics
 	virtual_memory;
       double s = 100.0 / total_memory;
 
-      sprintf(tempstr,
+      doom_printf(
               "%-5lu\t%6.01f%%\tstatic\n"
 	      "%-5lu\t%6.01f%%\tpurgable\n"
 	      "%-5lu\t%6.01f%%\tfree\n"
@@ -148,9 +155,7 @@ char *Z_PrintStats(void)            // Print allocation statistics
 	      virtual_memory*s,
 	      total_memory
 	      );
-      return tempstr;
     }
-    return "";          // empty string
 }
 #endif
 

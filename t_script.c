@@ -1,12 +1,30 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // scripting.
 //
 // delayed scripts, running scripts, console cmds etc in here
 // the interface between FraggleScript and the rest of the game
 //
-// By Simon Hoawrd
+// By Simon Howard
 //
 //----------------------------------------------------------------------------
 
@@ -14,7 +32,6 @@
 #include "c_io.h"
 #include "c_net.h"
 #include "c_runcmd.h"
-#include "d_net.h"
 #include "p_info.h"
 #include "p_mobj.h"
 #include "p_spec.h"
@@ -26,15 +43,30 @@
 #include "t_vari.h"
 #include "t_func.h"
 
-
 void clear_runningscripts();
+
+//                  script tree:
+//
+//                     global_script
+//                  /                 \.
+//           hubscript                 thingscript
+//          /         \                  /     \.
+//    levelscript    [levelscript]    ... scripts ...
+//     /      \          /      \.
+//  ... scripts...   ... scripts ...
+//
 
 // the level script is just the stuff put in the wad,
 // which the other scripts are derivatives of
 script_t levelscript;
 
+// the thing script is the THINGSCR wad lump which
+// is used to define scripts for the dehacked
+// startscript codepointer
+script_t thingscript;
+
 // the individual scripts
-script_t *scripts[MAXSCRIPTS];       // the scripts
+//script_t *scripts[MAXSCRIPTS];       // the scripts
 mobj_t *t_trigger;
 
 runningscript_t runningscripts;        // first in chain
@@ -49,26 +81,22 @@ void T_Init()
   init_functions();
 }
 
-//     T_ClearScripts()
 //
-//      called at level start, clears all scripts
+// T_ClearScripts()
+//
+// called at level start, clears all scripts
 //
 
 void T_ClearScripts()
 {
   int i;
   
-  // clear the indiv. scripts themselves
-  
-  for(i=0; i<MAXSCRIPTS; i++)
-    scripts[i] = NULL;
-  
   // stop runningscripts
   clear_runningscripts();
-  
+
   // clear the levelscript
   levelscript.data = Z_Malloc(5, PU_LEVEL, 0);  // empty data
-  levelscript.data[0] = NULL;
+  levelscript.data[0] = '\0';
   
   levelscript.scriptnum = -1;
   levelscript.parent = &hub_script;
@@ -81,6 +109,45 @@ void T_ClearScripts()
     }
 }
 
+void T_LoadThingScript()
+{
+  char *scriptlump;
+  int lumpnum, lumplen;
+  
+  if(thingscript.data)
+    Z_Free(thingscript.data);
+
+  // load lump into thingscript.data
+
+  // get lumpnum, lumplen
+  
+  lumpnum = W_CheckNumForName("THINGSCR");
+  if(lumpnum == -1)
+    return;
+  
+  lumplen = W_LumpLength(lumpnum);
+
+  // alloc space for lump and copy lump data into it
+  
+  thingscript.data = Z_Malloc(lumplen+10, PU_STATIC, 0);
+  scriptlump = W_CacheLumpNum(lumpnum, PU_CACHE);
+
+  memcpy(thingscript.data, scriptlump, lumplen);
+
+  // add '\0' to end of string
+
+  thingscript.data[lumplen] = '\0';
+
+  // preprocess script
+
+  preprocess(&thingscript);
+
+  // run script
+
+  thingscript.trigger = players[0].mo;
+  run_script(&thingscript);  
+}
+
 void T_PreprocessScripts()
 {
   // run the levelscript first
@@ -91,16 +158,45 @@ void T_PreprocessScripts()
   
   preprocess(&levelscript);
   run_script(&levelscript);
+
+  // load and run the thing script
+
+  T_LoadThingScript();
 }
 
 void T_RunScript(int n)
 {
+  script_t *script;
+  
   if(n<0 || n>=MAXSCRIPTS) return;
-  if(!scripts[n]) return;
+
+  // use the level's child script script n
+  script = levelscript.children[n];
+  if(!script) return;
+ 
+  script->trigger = t_trigger;    // save trigger in script
   
-  scripts[n]->trigger = t_trigger;        // save trigger in script
+  run_script(script);
+}
+
+// T_RunThingScript:
+// identical to T_RunScript but runs a script
+// from the thingscript list rather than the
+// levelscript list
+
+void T_RunThingScript(int n)
+{
+  script_t *script;
   
-  run_script(scripts[n]);
+  if(n<0 || n>=MAXSCRIPTS) return;
+
+  // use the level's child script script n
+  script = thingscript.children[n];
+  if(!script) return;
+ 
+  script->trigger = t_trigger;    // save trigger in script
+  
+  run_script(script);
 }
 
 // console scripting debugging commands
@@ -114,9 +210,11 @@ CONSOLE_COMMAND(t_dump, 0)
       C_Printf("usage: T_DumpScript <scriptnum>\n");
       return;
     }
-  
-  script = !strcmp(c_argv[0], "global") ? &levelscript :
-    scripts[atoi(c_argv[0])];
+
+  if(!strcmp(c_argv[0], "global"))
+    script = &levelscript;
+  else
+    script = levelscript.children[atoi(c_argv[0])];
   
   if(!script)
     {
@@ -140,7 +238,7 @@ CONSOLE_COMMAND(t_run, cf_level)
   
   sn = atoi(c_argv[0]);
   
-  if(!scripts[sn])
+  if(!levelscript.children[sn])
     {
       C_Printf("script not defined\n");
       return;
@@ -353,6 +451,7 @@ extern mobj_t *trigger_obj;           // in t_func.c
 void SF_StartScript()
 {
   runningscript_t *runscr;
+  script_t *script;
   int i, snum;
   
   if(t_argc != 1)
@@ -360,17 +459,19 @@ void SF_StartScript()
       script_error("incorrect arguments to function\n");
       return;
     }
-  
+
   snum = intvalue(t_argv[0]);
   
-  if(!scripts[snum])
+  script = levelscript.children[snum];
+  
+  if(!script)
     {
       script_error("script %i not defined\n", snum);
     }
   
   runscr = new_runningscript();
-  runscr->script = scripts[snum];
-  runscr->savepoint = scripts[snum]->data; // start at beginning
+  runscr->script = script;
+  runscr->savepoint = script->data; // start at beginning
   runscr->wait_type = wt_none;      // start straight away
 
   // hook into chain at start
@@ -384,7 +485,7 @@ void SF_StartScript()
   // save the script variables 
   for(i=0; i<VARIABLESLOTS; i++)
     {
-      runscr->variables[i] = scripts[snum]->variables[i];
+      runscr->variables[i] = script->variables[i];
       
       // in case we are starting another current_script:
       // remove all the variables from the script variable list
@@ -396,7 +497,6 @@ void SF_StartScript()
     }
   // copy trigger
   runscr->trigger = current_script->trigger;
-
 }
 
 void SF_ScriptRunning()
@@ -517,6 +617,7 @@ void spec_script()
 {
   int scriptnum;
   int datasize;
+  script_t *script;
   
   if(!current_section)
     {
@@ -540,30 +641,33 @@ void spec_script()
       return;
     }
   
-  scripts[scriptnum] = Z_Malloc(sizeof(script_t), PU_LEVEL, 0);
+  script = Z_Malloc(sizeof(script_t), PU_LEVEL, 0);
+
+  // add to scripts list of parent
+  current_script->children[scriptnum] = script;
   
   // copy script data
   // workout script size: -2 to ignore { and }
   datasize = current_section->end - current_section->start - 2;
 
   // alloc extra 10 for safety
-  scripts[scriptnum]->data = Z_Malloc(datasize+10, PU_LEVEL, 0);
+  script->data = Z_Malloc(datasize+10, PU_LEVEL, 0);
  
   // copy from parent script (levelscript) 
   // ignore first char which is {
-  memcpy(scripts[scriptnum]->data, current_section->start+1, datasize);
+  memcpy(script->data, current_section->start+1, datasize);
 
-  // tack on a NULL to end the string
-  scripts[scriptnum]->data[datasize] = NULL;
+  // tack on a 0 to end the string
+  script->data[datasize] = '\0';
   
-  scripts[scriptnum]->scriptnum = scriptnum;
-  scripts[scriptnum]->parent = current_script; // remember parent
+  script->scriptnum = scriptnum;
+  script->parent = current_script; // remember parent
   
   // preprocess the script now
-  preprocess(scripts[scriptnum]);
+  preprocess(script);
     
   // restore current_script: usefully stored in new script
-  current_script = scripts[scriptnum]->parent;
+  current_script = script->parent;
 
   // rover may also be changed, but is changed below anyway
   
@@ -572,8 +676,6 @@ void spec_script()
   
   rover = current_section->end + 1;
 }
-
-
 
 /****** scripting command list *******/
 

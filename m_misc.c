@@ -5,16 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Main loop menu stuff.
@@ -34,7 +39,7 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 #include "w_wad.h"
 #include "i_system.h"
 #include "i_sound.h"
-#include "i_video.h"
+#include "v_mode.h"
 #include "v_video.h"
 #include "hu_stuff.h"
 #include "st_stuff.h"
@@ -53,10 +58,12 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 //
 // DEFAULTS
 //
+// sf: this is more or less redundant now
+// i keep it in case anyone needs it
 
 static int config_help;         //jff 3/3/98
-int usemouse;
-int usejoystick;
+extern int usemouse;
+extern int usejoystick;
 int screenshot_pcx; //jff 3/30/98 // option to output screenshot as pcx or bmp
 extern int mousebfire;
 extern int mousebstrafe;
@@ -142,7 +149,42 @@ default_t defaults[] = {
     "code used by Allegro to select music driver, -1 is autodetect"
   },
 
-#endif
+  { // jff 3/4/98 detect # voices
+    "detect_voices",
+    &detect_voices, NULL,
+    1, {0,1}, dt_number, ss_gen, wad_no,
+    "1 enables voice detection prior to calling install sound"
+  },
+
+  { // killough 10/98
+    "disk_icon",
+    &disk_icon, NULL,
+    1, {0,1}, dt_number, ss_gen, wad_no,
+    "1 to enable flashing icon during disk IO"
+  },
+#endif    /* #ifdef DJGPP */
+
+#ifdef XWIN
+
+  {
+    "grabMouse",
+    &grabMouse, NULL,
+    0, {0,1}, dt_number, ss_gen, wad_no,
+    "keep mouse inside window"
+  },
+
+#endif    /* #ifdef XWIN */
+
+#if defined(DJGPP) | defined(SVGA)
+
+  {
+    "use_vsync",
+    &use_vsync, NULL,
+    1, {0,1}, dt_number, ss_gen, wad_no,
+    "1 to enable wait for vsync to avoid display tearing"
+  },
+
+#endif /* #ifdef DJGPP or #ifdef SVGA */
 
   {
     "s_precache",
@@ -150,14 +192,7 @@ default_t defaults[] = {
     0, {0,1}, dt_number, ss_gen, wad_no,
     "precache sounds at startup"
   },
-#ifdef DJGPP
-  { // jff 3/4/98 detect # voices
-    "detect_voices",
-    &detect_voices, NULL,
-    1, {0,1}, dt_number, ss_gen, wad_no,
-    "1 enables voice detection prior to calling install sound"
-  },
-#endif
+
   {
     "v_mode",
     &v_mode, NULL,
@@ -171,28 +206,14 @@ default_t defaults[] = {
     0, {0,1}, dt_number, ss_gen, wad_no,
     "start up SMMU in text mode"
   },
-#ifdef DJGPP
-  {
-    "use_vsync",
-    &use_vsync, NULL,
-    1, {0,1}, dt_number, ss_gen, wad_no,
-    "1 to enable wait for vsync to avoid display tearing"
-  },
-#endif
+
   {
     "realtic_clock_rate",
     &realtic_clock_rate, NULL,
     100, {10,1000}, dt_number, ss_gen, wad_no,
     "Percentage of normal speed (35 fps) realtic clock runs at"
   },
-#ifdef DJGPP
-  { // killough 10/98
-    "disk_icon",
-    &disk_icon, NULL,
-    1, {0,1}, dt_number, ss_gen, wad_no,
-    "1 to enable flashing icon during disk IO"
-  },
-#endif
+
   { // killough 2/21/98
     "pitched_sounds",
     &pitched_sounds, NULL,
@@ -642,7 +663,12 @@ default_t defaults[] = {
   // to default.cfg. For the printable keys (i.e. alphas, numbers)
   // the Doom Code is the ascii code.
 
-  {
+  // sf: just have everything use doom codes, i'm guessing this is 
+  // left over from when boom users had to use the external scancode
+  // program to set their key bindings
+
+  /*
+    {
     "key_right",
     &key_right, NULL,
     KEYD_RIGHTARROW, {0,255}, dt_number, ss_keys, wad_no,
@@ -1123,7 +1149,7 @@ default_t defaults[] = {
     0, {0,255}, dt_number, ss_keys, wad_no,
     "key to centre the view"
   },
-
+  */
   {
     "automlook",
     &automlook, NULL,
@@ -1425,34 +1451,6 @@ default_t defaults[] = {
     &mapcolor_sngl, NULL,
     208, {0,255}, dt_number, ss_auto, wad_yes,
     "color used for the single player arrow"
-  },
-
-  { // green
-    "mapcolor_ply1",
-    &mapcolor_plyr[0], NULL,
-    112, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the green player arrow"
-  },
-
-  { // lt gray
-    "mapcolor_ply2",
-    &mapcolor_plyr[1], NULL,
-    88, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the gray player arrow"
-  },
-
-  { // brown
-    "mapcolor_ply3",
-    &mapcolor_plyr[2], NULL,
-    64, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the brown player arrow"
-  },
-
-  { // red
-    "mapcolor_ply4",
-    &mapcolor_plyr[3], NULL,
-    176, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the red player arrow"
   },
 
   {  // purple                     // killough 8/8/98
@@ -1809,10 +1807,10 @@ void M_SaveDefaults (void)
       //jff 4/10/98 kill super-hack on pointer value
       // killough 3/6/98:
       // use spaces instead of tabs for uniform justification
+      // sf: removed I_DoomCode2ScanCode
 
-      if (!dp->isstr ? fprintf(f, "%-25s %5i\n", dp->name, 
-			       strncmp(dp->name, "key_", 4) ? value :
-			       I_DoomCode2ScanCode(value)) == EOF :
+      if (!dp->isstr ?
+	  fprintf(f, "%-25s %5i\n", dp->name, value) == EOF :
 	  fprintf(f,"%-25s \"%s\"\n", dp->name, (char *) value) == EOF)
 	goto error;
     }
@@ -1820,7 +1818,7 @@ void M_SaveDefaults (void)
   if (fclose(f) == EOF)
     {
     error:
-      I_Error("Could not write defaults to %s: %s\n%s left unchanged\n",
+      printf("Could not write defaults to %s: %s\n%s left unchanged\n",
 	      tmpfile, errno ? strerror(errno): "(Unknown Error)",defaultfile);
       return;
     }
@@ -1828,7 +1826,7 @@ void M_SaveDefaults (void)
   remove(defaultfile);
 
   if (rename(tmpfile, defaultfile))
-    I_Error("Could not write defaults to %s: %s\n", defaultfile,
+    printf("Could not write defaults to %s: %s\n", defaultfile,
 	    errno ? strerror(errno): "(Unknown Error)");
 }
 
@@ -1890,8 +1888,9 @@ boolean M_ParseOption(const char *p, boolean wad)
       if (sscanf(strparm, "%i", &parm) != 1)
 	return 1;                       // Not A Number
 
-      if (!strncmp(name, "key_", 4))    // killough
-	parm = I_ScanCode2DoomCode(parm);
+      // sf: remove ScanCode2DoomCode
+      //      if (!strncmp(name, "key_", 4))    // killough
+      //	parm = I_ScanCode2DoomCode(parm);
 
       //jff 3/4/98 range check numeric parameters
       if ((dp->limit.min == UL || dp->limit.min <= parm) &&
@@ -2054,10 +2053,10 @@ boolean M_WriteFile(char const *name, void *source, int length)
   if (!(fp = fopen(name, "wb")))       // Try opening file
     return 0;                          // Could not open file for writing
 
-  I_BeginRead();                       // Disk icon on
+  V_BeginRead();                       // Disk icon on
   length = fwrite(source, 1, length, fp) == length;   // Write data
   fclose(fp);
-  I_EndRead();                         // Disk icon off
+  V_EndRead();                         // Disk icon off
 
   if (!length)                         // Remove partially written file
     remove(name);
@@ -2080,15 +2079,16 @@ int M_ReadFile(char const *name, byte **buffer)
     {
       size_t length;
 
-      I_BeginRead();
+      V_BeginRead();
       fseek(fp, 0, SEEK_END);
       length = ftell(fp);
       fseek(fp, 0, SEEK_SET);
       *buffer = Z_Malloc(length, PU_STATIC, 0);
+
       if (fread(*buffer, 1, length, fp) == length)
 	{
 	  fclose(fp);
-	  I_EndRead();
+	  V_EndRead();
 	  return length;
 	}
       fclose(fp);
@@ -2234,7 +2234,7 @@ typedef struct tagBITMAPINFOHEADER
 
 #define SafeWrite(data,size,number,st) do {   \
     if (fwrite(data,size,number,st) < (number)) \
-   return fclose(st), I_EndRead(), false; } while(0)
+   return fclose(st), V_EndRead(), false; } while(0)
 
 //
 // WriteBMPfile
@@ -2252,7 +2252,7 @@ boolean WriteBMPfile(char *filename, byte *data, int width,
   char zero=0;
   ubyte_t c;
 
-  I_BeginRead();              // killough 10/98
+  V_BeginRead();              // killough 10/98
 
   fhsiz = sizeof(BITMAPFILEHEADER);
   ihsiz = sizeof(BITMAPINFOHEADER);
@@ -2315,7 +2315,7 @@ boolean WriteBMPfile(char *filename, byte *data, int width,
 
       fclose(st);
     }
-  return I_EndRead(), true;       // killough 10/98
+  return V_EndRead(), true;       // killough 10/98
 }
 
 //
@@ -2352,7 +2352,7 @@ void M_ScreenShot (void)
 	  byte *pal = W_CacheLumpName ("PLAYPAL", PU_STATIC);
 	  byte *linear = screens[2];
 
-	  I_ReadScreen(linear);
+	  V_ReadScreen(linear);
 
 	  // save the pcx file
 	  //jff 3/30/98 write pcx or bmp depending on mode

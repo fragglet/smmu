@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:  
 //   the automap code
@@ -22,6 +29,8 @@
 static const char rcsid[] =
   "$Id: am_map.c,v 1.24 1998/05/10 12:05:24 jim Exp $";
 
+#include "c_io.h"
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "d_main.h"
 #include "st_stuff.h"
@@ -37,28 +46,27 @@ static const char rcsid[] =
 #include "d_deh.h"    // Ty 03/27/98 - externalizations
 
 //jff 1/7/98 default automap colors added
-int mapcolor_back;    // map background
-int mapcolor_grid;    // grid lines color
-int mapcolor_wall;    // normal 1s wall color
-int mapcolor_fchg;    // line at floor height change color
-int mapcolor_cchg;    // line at ceiling height change color
-int mapcolor_clsd;    // line at sector with floor=ceiling color
-int mapcolor_rkey;    // red key color
-int mapcolor_bkey;    // blue key color
-int mapcolor_ykey;    // yellow key color
-int mapcolor_rdor;    // red door color  (diff from keys to allow option)
-int mapcolor_bdor;    // blue door color (of enabling one but not other )
-int mapcolor_ydor;    // yellow door color
-int mapcolor_tele;    // teleporter line color
-int mapcolor_secr;    // secret sector boundary color
-int mapcolor_exit;    // jff 4/23/98 add exit line color
-int mapcolor_unsn;    // computer map unseen line color
-int mapcolor_flat;    // line with no floor/ceiling changes
-int mapcolor_sprt;    // general sprite color
-int mapcolor_hair;    // crosshair color
-int mapcolor_sngl;    // single player arrow color
-int mapcolor_plyr[4]; // colors for player arrows in multiplayer
-int mapcolor_frnd;    // colors for friends of player
+int mapcolor_back = 247;    // map background
+int mapcolor_grid = 104;    // grid lines color
+int mapcolor_wall = 181;    // normal 1s wall color
+int mapcolor_fchg = 166;    // line at floor height change color
+int mapcolor_cchg = 231;    // line at ceiling height change color
+int mapcolor_clsd = 231;    // line at sector with floor=ceiling color
+int mapcolor_rkey = 175;    // red key color
+int mapcolor_bkey = 204;    // blue key color
+int mapcolor_ykey = 231;    // yellow key color
+int mapcolor_rdor = 175;    // red door color  (diff from keys to allow option)
+int mapcolor_bdor = 204;    // blue door color (of enabling one but not other )
+int mapcolor_ydor = 231;    // yellow door color
+int mapcolor_tele = 119;    // teleporter line color
+int mapcolor_secr = 176;    // secret sector boundary color
+int mapcolor_exit = 0;    // jff 4/23/98 add exit line color
+int mapcolor_unsn = 96;    // computer map unseen line color
+int mapcolor_flat = 88;    // line with no floor/ceiling changes
+int mapcolor_sprt = 112;    // general sprite color
+int mapcolor_hair = 208;    // crosshair color
+int mapcolor_sngl = 208;    // single player arrow color
+int mapcolor_frnd = 252;    // colors for friends of player
 
 //jff 3/9/98 add option to not show secret sectors until entered
 int map_secret_after;
@@ -70,18 +78,18 @@ int map_secret_after;
 #define FB    0
 
 // automap key binding
-extern int  key_map_right;                                          // phares
-extern int  key_map_left;                                           //    |
-extern int  key_map_up;                                             //    V
-extern int  key_map_down;
-extern int  key_map_zoomin;
-extern int  key_map_zoomout;
-extern int  key_map;
-extern int  key_map_gobig;
-extern int  key_map_follow;
-extern int  key_map_mark;                                           //    ^
-extern int  key_map_clear;                                          //    |
-extern int  key_map_grid;                                           // phares
+int key_map_right = KEYD_RIGHTARROW;
+int key_map_left = KEYD_LEFTARROW;
+int key_map_up = KEYD_UPARROW;
+int key_map_down = KEYD_DOWNARROW;
+int key_map_zoomin = '=';
+int key_map_zoomout = '-';
+int key_map;
+int key_map_gobig = '0';
+int key_map_follow = 'f';
+int key_map_mark = 'm';
+int key_map_clear = 'c';
+int key_map_grid = 'g';
 
 // scale on entry
 #define INITSCALEMTOF (.2*FRACUNIT)
@@ -268,8 +276,6 @@ int markpointnum_max = 0;       // killough 2/22/98
 int followplayer = 1; // specifies whether to follow the player around
 
 static boolean stopped = true;
-
-static angle_t rotation_angle = ANG180/6;
 
 //
 // AM_rotate()
@@ -722,11 +728,6 @@ boolean AM_Responder(event_t* ev)
 
   if (!automapactive)
     {
-      if (ev->type == ev_keydown && ev->data1 == key_map)         // phares
-	{
-	  AM_Start ();
-	  rc = true;
-	}
     }
   else if (ev->type == ev_keydown)
     {
@@ -761,11 +762,6 @@ boolean AM_Responder(event_t* ev)
 	{
 	  mtof_zoommul = M_ZOOMIN;
 	  ftom_zoommul = M_ZOOMOUT;
-	}
-      else if (ch == key_map)
-	{
-	  bigstate = 0;
-	  AM_Stop ();
 	}
       else if (ch == key_map_gobig)
 	{
@@ -887,8 +883,6 @@ void AM_doFollowPlayer(void)
       f_oldloc.x = plr->mo->x;
       f_oldloc.y = plr->mo->y;
     }
-
-  rotation_angle = ANG90 - plr->mo->angle;
 }
 
 //
@@ -1309,8 +1303,6 @@ void AM_drawWalls(void)
       l.a.y = lines[i].v1->y;
       l.b.x = lines[i].v2->x;
       l.b.y = lines[i].v2->y;
-      AM_rotatepoint(&l.a.x, &l.a.y, rotation_angle);
-      AM_rotatepoint(&l.b.x, &l.b.y, rotation_angle);
       // if line has been seen or IDDT has been used
       if (ddt_cheating || (lines[i].flags & ML_MAPPED))
 	{
@@ -1527,10 +1519,6 @@ void AM_drawLineCharacter
   int   i;
   mline_t l;
 
-  AM_rotatepoint(&x, &y, rotation_angle);
-  
-  angle += rotation_angle;
-  
   for (i=0;i<lineguylines;i++)
     {
       l.a.x = lineguy[i].a.x;
@@ -1765,8 +1753,6 @@ void AM_drawMarks(void)
 	mx = markpoints[i].x;
 	my = markpoints[i].y;
 
-	AM_rotatepoint(&mx, &my, rotation_angle);
-	
 	fx = CXMTOF(mx);
 	fy = CYMTOF(my);
 
@@ -1824,6 +1810,29 @@ void AM_Drawer (void)
   AM_drawMarks();
 
   V_MarkRect(f_x, f_y, f_w, f_h);
+}
+
+//============================================================================
+//
+// Console Commands
+//
+//============================================================================
+
+CONSOLE_COMMAND(togglemap, 0)
+{
+  if(automapactive)
+    AM_Stop();
+  else
+    AM_Start();
+}
+
+extern void AM_AddColors();
+
+void AM_AddCommands()
+{
+  C_AddCommand(togglemap);
+
+  AM_AddColors();
 }
 
 //----------------------------------------------------------------------------

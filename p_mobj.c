@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Moving object handling. Spawn functions.
@@ -271,7 +277,8 @@ void P_XYMovement (mobj_t* mo)
 
   // slow down
 
-#if 0  // killough 10/98: this is unused code (except maybe in .deh files?)
+#if 0  
+  // killough 10/98: this is unused code (except maybe in .deh files?)
   if (player && player->mo == mo && player->cheats & CF_NOMOMENTUM)
     {
       // debug option for no sliding at all
@@ -430,13 +437,15 @@ static void P_ZMovement (mobj_t* mo)
       mo->momz = 0;
 
       if (mo->flags & MF_MISSILE)
-	if (ceilingline &&
-	    ceilingline->backsector &&
-	    ceilingline->backsector->ceilingpic == skyflatnum &&
-	    mo->z > ceilingline->backsector->ceilingheight)
-	  P_RemoveMobj(mo);  // don't explode on skies
-	else
-	  P_ExplodeMissile(mo);
+	{
+	  if (ceilingline &&
+	      ceilingline->backsector &&
+	      ceilingline->backsector->ceilingpic == skyflatnum &&
+	      mo->z > ceilingline->backsector->ceilingheight)
+	    P_RemoveMobj(mo);  // don't explode on skies
+	  else
+	    P_ExplodeMissile(mo);
+	}
 
       if (mo->flags & MF_FLOAT && sentient(mo))
 	goto floater;
@@ -727,6 +736,14 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
 
   mobj->colour = (info->flags & MF_TRANSLATION) >> MF_TRANSSHIFT;
 
+  // sf: move kills/items check here, for FraggleScript
+  // ignore friends
+  if(mobj->flags & MF_COUNTKILL && !(mobj->flags & MF_FRIEND))
+      totalkills++;
+      
+  if(mobj->flags & MF_COUNTITEM)
+    totalitems++;
+    
   return mobj;
 }
 
@@ -806,28 +823,52 @@ void P_RemoveMobj (mobj_t *mobj)
 // killough 8/24/98: rewrote to use hashing
 //
 
+// sf: fix thing hash for dynamic wad loading
+
+static struct
+{ int first, next; }
+*thing_hash;
+
+static void P_BuildThingHash()
+{
+  int i;
+  
+  if(thing_hash)
+    Z_Free(thing_hash);
+
+  thing_hash = Z_Malloc(sizeof *thing_hash * NUMMOBJTYPES,
+			PU_CACHE, (void **) &thing_hash);
+
+  for (i=0; i<NUMMOBJTYPES; i++)
+    thing_hash[i].first = NUMMOBJTYPES;
+  for (i=0; i<NUMMOBJTYPES; i++)
+    if (mobjinfo[i].doomednum != -1)
+      {
+	unsigned h = (unsigned) mobjinfo[i].doomednum % NUMMOBJTYPES;
+	thing_hash[i].next = thing_hash[h].first;
+	thing_hash[h].first = i;
+      }
+}
+
+void P_ClearThingHash()
+{
+  if(thing_hash)
+    {
+      Z_Free(thing_hash);
+      thing_hash = NULL;
+    }
+}
+
 int P_FindDoomedNum(unsigned type)
 {
-  static struct { int first, next; } *hash;
   register int i;
 
-  if (!hash)
-    {
-      hash = Z_Malloc(sizeof *hash * NUMMOBJTYPES, PU_CACHE, (void **) &hash);
-      for (i=0; i<NUMMOBJTYPES; i++)
-	hash[i].first = NUMMOBJTYPES;
-      for (i=0; i<NUMMOBJTYPES; i++)
-	if (mobjinfo[i].doomednum != -1)
-	  {
-	    unsigned h = (unsigned) mobjinfo[i].doomednum % NUMMOBJTYPES;
-	    hash[i].next = hash[h].first;
-	    hash[h].first = i;
-	  }
-    }
-  
-  i = hash[type % NUMMOBJTYPES].first;
+  if (!thing_hash)
+    P_BuildThingHash();
+    
+  i = thing_hash[type % NUMMOBJTYPES].first;
   while (i < NUMMOBJTYPES && mobjinfo[i].doomednum != type)
-    i = hash[i].next;
+    i = thing_hash[i].next;
   return i;
 }
 
@@ -940,13 +981,12 @@ void P_SpawnPlayer (mapthing_t* mthing)
       p->cards[i] = true;
 
   if (mthing->type-1 == consoleplayer)
-  {
+    {
       ST_Start(); // wake up the status bar
       HU_Start(); // wake up the heads up text
-  }
+    }
   if(mthing->type-1 == displayplayer)
-      P_ResetChasecam(); //sf
-
+    P_ResetChasecam(); //sf
 }
 
 
@@ -1007,11 +1047,11 @@ mobj_t *P_SpawnMapThing (mapthing_t* mthing)
     }
 
   if(mthing->type == 5003)
-  {
-        // save for intermissions
-        WI_AddCamera(mthing);
-        return NULL;
-  }
+    {
+      // save for intermissions
+      WI_AddCamera(mthing);
+      return NULL;
+    }
 
   // check for players specially
 
@@ -1111,13 +1151,6 @@ spawnit:
       P_UpdateThinker(&mobj->thinker);     // transfer friendliness flag
     }
 
-  // killough 7/20/98: exclude friends
-  if (!((mobj->flags ^ MF_COUNTKILL) & (MF_FRIEND | MF_COUNTKILL)))
-    totalkills++;
-
-  if (mobj->flags & MF_COUNTITEM)
-    totalitems++;
-
   mobj->angle = R_WadToAngle(mthing->angle);
   if (mthing->options & MTF_AMBUSH)
     mobj->flags |= MF_AMBUSH;
@@ -1181,30 +1214,30 @@ void P_SpawnBlood(fixed_t x,fixed_t y,fixed_t z,int damage)
 
 void P_SpawnParticle(fixed_t x, fixed_t y, fixed_t z)
 {
-        P_SpawnMobj(x, y, z, MT_PARTICLE);
+  P_SpawnMobj(x, y, z, MT_PARTICLE);
 }
 
 
 void P_ParticleLine(mobj_t *source, mobj_t *dest)
 {
-        fixed_t sourcex, sourcey, sourcez;
-        fixed_t destx, desty, destz;
-        int linedetail;
-        int j;
-
-        sourcex = source->x; sourcey = source->y;
-        destx = dest->x; desty = dest->y;
-        sourcez = source->z + (source->info->height/2);
-        destz = dest->z + (dest->info->height/2);
-        linedetail = P_AproxDistance(destx - sourcex, desty - sourcey)
+  fixed_t sourcex, sourcey, sourcez;
+  fixed_t destx, desty, destz;
+  int linedetail;
+  int j;
+  
+  sourcex = source->x; sourcey = source->y;
+  destx = dest->x; desty = dest->y;
+  sourcez = source->z + (source->info->height/2);
+  destz = dest->z + (dest->info->height/2);
+  linedetail = P_AproxDistance(destx - sourcex, desty - sourcey)
                                 / FRACUNIT;
-
-                // make the line
-       for(j=0; j<linedetail; j++)
-         P_SpawnParticle(
-                sourcex + ((destx - source->x)*j)/linedetail,
-                sourcey + ((desty - source->y)*j)/linedetail,
-                sourcez + ((destz - source->z)*j)/linedetail);
+  
+  // make the line
+  for(j=0; j<linedetail; j++)
+    P_SpawnParticle(
+		    sourcex + ((destx - source->x)*j)/linedetail,
+		    sourcey + ((desty - source->y)*j)/linedetail,
+		    sourcez + ((destz - source->z)*j)/linedetail);
 }
 
 //

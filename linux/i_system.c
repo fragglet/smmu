@@ -5,17 +5,24 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
+//        Linux-specific system code
 //
 //-----------------------------------------------------------------------------
 
@@ -24,12 +31,12 @@ rcsid[] = "$Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $";
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <sys/time.h>
 
 #include "../c_runcmd.h"
 #include "../i_system.h"
 #include "../i_sound.h"
-#include "../i_video.h"
 #include "../doomstat.h"
 #include "../m_misc.h"
 #include "../g_game.h"
@@ -73,10 +80,13 @@ int I_GetTime_RealTime (void)
   thistimereply = (tv.tv_sec * TICRATE + (tv.tv_usec * TICRATE) / 1000000);
 
   // Fix for time problem
-  if (!basetime) {
-    basetime = thistimereply; thistimereply = 0;
-  } else thistimereply -= basetime;
-
+  if (!basetime) 
+    {
+      basetime = thistimereply; thistimereply = 0;
+    }
+  else
+    thistimereply -= basetime;
+  
   if (thistimereply < lasttimereply)
     thistimereply = lasttimereply;
 
@@ -88,7 +98,7 @@ void I_SetTime(int newtime)
   realtic = newtime;
 }
 
-        //sf: made a #define, changed to 16
+//sf: made a #define, changed to 16
 #define CLOCK_BITS 16
 
 // killough 4/13/98: Make clock rate adjustable by scale factor
@@ -166,6 +176,17 @@ void I_Init(void)
 }
 
 //
+// I_Sleep
+//
+// From lxdoom: release time to the os
+//
+
+void I_Sleep(int time)
+{
+  usleep(time);
+}
+
+//
 // I_Quit
 //
 
@@ -180,7 +201,7 @@ void I_Quit (void)
   if (demorecording)
     G_CheckDemoStatus();
 
-        // sf : rearrange this so the errmsg doesn't get messed up
+  // sf : rearrange this so the errmsg doesn't get messed up
   if (*errmsg)
     puts(errmsg);   // killough 8/8/98
   else
@@ -215,33 +236,34 @@ void I_Error(const char *error, ...) // killough 3/20/98: add const
 
 void I_EndDoom(void)
 {
+  printf("terminated normally\n");
 }
 
         // check for ESC button pressed, regardless of keyboard handler
 int I_CheckAbort()
 {
-        if(keyboard_installed)
-        {
-           event_t *ev;
-
-           I_StartTic ();       // build events
-
-                // use the keyboard handler
-           for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
-           { 
-              ev = &events[eventtail]; 
-              if (ev->type == ev_keydown && ev->data1 == key_escape)      // phares
-              {                   // abort
-                return true;
-              }
-           }
-        }
-        else
-        {
-                // check normal keyboard handler
-           while(1) if(getchar() == 27) return true;
-        }
-        return false;
+  if(keyboard_installed)
+    {
+      event_t *ev;
+      
+      V_StartTic ();       // build events
+      
+      // use the keyboard handler
+      for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
+	{ 
+	  ev = &events[eventtail]; 
+	  if (ev->type == ev_keydown && ev->data1 == key_escape)      // phares
+	    {                   // abort
+	      return true;
+	    }
+	}
+    }
+  else
+    {
+      // check normal keyboard handler
+      while(1) if(getchar() == 27) return true;
+    }
+  return false;
 }
 
 /*************************

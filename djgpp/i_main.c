@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Main program, simply calls D_DoomMain high level loop.
@@ -81,8 +87,8 @@ int main(int argc, char **argv)
 
   allegro_init();
   Z_Init();                  // 1/18/98 killough: start up memory stuff first
-  atexit(I_Quit);
-  //  signal(SIGSEGV, handler);
+    atexit(I_Quit);
+    signal(SIGSEGV, handler);
   signal(SIGTERM, handler);
   signal(SIGILL,  handler);
   signal(SIGFPE,  handler);

@@ -1,10 +1,10 @@
-MAKEFLGS = --no-print-directory
+MAKEFLAGS = --no-print-directory
 SRC=src
 
-all : 
+all :
 	@echo enter platform type, eg.
 	@echo make djgpp             -- for djgpp dos
-	@echo make unix              -- for unix (linux etc)
+	@echo make linux             -- for linux
 
 djgpp :
 	make $(MAKEFLGS) build EXTENSION=".exe" 
@@ -12,7 +12,7 @@ djgpp :
 unix :
 	make $(MAKEFLGS) build EXTENSION=
 
-# defines 
+# defines
 linux : unix
 dos : djgpp
 

@@ -1,3 +1,25 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+
+#ifndef __SER_MAIN__
+#define __SER_MAIN__
+
 #include <conio.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,8 +37,6 @@
 #define OUTPUT(a,b)          outportb((a),(b))
 #define CLI()                disable()
 #define STI()                enable()
-
-typedef enum {ANSWER, DIAL, CONNECT} connect_t;
 
 #define TRANSMIT_HOLDING_REGISTER            0x00
 #define RECEIVE_BUFFER_REGISTER              0x00
@@ -84,9 +104,14 @@ typedef struct
   unsigned char	data[QUESIZE];
 } que_t;
 
-void Ser_Init();
+extern que_t inque, outque;
+extern int uart;
 
-extern int ser_active;
+void InitPort();
+void ShutdownPort();
 
-extern int comport;
+void jump_start(void);
+int read_byte(void);
+void write_byte(int c);
 
+#endif /* #ifndef __SER_MAIN__ */

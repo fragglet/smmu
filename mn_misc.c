@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Menu - misc functions
 //
 // Pop up alert/question messages
@@ -14,6 +32,7 @@
 
 #include "doomstat.h"
 #include "d_main.h"
+#include "p_info.h"
 #include "s_sound.h"
 #include "v_video.h"
 #include "v_misc.h"
@@ -23,10 +42,11 @@
 #include "mn_engin.h"
 #include "mn_misc.h"
 
-/////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Pop-up Messages
 //
+//===========================================================================
 
 char popup_message[128];
 char *popup_message_command;            // console command to run
@@ -63,7 +83,7 @@ static void WriteCentredText(char *message)
     {
       if(*rover == '\n')
 	{
-	  *addrover = NULL;  // end string
+	  *addrover = '\0';  // end string
 	  x = (SCREENWIDTH - V_StringWidth(tempbuf)) / 2;
 	  V_WriteText(tempbuf, x, y);
 	  addrover = tempbuf;  // reset addrover
@@ -79,13 +99,22 @@ static void WriteCentredText(char *message)
 
   // dont forget the last line.. prob. not \n terminated
 
-  *addrover = NULL;
+  *addrover = '\0';
   x = (SCREENWIDTH - V_StringWidth(tempbuf)) / 2;
   V_WriteText(tempbuf, x, y);
 }
 
 void MN_PopupDrawer()
 {
+  if(gamestate == GS_CONSOLE)
+    {
+      int wid = V_StringWidth(popup_message) + 10;
+      int height = V_StringHeight(popup_message) + 3;
+      V_DrawBox((SCREENWIDTH - wid) / 2,
+		(SCREENHEIGHT - height) / 2 - 3,
+		wid, height);
+    }
+
   WriteCentredText(popup_message);
 }
 
@@ -169,10 +198,11 @@ void MN_Question(char *message, char *command)
   popup_message_command = command;
 }
 
-//////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Credits Screens
 //
+//===========================================================================
 
 void MN_DrawCredits(void);
 
@@ -263,10 +293,11 @@ void MN_DrawCredits(void)
 	      FC_GRAY "Programming:" FC_RED " Simon Howard\n"
 	      FC_GRAY "Graphics:" FC_RED " Bob Satori\n"
 	      FC_GRAY "Level editing/start map:" FC_RED " Derek MacDonald\n"
+	      FC_GRAY "Some linux portions from " FC_GRAY "lxdoom" FC_RED
+	         "by Colin Phipps\n"
 	      "\n"
 	      "\n"
-	      "Copyright(C) 1999 Simon Howard\n"
-	      FC_GRAY"         http://fraggle.tsx.org/",
+	      FC_GRAY"http://fraggle.tsx.org/",
 	      10, 60);
 }
 
@@ -353,10 +384,11 @@ CONSOLE_COMMAND(credits, 0)
   viewing_helpscreen = 0;
 }
 
-///////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Automap Colour selection
 //
+//===========================================================================
 
 // selection of automap colours for menu.
 
@@ -455,9 +487,67 @@ void MN_SelectColour(char *variable_name)
   selected_colour = *(int *)colour_command->variable->variable;
 }
 
+//--------------------------------------------------------------------
+//
+// FraggleScript Menu selector thingummy
+//
 
-void MN_AddMiscCommands()
+// Level authors can implant their own menu into their
+// level, and have the player select commands eg. "call
+// for air support" which could start a script to set off
+// explosions in an area of the level
+
+// unfinished
+
+menu_t menu_levelinfo =
+{
+  {
+    {it_title,        FC_GOLD "level info"},
+    {it_gap},
+    {it_constant,     "map",               "mapname"},
+    {it_constant,     "level name",        "levelname"},
+    {it_constant,     "creator",           "creator"},
+    {it_gap},
+    {it_runcmd,       "<- back",           "mn_prevmenu"},
+    {it_gap},
+    {it_end},
+  },
+  80, 45,               // x,y offsets
+  mf_background,
+};
+
+CONSOLE_COMMAND(mn_levelinfo, 0)
+{
+  MN_StartMenu(&menu_levelinfo);
+}
+
+menu_t menu_levelcmds =
+{
+  {},
+  20, 15,            // x, y offsets
+  mf_leftaligned,
+};
+
+extern char *levelname;
+
+CONSOLE_COMMAND(mn_levelcmds, 0)
+{
+  int i = 0;
+
+  // title
+  
+  menu_levelcmds.menuitems[i].type = it_title;
+  menu_levelcmds.menuitems[i++].description = levelname;
+
+  menu_levelcmds.menuitems[i++].type = it_gap;
+
+  // fill in level commands
+  
+}
+
+void MN_Misc_AddCommands()
 {
   C_AddCommand(credits);
   C_AddCommand(help);
+  C_AddCommand(mn_levelinfo);
 }

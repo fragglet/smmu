@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Refresh of things, i.e. objects represented by sprites.
@@ -156,7 +162,7 @@ void R_InitSpriteDefs(char **namelist)
     return;
 
   // count the number of sprite names
-  for (i=0; namelist[i]; i++) ;
+  for (i=0; namelist[i]; i++);
 
   numsprites = i;
 
@@ -185,7 +191,7 @@ void R_InitSpriteDefs(char **namelist)
       const char *spritename = namelist[i];
       int j = hash[R_SpriteNameHash(spritename) % numentries].index;
 
-//      printf("\n%s: ",spritename); //debug
+      //      printf("\n%s: ",spritename); //debug
 
       if (j >= 0)
         {
@@ -963,31 +969,35 @@ void R_DrawSprite (vissprite_t* spr)
       if ((mh = sectors[spr->heightsec].floorheight) > spr->gz &&
           (h = centeryfrac - FixedMul(mh-=viewz, spr->scale)) >= 0 &&
           (h >>= FRACBITS) < viewheight)
-        if (mh <= 0 || (phs != -1 && viewz > sectors[phs].floorheight))
-          {                          // clip bottom
-            for (x=spr->x1 ; x<=spr->x2 ; x++)
-              if (clipbot[x] == -2 || h < clipbot[x])
-                clipbot[x] = h;
-          }
-        else                        // clip top
-          if (phs != -1 && viewz <= sectors[phs].floorheight) // killough 11/98
-            for (x=spr->x1 ; x<=spr->x2 ; x++)
-              if (cliptop[x] == -2 || h > cliptop[x])
-                cliptop[x] = h;
+	{
+	  if (mh <= 0 || (phs != -1 && viewz > sectors[phs].floorheight))
+	    {                          // clip bottom
+	      for (x=spr->x1 ; x<=spr->x2 ; x++)
+		if (clipbot[x] == -2 || h < clipbot[x])
+		  clipbot[x] = h;
+	    }
+	  else                        // clip top killough 11/98
+	    if (phs != -1 && viewz <= sectors[phs].floorheight)
+	      for (x=spr->x1 ; x<=spr->x2 ; x++)
+		if (cliptop[x] == -2 || h > cliptop[x])
+		  cliptop[x] = h;
+	}
 
       if ((mh = sectors[spr->heightsec].ceilingheight) < spr->gzt &&
           (h = centeryfrac - FixedMul(mh-viewz, spr->scale)) >= 0 &&
           (h >>= FRACBITS) < viewheight)
-        if (phs != -1 && viewz >= sectors[phs].ceilingheight)
-          {                         // clip bottom
-            for (x=spr->x1 ; x<=spr->x2 ; x++)
-              if (clipbot[x] == -2 || h < clipbot[x])
-                clipbot[x] = h;
-          }
-        else                       // clip top
-          for (x=spr->x1 ; x<=spr->x2 ; x++)
-            if (cliptop[x] == -2 || h > cliptop[x])
-              cliptop[x] = h;
+	{
+	  if (phs != -1 && viewz >= sectors[phs].ceilingheight)
+	    {                         // clip bottom
+	      for (x=spr->x1 ; x<=spr->x2 ; x++)
+		if (clipbot[x] == -2 || h < clipbot[x])
+		  clipbot[x] = h;
+	    }
+	  else                       // clip top
+	    for (x=spr->x1 ; x<=spr->x2 ; x++)
+	      if (cliptop[x] == -2 || h > cliptop[x])
+		cliptop[x] = h;
+	}
     }
   // killough 3/27/98: end special clipping for deep water / fake ceilings
 

@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Movement, collision handling.
@@ -492,29 +498,33 @@ static boolean PIT_CheckThing(mobj_t *thing) // killough 3/26/98: make static
 	  (tmthing->target->type == thing->type ||
 	   (tmthing->target->type == MT_KNIGHT && thing->type == MT_BRUISER)||
 	   (tmthing->target->type == MT_BRUISER && thing->type == MT_KNIGHT)))
-	if (thing == tmthing->target)
-	  return true;                // Don't hit same species as originator.
-	else
-	  if (thing->type != MT_PLAYER) // Explode, but do no damage.
-	    return false;               // Let players missile other players.
-      
+	{
+	  if (thing == tmthing->target)
+	    return true;              // Don't hit same species as originator.
+	  else
+	    if (thing->type != MT_PLAYER) // Explode, but do no damage.
+	      return false;               // Let players missile other players.
+	}
+
       // killough 8/10/98: if moving thing is not a missile, no damage
       // is inflicted, and momentum is reduced if object hit is solid.
 
       if (!(tmthing->flags & MF_MISSILE))
-	if (!(thing->flags & MF_SOLID))
-	  return true;
-	else
-	  {
-	    tmthing->momx = -tmthing->momx;
-	    tmthing->momy = -tmthing->momy;
-	    if (!(tmthing->flags & MF_NOGRAVITY))
-	      {
-		tmthing->momx >>= 2;
-		tmthing->momy >>= 2;
-	      }
-	    return false;
-	  }
+	{
+	  if (!(thing->flags & MF_SOLID))
+	    return true;
+	  else
+	    {
+	      tmthing->momx = -tmthing->momx;
+	      tmthing->momy = -tmthing->momy;
+	      if (!(tmthing->flags & MF_NOGRAVITY))
+		{
+		  tmthing->momx >>= 2;
+		  tmthing->momy >>= 2;
+		}
+	      return false;
+	    }
+	}
 
       if (!(thing->flags & MF_SHOOTABLE))
 	return !(thing->flags & MF_SOLID); // didn't do any damage
@@ -732,25 +742,30 @@ boolean P_TryMove(mobj_t *thing, fixed_t x, fixed_t y, boolean dropoff)
       // killough 11/98: Improve symmetry of clipping on stairs
 
       if (!(thing->flags & (MF_DROPOFF|MF_FLOAT)))
-	if (comp[comp_dropoff])
-	  {
-	    if (tmfloorz - tmdropoffz > 24*FRACUNIT)
-	      return false;                      // don't stand over a dropoff
-	  }
-	else
-	  if (!dropoff || (dropoff==2 &&  // large jump down (e.g. dogs)
-			   (tmfloorz-tmdropoffz > 128*FRACUNIT || 
-			    !thing->target || thing->target->z >tmdropoffz)))
+	{
+	  if (comp[comp_dropoff])
 	    {
-	      if (!monkeys || demo_version < 203 ?
-		  tmfloorz - tmdropoffz > 24*FRACUNIT :
-		  thing->floorz  - tmfloorz > 24*FRACUNIT ||
-		  thing->dropoffz - tmdropoffz > 24*FRACUNIT)
-		return false;
+	      if (tmfloorz - tmdropoffz > 24*FRACUNIT)
+		return false;                    // don't stand over a dropoff
 	    }
-	  else  // dropoff allowed -- check for whether it fell more than 24
-	    felldown = !(thing->flags & MF_NOGRAVITY) &&
-	      thing->z - tmfloorz > 24*FRACUNIT;
+	  else
+	    {
+	      if (!dropoff || (dropoff==2 &&  // large jump down (e.g. dogs)
+			       (tmfloorz-tmdropoffz > 128*FRACUNIT || 
+				!thing->target ||
+				thing->target->z >tmdropoffz)))
+		{
+		  if (!monkeys || demo_version < 203 ?
+		      tmfloorz - tmdropoffz > 24*FRACUNIT :
+		      thing->floorz  - tmfloorz > 24*FRACUNIT ||
+		      thing->dropoffz - tmdropoffz > 24*FRACUNIT)
+		    return false;
+		}
+	      else  // dropoff allowed -- check for whether it fell more than 24
+		felldown = !(thing->flags & MF_NOGRAVITY) &&
+		  thing->z - tmfloorz > 24*FRACUNIT;
+	    }
+	}
 
       if (thing->flags & MF_BOUNCES &&    // killough 8/13/98
 	  !(thing->flags & (MF_MISSILE|MF_NOGRAVITY)) &&

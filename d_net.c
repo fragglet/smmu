@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      DOOM Network game communication and protocol,
@@ -46,8 +52,10 @@ static const char rcsid[] =
 #define NCMD_KILL               0x10000000      /* kill game */
 #define NCMD_CHECKSUM           0x0fffffff
 
+#if 0
 doomcom_t*      doomcom;        
 doomdata_t*     netbuffer;             // points inside doomcom
+#endif
 
 //
 // NETWORKING
@@ -73,8 +81,6 @@ int      resendto[MAXNETNODES];        // set when remote needs tics
 int      resendcount[MAXNETNODES];
 
 int      nodeforplayer[MAXPLAYERS];
-int      isconsoletic;          // is the current tic a gametic
-                                // or a list of console commands?
 int      maketic;
 int      lastnettic;
 int      skiptics;
@@ -82,6 +88,9 @@ int      ticdup;
 int      maxsend;                      // BACKUPTICS/(2*ticdup)-1
 
 doomcom_t  singleplayer;        // single player doomcom
+
+int      isconsoletic;          // is the current tic a gametic
+                                // or a list of console commands?
 
 void D_ProcessEvents (void); 
 void G_BuildTiccmd (ticcmd_t *cmd); 
@@ -92,6 +101,7 @@ doomdata_t      reboundstore;
 
 extern int  key_escape;                // phares
 
+#if 0
 
 //
 //
@@ -785,6 +795,7 @@ boolean RunGameTics (void)
   availabletics = lowtic - gametic/ticdup;
 
   // decide how many tics to run
+  
   if (realtics < availabletics-1)
     counts = realtics+1;
   else if (realtics < availabletics)
@@ -794,7 +805,6 @@ boolean RunGameTics (void)
   
   if (counts < 1)
     counts = 1;
-              
   frameon++;
 
   if(debugfile)
@@ -947,7 +957,7 @@ void TryRunTics (void)
   // we do not exit the function until something
   // new has happened
   
-  for(i=0; i==0;)
+  do
     {
       // run these here now to get keyboard
       // input for console/menu
@@ -958,7 +968,12 @@ void TryRunTics (void)
       // run the game tickers
       i += RunGameTics();
       i += RunEnvTics();
+
+      // sleep for a while til time for new tics
+      if(i == 0)
+	I_Sleep(1000);
     }
+  while(i == 0);
 }
 //
 // ResetNet: important for networking
@@ -970,7 +985,8 @@ void ResetNet()
 {
   int i;
   
-  if(!in_textmode) C_SetConsole();
+  //  if(!in_textmode)
+  //    C_SetConsole();
 
   game_exittic = I_GetTime();
   env_exittic = I_GetTime_RealTime();
@@ -1070,3 +1086,8 @@ void net_AddCommands()
 //
 //
 //----------------------------------------------------------------------------
+#endif
+
+//void D_QuitNetGame() {}
+//int newtics, ticnum;
+//void D_InitNetGame() {}

@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Rendering main loop and setup functions,
@@ -25,7 +31,6 @@
 static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
 
 #include "doomstat.h"
-#include "i_video.h"
 #include "c_runcmd.h"
 #include "g_game.h"
 #include "hu_over.h"
@@ -39,11 +44,14 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "m_bbox.h"
 #include "r_sky.h"
 #include "s_sound.h"
+#include "v_mode.h"
 #include "v_video.h"
 #include "w_wad.h"
 
 // Fineangles in the SCREENWIDTH wide window.
-int fov=2048;   //sf: made an int from a #define
+
+#define BASE_FOV 2048
+
 
 // killough: viewangleoffset is a legacy from the pre-v1.2 days, when Doom
 // had Left/Mid/Right viewing. +/-ANG90 offsets were placed here on each
@@ -64,7 +72,8 @@ sector_t *viewsector;              // sf: sector the viewpoint is in
 extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
 camera_t *viewcamera;
-int zoom = 1;   // sf: fov/zooming
+fixed_t  zoomscale = FRACUNIT;     // sf: changed to fixed_t for %age zoom
+int fov = 90;   // sf: fov/zooming
 
 extern int screenSize;
 
@@ -236,7 +245,8 @@ static void R_InitTextureMapping (void)
 {
   register int i,x;
   fixed_t focallength;
-    
+  fixed_t tanlimit;
+  
   // Use tangent table to generate viewangletox:
   //  viewangletox will give the next greatest x
   //  after the view angle.
@@ -244,27 +254,37 @@ static void R_InitTextureMapping (void)
   // Calc focallength
   //  so fov angles covers SCREENWIDTH.
 
-                        // sf: zooming
-  focallength = FixedDiv(centerxfrac*zoom, finetangent[FINEANGLES/4+fov/2]);
-        
+  // sf: zooming
+  focallength = FixedDiv(centerxfrac, finetangent[FINEANGLES/4+BASE_FOV/2]);
+  focallength = FixedMul(centerxfrac, zoomscale);
+
+  // sf: for zooming
+  // when zooming out very far the boundaries for the
+  // tangent need to change
+  // otherwise the floors and walls get distorted
+
+  tanlimit = FixedDiv(FRACUNIT * 2, zoomscale);
+  
   for (i=0 ; i<FINEANGLES/2 ; i++)
     {
       int t;
-      if (finetangent[i] > FRACUNIT*2)
-        t = -1;
+      if (finetangent[i] > tanlimit)
+	t = -1;
       else
-        if (finetangent[i] < -FRACUNIT*2)
-          t = viewwidth+1;
-      else
-        {
-          t = FixedMul(finetangent[i], focallength);
-          t = (centerxfrac - t + FRACUNIT-1) >> FRACBITS;
-          if (t < -1)
-            t = -1;
-          else
-            if (t > viewwidth+1)
-              t = viewwidth+1;
-        }
+	{
+	  if (finetangent[i] < -tanlimit)
+	    t = viewwidth+1;
+	  else
+	    {
+	      t = FixedMul(finetangent[i], focallength);
+	      t = (centerxfrac - t + FRACUNIT-1) >> FRACBITS;
+	      if (t < -1)
+		t = -1;
+	      else
+		if (t > viewwidth+1)
+		  t = viewwidth+1;
+	    }
+	}
       viewangletox[i] = t;
     }
     
@@ -301,11 +321,15 @@ static void R_InitTextureMapping (void)
 void R_InitLightTables (void)
 {
   int i;
+  int scrwid = FixedMul(SCREENWIDTH, zoomscale);
     
-  // killough 4/4/98: dynamic colormaps
-  c_zlight = malloc(sizeof(*c_zlight) * numcolormaps);
-  c_scalelight = malloc(sizeof(*c_scalelight) * numcolormaps);
-
+  if(!c_zlight)
+    {
+      // killough 4/4/98: dynamic colormaps
+      c_zlight = malloc(sizeof(*c_zlight) * numcolormaps);
+      c_scalelight = malloc(sizeof(*c_scalelight) * numcolormaps);
+    }
+  
   // Calculate the light levels to use
   //  for each level / distance combination.
   for (i=0; i< LIGHTLEVELS; i++)
@@ -313,7 +337,8 @@ void R_InitLightTables (void)
       int j, startmap = ((LIGHTLEVELS-1-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
       for (j=0; j<MAXLIGHTZ; j++)
         {
-          int scale = FixedDiv ((SCREENWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
+	  // sf: changed to scrwid for correct lighting when zooming
+          int scale = FixedDiv ((scrwid/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
           int t, level = startmap - (scale >>= LIGHTSCALESHIFT)/DISTMAP;
 
           if (level < 0)
@@ -374,31 +399,36 @@ void R_ExecuteSetViewSize (void)
   centery = viewheight/2;
   centerxfrac = centerx<<FRACBITS;
   centeryfrac = centery<<FRACBITS;
-  projection = centerxfrac * zoom;      // sf: zooming
+  projection = FixedMul(centerxfrac, zoomscale);      // sf: zooming
 
   R_InitBuffer(scaledviewwidth, scaledviewheight);       // killough 11/98
         
   R_InitTextureMapping();
     
   // psprite scales
-                                // sf: zooming added
-  pspritescale = FixedDiv(zoom*viewwidth, SCREENWIDTH);       // killough 11/98
-  pspriteiscale = FixedDiv(SCREENWIDTH, zoom*viewwidth);       // killough 11/98
-    
+  pspritescale = FixedDiv(viewwidth, SCREENWIDTH);     // killough 11/98
+  pspriteiscale = FixedDiv(SCREENWIDTH, viewwidth);    // killough 11/98
+
+  // sf: zooming added
+
+  pspritescale = FixedMul(pspritescale, zoomscale);
+  pspriteiscale = FixedDiv(pspriteiscale, zoomscale);
+  
   // thing clipping
   for (i=0 ; i<viewwidth ; i++)
-  {
-    screenheightarray[i] = viewheight;
-  }
+    {
+      screenheightarray[i] = viewheight;
+    }
 
   // planes
   for (i=0 ; i<viewheight*2 ; i++)
     {
       fixed_t dy = abs(((i-viewheight)<<FRACBITS)+FRACUNIT/2);
                 // sf: zooming
-      origyslope[i] = FixedDiv(viewwidth*zoom*(FRACUNIT/2), dy);
+      origyslope[i] = FixedDiv(FixedMul(zoomscale,(viewwidth*(FRACUNIT/2))),
+			       dy);
     }
-   yslope = origyslope + (viewheight/2);
+  yslope = origyslope + (viewheight/2);
         
   for (i=0 ; i<viewwidth ; i++)
     {
@@ -467,13 +497,24 @@ long updownangle = 0;
 void R_SetupFrame (player_t *player, camera_t *camera)
 {               
   mobj_t *mobj;
-  static int oldzoom;
+  static int oldfov;
 
   // check for change to zoom
-  if(zoom != oldzoom)
+  if(fov != oldfov)
     {
+      // find fov/2 and convert to angle_t
+      angle_t fov_angle = fov * (ANG90/180);
+      // find array entry for tan of angle
+      fixed_t tan_angle = (fov_angle >> ANGLETOFINESHIFT) + FINEANGLES/4;
+      
+      // get zoomscale
+      // zoomscale = 1/tan(fov/2)
+      zoomscale =
+	FixedDiv(FRACUNIT, finetangent[tan_angle]);
+
       R_ExecuteSetViewSize(); // reset view
-      oldzoom = zoom;
+      R_InitLightTables(); // rebuild light tables
+      oldfov = fov;
     }
 
   viewplayer = player;
@@ -507,14 +548,18 @@ void R_SetupFrame (player_t *player, camera_t *camera)
 
   viewsector = R_PointInSubsector(viewx,viewy)->sector;
   
-  ////////////////////////////////////////////////////
+  //---------------------------------------------------------
   // y-shearing
 
-  updownangle *= zoom;          // sf: zooming
-                // check for limits
+  // sf: zooming
+  
+  updownangle = FixedMul(updownangle, zoomscale);
+
+  // check for limits
   updownangle = updownangle >  50 ?  50 :
                 updownangle < -50 ? -50 : updownangle;
-        // scale to screen size
+
+  // scale to screen size
   updownangle = (updownangle * viewheight) / 100;
 
   centery = (viewheight/2) + updownangle;
@@ -669,7 +714,7 @@ char *handedstr[]       = {"right", "left"};
 
 VARIABLE_BOOLEAN(lefthanded, NULL,                  handedstr);
 VARIABLE_BOOLEAN(r_blockmap, NULL,                  onoff);
-VARIABLE_INT(flatskip, NULL,                    0, 100, NULL);
+VARIABLE_INT(flatskip, NULL,                        0, 100, NULL);
 VARIABLE_BOOLEAN(flashing_hom, NULL,                onoff);
 VARIABLE_BOOLEAN(visplane_view, NULL,               onoff);
 VARIABLE_BOOLEAN(r_precache, NULL,                  onoff);
@@ -677,30 +722,30 @@ VARIABLE_BOOLEAN(showpsprites, NULL,                yesno);
 VARIABLE_BOOLEAN(stretchsky, NULL,                  onoff);
 VARIABLE_BOOLEAN(r_swirl, NULL,                     onoff);
 VARIABLE_BOOLEAN(general_translucency, NULL,        onoff);
-VARIABLE_INT(tran_filter_pct, NULL,             0, 100, NULL);
-VARIABLE_BOOLEAN(autodetect_hom, NULL,              yesno);
-VARIABLE_INT(screenSize, NULL,                  0, 8, NULL);
-VARIABLE_INT(zoom, NULL,                        0, 8192, NULL);
-VARIABLE_INT(usegamma, NULL,                    0, 4, NULL);
+VARIABLE_INT(tran_filter_pct, NULL,                 0, 100, NULL);
+VARIABLE_BOOLEAN(autodetect_hom, NULL,              onoff);
+VARIABLE_INT(screenSize, NULL,                      0, 8, NULL);
+VARIABLE_INT(fov, NULL,                             1, 179, NULL);
+VARIABLE_INT(usegamma, NULL,                        0, 4, NULL);
 
 CONSOLE_VARIABLE(gamma, usegamma, 0)
 {
   // change to new gamma val
-  I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+  V_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 }
 CONSOLE_VARIABLE(lefthanded, lefthanded, 0) {}
-CONSOLE_VARIABLE(r_blockmap, r_blockmap, 0) {}
+CONSOLE_VARIABLE(r_blockmap, r_blockmap, cf_nosave) {}
 CONSOLE_VARIABLE(r_homflash, flashing_hom, 0) {}
-CONSOLE_VARIABLE(r_planeview, visplane_view, 0) {}
-CONSOLE_VARIABLE(r_zoom, zoom, 0) {}
-CONSOLE_VARIABLE(r_precache, r_precache, 0) {}
-CONSOLE_VARIABLE(r_showgun, showpsprites, 0) {}
-CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0)
+CONSOLE_VARIABLE(r_planeview, visplane_view, cf_nosave) {}
+CONSOLE_VARIABLE(r_fov, fov, cf_nosave) {}
+CONSOLE_VARIABLE(r_precache, r_precache, cf_nosave) {}
+CONSOLE_VARIABLE(r_showgun, showpsprites, cf_nosave) {}
+CONSOLE_VARIABLE(r_showhom, autodetect_hom, cf_nosave)
 {
   doom_printf("hom detection %s", autodetect_hom ? "on" : "off");
 }
 CONSOLE_VARIABLE(r_stretchsky, stretchsky, 0) {}
-CONSOLE_VARIABLE(r_swirl, r_swirl, 0) {}
+CONSOLE_VARIABLE(r_swirl, r_swirl, cf_nosave) {}
 CONSOLE_VARIABLE(r_trans, general_translucency, 0)
 {
   R_ResetTrans();
@@ -715,10 +760,10 @@ CONSOLE_VARIABLE(screensize, screenSize, cf_buffered)
   S_StartSound(NULL,sfx_stnmov);
 
   if(gamestate == GS_LEVEL) // not in intercam
-  {
-     hide_menu = 20;             // hide the menu for a few tics
-     R_SetViewSize (screenSize+3);
-  }
+    {
+      hide_menu = 20;             // hide the menu for a few tics
+      R_SetViewSize (screenSize+3);
+    }
 
   if(screenSize == 8)        // fullscreen
     HU_ToggleHUD();
@@ -732,22 +777,22 @@ CONSOLE_COMMAND(p_dumphubs, 0)
 
 void R_AddCommands()
 {
-   C_AddCommand(lefthanded);
-   C_AddCommand(r_blockmap);
-   C_AddCommand(r_homflash);
-   C_AddCommand(r_planeview);
-   C_AddCommand(r_zoom);
-   C_AddCommand(r_precache);
-   C_AddCommand(r_showgun);
-   C_AddCommand(r_showhom);
-   C_AddCommand(r_stretchsky);
-   C_AddCommand(r_swirl);
-   C_AddCommand(r_trans);
-   C_AddCommand(r_tranpct);
-   C_AddCommand(screensize);
-   C_AddCommand(gamma);
-
-   C_AddCommand(p_dumphubs);
+  C_AddCommand(lefthanded);
+  C_AddCommand(r_blockmap);
+  C_AddCommand(r_homflash);
+  C_AddCommand(r_planeview);
+  C_AddCommand(r_fov);
+  C_AddCommand(r_precache);
+  C_AddCommand(r_showgun);
+  C_AddCommand(r_showhom);
+  C_AddCommand(r_stretchsky);
+  C_AddCommand(r_swirl);
+  C_AddCommand(r_trans);
+  C_AddCommand(r_tranpct);
+  C_AddCommand(screensize);
+  C_AddCommand(gamma);
+  
+  C_AddCommand(p_dumphubs);
 }
 
 //----------------------------------------------------------------------------

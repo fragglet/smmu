@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:  Platform-independent sound code
 //
@@ -70,6 +76,7 @@ rcsid[] = "$Id: s_sound.c,v 1.11 1998/05/03 22:57:06 killough Exp $";
 
 static void S_CreateSoundHashTable();
 
+static int sound_initted = false;       // set to true after running s_init
 
 //jff 1/22/98 make sound enabling variables readable here
 extern int snd_card, mus_card;
@@ -106,8 +113,8 @@ static musicinfo_t *mus_playing;
 // following is set
 //  by the defaults code in M_misc:
 // number of channels available
-int numChannels;
-int default_numChannels;  // killough 9/98
+int numChannels = 32;
+int default_numChannels = 32;  // killough 9/98
 
 //jff 3/17/98 to keep track of last IDMUS specified music num
 int idmusnum;
@@ -244,15 +251,22 @@ void S_StartSfxInfo(const mobj_t *origin, sfxinfo_t *sfx)
   int sfx_id;
 
   //jff 1/22/98 return if sound is not enabled
-  if (!snd_card || nosfxparm)
+  if (!snd_card || nosfxparm || !sound_initted)
     return;
 
   if (sfx->skinsound)           // check for skin sounds
     {
-      if(origin && origin->skin && origin->skin->sounds[sfx->skinsound-1])
-        sfx = S_SfxInfoForName(origin->skin->sounds[sfx->skinsound-1]);
-    }
+      // haleyjd:  we must weed out degenmobj_t's
+      // before trying to dereference
+      // these fields -- a thinker check perhaps?
 
+      if(origin &&
+	 (origin->thinker.function == P_MobjThinker) &&  // haleyjd
+	 origin->skin &&
+	 origin->skin->sounds[sfx->skinsound-1])
+	sfx = S_SfxInfoForName(origin->skin->sounds[sfx->skinsound-1]);
+    }
+  
   sfx_id = sfx - S_sfx;
 
 #ifdef RANGECHECK
@@ -369,7 +383,7 @@ void S_StopSound(const mobj_t *origin)
   int cnum;
   
   //jff 1/22/98 return if sound is not enabled
-  if (!snd_card || nosfxparm)
+  if (!snd_card || nosfxparm || !sound_initted)
     return;
 
   for (cnum=0 ; cnum<numChannels ; cnum++)
@@ -386,7 +400,7 @@ void S_StopSound(const mobj_t *origin)
 
 void S_PauseSound(void)
 {
-  if (mus_playing && !mus_paused)
+  if (sound_initted && mus_playing && !mus_paused)
     {
       I_PauseSong(mus_playing->handle);
       mus_paused = true;
@@ -395,7 +409,7 @@ void S_PauseSound(void)
 
 void S_ResumeSound(void)
 {
-  if (mus_playing && mus_paused)
+  if (sound_initted && mus_playing && mus_paused)
     {
       I_ResumeSong(mus_playing->handle);
       mus_paused = false;
@@ -413,7 +427,7 @@ void S_UpdateSounds(const mobj_t *listener)
                         // the player
 
   //jff 1/22/98 return if sound is not enabled
-  if (!snd_card || nosfxparm)
+  if (!sound_initted || !snd_card || nosfxparm)
     return;
 
   if(listener)
@@ -463,18 +477,20 @@ void S_UpdateSounds(const mobj_t *listener)
 	      // fix afterglows bug: segv because of NULL listener
 
               if (c->origin) // killough 3/20/98
-                if (!S_AdjustSoundParams
-		    (
-		     camera ? camera : listener ? &player : NULL,
-		     c->origin,
-		     &volume,
-		     &sep,
-		     &pitch
-		     )
-		    )
-                  S_StopChannel(cnum);
-                else
-                  I_UpdateSoundParams(c->handle, volume, sep, pitch);
+		{
+		  if (!S_AdjustSoundParams
+		      (
+		       camera ? camera : listener ? &player : NULL,
+		       c->origin,
+		       &volume,
+		       &sep,
+		       &pitch
+		       )
+		      )
+		    S_StopChannel(cnum);
+		  else
+		    I_UpdateSoundParams(c->handle, volume, sep, pitch);
+		}
             }
           else   // if channel is allocated but sound has stopped, free it
             S_StopChannel(cnum);
@@ -485,7 +501,7 @@ void S_UpdateSounds(const mobj_t *listener)
 void S_SetMusicVolume(int volume)
 {
   //jff 1/22/98 return if music is not enabled
-  if (!mus_card || nomusicparm)
+  if (!sound_initted || !mus_card || nomusicparm)
     return;
 
 #ifdef RANGECHECK
@@ -501,7 +517,7 @@ void S_SetMusicVolume(int volume)
 void S_SetSfxVolume(int volume)
 {
   //jff 1/22/98 return if sound is not enabled
-  if (!snd_card || nosfxparm)
+  if (!sound_initted || !snd_card || nosfxparm)
     return;
 
 #ifdef RANGECHECK
@@ -553,7 +569,7 @@ void S_ChangeMusic(musicinfo_t *music, int looping)
   char namebuf[9];
 
     //jff 1/22/98 return if music is not enabled
-  if (!mus_card || nomusicparm)
+  if (!sound_initted || !mus_card || nomusicparm)
     return;
 
   // same as the one playing ?
@@ -589,6 +605,20 @@ void S_ChangeMusic(musicinfo_t *music, int looping)
 void S_StartMusic(int m_id)
 {
   S_ChangeMusicNum(m_id, false);
+}
+
+// start a random mus
+
+void S_StartRandomMusic()
+{
+  int mnum;
+  
+  if (gamemode == commercial)
+    mnum = mus_runnin + M_Random() % 32;
+  else
+    mnum = mus_e1m1 + M_Random() % 9;
+
+  S_StartMusic(mnum);
 }
 
 void S_StopMusic(void)
@@ -697,12 +727,19 @@ void S_PreCacheAllSounds()
 
 void S_Init(int sfxVolume, int musicVolume)
 {
+  { // killough 2/21/98: avoid sound initialization if no sound & no music
+    if (!(nomusicparm && nosfxparm))
+      I_InitSound();
+  }
+
+  sound_initted = true;  
+
   S_CreateSoundHashTable();
 
   //jff 1/22/98 skip sound init if sound not enabled
   if (snd_card && !nosfxparm)
     {
-      usermsg("\tdefault sfx volume %d", sfxVolume);  // killough 8/8/98
+      C_Printf("\tdefault sfx volume %d\n", sfxVolume);  // killough 8/8/98
 
       S_SetSfxVolume(sfxVolume);
 
@@ -719,10 +756,10 @@ void S_Init(int sfxVolume, int musicVolume)
   if(s_precache)        // sf: option to precache sounds
     {
       S_PreCacheAllSounds();
-      usermsg("\tprecached all sounds.");
+      C_Printf("\tprecached all sounds.\n");
     }
   else
-    usermsg("\tsounds to be cached dynamically.");
+    C_Printf("\tsounds to be cached dynamically.\n");
 
   // no sounds are playing, and they are not mus_paused
   mus_paused = 0;
@@ -772,13 +809,14 @@ static void S_CreateSoundHashTable()
 
 sfxinfo_t *S_SfxInfoForName(char *name)
 {
-   sfxinfo_t *si = sfxinfos[sound_hash(name)];
+   sfxinfo_t *si;
  
    if(!soundhash_created)
      {
        S_CreateSoundHashTable();
-       si = sfxinfos[sound_hash(name)];
      }
+   
+   si = sfxinfos[sound_hash(name)];
    
    while(si)
      {
@@ -920,26 +958,23 @@ void S_UpdateMusic(int lumpnum)
 // Console Commands
 //
 
-VARIABLE_BOOLEAN(s_precache, NULL,      onoff);
-VARIABLE_BOOLEAN(pitched_sounds, NULL,  onoff);
-VARIABLE_INT(default_numChannels, NULL, 1, 128, NULL);
-VARIABLE_INT(snd_SfxVolume, NULL,       0, 15, NULL);
-VARIABLE_INT(snd_MusicVolume, NULL,     0, 15, NULL);
-
 void S_ResetVolume()
 {
-  S_SetMusicVolume(snd_MusicVolume);
-  S_SetSfxVolume(snd_SfxVolume);
+  if(sound_initted)
+    {
+      S_SetMusicVolume(snd_MusicVolume);
+      S_SetSfxVolume(snd_SfxVolume);
+    }
 }
 
-CONSOLE_VARIABLE(s_precache, s_precache, 0) {}
-CONSOLE_VARIABLE(s_pitched, pitched_sounds, 0) {}
-CONSOLE_VARIABLE(snd_channels, default_numChannels, 0) {}
-CONSOLE_VARIABLE(sfx_volume, snd_SfxVolume, 0)
+CONSOLE_BOOLEAN(s_precache, s_precache, NULL,      onoff, 0) {}
+CONSOLE_BOOLEAN(s_pitched, pitched_sounds, NULL,   onoff, 0) {}
+CONSOLE_INT(snd_channels, default_numChannels, NULL, 1, 128, NULL, 0) {}
+CONSOLE_INT(sfx_volume, snd_SfxVolume, NULL,         0, 15, NULL, 0)
 {
   S_ResetVolume();
 }
-CONSOLE_VARIABLE(music_volume, snd_MusicVolume, 0)
+CONSOLE_INT(music_volume, snd_MusicVolume, NULL,     0, 15, NULL, 0)
 {
   S_ResetVolume();
 }

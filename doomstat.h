@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //   All the global variables that store the internal state.
@@ -27,10 +34,12 @@
 #ifndef __D_STATE__
 #define __D_STATE__
 
+// network data
+#include "cl_clien.h"
+
 // We need globally shared data structures,
 //  for defining the global state variables.
 #include "doomdata.h"
-#include "d_net.h"
 
 // We need the playr data structure as well.
 #include "d_player.h"
@@ -46,14 +55,14 @@ typedef enum
 // Command line parameters.
 //
 
-extern boolean in_textmode;
+extern boolean in_graphics_mode;
 
-extern  boolean nomonsters; // checkparm of -nomonsters
-extern  boolean respawnparm;  // checkparm of -respawn
-extern  boolean fastparm; // checkparm of -fast
-extern  boolean devparm;  // DEBUG: launched with -devparm
+extern boolean nomonsters; // checkparm of -nomonsters
+extern boolean respawnparm;  // checkparm of -respawn
+extern boolean fastparm; // checkparm of -fast
+extern boolean devparm;  // DEBUG: launched with -devparm
 
-                // sf: screenblocks removed, replaced w/screenSize
+// sf: screenblocks removed, replaced w/screenSize
 extern  int screenSize;     // killough 11/98
 
 // -----------------------------------------------------
@@ -91,7 +100,8 @@ extern int demo_insurance, default_demo_insurance;      // killough 4/5/98
 // -------------------------------------------
 // killough 10/98: compatibility vector
 
-enum {
+enum
+{
   comp_telefrag,
   comp_dropoff,
   comp_vile,
@@ -271,9 +281,9 @@ extern angle_t consoleangle;
 // File handling stuff.
 extern  char    basedefault[];
 extern  FILE   *debugfile;
-                // sf:
-#define DEBUGMSG(s) if(debugfile) { fprintf(debugfile, s);    \
-                                    fflush(debugfile); }
+// sf: write line to debug file
+#define DEBUGMSG(s) \
+ if(debugfile) { fprintf(debugfile, (s)); fflush(debugfile); }
 
 // if true, load all graphics at level load
 extern  boolean precache;
@@ -296,17 +306,17 @@ extern  int             bodyqueslot;
 extern int    skyflatnum;
 
 // Netgame stuff (buffers and pointers, i.e. indices).
-extern  doomcom_t  *doomcom;
-extern  doomdata_t *netbuffer;  // This points inside doomcom.
+//extern  doomcom_t  *doomcom;
+//extern  doomdata_t *netbuffer;  // This points inside doomcom.
 
-extern  ticcmd_t   localcmds[];
+//extern  ticcmd_t   localcmds[];
 extern  int        rndindex;
 
-extern  int        maketic;
-extern  int        nettics[];
+//extern  int        maketic;
+//extern  int        nettics[];
 
-extern  ticcmd_t   netcmds[][BACKUPTICS];
-extern  int        ticdup;
+//extern  ticcmd_t   netcmds[][BACKUPTICS];
+//extern  int        ticdup;
 
 extern thinker_t thinkercap;  // Both the head and tail of the thinker list
 

@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Console Network support 
 //
 // Network commands can be sent across netgames using 'C_SendCmd'. The
@@ -28,7 +46,7 @@ int cmdsrc = 0;           // the source of a network console command
 
 command_t *c_netcmds[NUMNETCMDS];
 
-char *default_name = "player";
+char *default_name = NULL;
 int default_colour;
 
 // basic chat char stuff: taken from hu_stuff.c and renamed
@@ -70,17 +88,17 @@ unsigned char C_dequeueChatChar(void)
 {
   char c;
 
-  if (head != tail)
-    {
-      c = chatchars[tail++];
-      tail &= QUEUESIZE-1;
-    }
+  if (head == tail)
+    return 0;
   else
-    c = 0;
-  return c;
+    {
+      c = chatchars[tail];
+      tail = (tail + 1) & (QUEUESIZE-1);
+      return c;
+    }
 }
 
-void C_SendCmd(int dest, int cmdnum, char *s,...)
+void C_SendCmd(int cmdnum, char *s,...)
 {
   va_list args;
   char tempstr[500];
@@ -97,8 +115,6 @@ void C_SendCmd(int dest, int cmdnum, char *s,...)
       return;
     }
 
-  C_queueChatChar(0); // flush out previous commands
-  C_queueChatChar(dest+1); // the chat message destination
   C_queueChatChar(cmdnum);        // command num
   
   while(*s)
@@ -106,7 +122,7 @@ void C_SendCmd(int dest, int cmdnum, char *s,...)
       C_queueChatChar(*s);
       s++;
     }
-  C_queueChatChar(0);
+  C_queueChatChar(0xff);     // end
 }
 
 void C_NetInit()
@@ -116,7 +132,7 @@ void C_NetInit()
   for(i=0; i<MAXPLAYERS; i++)
     {
       incomingdest[i] = -1;
-      *incomingmsg[i] = 0;
+      incomingmsg[i][0] = '\0';
     }
   
   players[consoleplayer].colormap = default_colour;
@@ -127,7 +143,7 @@ void C_DealWithChar(unsigned char c, int source);
 
 void C_NetTicker()
 {
-  int i;
+  int i, n;
   
   if(netgame && !demoplayback)      // only deal with chat chars in
     // netgames
@@ -136,62 +152,54 @@ void C_NetTicker()
     for(i=0; i<MAXPLAYERS; i++)
       {
 	if(!playeringame[i]) continue;
-#ifdef CONSHUGE
-	if(gamestate == GS_CONSOLE)  // use the whole ticcmd in console mode
-          {
-	    int a;
-	    for(a=0; a<sizeof(ticcmd_t); a++)
-	      C_DealWithChar( ((unsigned char*)&players[i].cmd)[a], i);
-          }
-	else
-#endif
-	  C_DealWithChar(players[i].cmd.chatchar,i);
+	for(n=0; n<CONS_BYTES; n++)
+	  C_DealWithChar(players[i].cmd.consdata[n],i);
       }
   
   // run buffered commands essential for netgame sync
   C_RunBuffer(c_netcmd);
 }
 
-void C_DealWithChar(unsigned char c, int source)
+void C_DealWithChar(byte c, int source)
 {
-  int netcmdnum;
+  if(!c)
+    return;
+
+  //  C_Printf("got '%c' (%i)", isprint(c) ? c : 'p', c);
   
-  if(c)
+  if(c == 0xff)        // 0xff == end of cmd
     {
-      if(incomingdest[source] == -1)  // first char: the destination
+      int netcmdnum = incomingmsg[source][0];
+      
+      //	  C_Printf("%i, %s, %s\n", dest,
+      //	       c_netcmds[netcmdnum]->name,
+      //	       incomingmsg + 2);
+      
+      if(netcmdnum >= NUMNETCMDS || netcmdnum <= 0)
+	C_Printf("unknown netcmd: %i\n", netcmdnum);
+      else
 	{
-	  incomingdest[source] = c-1;
-	}
-      else                  // append to string
-	{
-	  sprintf(incomingmsg[source], "%s%c", incomingmsg[source], c);
-	}
-    }
-  else
-    {
-      if(incomingdest[source] != -1)        // end of message
-	{
-	  if((incomingdest[source] == consoleplayer)
-	     || incomingdest[source] == CN_BROADCAST)
+	  command_t *cmd = c_netcmds[netcmdnum];
+
+	  if(debugfile)
+	    fprintf(debugfile, "change %s\n", cmd->name);
+	  
+	  if(cmd->flags & cf_server && source)
+	    C_Printf("server variable changed by peon\n");
+	  else
 	    {
 	      cmdsrc = source;
 	      cmdtype = c_netcmd;
-	      // the first byte is the command num
-	      netcmdnum = incomingmsg[source][0];
-	      
-	      if(netcmdnum >= NUMNETCMDS || netcmdnum <= 0)
-		C_Printf("unknown netcmd: %i\n", netcmdnum);
-	      else
-		{
-		  //		  C_Printf("%s, %s", c_netcmds[netcmdnum].name,
-		  //                                           incomingmsg[source]+1);
-		  C_RunCommand(c_netcmds[netcmdnum],
-                               incomingmsg[source] + 1);
-		}
+	      C_RunCommand(cmd, incomingmsg[source] + 1);
 	    }
-	  *incomingmsg[source] = 0;
-	  incomingdest[source] = -1;
 	}
+      
+      incomingmsg[source][0] = '\0';
+    }
+  else
+    {
+      incomingmsg[source][strlen(incomingmsg[source]) + 1] = '\0';
+      incomingmsg[source][strlen(incomingmsg[source])] = c;
     }
 }
 
@@ -204,14 +212,14 @@ void C_SendNetData()
   int i;
   
   C_SetConsole();
+  C_NetInit();
   
   // display message according to what we're about to do
 
   C_Printf(consoleplayer ?
 	   FC_GRAY"Please Wait"FC_RED" Receiving game data..\n" :
 	   FC_GRAY"Please Wait"FC_RED" Sending game data..\n");
-
-
+  
   // go thru all hash chains, check for net sync variables
   
   for(i=0; i<CMDCHAINS; i++)
@@ -236,6 +244,8 @@ void C_SendNetData()
       sprintf(tempstr, "map %s", startlevel);
       C_RunTextCmd(tempstr);
     }
+
+  //  G_InitNew(gameskill, "map01");
 }
 
 
@@ -247,9 +257,12 @@ int allowmlook = 1;
 
 void C_UpdateVar(command_t *command)
 {
-  char tempstr[100];
+  char *value = C_VariableValue(command->variable);
+
+  // enclose in "" quotes if it contains a space
   
-  sprintf(tempstr,"\"%s\"", C_VariableValue(command->variable) );
-  
-  C_SendCmd(CN_BROADCAST, command->netcmd, tempstr);
+  if(strchr(value, ' '))
+    C_SendCmd(command->netcmd, "\"%s\"", value);
+  else
+    C_SendCmd(command->netcmd, value);
 }

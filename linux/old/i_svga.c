@@ -37,7 +37,10 @@
 
 static boolean initialised = false;
 
-/************************* Input functions ***********************************/
+//////////////////////////////////////////////////////////////////////////////
+//
+// Input Code
+//
 
 extern int usemouse;   // killough 10/98
 
@@ -173,6 +176,13 @@ static void I_MouseEventHandler(int button, int dx, int dy,
   D_PostEvent(&ev);
 }
 
+void I_ShutdownKeyboard()
+{
+  keyboard_close();
+
+  system("stty sane");
+}
+
 static void I_InitKeyboard()
 {
   I_InitKBTransTable();
@@ -182,6 +192,8 @@ static void I_InitKeyboard()
   keyboard_seteventhandler(I_KBHandler);
 
   mouse_seteventhandler((__mouse_handler)I_MouseEventHandler);
+
+  atexit(I_ShutdownKeyboard);
 }
 
 //
@@ -192,7 +204,10 @@ void I_StartFrame()
 {
 }
 
-/************************* Graphics code ********************************/
+/////////////////////////////////////////////////////////////////////////////
+//
+// Graphics Code
+//
 
 static enum { flip, flipped, blit } redraw_state;
 static void (*blitfunc)(void* src, int dest, int w, int h, int pitch);
@@ -222,29 +237,30 @@ void I_FinishUpdate(void)
   if (noblit || !in_graphics_mode)
     return;
 
-  switch (redraw_state) {
-  case blit:
-    if (use_vsync) 
-      vga_waitretrace();
-    (*blitfunc)(screens[0], 0, SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
-    break;
-  case flipped:
-    (*blitfunc)(screens[0], 0, SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
-    if (use_vsync) 
-      vga_waitretrace();
-    vga_setdisplaystart(0);
-    redraw_state = flip;
-    break;
-  case flip:
-    (*blitfunc)(screens[0], 1<<16, 
-		 SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
-    if (use_vsync) 
-      vga_waitretrace();
-    vga_setdisplaystart(1<<16);
-    redraw_state = flipped;
-    break;
-  }
-
+  switch (redraw_state)
+    {
+      case blit:
+	if (use_vsync) 
+	  vga_waitretrace();
+	(*blitfunc)(screens[0], 0, SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
+	break;
+      case flipped:
+	(*blitfunc)(screens[0], 0, SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
+	if (use_vsync) 
+	  vga_waitretrace();
+	vga_setdisplaystart(0);
+	redraw_state = flip;
+	break;
+      case flip:
+	(*blitfunc)(screens[0], 1<<16, 
+		    SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
+	if (use_vsync) 
+	  vga_waitretrace();
+	vga_setdisplaystart(1<<16);
+	redraw_state = flipped;
+	break;
+    }
+  
 }
 
 //
@@ -263,6 +279,7 @@ void I_ReadScreen(byte *scr)
 static void I_PlainBlit(void* src, int dest, int w, int h, int pitch)
 {
   vga_lockvc();
+  
   {
     if (redraw_state != blit) // We probably chose blit to avoid paging
       vga_setpage(dest >> 16); // I.e each page is 64K
@@ -511,9 +528,10 @@ void I_SetMode(int i)
   firsttime = false;
 }
         
-/************************
-        CONSOLE COMMANDS
- ************************/
+/////////////////////////////////////////////////////////////////////////////
+//
+// Console Commands
+//
 
 VARIABLE_BOOLEAN(usemouse, NULL,         yesno);
 CONSOLE_VARIABLE(use_mouse, usemouse,    0) {}

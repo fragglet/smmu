@@ -3,18 +3,23 @@
 //
 // $Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $
 //
-//
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Game completion, final screen animation.
@@ -229,25 +234,27 @@ void F_Ticker(void)
     {
       float speed = demo_compatibility ? TEXTSPEED : Get_TextSpeed();
       if (finalecount > strlen(finaletext)*speed +  // phares
-          (midstage ? NEWTEXTWAIT : TEXTWAIT) ||  // killough 2/28/98:
-          (midstage && acceleratestage))       // changed to allow acceleration
-        if (gamemode != commercial)       // Doom 1 / Ultimate Doom episode end
-          {                               // with enough time, it's automatic
-            finalecount = 0;
-            finalestage = 1;
-            wipegamestate = -1;         // force a wipe
-            if (gameepisode == 3)
-              S_StartMusic(mus_bunny);
-          }
-        else   // you must press a button to continue in Doom 2
-          if (!demo_compatibility && midstage)
-            {
-            next_level:
-              if (gamemap == 30)
-                F_StartCast();              // cast of Doom 2 characters
-              else
-                gameaction = ga_worlddone;  // next level, e.g. MAP07
-            }
+	  (midstage ? NEWTEXTWAIT : TEXTWAIT) ||  // killough 2/28/98:
+	  (midstage && acceleratestage))       // changed to allow acceleration
+	{
+	  if (gamemode != commercial)    // Doom 1 / Ultimate Doom episode end
+	    {                            // with enough time, it's automatic
+	      finalecount = 0;
+	      finalestage = 1;
+	      wipegamestate = -1;         // force a wipe
+	      if (gameepisode == 3)
+		S_StartMusic(mus_bunny);
+	    }
+	  else   // you must press a button to continue in Doom 2
+	    if (!demo_compatibility && midstage)
+	      {
+	      next_level:
+		if (gamemap == 30)
+		  F_StartCast();              // cast of Doom 2 characters
+		else
+		  gameaction = ga_worlddone;  // next level, e.g. MAP07
+	      }
+	}
     }
 }
 

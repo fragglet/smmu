@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Archiving: SaveGame I/O.
@@ -132,7 +138,8 @@ void P_ArchivePlayers (void)
 void P_UnArchivePlayers (void)
 {
   int i;
-
+  player_t *read_player;
+  
   for (i=0 ; i<MAXPLAYERS ; i++)
     if (playeringame[i])
       {
@@ -144,13 +151,32 @@ void P_UnArchivePlayers (void)
 	//     do not change the player data when crossing
 	//     levels: ie. retain the same weapons etc.
 
+	read_player = (player_t *)save_p;
+	
 	if(!hub_changelevel)
 	  {
-	    memcpy(&players[i], save_p, sizeof(player_t));
+	    memcpy(&players[i], read_player, sizeof(player_t));
 	    for (j=0 ; j<NUMPSPRITES ; j++)
 	      if (players[i].psprites[j].state)
 		players[i].psprites[j].state =
 		  &states[ (int)players[i].psprites[j].state ];
+
+	    players[i].skin = &marine;  // reset skin
+	    players[i].attackdown = players[i].usedown = false;  // sf
+	    players[i].cmd.buttons = 0;    // sf
+	  }
+	else
+	  {
+	    // still copy some data even when loading hubs
+
+	    // keycards are specific to each level
+	    memcpy(&players[i].cards,
+		   &read_player->cards, sizeof(players[i].cards));
+
+	    // kill/secret/item counts
+	    players[i].killcount = read_player->killcount;
+	    players[i].secretcount = read_player->secretcount;
+	    players[i].itemcount = read_player->itemcount;
 	  }
 	
         save_p += sizeof(player_t);
@@ -158,9 +184,6 @@ void P_UnArchivePlayers (void)
         // will be set when unarc thinker
         players[i].mo = NULL;
         players[i].attacker = NULL;
-	players[i].skin = &marine;  // reset skin
-	players[i].attackdown = players[i].usedown = false;  // sf
-	players[i].cmd.buttons = 0;    // sf
       }
 }
 
@@ -406,7 +429,7 @@ void P_ArchiveThinkers (void)
   }
   
   // killough 2/14/98: restore prev pointers
-        // sf: still needed for saving script mobj pointers
+  // sf: still needed for saving script mobj pointers
   // killough 2/14/98: end changes
 }
 
@@ -435,6 +458,9 @@ void P_UnArchiveThinkers (void)
   thinker_t *th;
   size_t    size;        // killough 2/14/98: size of or index into table
 
+  // sf: get kills/items count from savegame, not original level
+  totalkills = totalitems = 0;   
+  
   // killough 3/26/98: Load boss brain state
   memcpy(&brain, save_p, sizeof brain);
   save_p += sizeof brain;
@@ -494,6 +520,12 @@ void P_UnArchiveThinkers (void)
 
       mobj->thinker.function = P_MobjThinker;
       P_AddThinker (&mobj->thinker);
+
+      // sf:
+      if(mobj->flags & MF_COUNTKILL)
+	totalkills++;
+      if(mobj->flags & MF_COUNTITEM)
+	totalitems++;	  
     }
 
   // killough 2/14/98: adjust target and tracer fields, plus
@@ -1298,7 +1330,11 @@ runningscript_t *P_UnArchiveRunningScript()
     scriptnum = *short_p++;        // get scriptnum
     
     // levelscript?
-    rs->script = scriptnum == -1 ? &levelscript : scripts[scriptnum];
+
+    if(scriptnum == -1)
+      rs->script = &levelscript;
+    else
+      rs->script = levelscript.children[scriptnum];
     
     // read out offset from save
     rs->savepoint = rs->script->data + (*short_p++);

@@ -1,0 +1,32 @@
+SMMU Compiling Info
+-------------------
+
+DJGPP
+-----
+* You _need_ the Allegro libraries in order to compile.
+* SMMU uses libsocket for TCP/IP support through a winsock backdoor. This
+  is available at http://libsocket.tsx.org/. Alternatively, you can build
+  a version without TCP/IP support by editing the makefile and removing
+  the '-DTCPIP' switch.
+* There have been some problems with m_fixed.h and the 'improved' assembler
+  code added there by Lee Killough in MBF. I have included a copy of the
+  old boom assembly code in case you have problems with it.
+
+Linux
+-----
+* There is as yet no linux sound support.
+* The new SMMU module-based graphics code means that you can compile a
+  version with support for both X Window and svgalib, although you can
+  also build a version with only support for one, of course.
+* You can compile the SMMU dedicated server by typing 'make dedicated'.
+  This will make an executable named 'dedserv' which will act as a lone
+  dedicated server program for netgames.
+* The sources for SMMUSERV are included here which is the server lookup
+  program SMMU uses for internet play.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Source for utilities included:
+
+* add_fs to add FraggleScript programs into wads
+* a rewritten version of swantbls which should work on both DOS and Linux
+  and also has support for the SMMU swirling water effect.

@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Status bar code.
@@ -30,7 +36,6 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 #include "c_runcmd.h"
 #include "d_main.h"
 #include "m_random.h"
-#include "i_video.h"
 #include "w_wad.h"
 #include "st_stuff.h"
 #include "st_lib.h"
@@ -40,6 +45,7 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 #include "s_sound.h"
 #include "sounds.h"
 #include "dstrings.h"
+#include "v_mode.h"
 
 //
 // STATUS BAR DATA
@@ -232,14 +238,14 @@ static patch_t *arms[6][2];
 static st_number_t w_ready;
 
 //jff 2/16/98 status color change levels
-int ammo_red;      // ammo percent less than which status is red
-int ammo_yellow;   // ammo percent less is yellow more green
-int health_red;    // health amount less than which status is red
-int health_yellow; // health amount less than which status is yellow
-int health_green;  // health amount above is blue, below is green
-int armor_red;     // armor amount less than which status is red
-int armor_yellow;  // armor amount less than which status is yellow
-int armor_green;   // armor amount above is blue, below is green
+int ammo_red = 25;       // ammo percent less than which status is red
+int ammo_yellow = 50;    // ammo percent less is yellow more green
+int health_red = 25;     // health amount less than which status is red
+int health_yellow = 50;  // health amount less than which status is yellow
+int health_green = 100;  // health amount above is blue, below is green
+int armor_red = 25;      // armor amount less than which status is red
+int armor_yellow = 50;   // armor amount less than which status is yellow
+int armor_green = 100;   // armor amount above is blue, below is green
 
  // in deathmatch only, summary of frags stats
 static st_number_t w_frags;
@@ -636,13 +642,14 @@ static void ST_doPaletteStuff(void)
       else
         palette = 0;
 
-  if (camera) palette = 0;     //sf
+  if (camera)
+    palette = 0;     //sf
   
   if (palette != st_palette)
     {
       st_palette = palette;
       pal = W_CacheLumpNum(lu_palette, PU_CACHE)+palette*768;
-      I_SetPalette (pal);
+      V_SetPalette (pal);
     }
 }
 
@@ -1077,7 +1084,7 @@ void ST_Stop(void)
 {
   if (st_stopped)
     return;
-  I_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
+  V_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
   st_stopped = true;
 }
 
@@ -1093,31 +1100,18 @@ void ST_Init(void)
 // Console variables
 //
 
-VARIABLE_INT(ammo_red, NULL,               0, 100, NULL);
-VARIABLE_INT(ammo_yellow, NULL,            0, 100, NULL);
-VARIABLE_INT(health_red, NULL,             0, 200, NULL);
-VARIABLE_INT(health_yellow, NULL,          0, 200, NULL);
-VARIABLE_INT(health_green, NULL,           0, 200, NULL);
-VARIABLE_INT(armor_red, NULL,              0, 200, NULL);
-VARIABLE_INT(armor_yellow, NULL,           0, 200, NULL);
-VARIABLE_INT(armor_green, NULL,            0, 200, NULL);
+CONSOLE_INT(ammo_red, ammo_red, NULL,               0, 100, NULL, 0) {}
+CONSOLE_INT(ammo_yellow, ammo_yellow, NULL,         0, 100, NULL, 0) {}
+CONSOLE_INT(health_red, health_red, NULL,           0, 200, NULL, 0) {}
+CONSOLE_INT(health_yellow, health_yellow, NULL,     0, 200, NULL, 0) {}
+CONSOLE_INT(health_green, health_green, NULL,       0, 200, NULL, 0) {}
+CONSOLE_INT(armor_red, armor_red, NULL,             0, 200, NULL, 0) {}
+CONSOLE_INT(armor_yellow, armor_yellow, NULL,       0, 200, NULL, 0) {}
+CONSOLE_INT(armor_green, armor_green, NULL,         0, 200, NULL, 0) {}
 
-VARIABLE_BOOLEAN(sts_pct_always_gray,      NULL,   yesno);
-VARIABLE_BOOLEAN(sts_always_red,           NULL,   yesno);
-VARIABLE_BOOLEAN(sts_traditional_keys,     NULL,   yesno);
-
-CONSOLE_VARIABLE(ammo_red, ammo_red, 0) { }
-CONSOLE_VARIABLE(ammo_yellow, ammo_yellow, 0) { }
-CONSOLE_VARIABLE(health_red, health_red, 0) { }
-CONSOLE_VARIABLE(health_yellow, health_yellow, 0) { }
-CONSOLE_VARIABLE(health_green, health_green, 0) { }
-CONSOLE_VARIABLE(armor_red, armor_red, 0) { }
-CONSOLE_VARIABLE(armor_yellow, armor_yellow, 0) { }
-CONSOLE_VARIABLE(armor_green, armor_green, 0) { }
-
-CONSOLE_VARIABLE(st_graypct, sts_pct_always_gray, 0) {}
-CONSOLE_VARIABLE(st_rednum, sts_always_red, 0) {}
-CONSOLE_VARIABLE(st_singlekey, sts_traditional_keys, 0) {}
+CONSOLE_BOOLEAN(st_graypct, sts_pct_always_gray, NULL,      yesno, 0) {}
+CONSOLE_BOOLEAN(st_rednum, sts_always_red, NULL,            yesno, 0) {}
+CONSOLE_BOOLEAN(st_singlekey, sts_traditional_keys, NULL,   yesno, 0) {}
 
 void ST_AddCommands()
 {

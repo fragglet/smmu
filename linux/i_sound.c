@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      System interface for sound.
@@ -33,71 +39,73 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 #include "../g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
 #include "../d_main.h"
 
+FILE *sndpipe;
+
 void I_CacheSound(sfxinfo_t *sound);
 
-int snd_card = 0, mus_card = 0, detect_voices;
+int snd_card = 1, mus_card = 0, detect_voices;
 
 //
 // This function loads the sound data from the WAD lump,
 //  for single sound.
 //
-static void *getsfx(char *sfxname, int *len)
-{
-  unsigned char *sfx, *paddedsfx;
-  int  i;
-  int  size;
-  int  paddedsize;
-  char name[20];
-  int  sfxlump;
+//  static void *getsfx(char *sfxname, int *len)
+//  {
+//    unsigned char *sfx, *paddedsfx;
+//    int  i;
+//    int  size;
+//    int  paddedsize = 0;
+//    char name[20];
+//    int  sfxlump;
 
-  // Get the sound data from the WAD, allocate lump
-  //  in zone memory.
-  sprintf(name, "ds%s", sfxname);
+//    // Get the sound data from the WAD, allocate lump
+//    //  in zone memory.
+//    sprintf(name, "ds%s", sfxname);
 
-  // Now, there is a severe problem with the
-  //  sound handling, in it is not (yet/anymore)
-  //  gamemode aware. That means, sounds from
-  //  DOOM II will be requested even with DOOM
-  //  shareware.
-  // The sound list is wired into sounds.c,
-  //  which sets the external variable.
-  // I do not do runtime patches to that
-  //  variable. Instead, we will use a
-  //  default sound for replacement.
+//    // Now, there is a severe problem with the
+//    //  sound handling, in it is not (yet/anymore)
+//    //  gamemode aware. That means, sounds from
+//    //  DOOM II will be requested even with DOOM
+//    //  shareware.
+//    // The sound list is wired into sounds.c,
+//    //  which sets the external variable.
+//    // I do not do runtime patches to that
+//    //  variable. Instead, we will use a
+//    //  default sound for replacement.
 
-  if ( W_CheckNumForName(name) == -1 )
-    sfxlump = W_GetNumForName("dspistol");
-  else
-    sfxlump = W_GetNumForName(name);
+//    if ( W_CheckNumForName(name) == -1 )
+//      sfxlump = W_GetNumForName("dspistol");
+//    else
+//      sfxlump = W_GetNumForName(name);
 
-  size = W_LumpLength(sfxlump);
+//    size = W_LumpLength(sfxlump);
 
-  sfx = W_CacheLumpNum(sfxlump, PU_STATIC);
+//    sfx = W_CacheLumpNum(sfxlump, PU_STATIC);
 
-  // Pads the sound effect out to the mixing buffer size.
-  // The original realloc would interfere with zone memory.
-  //  paddedsize = ((size-8 + (SAMPLECOUNT-1)) / SAMPLECOUNT) * SAMPLECOUNT;
+//    // Pads the sound effect out to the mixing buffer size.
+//    // The original realloc would interfere with zone memory.
+//    //  paddedsize = ((size-8 + (SAMPLECOUNT-1)) / SAMPLECOUNT) * SAMPLECOUNT;
 
-  // Allocate from zone memory.
-  paddedsfx = (unsigned char*) Z_Malloc(paddedsize+8, PU_STATIC, 0);
+//    // Allocate from zone memory.
+//    paddedsfx = (unsigned char*) Z_Malloc(paddedsize+8, PU_STATIC, 0);
 
-  // ddt: (unsigned char *) realloc(sfx, paddedsize+8);
-  // This should interfere with zone memory handling,
-  //  which does not kick in in the soundserver.
+//    // ddt: (unsigned char *) realloc(sfx, paddedsize+8);
+//    // This should interfere with zone memory handling,
+//    //  which does not kick in in the soundserver.
 
-  // Now copy and pad.
-  memcpy(paddedsfx, sfx, size);
-  for (i=size; i<paddedsize+8; i++)
-    paddedsfx[i] = 128;
+//    // Now copy and pad.
+//    memcpy(paddedsfx, sfx, size);
+//    for (i=size; i<paddedsize+8; i++)
+//      paddedsfx[i] = 128;
 
-  // Remove the cached lump.
-  Z_Free(sfx);
+//    // Remove the cached lump.
+//    Z_Free(sfx);
 
-  // Preserve padded length.
-  *len = paddedsize;
+//    // Preserve padded length.
+//    *len = paddedsize;
 
-  return NULL;
-}
+//    return NULL;
+//  }
 
 // SFX API
 // Note: this was called by S_Init.

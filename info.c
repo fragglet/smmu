@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Thing frame/state LUT,
@@ -75,7 +81,12 @@ char *sprnames[NUMSPRITES+1] = {
   "PLS1", // killough 7/19/98: first  of two plasma fireballs in the beta
   "PLS2", // killough 7/19/98: second of two plasma fireballs in the beta
 
-        // sf: removed MBF beta sprites (keeping plasma for classic bfg)
+  // sf: removed MBF beta sprites (keeping plasma for classic bfg)
+  // sf: had to add back for mbf dehacked patch compatibility
+
+  "BON3", // killough 7/11/98: evil sceptre in the beta version
+  "BON4", // killough 7/11/98: unholy bible in the beta version
+
   "PART",       // sf : particle
 
   NULL
@@ -168,6 +179,7 @@ void A_BrainExplode();
 void A_FireOldBFG();      // killough 7/19/98: classic BFG firing function
 void A_Detonate();        // killough 8/9/98: detonate a bomb or other device
 void A_Mushroom();        // killough 10/98: mushroom effect
+void A_BetaSkullAttack();
 
 // ********************************************************************
 // State or "frame" information
@@ -1244,7 +1256,44 @@ state_t states[NUMSTATES] = {
   {SPR_PLS2,32771,6,NULL,S_PLS2BALLX3},  // S_PLS2BALLX2
   {SPR_PLS2,32772,6,NULL,S_NULL}, // S_PLS2BALLX3
 
-        // sf: removed beta-emulation states
+  // sf: removed beta-emulation states
+  // sf: added back for compatibility with some mbf patches
+
+  {SPR_BON3,0,6,NULL,S_BON3},           // S_BON3  // killough 7/11/98:
+  {SPR_BON4,0,6,NULL,S_BON4},           // S_BON4  // beta bonus items
+
+  // killough 10/98: beta lost souls attacked from a distance, 
+  // animated with colors, and stayed in the air when killed.
+  // This is an approximation, but I'm sure it can be improved.
+
+  // spawnstate
+  {SPR_SKUL,0,10,A_Look,S_BSKUL_STND},  // S_BSKUL_STND
+
+  // chasestate
+  {SPR_SKUL,1,5,A_Chase,S_BSKUL_RUN2},  // S_BSKUL_RUN1
+  {SPR_SKUL,2,5,A_Chase,S_BSKUL_RUN3},  // S_BSKUL_RUN2
+  {SPR_SKUL,3,5,A_Chase,S_BSKUL_RUN4},  // S_BSKUL_RUN3
+  {SPR_SKUL,0,5,A_Chase,S_BSKUL_RUN1},  // S_BSKUL_RUN4
+
+  // missilestate
+  {SPR_SKUL,4,4,A_FaceTarget,S_BSKUL_ATK2},     // S_BSKUL_ATK1
+  {SPR_SKUL,5,5,A_BetaSkullAttack,S_BSKUL_ATK3}, // S_BSKUL_ATK2
+  {SPR_SKUL,5,4,NULL,S_BSKUL_RUN1},              // S_BSKUL_ATK3
+
+  // painstate
+  {SPR_SKUL,6,4,NULL,S_BSKUL_PAIN2},     // S_BSKUL_PAIN1
+  {SPR_SKUL,7,2,A_Pain,S_BSKUL_RUN1},   // S_BSKUL_PAIN2
+  {SPR_SKUL,8,4,NULL,S_BSKUL_RUN1},      // S_BSKUL_PAIN3
+
+  // deathstate
+  {SPR_SKUL, 9,5,NULL,S_BSKUL_DIE2},     // S_BSKUL_DIE1
+  {SPR_SKUL,10,5,NULL,S_BSKUL_DIE3},     // S_BSKUL_DIE2
+  {SPR_SKUL,11,5,NULL,S_BSKUL_DIE4},     // S_BSKUL_DIE3
+  {SPR_SKUL,12,5,NULL,S_BSKUL_DIE5},     // S_BSKUL_DIE4
+  {SPR_SKUL,13,5,A_Scream,S_BSKUL_DIE6}, // S_BSKUL_DIE5
+  {SPR_SKUL,14,5,NULL,S_BSKUL_DIE7},     // S_BSKUL_DIE6
+  {SPR_SKUL,15,5,A_Fall,S_BSKUL_DIE8},   // S_BSKUL_DIE7
+  {SPR_SKUL,16,5,A_Stop,S_BSKUL_DIE8},   // S_BSKUL_DIE8
 
   // killough 10/98: mushroom effect
   {SPR_MISL,32769,8,A_Mushroom,S_EXPLODE2},  // S_MUSHROOM

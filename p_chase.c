@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //---------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Chasecam
 //
 // Follows the displayplayer. It does exactly what it says on the
@@ -10,6 +28,7 @@
 
 #include "c_io.h"
 #include "c_runcmd.h"
+#include "cl_clien.h"
 #include "doomdef.h"
 #include "doomstat.h"
 #include "info.h"
@@ -24,10 +43,10 @@
 boolean PTR_chasetraverse(intercept_t *in);
 
 camera_t chasecam;
-long chaseviewz;
 int chasecam_active = 0;
-long targetx, targety, targetz;
-int chasecam_turnoff = 0;
+
+static long chaseviewz;
+static long targetx, targety, targetz;
 
 void P_ChaseSetupFrame()
 {
@@ -121,9 +140,7 @@ void P_ChaseTicker()
 
 // console command
 
-VARIABLE_BOOLEAN(chasecam_active, NULL, onoff);
-
-CONSOLE_VARIABLE(chasecam, chasecam_active, 0)
+CONSOLE_BOOLEAN(chasecam, chasecam_active, NULL, onoff, cf_nosave)
 {
   if(atoi(c_argv[0])) P_ChaseStart();
   else P_ChaseEnd();
@@ -250,20 +267,23 @@ void P_ResetChasecam()
 }
 
 
-///////////////////////////////////////////////////////////////////////////
+//==========================================================================
 //
 // Walkcam
 //
-
 // walk around inside playing demos without upsetting demo sync
+//
+//==========================================================================
+
+extern ticcmd_t player_cmds[MAXPLAYERS];
 
 camera_t walkcamera;
 int walkcam_active = 0;
 
 void P_WalkTicker()
 {
-  ticcmd_t *walktic = &netcmds[consoleplayer][(gametic/ticdup)%BACKUPTICS];
-  
+  ticcmd_t *walktic = &player_cmds[consoleplayer];
+
   walkcamera.angle += walktic->angleturn << 16;
   
   // moving forward
@@ -294,8 +314,7 @@ void P_WalkTicker()
     walkcamera.updownangle;
 }
 
-VARIABLE_BOOLEAN(walkcam_active, NULL,              onoff);
-CONSOLE_VARIABLE(walkcam, walkcam_active, cf_notnet)
+CONSOLE_BOOLEAN(walkcam, walkcam_active, NULL, onoff, cf_notnet|cf_nosave)
 {
   if(!c_argc)
     walkcam_active = !walkcam_active;

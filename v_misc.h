@@ -1,23 +1,28 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 
 #ifndef __V_MISC_H__
 #define __V_MISC_H__
 
 void V_InitMisc();
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Mode setting
-//
-
-void V_Mode();
-void V_ModeList();
-void V_ResetMode();
-extern int v_mode;
-
-/////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------
 //
 // Font
 //
@@ -46,24 +51,7 @@ void V_LoadFont();
 int V_StringWidth(unsigned char *s);
 int V_StringHeight(unsigned char *s);
 
-///////////////////////////////////////////////////////////////////////////
-//
-// Box Drawing
-//
-
-void V_DrawBox(int, int, int, int);
-
-///////////////////////////////////////////////////////////////////////////
-//
-// Loading box
-//
-
-void V_DrawLoading();
-void V_SetLoading(int total, char *mess);
-void V_LoadingIncrease();
-void V_LoadingSetTo(int amount);
-
-///////////////////////////////////////////////////////////////////////////
+//--------------------------------------------------------------------------
 //
 // FPS ticker
 //
@@ -72,7 +60,7 @@ void V_FPSDrawer();
 void V_FPSTicker();
 extern int v_ticker;
 
-///////////////////////////////////////////////////////////////////////////
+//--------------------------------------------------------------------------
 //
 // Background 'tile' fill
 //
@@ -80,6 +68,26 @@ extern int v_ticker;
 void V_DrawBackground(char* patchname, byte *back_dest);
 void V_DrawDistortedBackground(char* patchname, byte *back_dest);
 
+//--------------------------------------------------------------------------
+//
+// Box drawing
+//
+
+void V_DrawBox(int, int, int, int);
+
+
+//--------------------------------------------------------------------------
+//
+// 'loading' box
+//
+
+void V_DrawLoading();
+void V_SetLoading(int total, char *mess);
+void V_LoadingIncrease();
+void V_LoadingSetTo(int amount);
+
 
 
 #endif
+
+

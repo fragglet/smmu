@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      The actual span/column drawing functions.
@@ -36,7 +42,6 @@ rcsid[] = "$Id: r_draw.c,v 1.16 1998/05/03 22:41:46 killough Exp $";
 #define MAXHEIGHT MAX_SCREENHEIGHT
 
 #define SBARHEIGHT 32             /* status bar height at bottom of screen */
-#define USEASM /* sf: changed #ifdef DJGPP to #ifdef USEASM */
 
 //
 // All drawing to the view buffer is accomplished in this file.
@@ -131,7 +136,7 @@ void R_DrawColumn (void)
   {
     register const byte *source = dc_source;            
     register const lighttable_t *colormap = dc_colormap; 
-    register heightmask = dc_texheight-1;
+    register int heightmask = dc_texheight-1;
     if (dc_texheight & heightmask)   // not a power of 2 -- killough
       {
         heightmask++;
@@ -231,7 +236,7 @@ void R_DrawTLColumn (void)
   {
     register const byte *source = dc_source;            
     register const lighttable_t *colormap = dc_colormap; 
-    register heightmask = dc_texheight-1;
+    register int heightmask = dc_texheight-1;
     if (dc_texheight & heightmask)   // not a power of 2 -- killough
       {
         heightmask++;
@@ -453,7 +458,7 @@ translat_t translations[] =
     {64,  16},     // brown
     {32,  16},     // red
   
-  /////////////////////////
+  //--------------------------
   // New colours
   
     {176, 16},     // tomato

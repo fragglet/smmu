@@ -1,3 +1,3 @@
 @echo off
-strip obj\smmu.exe
-copy obj\smmu.exe \\x-homepc\drive.c\doom2
+strip smmu.exe
+copy smmu.exe \\x-homepc\drive.c\doom2

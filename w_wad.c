@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Handles WAD file header, directory, lump I/O.
@@ -166,7 +173,7 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
       NormalizeSlashes(AddDefaultExtension(strcpy(filename, name), ".lmp"));
       if ((handle = open(filename,O_RDONLY | O_BINARY)) == -1)
 	{
-	  if(in_textmode)
+	  if(!in_graphics_mode)
 	    I_Error("Error: couldn't open %s\n",name);  // killough
 	  else
 	    {
@@ -176,7 +183,7 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
 	}
     }
   
-  if(in_textmode)
+  if(!in_graphics_mode)
     printf(" adding %s\n",filename);   // killough 8/8/98
   startlump = numlumps;
 
@@ -370,7 +377,12 @@ int (W_CheckNumForName)(register const char *name, register int namespace)
   // Hash function maps the name to one of possibly numlump chains.
   // It has been tuned so that the average chain length never exceeds 2.
 
-  register int i = lumpinfo[W_LumpNameHash(name) % (unsigned) numlumps]->index;
+  register int i;
+
+  if(!lumpinfo)       // sf: lumps not loaded yet
+    return -1;
+
+  i = lumpinfo[W_LumpNameHash(name) % (unsigned) numlumps]->index;
 
   // We search along the chain until end, looking for case-insensitive
   // matches which also match a namespace tag. Separate hash tables are
@@ -528,12 +540,12 @@ void W_ReadLump(int lump, void *dest)
 
       // killough 1/31/98: Reload hack (-wart) removed
       // killough 10/98: Add flashing disk indicator
-      I_BeginRead();
+      V_BeginRead();
       lseek(l->handle, l->position, SEEK_SET);
       c = read(l->handle, dest, l->size);
       if (c < l->size)
         I_Error("W_ReadLump: only read %i of %i on lump %i", c, l->size, lump);
-      I_EndRead();
+      V_EndRead();
     }
 }
 
@@ -544,19 +556,22 @@ void W_ReadLump(int lump, void *dest)
 
 void *W_CacheLumpNum(int lump, int tag)
 {
+  if(!lumpinfo)
+    return NULL;
+  
 #ifdef RANGECHECK
   if ((unsigned)lump >= numlumps)
     I_Error ("W_CacheLumpNum: %i >= numlumps",lump);
 #endif
 
   if (!lumpinfo[lump]->cache)      // read the lump in
-  {
-    W_ReadLump(lump, Z_Malloc(W_LumpLength(lump), tag, &lumpinfo[lump]->cache));
-  }
+    {
+      W_ReadLump(lump, Z_Malloc(W_LumpLength(lump), tag, &lumpinfo[lump]->cache));
+    }
   else
-  {
-    Z_ChangeTag(lumpinfo[lump]->cache, tag);
-  }
+    {
+      Z_ChangeTag(lumpinfo[lump]->cache, tag);
+    }
 
   return lumpinfo[lump]->cache;
 }

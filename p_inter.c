@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Handling interactions (i.e., collisions).
@@ -122,10 +128,12 @@ boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num)
     {
     case am_clip:
       if (player->readyweapon == wp_fist)
-        if (player->weaponowned[wp_chaingun])
-          player->pendingweapon = wp_chaingun;
-        else
-          player->pendingweapon = wp_pistol;
+	{
+	  if (player->weaponowned[wp_chaingun])
+	    player->pendingweapon = wp_chaingun;
+	  else
+	    player->pendingweapon = wp_pistol;
+	}
       break;
 
     case am_shell:
@@ -351,42 +359,48 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       if (!player->cards[it_bluecard])
         message = s_GOTBLUECARD; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_bluecard);
-      removeobj = !netgame;
+      if(netgame)
+	return;
       break;
 
     case SPR_YKEY:
       if (!player->cards[it_yellowcard])
         message = s_GOTYELWCARD; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_yellowcard);
-      removeobj = !netgame;
+      if(netgame)
+	return;
       break;
 
     case SPR_RKEY:
       if (!player->cards[it_redcard])
         message = s_GOTREDCARD; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_redcard);
-      removeobj = !netgame;
+      if(netgame)
+	return;
       break;
 
     case SPR_BSKU:
       if (!player->cards[it_blueskull])
         message = s_GOTBLUESKUL; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_blueskull);
-      removeobj = !netgame;
+      if(netgame)
+	return;
       break;
-
-    case SPR_YSKU:
-      if (!player->cards[it_yellowskull])
-        message = s_GOTYELWSKUL; // Ty 03/22/98 - externalized
-      P_GiveCard (player, it_yellowskull);
-      removeobj = !netgame;
-      break;
+      
+      case SPR_YSKU:
+	if (!player->cards[it_yellowskull])
+	  message = s_GOTYELWSKUL; // Ty 03/22/98 - externalized
+	P_GiveCard (player, it_yellowskull);
+	if(netgame)
+	  return;
+	break;
 
     case SPR_RSKU:
       if (!player->cards[it_redskull])
         message = s_GOTREDSKULL; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_redskull);
-      removeobj = !netgame;
+      if(netgame)
+	return;
       break;
 
       // medikits, heals
@@ -648,10 +662,10 @@ void P_KillMobj(mobj_t *source, mobj_t *target)
 	if (target->flags & MF_COUNTKILL)
 	  source->player->killcount++;
       if (target->player)
-      {
-        source->player->frags[target->player-players]++;
-        HU_FragsUpdate();
-      }
+	{
+	  source->player->frags[target->player-players]++;
+	  HU_FragsUpdate();
+	}
     }
     else
       if (!netgame && (target->flags & MF_COUNTKILL) )
@@ -739,99 +753,101 @@ void P_KillMobj(mobj_t *source, mobj_t *target)
   }
 }
 
-        //
-        // DEATH MESSAGES
-        //
-        // the %c at the beginning of each string is used to change the
-        // colour to the obituary colour
-        //
+//
+// DEATH MESSAGES
+//
+// the %c at the beginning of each string is used to change the
+// colour to the obituary colour
+//
 
 char *deathmess1[] ={
-        "%c%s was punched to death",           // fist
-        "%c%s died from pistol wounds",        // pistol
-        "%c%s got shotgun-blasted",            // shotgun
-        "%c%s got chaingunned to death",       // chaingun
-        "%c%s failed to avoid the rocket",      // rockets
-        "%c%s admires the pretty blue stuff..",// plasma
-        "%c%s saw the green flash",           // bfg
-        "%c%s got chopped up",                 // chainsaw
-        "%c%s got two shells in the chest",    // 2x shotgun
-        "%c%s died",                           // default
+  "%c%s was punched to death",           // fist
+  "%c%s died from pistol wounds",        // pistol
+  "%c%s got shotgun-blasted",            // shotgun
+  "%c%s got chaingunned to death",       // chaingun
+  "%c%s failed to avoid the rocket",      // rockets
+  "%c%s admires the pretty blue stuff..",// plasma
+  "%c%s saw the green flash",           // bfg
+  "%c%s got chopped up",                 // chainsaw
+  "%c%s got two shells in the chest",    // 2x shotgun
+  "%c%s died",                           // default
 };
 
 char *deathmess2[] = {
-        "%c%s performed G.B.H. on %s",         // fist
-        "%c%s took out %s with a pistol",      // pistol
-        "%c%s blasted %s away",                // shotgun
-        "%c%s chaingunned down %s",            // chaingun
-        "%c%s blew %s away",                   // rockets
-        "%c%s burned %s",                      // plasma
-        "%c%s bfg'ed %s",                      // bfg
-        "%c%s mistook %s for a tree",          // chainsaw
-        "%c%s shows %s his double barrels",    // 2x shotgun
-        "%c%s killed %s",                      // default
+  "%c%s performed G.B.H. on %s",         // fist
+  "%c%s took out %s with a pistol",      // pistol
+  "%c%s blasted %s away",                // shotgun
+  "%c%s chaingunned down %s",            // chaingun
+  "%c%s blew %s away",                   // rockets
+  "%c%s burned %s",                      // plasma
+  "%c%s bfg'ed %s",                      // bfg
+  "%c%s mistook %s for a tree",          // chainsaw
+  "%c%s shows %s his double barrels",    // 2x shotgun
+  "%c%s killed %s",                      // default
 };
 
 //sf: obituaries
 void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
 {
-        int killweapon, messtype;
-
-        if(!target->player) return;     // not a player
-        if(!obituaries) return;         // obituaries off
-
-        if(!source || !source->player) // killed by a monster or environment
-        {
-                doom_printf("%c%s died", 128+obcolour,
-                        target->player->name);
-                return;
-        }
-
-        if(source == inflictor)         // killed by shooting etc.
-                killweapon = source->player->readyweapon;
-        else
-                    // find what weapon caused the kill
-        {
-                switch(inflictor->type)
-                {
-                        case MT_BFG: killweapon = wp_bfg; break;
-                        case MT_ROCKET: killweapon = wp_missile; break;
-                        case MT_PLASMA: killweapon = wp_plasma; break;
-                        default: killweapon = NUMWEAPONS; break;
-                }
-        }
-
-        if(source->player == target->player)    // suicide ?
-        {
-                // inflictor: only use message if an inflictor is used
-            if(inflictor)
-                if(killweapon == wp_missile)
-                {
-                   doom_printf("%c%s should have stood back", 128+obcolour,
-                          source->player->name);
-                   return;
-                }
-                else if(killweapon == wp_bfg)
-                {
-                   doom_printf("%c%s used a bfg close-up",
-                        128+obcolour, source->player->name);
-                   return;
-                }
-
-            doom_printf("%c%s suicides", 128+obcolour,
-                        source->player->name);
-            return;
-        }
-
-        //  choose a message type, 0 or 1
-        messtype = M_Random() % 2;
-
-        if(messtype)
-            doom_printf(deathmess1[killweapon], 128+obcolour,
-                        target->player->name, source->player->name);
-        else
-            doom_printf(deathmess2[killweapon], 128+obcolour,
-                        source->player->name, target->player->name);
+  int killweapon, messtype;
+  
+  if(!target->player) return;     // not a player
+  if(!obituaries) return;         // obituaries off
+  
+  if(!source || !source->player) // killed by a monster or environment
+    {
+      doom_printf("%c%s died", 128+obcolour,
+		  target->player->name);
+      return;
+    }
+  
+  if(source == inflictor)         // killed by shooting etc.
+    killweapon = source->player->readyweapon;
+  else
+    // find what weapon caused the kill
+    {
+      switch(inflictor->type)
+	{
+	  case MT_BFG: killweapon = wp_bfg; break;
+	  case MT_ROCKET: killweapon = wp_missile; break;
+	  case MT_PLASMA: killweapon = wp_plasma; break;
+	  default: killweapon = NUMWEAPONS; break;
+	}
+    }
+  
+  if(source->player == target->player)    // suicide ?
+    {
+      // inflictor: only use message if an inflictor is used
+      if(inflictor)
+	{
+	  if(killweapon == wp_missile)
+	    {
+	      doom_printf("%c%s should have stood back", 128+obcolour,
+			  source->player->name);
+	      return;
+	    }
+	  else if(killweapon == wp_bfg)
+	    {
+	      doom_printf("%c%s used a bfg close-up",
+			  128+obcolour, source->player->name);
+	      return;
+	    }
+	}
+      
+      doom_printf("%c%s suicides", 128+obcolour,
+		  source->player->name);
+      return;
+    }
+  
+  //  choose a message type, 0 or 1
+  messtype = M_Random() % 2;
+  
+  if(messtype)
+    doom_printf(deathmess1[killweapon], 128+obcolour,
+		target->player->name, source->player->name);
+  else
+    doom_printf(deathmess2[killweapon], 128+obcolour,
+		source->player->name, target->player->name);
 }
 
 //

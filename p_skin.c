@@ -1,10 +1,30 @@
 // Emacs style mode -*- C++ -*-
 //---------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Skins (Doom Legacy)
 //
 // Skins are a set of sprites which replace the normal player sprites, so
 // in multiplayer the players can look like whatever they want.
+// 
+// sf: this is code i wrote a long time ago and is very nasty
 //
 //--------------------------------------------------------------------------
 
@@ -44,15 +64,19 @@ char *skinsoundnames[NUMSKINSOUNDS]=
 
 void P_CreateMarine();
 void P_CacheFaces(skin_t *skin);
+skin_t *P_SkinForName(char *s);
 
 void P_InitSkins()
 {
   int i;
   char **currentsprite;
   skin_t **currentskin;
+  skin_t *selected;
   
   // allocate spritelist
-  if(spritelist) Z_Free(spritelist);
+  if(spritelist)
+    Z_Free(spritelist);
+
   spritelist = Z_Malloc(sizeof(char*) * (MAXSKINS+NUMSPRITES+1),
 			PU_STATIC, 0);
 
@@ -70,6 +94,7 @@ void P_InitSkins()
       // add the skins
       for(currentskin = skins; *currentskin; currentskin++)
 	{
+	  C_Printf("%s\n", (*currentskin)->spritename);
 	  *currentsprite = (*currentskin)->spritename;
 	  (*currentskin)->sprite = currentsprite-spritelist;
 	  P_CacheFaces(*currentskin);
@@ -79,6 +104,12 @@ void P_InitSkins()
 
   *currentsprite = NULL;     // end in null
   P_CreateMarine();
+
+  // set players skin
+
+  selected = P_SkinForName(default_skin);
+  if(selected)
+    P_SetSkin(selected, consoleplayer);
 }
 
 // create the marine skin
@@ -88,14 +119,16 @@ void P_CreateMarine()
   int i;
   static int marine_created = false;
   
-  if(marine_created) return;      // dont make twice
+  if(marine_created)
+    return;      // dont make twice
   
   for(i=0; i<NUMSKINSOUNDS; i++)
     marine.sounds[i] = NULL;
   marine.faces = default_faces;
   marine.facename = "STF";
   
-  if(default_skin == NULL) default_skin = Z_Strdup("marine", PU_STATIC, 0);
+  if(default_skin == NULL)
+    default_skin = Z_Strdup("marine", PU_STATIC, 0);
   
   P_AddSkin(&marine);
   
@@ -128,7 +161,7 @@ void P_AddSkin(skin_t *newskin)
   skins[numskins+1] = NULL;           // end the list
 }
 
-skin_t *newskin;
+static skin_t *newskin;
 
 void P_AddSpriteLumps(char *named)
 {
@@ -147,29 +180,35 @@ void P_AddSpriteLumps(char *named)
 
 void P_ParseSkinCmd(char *line)
 {
+  char *l;
   int i;
-  
-  while(*line==' ') line++;
+  char token1[128], token2[128];
+
+  while(*line==' ')
+    line++;
   if(!*line) return;      // maybe nothing left now
+
+  for(l = line; *l; l++)     // remove '='
+    if(*l == '=')
+      *l = ' ';
   
-  if(!strncasecmp(line, "name", 4))
+  token1[0] = token2[0] = '\0'; 
+  sscanf(line, "%s %s", token1, token2);
+
+  C_Printf("%s, %s\n", token1, token2);
+  
+  if(!strcasecmp(token1, "name"))
     {
-      char *skinname = line+4;
-      while(*skinname == ' ') skinname++;
-      newskin->skinname = strdup(skinname);
+      newskin->skinname = strdup(token2);
     }
-  if(!strncasecmp(line, "sprite", 6))
+  if(!strcasecmp(token1, "sprite"))
     {
-      char *spritename = line+6;
-      while(*spritename == ' ') spritename++;
-      strncpy(newskin->spritename, spritename, 4);
+      strncpy(newskin->spritename, token2, 4);
       newskin->spritename[4] = 0;
     }
-  if(!strncasecmp(line, "face", 4))
+  if(!strcasecmp(token1,"face"))
     {
-      char *facename = line+4;
-      while(*facename == ' ') facename++;
-      newskin->facename = strdup(facename);
+      newskin->facename = strdup(token2);
       newskin->facename[3] = 0;
     }
   
@@ -177,13 +216,10 @@ void P_ParseSkinCmd(char *line)
   
   for(i=0; i<NUMSKINSOUNDS; i++)
     {
-      if(!strncasecmp(line, skinsoundnames[i], strlen(skinsoundnames[i])))
+      if(!strcasecmp(token1, skinsoundnames[i]))
 	{                    // yes!
-	  char *newsoundname = line + strlen(skinsoundnames[i]);
-	  while(*newsoundname == ' ') newsoundname++;
-	  newsoundname += 2;        // ds
-	  
-	  newskin->sounds[i] = strdup(newsoundname);
+	  if(strlen(token2) > 2)
+	    newskin->sounds[i] = strdup(token2 + 2);
 	}
     }
 }
@@ -196,7 +232,8 @@ void P_ParseSkin(int lumpnum)
   int i;
   boolean comment;
   
-  if(!inputline) inputline = Z_Malloc(256, PU_STATIC, 0);
+  if(!inputline)
+    inputline = Z_Malloc(256, PU_STATIC, 0);
   newskin = Z_Malloc(sizeof(skin_t), PU_STATIC, 0);
   newskin->spritename = Z_Malloc(5, PU_STATIC, 0);
   strncpy(newskin->spritename, lumpinfo[lumpnum+1]->name, 4);
@@ -241,7 +278,8 @@ void P_ParseSkin(int lumpnum)
 
 void P_CacheFaces(skin_t *skin)
 {
-  if(skin->faces) return; // already cached
+  if(skin->faces)
+    return; // already cached
   
   if(!strcasecmp(skin->facename,"STF"))
     {
@@ -264,9 +302,11 @@ skin_t *P_SkinForName(char *s)
 {
   skin_t **skin=skins;
   
-  while(*s==' ') s++;
+  while(*s==' ')
+    s++;
   
-  if(!skins) return NULL;
+  if(!skins)
+    return NULL;
   
   while(*skin)
     {
@@ -282,7 +322,8 @@ skin_t *P_SkinForName(char *s)
 
 void P_SetSkin(skin_t *skin, int playernum)
 {
-  if(!playeringame[playernum]) return;
+  if(!playeringame[playernum])
+    return;
   
   players[playernum].skin = skin;
   if(gamestate == GS_LEVEL)
@@ -291,7 +332,8 @@ void P_SetSkin(skin_t *skin, int playernum)
       players[playernum].mo->sprite = skin->sprite;
     }
   
-  if(playernum == consoleplayer) default_skin = skin->skinname;
+  if(playernum == consoleplayer)
+    default_skin = skin->skinname;
 }
 
 // change to previous skin
@@ -372,6 +414,14 @@ VARIABLE_STRING(default_skin, NULL, 50);
 CONSOLE_NETVAR(skin, default_skin, cf_handlerset, netcmd_skin)
 {
   skin_t *skin;
+
+  // do not try to set anything when initting
+
+  if(gamestate == GS_INIT)
+    {
+      default_skin = strdup(c_argv[0]);
+      return;
+    }
   
   if(!c_argc)
     {

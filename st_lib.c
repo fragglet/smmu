@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      The status bar widget code.
@@ -31,10 +37,13 @@ rcsid[] = "$Id: st_lib.c,v 1.8 1998/05/11 10:44:42 jim Exp $";
 #include "st_lib.h"
 #include "r_main.h"
 
-int sts_always_red;      //jff 2/18/98 control to disable status color changes
-int sts_pct_always_gray; // killough 2/21/98: always gray %'s? bug or feature?
+//jff 2/18/98 control to disable status color changes
+int sts_always_red = 1;
 
-patch_t*    sttminus;
+// killough 2/21/98: always gray %'s? bug or feature?
+int sts_pct_always_gray = 0;
+
+static patch_t*    sttminus;
 
 //
 // STlib_init()
@@ -134,10 +143,12 @@ void STlib_drawNum
   //jff 2/16/98 add color translation to digit output
   // in the special case of 0, you draw 0
   if (!num)
-    if (outrng && !sts_always_red)
-      V_DrawPatchTranslated(x - w, n->y, FG, n->p[ 0 ],outrng,0);
-    else //jff 2/18/98 allow use of faster draw routine from config
-      V_DrawPatch(x - w, n->y, FG, n->p[ 0 ]);
+    {
+      if (outrng && !sts_always_red)
+	V_DrawPatchTranslated(x - w, n->y, FG, n->p[ 0 ],outrng,0);
+      else //jff 2/18/98 allow use of faster draw routine from config
+	V_DrawPatch(x - w, n->y, FG, n->p[ 0 ]);
+    }
 
   // draw the new number
   //jff 2/16/98 add color translation to digit output
@@ -154,10 +165,12 @@ void STlib_drawNum
   // draw a minus sign if necessary
   //jff 2/16/98 add color translation to digit output
   if (neg)
-    if (outrng && !sts_always_red)
-      V_DrawPatchTranslated(x - 8, n->y, FG, sttminus,outrng,0);
-    else //jff 2/18/98 allow use of faster draw routine from config
-      V_DrawPatch(x - 8, n->y, FG, sttminus);
+    {
+      if (outrng && !sts_always_red)
+	V_DrawPatchTranslated(x - 8, n->y, FG, sttminus,outrng,0);
+      else //jff 2/18/98 allow use of faster draw routine from config
+	V_DrawPatch(x - 8, n->y, FG, sttminus);
+    }
 }
 
 //
@@ -213,19 +226,21 @@ void STlib_updatePercent
   int refresh )
 {
   if (refresh || *per->n.on) // killough 2/21/98: fix percents not updated;
-    if (!sts_always_red)     // also support gray-only percents
-      V_DrawPatchTranslated
-      (
-        per->n.x,
-        per->n.y,
-        FG,
-        per->p,
-        sts_pct_always_gray ? cr_gray : outrng,
-        0
-      );
-    else   //jff 2/18/98 allow use of faster draw routine from config
-      V_DrawPatch(per->n.x, per->n.y, FG, per->p);
-  
+    {
+      if (!sts_always_red)     // also support gray-only percents
+	V_DrawPatchTranslated
+	  (
+	   per->n.x,
+	   per->n.y,
+	   FG,
+	   per->p,
+	   sts_pct_always_gray ? cr_gray : outrng,
+	   0
+	   );
+      else   //jff 2/18/98 allow use of faster draw routine from config
+	V_DrawPatch(per->n.x, per->n.y, FG, per->p);
+    }
+
   STlib_updateNum(&per->n, outrng, refresh);
 }
 

@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Heads up display
 //
 // Re-written. Displays the messages, etc
@@ -29,191 +47,37 @@
 #include "v_video.h"
 #include "w_wad.h"
 
-#define HU_TITLE  (*mapnames[(gameepisode-1)*9+gamemap-1])
-#define HU_TITLE2 (*mapnames2[gamemap-1])
-#define HU_TITLEP (*mapnamesp[gamemap-1])
-#define HU_TITLET (*mapnamest[gamemap-1])
-
-void HU_WarningsInit();
-void HU_WarningsDrawer();
-
-void HU_WidgetsInit();
-void HU_WidgetsTick();
-void HU_WidgetsDraw();
-void HU_WidgetsErase();
-
-void HU_MessageTick();
-void HU_MessageDraw();
-void HU_MessageClear();
-void HU_MessageErase();
-
-void HU_CentreMessageClear();
-boolean HU_ChatRespond(event_t *ev);
-
-// the global widget list
+static boolean altdown = false;    // whether alt key is down
 
 char *chat_macros[10];
 const char* shiftxform;
 const char english_shiftxform[];
 //boolean chat_on;
-boolean chat_active = false;
+static boolean chat_active = false;
 int obituaries = 0;
 int obcolour = CR_BRICK;       // the colour of death messages
-int showMessages;    // Show messages has default, 0 = off, 1 = on
+int showMessages = 1;    // Show messages has default, 0 = off, 1 = on
 int mess_colour = CR_RED;      // the colour of normal messages
 
-// main message list
-unsigned char *levelname;
+extern char *levelname;        // p_info.c
 
-//
-// Builtin map names.
-// The actual names can be found in DStrings.h.
-//
-// Ty 03/27/98 - externalized map name arrays - now in d_deh.c
-// and converted to arrays of pointers to char *
-// See modified HUTITLEx macros
-//
-extern char **mapnames[];
-extern char **mapnames2[];
-extern char **mapnamesp[];
-extern char **mapnamest[];
-
-///////////////////////////////////////////////////////////////////////
-//
-// Main Functions
-//
-// Init, Drawer, Ticker etc.
-
-void HU_Start()
-{
-  HU_MessageClear();
-  HU_CentreMessageClear();
-}
-
-void HU_End()
-{
-}
-
-void HU_Init()
-{
-  shiftxform = english_shiftxform;
-
-  // init different modules
-  HU_CrossHairInit();
-  HU_FragsInit();
-  HU_WarningsInit();
-  HU_WidgetsInit();
-  HU_LoadFont();
-}
-
-void HU_Drawer()
-{
-  // draw different modules
-  HU_MessageDraw();
-  HU_CrossHairDraw();
-  HU_FragsDrawer();
-  HU_WarningsDrawer();
-  HU_WidgetsDraw();
-  HU_OverlayDraw();
-}
-
-void HU_Ticker()
-{
-  // run tickers for some modules
-  HU_CrossHairTick();
-  HU_WidgetsTick();
-  HU_MessageTick();
-}
-
-boolean altdown = false;
-
-boolean HU_Responder(event_t *ev)
-{
-  if(ev->data1 == KEYD_LALT)
-    altdown = ev->type == ev_keydown;
-  
-  return HU_ChatRespond(ev);
-}
-
-// hu_newlevel called when we enter a new level
-// determine the level name and display it in
-// the console
-
-void HU_NewLevel()
-{
-  extern char *gamemapname;
-
-  // determine the level name        
-  // there are a number of sources from which it can come from,
-  // getting the right one is the tricky bit =)
-  
-  // if commerical mode, OLO loaded and inside the confines of the
-  // new level names added, use the olo level name
-  
-  if(gamemode == commercial && olo_loaded
-     && (gamemap-1 >= olo.levelwarp && gamemap-1 <= olo.lastlevel) )
-    levelname = olo.levelname[gamemap-1];
-  
-        // info level name from level lump (p_info.c) ?
-  
-  else if(*info_levelname) levelname = info_levelname;
-  
-        // not a new level or dehacked level names ?
-  
-  else if(!newlevel || deh_loaded)
-    {
-      if(isMAPxy(gamemapname))
-	levelname = gamemission == pack_tnt ? HU_TITLET :
-	gamemission == pack_plut ? HU_TITLEP : HU_TITLE2;
-      else if(isExMy(gamemapname))
-	levelname = HU_TITLE;
-      else
-	levelname = gamemapname;
-    }
-  else        //  otherwise just put "new level"
-    {
-      static char newlevelstr[50];
-      
-      sprintf(newlevelstr, "%s: new level", gamemapname);
-      levelname = newlevelstr;
-    }
-
-  // print the new level name into the console
-  
-  C_Printf("\n");
-  C_Seperator();
-  C_Printf(FC_GRAY "%s\n\n", levelname);
-  C_InstaPopup();       // put console away
-  //  C_Update();
-}
-
-        // erase text that can be trashed by small screens
-void HU_Erase()
-{
-  if(!viewwindowx || automapactive)
-    return;
-
-  // run indiv. module erasers
-  HU_MessageErase();
-  HU_WidgetsErase();
-  HU_FragsErase();
-}
-
-////////////////////////////////////////////////////////////////////////
+//==========================================================================
 //
 // Normal Messages
 //
 // 'picked up a clip' etc.
 // seperate from the widgets (below)
 //
+//==========================================================================
 
-char hu_messages[MAXHUDMESSAGES][256];
-int hud_msg_lines;   // number of message lines in window up to 16
-int current_messages;   // the current number of messages
-int hud_msg_scrollup;// whether message list scrolls up
-int message_timer;   // timer used for normal messages
-int scrolltime;         // leveltime when the message list next needs
+static char hu_messages[MAXHUDMESSAGES][256];
+static int current_messages;   // the current number of messages
+static int scrolltime;  // leveltime when the message list next needs
                         // to scroll up
+
+int hud_msg_lines = 1;      // number of message lines in window up to 16
+int hud_msg_scrollup = 1;   // whether message list scrolls up
+int message_timer = 4000;   // timer used for normal messages
 
 void HU_PlayerMsg(char *s)
 {
@@ -238,7 +102,7 @@ void HU_PlayerMsg(char *s)
 
 // erase the text before drawing
 
-void HU_MessageErase()
+static void HU_MessageErase()
 {
   int y;
   
@@ -246,12 +110,13 @@ void HU_MessageErase()
     R_VideoErase(y*SCREENWIDTH, SCREENWIDTH);
 }
 
-void HU_MessageDraw()
+static void HU_MessageDraw()
 {
   int i;
   int x;
   
-  if(!showMessages) return;
+  if(!showMessages)
+    return;
   
   // go down a bit if chat active
   x = chat_active ? 8 : 0;
@@ -260,12 +125,12 @@ void HU_MessageDraw()
     V_WriteText(hu_messages[i], 0, x);
 }
 
-void HU_MessageClear()
+static void HU_MessageClear()
 {
   current_messages = 0;
 }
 
-void HU_MessageTick()
+static void HU_MessageTick()
 {
   int i;
   
@@ -280,19 +145,21 @@ void HU_MessageTick()
     }
 }
 
-/////////////////////////////////////////////////////////////////////////
+//==========================================================================
 //
 // Crosshair
 //
+//===========================================================================
 
-patch_t *crosshairs[CROSSHAIRS];
-patch_t *crosshair=NULL;
-char *crosshairpal;
-char *targetcolour, *notargetcolour, *friendcolour;
+static patch_t *crosshairs[CROSSHAIRS];
+static patch_t *crosshair=NULL;
+static char *crosshairpal;
+static char *targetcolour, *notargetcolour, *friendcolour;
+
 int crosshairnum;       // 0= none
 char *cross_str[]= {"none", "cross", "angle"}; // for console
 
-void HU_CrossHairDraw()
+static void HU_CrossHairDraw()
 {
   int drawx, drawy;
   
@@ -321,7 +188,7 @@ void HU_CrossHairDraw()
     V_DrawPatchTranslated(drawx, drawy, 0, crosshair, crosshairpal, 0);
 }
 
-void HU_CrossHairInit()
+static void HU_CrossHairInit()
 {
   crosshairs[0] = W_CacheLumpName("CROSS1", PU_STATIC);
   crosshairs[1] = W_CacheLumpName("CROSS2", PU_STATIC);
@@ -333,12 +200,13 @@ void HU_CrossHairInit()
   crosshair = crosshairnum ? crosshairs[crosshairnum-1] : NULL;
 }
 
-void HU_CrossHairTick()
+static void HU_CrossHairTick()
 {
   // fast as possible: don't bother with this crap if
   // the crosshair isn't going to be displayed anyway
   
-  if(!crosshairnum) return;
+  if(!crosshairnum)
+    return;
 
   // default to no target
   crosshairpal = notargetcolour;
@@ -348,7 +216,7 @@ void HU_CrossHairTick()
   P_AimLineAttack(players[displayplayer].mo,
 		  players[displayplayer].mo->angle, 16*64*FRACUNIT, 0);
 
-  if(linetarget)
+  if(linetarget && !(linetarget->flags & MF_SHADOW))
     {
       // target found
       
@@ -358,14 +226,20 @@ void HU_CrossHairTick()
     }        
 }
 
-///////////////////////////////////////////////////////////////////////
+//======================================================================
 //
 // Pop-up Warning Boxes
 //
 // several different things that appear, quake-style, to warn you of
 // problems
-
 //
+//======================================================================
+
+// Network Sync Error
+//
+// We do not shutdown the game if we have a sync error but instead
+// flash up a sync warning box
+
 // Open Socket Warning
 //
 // Problem with network leads or something like that
@@ -378,41 +252,64 @@ void HU_CrossHairTick()
 // this should give them a warning for when they have 'a few
 // planes too many'
 
-patch_t *vpo;
-patch_t *socket;
+static patch_t *vpo;
+static patch_t *socket;
+static patch_t *sync;
 
-void HU_WarningsInit()
+static void HU_WarningsInit()
 {
   vpo = W_CacheLumpName("VPO", PU_STATIC);
   socket = W_CacheLumpName("OPENSOCK", PU_STATIC);
+  sync = W_CacheLumpName("SYNC", PU_STATIC);
 }
 
+#define GAP 10
+
 extern int num_visplanes;
+extern boolean out_of_sync;
 int show_vpo = 0;
 
-void HU_WarningsDrawer()
+static void HU_WarningsDrawer()
 {
+  int x = 20;
+
   // the number of visplanes drawn is less in boom.
   // i lower the threshold to 85
   
   if(show_vpo && num_visplanes > 85)
-    V_DrawPatch(250, 10, 0, vpo);
+    {
+      V_DrawPatch(x, 10, 0, vpo);
+      x += vpo->width + GAP;
+    }
  
   if(opensocket)
-    V_DrawPatch(20, 20, 0, socket);
+    {
+      V_DrawPatch(x, 20, 0, socket);
+      x += socket->width + GAP;
+    }
+
+  // out of sync?
+  
+  if(out_of_sync)
+    {
+      V_DrawPatch(x, 20, 0, sync);
+      x += sync->width + GAP;
+    }
 }
 
-/////////////////////////////////////////////////////////////////////////
+//=========================================================================
 //
 // Text Widgets
 //
 // the main text widgets. does not include the normal messages
 // 'picked up a clip' etc
+//
+//=========================================================================
 
-textwidget_t *widgets[MAXWIDGETS];
-int num_widgets = 0;
+static textwidget_t *widgets[MAXWIDGETS];
+static int num_widgets = 0;
 
-void HU_AddWidget(textwidget_t *widget)
+static void HU_AddWidget(textwidget_t *widget)
 {
   widgets[num_widgets] = widget;
   num_widgets++;
@@ -420,7 +317,7 @@ void HU_AddWidget(textwidget_t *widget)
 
 // draw widgets
 
-void HU_WidgetsDraw()
+static void HU_WidgetsDraw()
 {
   int i;
   
@@ -436,7 +333,7 @@ void HU_WidgetsDraw()
     }
 }
 
-void HU_WidgetsTick()
+static void HU_WidgetsTick()
 {
   int i;
 
@@ -448,7 +345,7 @@ void HU_WidgetsTick()
 }
 
         // erase all the widget text
-void HU_WidgetsErase()
+static void HU_WidgetsErase()
 {
   int i, y;
   
@@ -459,35 +356,31 @@ void HU_WidgetsErase()
     }
 }
 
-//////////////////////////////////////
-//
-// The widgets
+static void HU_LevelTimeHandler();
+static void HU_CentreMessageHandler();
+static void HU_LevelNameHandler();
+static void HU_ChatHandler();
 
-void HU_LevelTimeHandler();
-void HU_CentreMessageHandler();
-void HU_LevelNameHandler();
-void HU_ChatHandler();
-
-//////////////////////////////////////////////////
+//--------------------------------------------------------------------------
 //
 // Centre-of-screen, quake-style message
 //
 
-textwidget_t hu_centremessage =
-{
-  0, 0,                      // x,y set by HU_CentreMsg
-  0,                         // normal font
-  NULL,                      // init to nothing
-  HU_CentreMessageHandler    // handler
-};
-int centremessage_timer = 1500;         // 1.5 seconds
+static textwidget_t hu_centremessage =
+  {
+    0, 0,                      // x,y set by HU_CentreMsg
+    0,                         // normal font
+    NULL,                      // init to nothing
+    HU_CentreMessageHandler    // handler
+  };
+static int centremessage_timer = 1500;         // 1.5 seconds
 
-void HU_CentreMessageHandler()
+static void HU_CentreMessageHandler()
 {
   return;         // do nothing
 }
 
-void HU_CentreMessageClear()
+static void HU_CentreMessageClear()
 {
   hu_centremessage.message = NULL;
 }
@@ -517,12 +410,12 @@ void HU_CentreMsg(char *s)
   C_Printf("%s\n", s);
 }
 
-/////////////////////////////////////
+//-----------------------------------------------------------------------
 //
 // Elapsed level time (automap)
 //
 
-textwidget_t hu_leveltime =
+static textwidget_t hu_leveltime =
 {
   SCREENWIDTH-60, SCREENHEIGHT-ST_HEIGHT-8,      // x, y
   0,                                             // normal font
@@ -530,7 +423,7 @@ textwidget_t hu_leveltime =
   HU_LevelTimeHandler                            // handler
 };
 
-void HU_LevelTimeHandler()
+static void HU_LevelTimeHandler()
 {
   static char timestr[100];
   int seconds;
@@ -550,12 +443,12 @@ void HU_LevelTimeHandler()
   hu_leveltime.message = timestr;        
 }
 
-///////////////////////////////////////////
+//------------------------------------------------------------------------
 //
 // Automap level name display
 //
 
-textwidget_t hu_levelname =
+static textwidget_t hu_levelname =
 {
   0, SCREENHEIGHT-ST_HEIGHT-8,       // x,y 
   0,                                 // normal font
@@ -563,26 +456,26 @@ textwidget_t hu_levelname =
   HU_LevelNameHandler                // handler
 };
 
-void HU_LevelNameHandler()
+static void HU_LevelNameHandler()
 {
   hu_levelname.message = automapactive ? levelname : NULL;
 }
 
-///////////////////////////////////////////////
+//----------------------------------------------------------------------
 //
 // Chat message display
 //
 
-textwidget_t hu_chat = 
+static textwidget_t hu_chat = 
 {
   0, 0,                 // x,y
   0,                    // use normal font
   NULL,                 // empty message
   HU_ChatHandler        // handler
 };
-char chatinput[100] = "";
+static char chatinput[100] = "";
 
-void HU_ChatHandler()
+static void HU_ChatHandler()
 {
   static char tempchatmsg[128];
 
@@ -595,7 +488,7 @@ void HU_ChatHandler()
     hu_chat.message = NULL;
 }
 
-boolean HU_ChatRespond(event_t *ev)
+static boolean HU_ChatRespond(event_t *ev)
 {
   char ch;
   static boolean shiftdown;
@@ -660,7 +553,7 @@ boolean HU_ChatRespond(event_t *ev)
 
 // Widgets Init
 
-void HU_WidgetsInit()
+static void HU_WidgetsInit()
 {
   HU_AddWidget(&hu_centremessage);
   HU_AddWidget(&hu_levelname);
@@ -668,10 +561,97 @@ void HU_WidgetsInit()
   HU_AddWidget(&hu_chat);
 }
 
-////////////////////////////////////////////////////////////////////////
+
+//=========================================================================
+//
+// Main Functions
+//
+// Init, Drawer, Ticker etc.
+//
+//=========================================================================
+
+void HU_Start()
+{
+  HU_MessageClear();
+  HU_CentreMessageClear();
+}
+
+void HU_End()
+{
+}
+
+void HU_Init()
+{
+  shiftxform = english_shiftxform;
+
+  // init different modules
+  HU_CrossHairInit();
+  HU_FragsInit();
+  HU_WarningsInit();
+  HU_WidgetsInit();
+  HU_LoadFont();
+}
+
+void HU_Drawer()
+{
+  // draw different modules
+  HU_MessageDraw();
+  HU_CrossHairDraw();
+  HU_FragsDrawer();
+  HU_WarningsDrawer();
+  HU_WidgetsDraw();
+  HU_OverlayDraw();
+}
+
+void HU_Ticker()
+{
+  // run tickers for some modules
+  HU_CrossHairTick();
+  HU_WidgetsTick();
+  HU_MessageTick();
+}
+
+boolean HU_Responder(event_t *ev)
+{
+  if(ev->data1 == KEYD_LALT)
+    altdown = ev->type == ev_keydown;
+  
+  return HU_ChatRespond(ev);
+}
+
+// hu_newlevel called when we enter a new level
+// determine the level name and display it in
+// the console
+
+void HU_NewLevel()
+{
+  // print the new level name into the console
+  
+  C_Printf("\n");
+  C_Seperator();
+  C_Printf(FC_GRAY " %s\n\n", levelname);
+  C_InstaPopup();       // put console away
+  //  C_Update();
+}
+
+        // erase text that can be trashed by small screens
+void HU_Erase()
+{
+  if(!viewwindowx || automapactive)
+    return;
+
+  // run indiv. module erasers
+  HU_MessageErase();
+  HU_WidgetsErase();
+  HU_FragsErase();
+}
+
+
+//===========================================================================
 //
 // Tables
 //
+//===========================================================================
 
 const char* shiftxform;
 
@@ -716,27 +696,20 @@ const char english_shiftxform[] =
   '{', '|', '}', '~', 127
 };
 
-/////////////////////////////////////////////////////////////////////////
+//==========================================================================
 //
 // Console Commands
 //
+//==========================================================================
 
-VARIABLE_BOOLEAN(showMessages,  NULL,                   onoff);
-VARIABLE_INT(mess_colour,       NULL, 0, CR_LIMIT-1,    textcolours);
+CONSOLE_INT(mess_timer, message_timer, NULL, 0, 100000, NULL, 0) {}
+CONSOLE_INT(mess_lines, hud_msg_lines, NULL, 0, 14, NULL, 0) {}
+CONSOLE_BOOLEAN(mess_scrollup, hud_msg_scrollup, NULL, yesno, 0) {}
+CONSOLE_BOOLEAN(show_vpo, show_vpo, NULL, onoff, cf_nosave) {}
+CONSOLE_BOOLEAN(obituaries, obituaries, NULL, onoff, 0) {}
+CONSOLE_INT(obcolour, obcolour, NULL, 0, CR_LIMIT-1, textcolours, 0) {}
 
-VARIABLE_BOOLEAN(obituaries,    NULL,                   onoff);
-VARIABLE_INT(obcolour,          NULL, 0, CR_LIMIT-1,    textcolours);
-
-VARIABLE_INT(crosshairnum,      NULL, 0, CROSSHAIRS-1,  cross_str);
-VARIABLE_BOOLEAN(show_vpo,      NULL,                   yesno);
-
-VARIABLE_INT(hud_msg_lines,     NULL, 0, 14,            NULL);
-VARIABLE_INT(message_timer,     NULL, 0, 100000,        NULL);
-VARIABLE_BOOLEAN(hud_msg_scrollup,  NULL,               yesno);
-
-CONSOLE_VARIABLE(obituaries, obituaries, 0) {}
-CONSOLE_VARIABLE(obcolour, obcolour, 0) {}
-CONSOLE_VARIABLE(crosshair, crosshairnum, 0)
+CONSOLE_INT(crosshair, crosshairnum, NULL, 0, CROSSHAIRS-1, cross_str, 0)
 {
   int a;
   
@@ -746,19 +719,15 @@ CONSOLE_VARIABLE(crosshair, crosshairnum, 0)
   crosshairnum = a;
 }
 
-CONSOLE_VARIABLE(show_vpo, show_vpo, 0) {}
-CONSOLE_VARIABLE(messages, showMessages, 0) {}
-CONSOLE_VARIABLE(mess_colour, mess_colour, 0) {}
+CONSOLE_BOOLEAN(messages, showMessages, NULL, onoff, 0) {}
+CONSOLE_INT(mess_colour, mess_colour, NULL, 0, CR_LIMIT-1, textcolours, 0) {}
+
 CONSOLE_NETCMD(say, cf_netvar, netcmd_chat)
 {
   S_StartSound(0, gamemode == commercial ? sfx_radio : sfx_tink);
   
   doom_printf("%s: %s", players[cmdsrc].name, c_args);
 }
-
-CONSOLE_VARIABLE(mess_lines, hud_msg_lines, 0) {}
-CONSOLE_VARIABLE(mess_scrollup, hud_msg_scrollup, 0) {}
-CONSOLE_VARIABLE(mess_timer, message_timer, 0) {}
 
 extern void HU_FragsAddCommands();
 extern void HU_OverAddCommands();

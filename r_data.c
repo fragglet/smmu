@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Preparation of data for rendering,
@@ -389,17 +396,19 @@ static void R_GenerateLookup(int texnum, int *const errors)
     while (--x >= 0)
       {
 	if (!count[x].patches)     // killough 4/9/98
-	  if (devparm)
-	    {
-	      // killough 8/8/98
-              // sf: changed to use error_printf for graphical startup
-              error_printf("\nR_GenerateLookup:"
-                           " Column %d is without a patch in texture %.8s",
-                           x, texture->name);
-	      ++*errors;
-	    }
-	  else
-	    err = 1;               // killough 10/98
+	  {
+	    if (devparm)
+	      {
+		// killough 8/8/98
+		// sf: changed to use error_printf for graphical startup
+		error_printf("\nR_GenerateLookup:"
+			     " Column %d is without a patch in texture %.8s",
+			     x, texture->name);
+		++*errors;
+	      }
+	    else
+	      err = 1;               // killough 10/98
+	  }
 
         if (count[x].patches > 1)       // killough 4/9/98
           {
@@ -476,7 +485,7 @@ void R_InitTextures (void)
   int  numtextures1, numtextures2;
   int  *directory;
   int  errors = 0;
-        // sf: removed dumb texturewidth (?)
+  // sf: removed dumb texturewidth (?)
 
   // Load the patch names from pnames.lmp.
   name[8] = 0;
@@ -837,10 +846,12 @@ void R_InitTranMap(int progress)
                     V_LoadingIncrease();        //sf 
 
 		if (!(~i & 15))
-		  if (i & 32)       // killough 10/98: display flashing disk
-		    I_EndRead();
-		  else
-		    I_BeginRead();
+		  {
+		    if (i & 32)       // killough 10/98: display flashing disk
+		      V_EndRead();
+		    else
+		      V_BeginRead();
+		  }
 
                 for (j=0;j<256;j++,tp++)
                   {

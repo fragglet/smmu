@@ -1,7 +1,23 @@
 // Emacs style mode select -*- C++ -*-
 //-------------------------------------------------------------------------
 //
-// utility tool for SMMU
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+// Utility tool for SMMU
 //
 // Load a Level file (FraggleScript) into a wad.
 //
@@ -17,14 +33,14 @@
 
 static void add_fs();
 
-char *wadfile_name;
-int level_entry;                // entry number of level header
+static char *wadfile_name;
+static int level_entry;                // entry number of level header
 
-char *fsfile_name;
-char *fsfile_data;
-int fsfile_len;
+static char *fsfile_name;
+static char *fsfile_data;
+static int fsfile_len;
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   // display notice
   printf
@@ -59,7 +75,7 @@ static int FileLength(int handle)
 }
 
 #ifndef O_BINARY        /** for non-dos os's **/
- #define O_BINARY
+#define O_BINARY 0
 #endif
 
 // read the FraggleScript file into buffer

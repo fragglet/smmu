@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Command running functions
 //
 // Running typed commands, or network/linedef triggers. Sending commands over
@@ -33,10 +51,11 @@ static int C_Sync(command_t *command);
 static void C_ArgvtoArgs();
 static boolean C_Strcmp(unsigned char *a, unsigned char *b);
 
-///////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Parsing/Running Commands
 //
+//===========================================================================
 
 int cmdtype;
 
@@ -48,7 +67,7 @@ char c_argv[MAXTOKENS][MAXTOKENLENGTH];   // tokenised list of arguments
 int c_argc;                               // number of arguments
 char c_args[128];                         // raw list of arguments
 
-        // break up the command into tokens
+// break up the command into tokens
 static void C_GetTokens(char *command)
 {
   char *rover;
@@ -144,9 +163,9 @@ static boolean C_CheckFlags(command_t *command)
     errormsg = "not available in netgame";
   if((command->flags & cf_netonly) && !netgame && !demoplayback)
     errormsg = "only available in netgame";
-  if((command->flags & cf_server) && consoleplayer && !demoplayback
-     && cmdtype!=c_netcmd)
-    errormsg = "for server only";
+  if((command->flags & cf_server) && consoleplayer != controller &&
+     !demoplayback && cmdtype!=c_netcmd)
+    errormsg = "for controller only";
   if((command->flags & cf_level) && gamestate != GS_LEVEL)
     errormsg = "can be run in levels only";
   
@@ -193,7 +212,7 @@ static void C_DoRunCommand(command_t *command, char *options)
   memcpy(c_argv, cmdtokens, sizeof cmdtokens);
   c_argc = numtokens;
   c_command = command;
-  
+
   // perform checks
   
   // check through the tokens for variable names
@@ -269,10 +288,14 @@ static void C_ArgvtoArgs()
 	}
     }
 
-  c_args[0] = 0;
+  c_args[0] = '\0';
   
   for(i=0 ; i<c_argc; i++)
-    sprintf(c_args, "%s%s ", c_args, c_argv[i]);
+    {
+      if(c_args[0])
+	strcat(c_args, " ");
+      strcat(c_args, c_argv[i]);
+    }
 }
 
 // return a string of all the argvs linked together, but with each
@@ -283,12 +306,35 @@ static char *C_QuotedArgvToArgs()
   int i;
   static char returnvar[1024];
 
+  // no cmd line, return nothing
+  
+  if(!c_argc)
+    return "";
+
+  // build command line
+  
   returnvar[0] = 0;
   
   for(i=0 ; i<c_argc; i++)
-    sprintf(returnvar, "%s\"%s\" ", returnvar, c_argv[i]);
-
-  return returnvar;
+    {
+      // enclose in spaces if it contains a ' '
+      if(strchr(c_argv[i], ' '))
+	{
+	  strcat(returnvar, " \"");
+	  strcat(returnvar, c_argv[i]);
+	  strcat(returnvar, "\"");
+	}
+      else
+	{
+	  strcat(returnvar, " ");
+	  strcat(returnvar, c_argv[i]);
+	}
+    }
+  
+  // we will always have a first character of a space character
+  // using above algorithm. ignore the first char
+  
+  return returnvar + 1;
 }
 
 // see if the command needs to be sent to other computers
@@ -301,8 +347,7 @@ static int C_Sync(command_t *command)
       // dont get stuck repeatedly sending the same command
       if(cmdtype != c_netcmd)
 	{                               // send to sync
-	  C_SendCmd(CN_BROADCAST, command->netcmd,
-		    "%s", C_QuotedArgvToArgs());
+	  C_SendCmd(command->netcmd, C_QuotedArgvToArgs());
 	  return true;
 	}
     }
@@ -359,7 +404,8 @@ char *C_VariableValue(variable_t *variable)
 {
   static char value[128];
   
-  if(!variable) return "";
+  if(!variable || !variable->variable)
+    return "no variable - bug!";
   
   switch(variable->type)
     {
@@ -369,7 +415,10 @@ char *C_VariableValue(variable_t *variable)
       break;
       
     case vt_string:
-      sprintf(value, "%s", *(char**)variable->variable);
+      if(*(char **)variable->variable)
+	strcpy(value, *(char**)variable->variable);
+      else
+	return "null";
       break;
 
     default:
@@ -386,8 +435,11 @@ char *C_VariableStringValue(variable_t *variable)
 {
   static char value[128];
 
-  if(!variable) return "";
-
+  if(!variable)
+    return "";
+  if(!variable->variable)
+    return "null";
+  
   // does the variable have alternate 'defines' ?
   strcpy(value, variable->defines ?
 
@@ -462,7 +514,8 @@ static char* C_ValueForDefine(variable_t *variable, char *s)
 	  return returnstr;
 	}
       
-      if(!isnum(s)) return NULL;
+      if(!isnum(s))
+	return NULL;
     }
   
   return s;
@@ -520,6 +573,7 @@ static void C_SetVariable(command_t *command)
     errormsg = "value too big";
   if(size < variable->min)
     errormsg = "value too small";
+
   if(errormsg)
     {
       MN_ErrorMsg(errormsg);
@@ -528,7 +582,8 @@ static void C_SetVariable(command_t *command)
     }
                 
   // netgame sync: send command to other nodes
-  if(C_Sync(command)) return;
+  if(C_Sync(command))
+    return;
   
   // now set it
   // 5/8/99 set default value also
@@ -536,36 +591,39 @@ static void C_SetVariable(command_t *command)
   // the handler instead
   
   if(!(command->flags & cf_handlerset))
-    switch(variable->type)  // implicitly set the variable
-      {
-      case vt_int:
-	*(int*)variable->variable = atoi(c_argv[0]);
-	if(variable->v_default && cmdsrc==c_typed)  // default
-	  *(int*)variable->v_default = atoi(c_argv[0]);
-	break;
-	
-      case vt_string:
-	free(*(char**)variable->variable);
-	*(char**)variable->variable = strdup(c_argv[0]);
-	if(variable->v_default && cmdsrc==c_typed)  // default
-	  {
-	    free(*(char**)variable->v_default);
-	    *(char**)variable->v_default = strdup(c_argv[0]);
-	  }
-	break;
-        
-      default:
-	return;
-      }
+    {
+      switch(variable->type)  // implicitly set the variable
+	{
+	  case vt_int:
+	    *(int *)variable->variable = atoi(c_argv[0]);
+	    if(variable->v_default && cmdtype==c_typed)  // default
+	      *(int *)variable->v_default = atoi(c_argv[0]);
+	    break;
+	    
+	  case vt_string:
+	    free(*(char **)variable->variable);
+	    *(char **)variable->variable = strdup(c_argv[0]);
+	    if(variable->v_default && cmdtype==c_typed)  // default
+	      {
+		free(*(char **)variable->v_default);
+		*(char **)variable->v_default = strdup(c_argv[0]);
+	      }
+	    break;
+	    
+	  default:
+	    return;
+	}
+    }
   
   if(command->handler)          // run handler if there is one
     command->handler();
 }
 
-////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Tab Completion
 //
+//===========================================================================
 
 static char origkey[100];
 static boolean gotkey;
@@ -672,10 +730,11 @@ char *C_PrevTab(char *key)
   return returnstr;
 }
 
-/////////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Aliases
 //
+//===========================================================================
 
 // fixed length array arrgh!
 alias_t aliases[128];
@@ -758,11 +817,10 @@ void C_RunAlias(alias_t *alias)
   C_RunTextCmd(alias->command);   // run the command
 }
 
-//////////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Command Bufferring
 //
-
 // new ticcmds can be built at any time including during the
 // rendering process. The commands need to be buffered
 // and run by the tickers instead of directly from the
@@ -774,6 +832,8 @@ void C_RunAlias(alias_t *alias)
 // 15/11/99 cleaned up: now uses linked lists of bufferedcmd's
 //              rather than a static array: no limit on
 //              buffered commands and nicer code
+//
+//===========================================================================
 
 typedef struct bufferedcmd_s bufferedcmd;
 
@@ -827,6 +887,7 @@ void C_BufferCommand(int cmtype, command_t *command, char *options,
       
       free(newbuf->options);
       free(newbuf);
+
       return;
     }
 
@@ -925,11 +986,13 @@ boolean C_Strcmp(unsigned char *a, unsigned char *b)
   return false;       // no difference in them
 }
 
-//////////////////////////////////////////////////////////////////
+//===========================================================================
 //
 // Command hashing
 //
 // Faster look up of console commands
+//
+//===========================================================================
 
 command_t *cmdroots[CMDCHAINS];
 
@@ -987,5 +1050,65 @@ command_t *C_GetCmdForName(char *cmdname)
   return NULL;
 }
 
+//===========================================================================
+//
+// Command Scripts
+//
+// Scripts are lists of commands to run - stored in a file or a wad
+// lump or whatever.
+//
+//===========================================================================
 
+void C_RunScript(char *script)
+{
+  char buffer[128] = "";
+  char *rover;
 
+  if(!script)
+    return;
+  
+  for(rover = script; *rover; rover++)
+    {
+      if(*rover == '\n')      // end of line - run command
+	{
+	  //	  C_Puts(buffer);
+	  
+	  if(buffer[0] == '#' || buffer[0] == ';' ||
+	     (buffer[0] == '/' && buffer[1] == '/'))
+	    {
+	      // comment
+	    }
+	  else
+	    {
+	      cmdtype = c_script;
+	      C_RunTextCmd(buffer);
+	      C_RunBuffer(c_script);   // force to run now
+	    }
+	  
+	  // clear buffer for next line
+	  buffer[0] = '\0';
+	}
+      else if(isprint(*rover))
+	{
+	  // add to end of buffer
+
+	  buffer[strlen(buffer) + 1] = '\0';
+	  buffer[strlen(buffer)] = *rover;
+	}      
+    }
+  
+}
+
+void C_RunScriptFromFile(char *filename)
+{
+  char *filedata;
+
+  if(M_ReadFile(filename, &filedata) <= 0)
+    C_Printf("couldn't exec '%s'\n", filename);
+  else
+    {
+      C_Printf("exec'ing %s\n", filename);
+
+      C_RunScript(filedata);
+    }
+}

@@ -5,14 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Internally used data structures for virtually everything,
@@ -30,7 +37,10 @@
 #endif
 
 // This must come first, since it redefines malloc(), free(), etc. -- killough:
+
+#ifndef DEDICATED /* do not use zone mem in dedicated server */
 #include "z_zone.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,11 +120,13 @@ typedef enum {
 // at the intermission screen, the game final animation, or a demo.
 
 typedef enum {
-  GS_LEVEL,
-  GS_INTERMISSION,
-  GS_FINALE,
-  GS_DEMOSCREEN,
-  GS_CONSOLE
+  GS_INIT          = -1,         // loading doom
+  GS_LEVEL         = 0,          // in level
+  GS_INTERMISSION  = 1,          // intermission screen
+  GS_FINALE        = 2,          // finale screen
+  GS_DEMOSCREEN    = 3,          // demo screen
+  GS_CONSOLE       = 4,          // fullscreen console
+  GS_SERVERWAIT    = 5,          // waiting for server to start game
 } gamestate_t;
 
 //
@@ -263,6 +275,20 @@ typedef enum {
 
 #define KEYD_NUMLOCK    0xC5                 // killough 3/6/98
 
+// sf: map mouse/joystick buttons to keys as killough
+//     suggested
+
+#define KEYD_MOUSE1   (0x80 + 0x60)
+#define KEYD_MOUSE2   (0x80 + 0x61)
+#define KEYD_MOUSE3   (0x80 + 0x62)
+
+#define KEYD_JOY1     (0x80 + 0x63)
+#define KEYD_JOY2     (0x80 + 0x64)
+#define KEYD_JOY3     (0x80 + 0x65)
+#define KEYD_JOY4     (0x80 + 0x66)
+
+// mousewheel?
+
 // phares 4/19/98:
 // Defines Setup Screen groups that config variables appear in.
 // Used when resetting the defaults for every item in a Setup group.
@@ -291,14 +317,20 @@ typedef enum {
 #define ORIG_FRICTION          0xE800      // original value
 #define ORIG_FRICTION_FACTOR   2048        // original value
 
-        // sf: some useful macros
+// sf: some useful macros
 
 #define isnumchar(c) ( (c) >= '0' && (c) <= '9')
-#define isExMy(s) ( (s)[0] == 'E' && (s)[2] == 'M'      \
-                && isnumchar((s)[1]) && isnumchar((s)[3]) \
-                        && (s)[4] == 0 )
-#define isMAPxy(s) ( (s)[0] == 'M' && (s)[1] == 'A' && (s)[2] == 'P'   \
-                && isnumchar((s)[3]) && isnumchar((s)[4]) && !(s)[5] )  
+#define isExMy(s) ( (tolower((s)[0]) == 'e') && \
+                    (isnumchar((s)[1])) &&      \
+                    (tolower((s)[2]) == 'm') && \
+                    (isnumchar((s)[3])) &&      \
+                    ((s)[4] == '\0') )
+#define isMAPxy(s) ( (tolower((s)[0]) == 'm') && \
+                     (tolower((s)[1]) == 'a') && \
+                     (tolower((s)[2]) == 'p') && \
+                     (isnumchar((s)[3])) &&      \
+                     (isnumchar((s)[4])) &&      \
+                     ((s)[5] == '\0'))
 
 #ifndef DJGPP
 

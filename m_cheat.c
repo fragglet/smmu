@@ -5,15 +5,21 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Cheat sequence checking.
@@ -480,7 +486,7 @@ static void cheat_ddt()
 
 static void cheat_hom()
 {
-   C_RunTextCmd("r_showhom /"); //sf
+  C_RunTextCmd("r_showhom /"); //sf
 }
 
 // killough 2/16/98: keycard/skullkey cheat functions
@@ -521,16 +527,20 @@ char buf[3];
   if (w==wp_fist)           // make '1' apply beserker strength toggle
     cheat_pw(pw_strength);
   else
-    if (w >= 0 && w < NUMWEAPONS)
-      if ((plyr->weaponowned[w] = !plyr->weaponowned[w]))
-        doom_printf("Weapon Added");  // Ty 03/27/98 - *not* externalized
-      else 
-        {
-          int P_SwitchWeapon(player_t *player);
-          doom_printf("Weapon Removed"); // Ty 03/27/98 - *not* externalized
-          if (w==plyr->readyweapon)         // maybe switch if weapon removed
-            plyr->pendingweapon = P_SwitchWeapon(plyr);
-        }
+    {
+      if (w >= 0 && w < NUMWEAPONS)
+	{
+	  if ((plyr->weaponowned[w] = !plyr->weaponowned[w]))
+	    doom_printf("Weapon Added");  // Ty 03/27/98 - *not* externalized
+	  else 
+	    {
+	      int P_SwitchWeapon(player_t *player);
+	      doom_printf("Weapon Removed"); // Ty 03/27/98-*not* externalized
+	      if (w==plyr->readyweapon)      // maybe switch if weapon removed
+		plyr->pendingweapon = P_SwitchWeapon(plyr);
+	    }
+	}
+    }
 }
 
 // killough 2/16/98: generalized ammo cheats
@@ -643,25 +653,29 @@ boolean M_FindCheats(int key)
         // sf: removed beta flag
 
   for (matchedbefore = ret = i = 0; cheat[i].cheat; i++)
-    if ((sr & cheat[i].mask) == cheat[i].code &&  // if match found & allowed
-        !(cheat[i].when & not_dm   && deathmatch && !demoplayback) &&
-        !(cheat[i].when & not_coop && netgame && !deathmatch) &&
-        !(cheat[i].when & not_demo && (demorecording || demoplayback)) &&
-        !(cheat[i].when & not_menu && menuactive) &&
-        !(cheat[i].when & not_deh  && cheat[i].deh_modified))
-      if (cheat[i].arg < 0)               // if additional args are required
-        {
-          cht = i;                        // remember this cheat code
-          arg = argbuf;                   // point to start of arg buffer
-          argsleft = -cheat[i].arg;       // number of args expected
-          ret = 1;                        // responder has eaten key
-        }
-      else
-        if (!matchedbefore)               // allow only one cheat at a time 
-          {
-            matchedbefore = ret = 1;      // responder has eaten key
-            cheat[i].func(cheat[i].arg);  // call cheat handler
-          }
+    {
+      if ((sr & cheat[i].mask) == cheat[i].code &&  // if match found & allowed
+	  !(cheat[i].when & not_dm   && deathmatch && !demoplayback) &&
+	  !(cheat[i].when & not_coop && netgame && !deathmatch) &&
+	  !(cheat[i].when & not_demo && (demorecording || demoplayback)) &&
+	  !(cheat[i].when & not_menu && menuactive) &&
+	  !(cheat[i].when & not_deh  && cheat[i].deh_modified))
+	{
+	  if (cheat[i].arg < 0)            // if additional args are required
+	    {
+	      cht = i;                     // remember this cheat code
+	      arg = argbuf;                // point to start of arg buffer
+	      argsleft = -cheat[i].arg;    // number of args expected
+	      ret = 1;                     // responder has eaten key
+	  }
+	else
+	  if (!matchedbefore)              // allow only one cheat at a time 
+	    {
+	      matchedbefore = ret = 1;     // responder has eaten key
+	      cheat[i].func(cheat[i].arg);  // call cheat handler
+	    }
+	}
+    }
   return ret;
 }
 

@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Menus
 //
 // the actual menus: structs and handler functions (if any)
@@ -21,7 +39,6 @@
 #include "dstrings.h"
 #include "g_game.h"
 #include "hu_over.h"
-#include "i_video.h"
 #include "m_random.h"
 #include "mn_engin.h"
 #include "mn_misc.h"
@@ -29,6 +46,7 @@
 #include "r_draw.h"
 #include "s_sound.h"
 #include "w_wad.h"
+#include "v_mode.h"
 #include "v_video.h"
 #include "z_zone.h"
 
@@ -40,15 +58,13 @@ extern menu_t menu_startmap;
 
 // Blocky mode, has default, 0 = high, 1 = normal
 //int     detailLevel;    obsolete -- killough
-int screenSize;      // screen size
+int screenSize = 8;      // screen size
 
-char *mn_phonenum;           // phone number to dial
 char *mn_demoname;           // demo to play
 char *mn_wadname;            // wad to load
 
 void MN_InitMenus()
 {
-  mn_phonenum = Z_Strdup("555-1212", PU_STATIC, 0);
   mn_demoname = Z_Strdup("demo1", PU_STATIC, 0);
   mn_wadname = Z_Strdup("", PU_STATIC, 0);
 }
@@ -106,9 +122,9 @@ CONSOLE_COMMAND(mn_newgame, 0)
   if(gamemode == commercial)
     {
       // dont use new game menu if not needed
-      if(!modifiedgame && gamemode == commercial
-	 && W_CheckNumForName("START") >= 0
-	 && use_startmap)
+      if(!modifiedgame && gamemode == commercial &&
+	 W_CheckNumForName("START") >= 0 &&
+	 use_startmap)
         {
 	  if(use_startmap == -1)              // not asked yet
 	    MN_StartMenu(&menu_startmap);
@@ -276,8 +292,7 @@ menu_t menu_startmap =
 };
 
 char *str_startmap[] = {"ask", "no", "yes"};
-VARIABLE_INT(use_startmap, NULL, -1, 1, str_startmap);
-CONSOLE_VARIABLE(use_startmap, use_startmap, 0) {}
+CONSOLE_INT(use_startmap, use_startmap, NULL, -1, 1, str_startmap, 0) {}
 
 /////////////////////////////////////////////////////
 //
@@ -346,8 +361,7 @@ menu_t menu_demos =
   mf_background,    // full screen
 };
 
-VARIABLE_STRING(mn_demoname,     NULL,           12);
-CONSOLE_VARIABLE(mn_demoname,    mn_demoname,     0) {}
+CONSOLE_STRING(mn_demoname, mn_demoname, NULL, 12, cf_nosave) {}
 
 CONSOLE_COMMAND(mn_demos, cf_notnet)
 {
@@ -399,327 +413,14 @@ CONSOLE_COMMAND(mn_loadwad, cf_notnet)
   MN_StartMenu(&menu_loadwad);
 }
 
-//////////////////////////////////////////////////////////////
-//
-// Multiplayer Menu
-//
-// Access to the new Multiplayer features of SMMU
-//
-
-menu_t menu_multiplayer =
-{
-  {
-    {it_title,  FC_GOLD "multiplayer",  NULL,                   "M_MULTI"},
-    {it_gap},
-    {it_gap},
-    {it_info,   FC_GOLD "connect:"},
-    {it_runcmd, "serial/modem",         "mn_serial"},
-    {it_disabled, "tcp/ip",               "mn_tcpip"},
-    {it_gap},
-    {it_runcmd, "disconnect",           "disconnect"},
-    {it_gap},
-    {it_info,   FC_GOLD "setup"},
-    {it_runcmd, "chat macros",          "mn_chatmacros"},
-    {it_runcmd, "player setup",         "mn_player"},
-    {it_runcmd, "game settings",        "mn_multigame"},
-    {it_end},
-  },
-  100, 15,                                      // x,y offsets
-  mf_background|mf_leftaligned,                 // fullscreen
-};
-
-CONSOLE_COMMAND(mn_multi, 0)
-{
-  MN_StartMenu(&menu_multiplayer);
-}
-  
-/////////////////////////////////////////////////////////////////
-//
-// Multiplayer Game settings
-//
-
-enum
-{
-  cn_menu_setupgame,
-  cn_serial_answer,
-  cn_serial_connect,
-  // no dial: answer is server so it sets the settings
-  // dial is started immediately
-  cn_udp_server,
-} connect_type;
-
-menu_t menu_multigame =
-{
-  {
-    {it_title,    FC_GOLD "multiplayer",        NULL,             "M_MULTI"},
-    {it_gap},
-    {it_runcmd,   "done",                       "mn_startgame"},
-    {it_gap},
-    {it_info,     FC_GOLD "game settings"},
-    {it_toggle,   "game type",                  "deathmatch"},
-    {it_variable, "starting level",             "startlevel"},
-    {it_toggle,   "skill level",                "skill"},
-    {it_toggle,   "no monsters",                "nomonsters"},
-    {it_gap},
-    {it_info,     FC_GOLD "auto-exit"},
-    {it_variable, "time limit",                 "timelimit"},
-    {it_variable, "frag limit",                 "fraglimit"},
-    {it_gap},
-    {it_runcmd,   "advanced..",                 "mn_advanced"},
-    {it_end},
-  },
-  130, 15,
-  mf_background,                // full screen
-};
-
-        // level to start on
-VARIABLE_STRING(startlevel,    NULL,   8);
-CONSOLE_VARIABLE(startlevel, startlevel, cf_handlerset)
-{
-  char *newvalue = c_argv[0];
-
-  // check for a valid level
-  if(W_CheckNumForName(newvalue) == -1)
-    MN_ErrorMsg("level not found!");
-  else
-    {
-      if(startlevel) Z_Free(startlevel);
-      startlevel = Z_Strdup(newvalue, PU_STATIC, 0);
-    }
-}
-
-CONSOLE_COMMAND(mn_multigame, 0)            // just setting options from menu
-{
-  connect_type = cn_menu_setupgame;
-  MN_StartMenu(&menu_multigame);
-}
-
-CONSOLE_COMMAND(mn_ser_answer, 0)           // serial wait-for-call
-{
-  C_SetConsole();               // dont want demos interfering
-  connect_type = cn_serial_answer;
-  MN_StartMenu(&menu_multigame);
-}
-
-CONSOLE_COMMAND(mn_ser_connect, 0)          // serial nullmodem
-{
-  C_SetConsole();               // dont want demos interfering
-  connect_type = cn_serial_connect;
-  MN_StartMenu(&menu_multigame);
-}
-
-CONSOLE_COMMAND(mn_udpserv, 0)              // udp start server
-{
-  C_SetConsole();               // dont want demos interfering
-  connect_type = cn_udp_server;
-  MN_StartMenu(&menu_multigame);
-}
-        // start game
-CONSOLE_COMMAND(mn_startgame, 0)
-{
-  char *console_cmds[] =
-  {
-    "mn_prevmenu",          // menu game setup
-    "answer",               // cn_serial_answer
-    "nullmodem",            // cn_serial_connect
-    "connect",              // udp connect
-  };
-  
-  cmdtype = c_menu;
-  C_RunTextCmd(console_cmds[connect_type]);
-}
-
-/////////////////////////////////////////////////////////////////
-//
-// Multiplayer Game settings
-// Advanced menu
-//
-
-menu_t menu_advanced =
-{
-  {
-    {it_title,    FC_GOLD "advanced",           NULL,             "M_MULTI"},
-    {it_gap},
-    {it_runcmd,   "done",                       "mn_prevmenu"},
-    {it_gap},
-    {it_toggle,   "fast monsters",              "fast"},
-    {it_toggle,   "respawning monsters",        "respawn"},
-    {it_gap},
-    {it_toggle,   "allow mlook",                "allowmlook"},
-    {it_toggle,   "allow mlook with bfg",       "bfglook"},
-    {it_toggle,   "allow autoaim",              "autoaim"},
-    {it_variable, "weapon change time",         "weapspeed"},
-    {it_gap},
-    {it_toggle,   "variable friction",          "varfriction"},
-    {it_toggle,   "boom pusher objects",        "pushers"},
-    {it_toggle,   "hurting floors(slime)",      "nukage"},
-    {it_end},
-  },
-  170, 15,
-  mf_background,                // full screen
-};
-
-CONSOLE_COMMAND(mn_advanced, cf_server)
-{
-  MN_StartMenu(&menu_advanced);
-}
-
-/////////////////////////////////////////////////////////////////
-//
-// TCP/IP Menu
-//
-// When its done!
-//
-
-menu_t menu_tcpip =
-{
-  {
-    {it_title,  FC_GOLD "TCP/IP",            NULL,           "M_TCPIP"},
-    {it_gap},
-    {it_info,   "not implemented yet. :)"},
-    {it_runcmd, "",                          "mn_prevmenu"},
-    {it_end},
-  },
-  180,15,                       // x,y offset
-  mf_background,                // full-screen
-};
-
-CONSOLE_COMMAND(mn_tcpip, 0)
-{
-  MN_StartMenu(&menu_tcpip);
-}
-
-/////////////////////////////////////////////////////////////////
-//
-// Serial/Modem Game
-//
-
-menu_t menu_serial =
-{
-  {
-    {it_title,  FC_GOLD "Serial/modem",          NULL,           "M_SERIAL"},
-    {it_gap},
-    {it_info,           FC_GOLD "settings"},
-    {it_toggle,         "com port to use",      "com"},
-    {it_variable,       "phone number",         "mn_phonenum"},
-    {it_gap},
-    {it_info,           FC_GOLD "connect:"},
-    {it_runcmd,         "null modem link",      "mn_ser_connect"},
-    {it_runcmd,         "dial",                 "dial %mn_phonenum"},
-    {it_runcmd,         "wait for call",        "mn_ser_answer"},
-    {it_end},
-  },
-  180,15,                       // x,y offset
-  mf_background,                // fullscreen
-};
-
-CONSOLE_COMMAND(mn_serial, 0)
-{
-  MN_StartMenu(&menu_serial);
-}
-
-VARIABLE_STRING(mn_phonenum,     NULL,           126);
-CONSOLE_VARIABLE(mn_phonenum,    mn_phonenum,     0) {}
-
-/////////////////////////////////////////////////////////////////
-//
-// Chat Macros
-//
-
-menu_t menu_chatmacros =
-{
-  {
-    {it_title,  FC_GOLD "chat macros",           NULL,           "M_CHATM"},
-    {it_gap},
-    {it_variable,       "0",            "chatmacro0"},
-    {it_variable,       "1",            "chatmacro1"},
-    {it_variable,       "2",            "chatmacro2"},
-    {it_variable,       "3",            "chatmacro3"},
-    {it_variable,       "4",            "chatmacro4"},
-    {it_variable,       "5",            "chatmacro5"},
-    {it_variable,       "6",            "chatmacro6"},
-    {it_variable,       "7",            "chatmacro7"},
-    {it_variable,       "8",            "chatmacro8"},
-    {it_variable,       "9",            "chatmacro9"},
-    {it_end}
-  },
-  20,5,                                 // x, y offset
-  mf_background,                        // full-screen
-};
-
-CONSOLE_COMMAND(mn_chatmacros, 0)
-{
-  MN_StartMenu(&menu_chatmacros);
-}
-
-/////////////////////////////////////////////////////////////////
-//
-// Player Setup
-//
-
-void MN_PlayerDrawer();
-
-menu_t menu_player =
-{
-  {
-    {it_title,  FC_GOLD "player setup",           NULL,           "M_PLAYER"},
-    {it_gap},
-    {it_variable,       "player name",          "name"},
-    {it_toggle,         "player colour",        "colour"},
-    {it_toggle,         "player skin",          "skin"},
-    {it_gap},
-    {it_toggle,         "handedness",           "lefthanded"},
-    {it_end}
-  },
-  150,5,                                // x, y offset
-  mf_background,                        // full-screen
-  MN_PlayerDrawer
-};
-
-#define SPRITEBOX_X 200
-#define SPRITEBOX_Y 80
-
-void MN_PlayerDrawer()
-{
-  int lump;
-  spritedef_t *sprdef;
-  spriteframe_t *sprframe;
-  patch_t *patch;
-  
-  V_DrawBox(SPRITEBOX_X, SPRITEBOX_Y, 80, 80);
-  
-  sprdef = &sprites[players[consoleplayer].skin->sprite];
-  
-  sprframe = &sprdef->spriteframes[0];
-  lump = sprframe->lump[1];
-  
-  patch = W_CacheLumpNum(lump + firstspritelump, PU_CACHE);
-  
-  V_DrawPatchTranslated
-    (
-     SPRITEBOX_X + 40,
-     SPRITEBOX_Y + 70,
-     0,
-     patch,
-     players[displayplayer].colormap ?
-           (char*)translationtables + 256*(players[displayplayer].colormap-1) :
-           cr_red,
-     -1
-     );
-}
-
-CONSOLE_COMMAND(mn_player, 0)
-{
-  MN_StartMenu(&menu_player);
-}
-
 
 /////////////////////////////////////////////////////////////////
 //
 // Load Game
 //
 
-#define SAVESLOTS 7
+// 31/1/00 : fix wrong num. saveslots
+#define SAVESLOTS 8
 #define SAVESTRINGSIZE  24
 
 // load/save box patches
@@ -747,14 +448,14 @@ void MN_CreateSaveCmds()
 {
   int i;
 
-  for(i=0; i<7; i++)
+  for(i=0; i<SAVESLOTS; i++)
     {
       command_t *save_command;
       variable_t *save_variable;
       char tempstr[10];
       
       // create the variable first
-      save_variable = malloc(sizeof(*save_variable));
+      save_variable = Z_Malloc(sizeof(*save_variable), PU_STATIC, 0);
       save_variable->variable = &savegamenames[i];
       save_variable->v_default = NULL;
       save_variable->type = vt_string;      // string value
@@ -763,12 +464,12 @@ void MN_CreateSaveCmds()
       save_variable->defines = NULL;
 
       // now the command
-      save_command = malloc(sizeof(*save_command));
+      save_command = Z_Malloc(sizeof(*save_command), PU_STATIC, 0);
 
       sprintf(tempstr, "savegame_%i", i);
       save_command->name = strdup(tempstr);
       save_command->type = ct_variable;
-      save_command->flags = 0;
+      save_command->flags = cf_nosave;
       save_command->variable = save_variable;
       save_command->handler = MN_SaveGame;
       save_command->netcmd = 0;
@@ -795,8 +496,9 @@ void MN_ReadSaveStrings(void)
 
       G_SaveGameName(name, i);
 
-      if(savegamenames[i])
- 	Z_Free(savegamenames[i]);
+      // ?
+      //      if(savegamenames[i])
+      // 	Z_Free(savegamenames[i]);
 
       fp = fopen(name,"rb");
       if (!fp)
@@ -841,20 +543,22 @@ menu_t menu_loadgame =
   {
     {it_title,  FC_GOLD "load game",           NULL,              "M_LGTTL"},
     {it_gap},
-    {it_runcmd, "save slot 1",                 "mn_load 0"},
+    {it_runcmd, "save slot 0",                 "mn_load 0"},
     {it_gap},
-    {it_runcmd, "save slot 2",                 "mn_load 1"},
+    {it_runcmd, "save slot 1",                 "mn_load 1"},
     {it_gap},
-    {it_runcmd, "save slot 3",                 "mn_load 2"},
+    {it_runcmd, "save slot 2",                 "mn_load 2"},
     {it_gap},
-    {it_runcmd, "save slot 4",                 "mn_load 3"},
+    {it_runcmd, "save slot 3",                 "mn_load 3"},
     {it_gap},
-    {it_runcmd, "save slot 5",                 "mn_load 4"},
+    {it_runcmd, "save slot 4",                 "mn_load 4"},
     {it_gap},
-    {it_runcmd, "save slot 6",                 "mn_load 5"},
+    {it_runcmd, "save slot 5",                 "mn_load 5"},
     {it_gap},
-    {it_runcmd, "save slot 7",                 "mn_load 6"},
-    {it_end},
+    {it_runcmd, "save slot 6",                 "mn_load 6"},
+    {it_gap},
+    {it_runcmd, "save slot 7",                 "mn_load 7"},
+      {it_end},
   },
   50, 15,                           // x, y
   mf_skullmenu | mf_leftaligned,    // skull menu
@@ -866,13 +570,13 @@ void MN_LoadGameDrawer()
 {
   int i, y;
 
-  for(i=0, y=46; i<7; i++, y+=16)
+  for(i=0, y=46; i<SAVESLOTS; i++, y+=16)
     {
       MN_DrawLoadBox(45, y);
     }
   
   // this is lame
-  for(i=0, y=2; i<7; i++, y+=2)
+  for(i=0, y=2; i<SAVESLOTS; i++, y+=2)
     {
       menu_loadgame.menuitems[y].description =
 	savegamenames[i] ? savegamenames[i] : empty_slot;
@@ -887,7 +591,7 @@ CONSOLE_COMMAND(mn_loadgame, 0)
       return;
     }
 
-  //  MN_ReadSaveStrings();  // get savegame descriptions
+  MN_ReadSaveStrings();  // get savegame descriptions
   MN_StartMenu(&menu_loadgame);
 }
 
@@ -916,7 +620,7 @@ void MN_SaveGameDrawer()
 {
   int i, y;
 
-  for(i=0, y=46; i<7; i++, y+=16)
+  for(i=0, y=46; i<SAVESLOTS; i++, y+=16)
     {
       MN_DrawLoadBox(45, y);
     }
@@ -940,6 +644,8 @@ menu_t menu_savegame =
     {it_variable, "",                          "savegame_5"},
     {it_gap},
     {it_variable, "",                          "savegame_6"},
+    {it_gap},
+    {it_variable, "",                          "savegame_7"},
     {it_end},
   },
   50, 15,                           // x, y
@@ -968,7 +674,7 @@ menu_t menu_options =
     {it_title,  FC_GOLD "options",              NULL,             "M_OPTTTL"},
     {it_gap},
     {it_info,   FC_GOLD "input"},
-    {it_disabled, "key bindings",        "mn_keybindings"},
+    {it_runcmd, "key bindings",                 "mn_keybindings"},
     {it_runcmd, "mouse options",                "mn_mouse"},
     {it_gap},
     {it_info,   FC_GOLD "output"},
@@ -1004,6 +710,120 @@ CONSOLE_COMMAND(mn_endgame, 0)
   
   MN_Question(s_ENDGAME, "starttitle");
 }
+
+//------------------------------------------------------------------------
+//
+// Key Bindings
+//
+
+menu_t menu_keybindings =
+  {
+    {
+      {it_title,  FC_GOLD "key bindings",          NULL,        "M_KEYBND"},
+	{it_gap},
+	{it_runcmd,       "weapon keys",           "mn_weaponkeys"},
+	{it_runcmd,       "environment",           "mn_envkeys"},
+	{it_gap},
+	{it_info, FC_GOLD "basic movement"},
+	{it_binding,      "move forward",          "forward"},
+	{it_binding,      "move backward",         "backward"},
+	{it_binding,      "run",                   "speed"},
+	{it_binding,      "turn left",             "left"},
+	{it_binding,      "turn right",            "right"},
+	{it_binding,      "strafe on",             "strafe"},
+	{it_binding,      "strafe left",           "moveleft"},
+	{it_binding,      "strafe right",          "moveright"},
+	{it_binding,      "180 degree turn",       "flip"},
+	{it_gap},
+	{it_binding,      "mlook on",              "mlook"},
+	{it_binding,      "look up",               "lookup"},
+	{it_binding,      "look down",             "lookdown"},
+	{it_binding,      "center view",           "center"},
+	{it_gap},
+	{it_binding,      "use",                   "use"},
+	{it_end},
+    },
+    150, 5,                       // x,y offsets
+    mf_background,                 // draw background: not a skull menu
+  };
+
+CONSOLE_COMMAND(mn_keybindings, 0)
+{
+  MN_StartMenu(&menu_keybindings);
+}
+
+//------------------------------------------------------------------------
+//
+// Key Bindings: weapon keys
+//
+
+menu_t menu_weaponbindings =
+  {
+    {
+      {it_title,  FC_GOLD "key bindings",          NULL,        "M_KEYBND"},
+	{it_gap},
+	{it_info, FC_GOLD "weapon keys"},
+	{it_binding,      "weapon 1",              "weapon1"},
+	{it_binding,      "weapon 2",              "weapon2"},
+	{it_binding,      "weapon 3",              "weapon3"},
+	{it_binding,      "weapon 4",              "weapon4"},
+	{it_binding,      "weapon 5",              "weapon5"},
+	{it_binding,      "weapon 6",              "weapon6"},
+	{it_binding,      "weapon 7",              "weapon7"},
+	{it_binding,      "weapon 8",              "weapon8"},
+	{it_binding,      "weapon 9",              "weapon9"},
+	{it_gap},
+	{it_binding,      "next weapon",           "nextweapon"},
+	{it_binding,      "attack/fire",           "attack"},
+	{it_end},
+    },
+    150, 5,                        // x,y offsets
+    mf_background,                 // draw background: not a skull menu
+  };
+
+CONSOLE_COMMAND(mn_weaponkeys, 0)
+{
+  MN_StartMenu(&menu_weaponbindings);
+}
+
+//------------------------------------------------------------------------
+//
+// Key Bindings: Environment
+//
+
+menu_t menu_envbindings =
+  {
+    {
+      {it_title,  FC_GOLD "key bindings",          NULL,        "M_KEYBND"},
+	{it_gap},
+	{it_info,         FC_GOLD "environment"},
+	{it_binding,      "automap",               "togglemap"},
+	{it_binding,      "pause",                 "pause"},
+	{it_binding,      "screen size up",        "screensize +"},
+	{it_binding,      "screen size down",      "screensize -"},
+	{it_binding,      "screenshot",            "screenshot"},
+	{it_gap},
+	{it_binding,      "help",                  "help"},
+	{it_binding,      "load game",             "mn_loadgame"},
+	{it_binding,      "save game",             "mn_savegame"},
+	{it_binding,      "volume",                "mn_sound"},
+	{it_binding,      "toggle hud",            "hu_overlay /"},
+	{it_binding,      "end game",              "mn_endgame"},
+	{it_binding,      "toggle messages",       "messages /"},
+	{it_binding,      "quit",                  "mn_quit"},
+	{it_binding,      "gamma correction",      "gamma /"},
+	{it_binding,      "multiplayer spy",       "spy"},
+	{it_end},
+    },
+    150, 5,                        // x,y offsets
+    mf_background,                 // draw background: not a skull menu
+  };
+
+CONSOLE_COMMAND(mn_envkeys, 0)
+{
+  MN_StartMenu(&menu_envbindings);
+}
+
 
 /////////////////////////////////////////////////////////////////
 //
@@ -1093,7 +913,7 @@ menu_t menu_vidmode =
 
 void MN_VidModeDrawer()
 {
-  menu_vidmode.menuitems[3].description = videomodes[v_mode].description;
+  menu_vidmode.menuitems[3].description = modenames[v_mode];
 }
 
 CONSOLE_COMMAND(mn_vidmode, 0)
@@ -1108,12 +928,12 @@ CONSOLE_COMMAND(mn_vidmode, 0)
       
       // start on item 6
       
-      for(menuitem=6, vidmode=0; videomodes[vidmode].description;
+      for(menuitem=6, vidmode=0; modenames[vidmode];
 	  menuitem++, vidmode++)
 	{
 	  menu_vidmode.menuitems[menuitem].type = it_runcmd;
 	  menu_vidmode.menuitems[menuitem].description =
-	    videomodes[vidmode].description;
+	    modenames[vidmode];
 	  sprintf(tempstr, "v_mode %i", vidmode);
 	  menu_vidmode.menuitems[menuitem].data = strdup(tempstr);
 	}
@@ -1182,6 +1002,9 @@ menu_t menu_mouse =
       {it_toggle,     "invert mouse",                 "invertmouse"},
       {it_toggle,     "smooth turning",               "smooth_turning"},
       {it_toggle,     "enable joystick",              "use_joystick"},
+#ifdef XWIN
+      {it_toggle,     "keep mouse in window",         "v_grabmouse"},
+#endif
       {it_gap},
       {it_info,       FC_GOLD"mouselook"},
       {it_toggle,     "always mouselook",             "alwaysmlook"},
@@ -1452,6 +1275,11 @@ menu_t menu_misc =
     {it_variable,     "load wad 2",                    "wadfile_2"},
     {it_variable,     "load deh 1",                    "dehfile_1"},
     {it_variable,     "load deh 2",                    "dehfile_2"},
+    {it_gap},
+    {it_info,         FC_GOLD "developer"},
+    {it_toggle,       "fps ticker",                    "v_ticker"},
+    {it_toggle,       "vpo warning",                   "show_vpo"},
+    {it_toggle,       "hom detector",                  "r_showhom"},
     {it_end},
   },
   150, 15,                               // x, y offset
@@ -1547,7 +1375,7 @@ void MN_AddMenus()
 {
   C_AddCommand(mn_newgame);
   C_AddCommand(mn_episode);
-  C_AddCommand(startlevel);
+  //  C_AddCommand(startlevel);
   C_AddCommand(use_startmap);
 
   C_AddCommand(mn_loadgame);
@@ -1560,25 +1388,13 @@ void MN_AddMenus()
   C_AddCommand(mn_demos);
   C_AddCommand(mn_demoname);
   
-  C_AddCommand(mn_multi);
-  C_AddCommand(mn_serial);
-  C_AddCommand(mn_phonenum);
-  C_AddCommand(mn_tcpip);
-  C_AddCommand(mn_chatmacros);
-  C_AddCommand(mn_player);
-  C_AddCommand(mn_advanced);
-  
-  // different connect types
-  C_AddCommand(mn_ser_answer);
-  C_AddCommand(mn_ser_connect);
-  C_AddCommand(mn_udpserv);
-  C_AddCommand(mn_startgame);
-  C_AddCommand(mn_multigame);
-  
   C_AddCommand(mn_options);
+  C_AddCommand(mn_keybindings);
+  C_AddCommand(mn_weaponkeys);
+  C_AddCommand(mn_envkeys);
   C_AddCommand(mn_mouse);
   C_AddCommand(mn_video);
-    C_AddCommand(mn_vidmode);
+  C_AddCommand(mn_vidmode);
   C_AddCommand(mn_sound);
   C_AddCommand(mn_weapons);
   C_AddCommand(mn_compat);
