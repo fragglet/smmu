@@ -38,6 +38,12 @@
 
 // Swap 16bit, that is, MSB and LSB byte.
 
+// proff 07/04/98: Changed from _MSC_VER to _WIN32 for CYGWIN32 compatibility
+#ifdef _WIN32 // proff: This is a hack, I have to look into this
+#define SHORT(x) (x)
+#define LONG(x) (x)
+#else // _WIN32
+
 #ifdef __GNUC__
 __inline__
 #endif
@@ -60,13 +66,18 @@ static long LONG(long x)
           ((unsigned char *) &x)[0];
 } 
 
+#endif // _WIN32
+
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

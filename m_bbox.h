@@ -32,7 +32,7 @@
 
 #include "z_zone.h"         // killough 1/18/98
 
-#include <values.h>
+#include "doomtype.h"
 #include "m_fixed.h"
 
 // Bounding box coordinate storage.
@@ -55,8 +55,11 @@ void M_AddToBox(fixed_t* box,fixed_t x,fixed_t y);
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

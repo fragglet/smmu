@@ -371,7 +371,7 @@ static patch_t*   items;
 static patch_t*   frags;
 
 // Time sucks.
-static patch_t*   time;
+static patch_t*   time_patch;
 static patch_t*   par;
 static patch_t*   sucks;
 
@@ -918,7 +918,7 @@ static void WI_unloadData(void)
   Z_ChangeTag(sp_secret, PU_CACHE);
   Z_ChangeTag(items, PU_CACHE);
   Z_ChangeTag(frags, PU_CACHE);
-  Z_ChangeTag(time, PU_CACHE);
+  Z_ChangeTag(time_patch, PU_CACHE);
   Z_ChangeTag(sucks, PU_CACHE);
   Z_ChangeTag(par, PU_CACHE);
 
@@ -1793,7 +1793,7 @@ static void WI_drawStats(void)
   V_DrawPatch(SP_STATSX, SP_STATSY+2*lh, FB, sp_secret);
   WI_drawPercent(SCREENWIDTH - SP_STATSX, SP_STATSY+2*lh, cnt_secret[0]);
 
-  V_DrawPatch(SP_TIMEX, SP_TIMEY, FB, time);
+  V_DrawPatch(SP_TIMEX, SP_TIMEY, FB, time_patch);
   WI_drawTime(SCREENWIDTH/2 - SP_TIMEX, SP_TIMEY, cnt_time);
 
   // Ty 04/11/98: redid logic: should skip only if with pwad but 
@@ -2048,7 +2048,7 @@ static void WI_loadData(void)
   colon = W_CacheLumpName("WICOLON", PU_STATIC); 
 
   // "time"
-  time = W_CacheLumpName("WITIME", PU_STATIC);   
+  time_patch = W_CacheLumpName("WITIME", PU_STATIC);   
 
   // "sucks"
   sucks = W_CacheLumpName("WISUCKS", PU_STATIC);  
@@ -2194,8 +2194,11 @@ void WI_Start(wbstartstruct_t* wbstartstruct)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

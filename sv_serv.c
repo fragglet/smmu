@@ -1709,7 +1709,7 @@ void SV_Shutdown()
 	SendPacket(&server_nodes[i].netnode, &packet);
     }
 
-  delay(300);
+  //  delay(300);
   
   server_numnodes = 0;
   server_active = false;
@@ -1792,7 +1792,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.11  2000-06-04 17:19:02  fraggle
+// Revision 1.12  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.11  2000/06/04 17:19:02  fraggle
 // easier reliable-packet send interface
 //
 // Revision 1.10  2000/05/24 13:36:05  fraggle

@@ -10,7 +10,8 @@ DEPENDENCIES = 1
 # 15/10/99 sf: added multi-platform support
 
 # select platform here:
-DJGPPDOS=1
+#DJGPPDOS=1
+CYGWIN32=1
 #LINUX=1
 
 #-------------------------------------------------------------------------
@@ -116,6 +117,70 @@ clean:
 	if exist $(O_DEBUG)\*.exe del $(O_DEBUG)\*.exe
 	if exist $(O_RELEASE)\*.o del $(O_RELEASE)\*.o
 	if exist $(O_DEBUG)\*.o del $(O_DEBUG)\*.o
+
+endif
+
+#------------------------------------------------------------------------
+#
+# Cygwin-32
+#
+# Works but: no sound, no Directx (!), no fullscreen, no networking
+# (net ports are always blocking, even when told to be non-blocking?)
+#
+#------------------------------------------------------------------------
+
+ifdef CYGWIN32
+
+PLATFORM = cygwin
+        
+# compiler
+CC=gcc
+        
+# the command you use to delete files
+RM=del
+        
+# the command you use to copy files
+CP=copy /y
+        
+# the exe file name -sf
+EXE=smmu.exe
+        
+# options common to all builds
+CFLAGS_COMMON=-Wall -g -DCYGWIN -DTCPIP
+
+# new features; comment out what you don't want at the moment
+# remove -DTCPIP if you want a version without tcp/ip support
+CFLAGS_NEWFEATURES=-DDOGS
+        
+# debug options
+CFLAGS_DEBUG=-g -O2 -DRANGECHECK -DINSTRUMENTED
+LDFLAGS_DEBUG=
+        
+# optimized (release) options
+CFLAGS_RELEASE=-O3 -ffast-math -fomit-frame-pointer -m486 -mreg-alloc=adcbSDB
+LDFLAGS_RELEASE=
+# -s
+       
+# libraries to link in
+LIBS=-lcygwin -luser32 -lgdi32 -lcomdlg32 -lkernel32 -lwsock32 -lwinmm
+
+        
+# this selects flags based on debug and release tagets
+CFLAGS=$(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
+LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
+        
+# system-specific object files
+
+PLATOBJS =             \
+	i_main.o       \
+	i_system.o     \
+	i_sound.o      \
+	v_win32.o
+
+build : $(EXE)
+
+$(EXE): $(OBJS) version.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) version.o -o $@ $(LIBS)
 
 endif
 
@@ -333,7 +398,11 @@ $(OBJS): z_zone.h
 ifdef DEPENDENCIES
 
 # rebuild version.c if anything changes
+
 version.o: version.c $(OBJS)
+
+winstuff.o:   cygwin/winstuff.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 doomdef.o: doomdef.c doomdef.h z_zone.h m_swap.h version.h
 
