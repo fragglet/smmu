@@ -202,7 +202,10 @@ static void HU_CrossHairInit()
 
 static void HU_CrossHairTick()
 {
-  // fast as possible: don't bother with this crap if
+  player_t *player;
+  mobj_t *playerobj;
+  
+  // don't bother with this crap if
   // the crosshair isn't going to be displayed anyway
   
   if(!crosshairnum)
@@ -211,10 +214,16 @@ static void HU_CrossHairTick()
   // default to no target
   crosshairpal = notargetcolour;
 
+  // sf: use player prediction
+  
+  player = &players[displayplayer];
+  if(player->predicted)
+    player = player->predicted;
+  playerobj = player->mo;
+  
   // search for targets
 
-  P_AimLineAttack(players[displayplayer].mo,
-		  players[displayplayer].mo->angle, 16*64*FRACUNIT, 0);
+  P_AimLineAttack(playerobj, playerobj->angle, 16*64*FRACUNIT, 0);
 
   if(linetarget && !(linetarget->flags & MF_SHADOW))
     {
@@ -753,8 +762,11 @@ void HU_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-07 13:01:11  fraggle
+// lightup crosshair prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //-----------------------------------------------------------------------------
