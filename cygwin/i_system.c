@@ -22,7 +22,7 @@
 //--------------------------------------------------------------------------
 //
 // DESCRIPTION:
-//        Linux-specific system code
+//        Windows(cygwin)-specific system code
 //
 //-----------------------------------------------------------------------------
 
@@ -227,7 +227,6 @@ void I_Error(const char *error, ...) // killough 3/20/98: add const
   if (!has_exited)    // If it hasn't exited yet, exit now -- killough
     {
       has_exited=1;   // Prevent infinitely recursive exits -- killough
-      printf("exit(-1);\n");
       exit(-1);
     }
 }
@@ -281,7 +280,10 @@ void I_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-20 21:07:33  fraggle
+// Revision 1.3  2001-01-13 02:33:26  fraggle
+// Fix log tags etc.
+//
+// Revision 1.2  2000/06/20 21:07:33  fraggle
 // fix .cfg file saving
 //
 // Revision 1.1  2000/06/19 15:00:23  fraggle
