@@ -5,6 +5,10 @@
 
 #undef I386ASM
 
+// enable TCP/IP support
+
+#undef TCPIP
+
 // Windows DirectX support
 // We support compiling using basic GDI or
 // without sound.  Cygwin is used for windows

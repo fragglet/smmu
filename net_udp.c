@@ -26,6 +26,11 @@
 //
 //---------------------------------------------------------------------------
 
+// #include config.h which contains the TCPIP setting to enable/disable
+// tcp/ip
+
+#include "config.h"
+
 // we only use the data in this file if we have
 // tcp/ip enabled
 
@@ -688,7 +693,10 @@ void UDP_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.6  2000-06-20 21:05:30  fraggle
+// Revision 1.7  2001-01-13 22:39:36  fraggle
+// TCPIP #define moved to config.h, autoconfed
+//
+// Revision 1.6  2000/06/20 21:05:30  fraggle
 // fix broadcast in win32
 //
 // Revision 1.5  2000/06/19 14:58:55  fraggle

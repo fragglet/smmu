@@ -58,4 +58,8 @@ else
 	platobjs="v_svga.o"
 fi
 
+dnl check for TCP/IP support
+
+AC_CHECK_HEADER(netinet/ip.h, AC_DEFINE(TCPIP))
+
 AC_OUTPUT(Makefile)

@@ -26,6 +26,7 @@
 #ifndef NET_MODULES
 #define NET_MODULES
 
+#include "config.h"
 #include "sv_serv.h"
 
 // loopback
@@ -67,8 +68,11 @@ extern void Ser_WaitForCall();
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2001-01-13 22:39:36  fraggle
+// TCPIP #define moved to config.h, autoconfed
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------
