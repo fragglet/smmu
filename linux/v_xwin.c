@@ -36,15 +36,15 @@ rcsid[] = "$Id$";
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/keysym.h>
+
 #ifndef NOSHM
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #endif
-
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
 
 // Had to dig up XShm.c for this one.
 // It is in the libXext, but not in the X headers.
@@ -1631,7 +1631,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-06-20 21:09:50  fraggle
+// Revision 1.5  2000-08-17 14:29:47  fraggle
+// Fix #include ordering so X window version actually compiles
+//
+// Revision 1.4  2000/06/20 21:09:50  fraggle
 // tweak gamma correction stuff
 //
 // Revision 1.3  2000/06/09 20:53:50  fraggle
