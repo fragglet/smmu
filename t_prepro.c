@@ -328,7 +328,7 @@ void preprocess(script_t *script)
   
   DEBUGMSG("    run thru script\n");
   
-  process_find_char(script->data, NULL);  // fill in everything
+  process_find_char(script->data, 0);  // fill in everything
   
   DEBUGMSG("    dry run script\n");
   
@@ -371,7 +371,7 @@ void parse_include(char *lumpname)
   // preprocess the include
   // we assume that it does not include sections or labels or 
   // other nasty things
-  process_find_char(lump, NULL);
+  process_find_char(lump, 0);
   
   // now parse the lump
   parse_data(lump, end);

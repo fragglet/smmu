@@ -212,7 +212,7 @@ int hud_msg_lines;   // number of message lines in window up to 16
 int current_messages;   // the current number of messages
 int hud_msg_scrollup;// whether message list scrolls up
 int message_timer;   // timer used for normal messages
-int scrolltime;         // the gametic when the message list next needs
+int scrolltime;         // leveltime when the message list next needs
                         // to scroll up
 
 void HU_PlayerMsg(char *s)
@@ -233,7 +233,7 @@ void HU_PlayerMsg(char *s)
       strcpy(hu_messages[current_messages], s);
       current_messages++;
     }
-  scrolltime = (message_timer * 35) / 1000;
+  scrolltime = leveltime + (message_timer * 35) / 1000;
 }
 
         // erase the text before drawing
@@ -270,12 +270,12 @@ void HU_MessageTick()
   
   if(!hud_msg_scrollup) return;   // messages not to scroll
 
-  if(!--scrolltime)
+  if(leveltime >= scrolltime)
     {
       for(i=0; i<current_messages-1; i++)
 	strcpy(hu_messages[i], hu_messages[i+1]);
       current_messages = current_messages ? current_messages-1 : 0;
-      scrolltime = (message_timer * 35) / 1000;
+      scrolltime = leveltime + (message_timer * 35) / 1000;
     }
 }
 
@@ -426,7 +426,7 @@ void HU_WidgetsDraw()
   for(i=0; i<num_widgets; i++)
     {
       if(widgets[i]->message &&
-	 (!widgets[i]->cleartic || gametic<widgets[i]->cleartic) )
+	 (!widgets[i]->cleartic || leveltime < widgets[i]->cleartic) )
 	(widgets[i]->font ? HU_WriteText : V_WriteText)
 	  (widgets[i]->message, widgets[i]->x, widgets[i]->y);
     }
@@ -502,7 +502,7 @@ void HU_CentreMsg(char *s)
   hu_centremessage.y = (SCREENHEIGHT-V_StringHeight(s) -
     ((scaledviewheight==SCREENHEIGHT) ? 0 : ST_HEIGHT-8)
 			) / 2;
-  hu_centremessage.cleartic = gametic + (centremessage_timer*35)/1000;
+  hu_centremessage.cleartic = leveltime + (centremessage_timer * 35) / 1000;
 
   // print to console
   C_Printf("%s\n", s);

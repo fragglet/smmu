@@ -260,15 +260,17 @@ void V_InitBox()
         'LOADING' PIC
  ***********************/
 
-int loading_amount;
-int loading_total;
-char *loading_message;
+static int loading_amount = 0;
+static int loading_total = -1;
+static char *loading_message;
 
 void V_DrawLoading()
 {
   int x, y;
   char *dest;
   int linelen;
+
+  if(!loading_message) return;
   
   V_DrawBox((SCREENWIDTH/2)-50, (SCREENHEIGHT/2)-30, 100, 40);
   
@@ -299,6 +301,7 @@ void V_SetLoading(int total, char *mess)
   loading_total = total ? total : 1;
   loading_amount = 0;
   loading_message = mess;
+
   if(in_textmode)
     {
       int i;
@@ -322,6 +325,8 @@ void V_LoadingIncrease()
     }
   else
     V_DrawLoading();
+
+  if(loading_amount == loading_total) loading_message = NULL;
 }
 
 void V_LoadingSetTo(int amount)

@@ -243,8 +243,6 @@ void P_Ticker (void)
 
   reset_viewz = false;  // sf
 
-  if((chasecam_active = camera==&chasecam)) P_ChaseTicker();
-
   P_RunThinkers();
   P_UpdateSpecials();
   P_RespawnSpecials();

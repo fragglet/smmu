@@ -30,8 +30,14 @@
 #include "t_vari.h"
 #include "t_func.h"
 
-script_t global_script;         // the global script just holds all
-                                // the global variables
+// the global script just holds all
+// the global variables
+script_t global_script;
+
+// the hub script holds all the variables
+// shared between levels in a hub
+script_t hub_script;
+
 
 // initialise the global script: clear all the variables
 
@@ -40,11 +46,29 @@ void init_variables()
   int i;
   
   global_script.parent = NULL;    // globalscript is the root script
+  hub_script.parent = &global_script; // hub_script is the next level down
   
   for(i=0; i<VARIABLESLOTS; i++)
-    global_script.variables[i] = NULL;
+    global_script.variables[i] = hub_script.variables[i] = NULL;
   
   // any hardcoded global variables can be added here
+}
+
+void T_ClearHubScript()
+{
+  int i;
+
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      while(hub_script.variables[i])
+	{
+	  svariable_t *next = hub_script.variables[i]->next;
+	  if(hub_script.variables[i]->type == svt_string)
+	    Z_Free(hub_script.variables[i]->value.s);
+	  Z_Free(hub_script.variables[i]);
+	  hub_script.variables[i] = next;
+	}
+    }
 }
 
 // find_variable checks through the current script, level script
@@ -75,7 +99,8 @@ svariable_t *new_variable(script_t *script, char *name, int vtype)
 {
   int n;
   svariable_t *newvar;
-  int tagtype = script==&global_script ? PU_STATIC : PU_LEVEL;
+  int tagtype =
+    script==&global_script || script==&hub_script ? PU_STATIC : PU_LEVEL;
   
   // find an empty slot first
 

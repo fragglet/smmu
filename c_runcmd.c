@@ -30,26 +30,28 @@
 
 /* Prototypes **********************/
 
-void C_EchoValue(command_t *command);
-void C_SetVariable(command_t *command);
-void C_RunAlias(alias_t *alias);
-int C_Sync(command_t *command);
-void C_ArgvtoArgs();
-boolean C_Strcmp(unsigned char *a, unsigned char *b);
+static void C_EchoValue(command_t *command);
+static void C_SetVariable(command_t *command);
+static void C_RunAlias(alias_t *alias);
+static int C_Sync(command_t *command);
+static void C_ArgvtoArgs();
+static boolean C_Strcmp(unsigned char *a, unsigned char *b);
 
 /***************************
   PARSING/RUNNING COMMANDS
  ***************************/
 
 int cmdtype;
-char cmdtokens[MAXTOKENS][MAXTOKENLENGTH];
-int numtokens;
 char c_argv[MAXTOKENS][MAXTOKENLENGTH];   // tokenised list of arguments
 int c_argc;                               // number of arguments
 char c_args[128];                         // raw list of arguments
+command_t *c_command;                     // ptr to command we're running
+
+static char cmdtokens[MAXTOKENS][MAXTOKENLENGTH];
+static int numtokens;
 
         // break up the command into tokens
-void C_GetTokens(char *command)
+static void C_GetTokens(char *command)
 {
   char *rover;
   boolean quotemark=0;
@@ -132,7 +134,7 @@ static void C_RunIndivTextCmd(char *cmdname)
         // check the flags of a command to see if it
         // should be run or not
 
-boolean C_CheckFlags(command_t *command)
+static boolean C_CheckFlags(command_t *command)
 {
   char *errormsg;
   
@@ -176,9 +178,9 @@ void C_RunCommand(command_t *command, char *options)
   cmdtype = c_typed;  // reset to typed command as default
 }
 
-        // actually run a command. Same as C_RunCommand only instant.
+// actually run a command. Same as C_RunCommand only instant.
 
-void C_DoRunCommand(command_t *command, char *options)
+static void C_DoRunCommand(command_t *command, char *options)
 {
   int i;
 
@@ -186,6 +188,7 @@ void C_DoRunCommand(command_t *command, char *options)
   
   memcpy(c_argv, cmdtokens, sizeof cmdtokens);
   c_argc = numtokens;
+  c_command = command;
 
   // perform checks
   
@@ -248,7 +251,7 @@ void C_DoRunCommand(command_t *command, char *options)
 
 // take all the argvs and put them all together in the args string
 
-void C_ArgvtoArgs()
+static void C_ArgvtoArgs()
 {
   int i, n;
 
@@ -271,7 +274,7 @@ void C_ArgvtoArgs()
 // return a string of all the argvs linked together, but with each
 // argv in quote marks "
 
-char *C_QuotedArgvToArgs()
+static char *C_QuotedArgvToArgs()
 {
   int i;
   static char returnvar[1024];
@@ -284,10 +287,10 @@ char *C_QuotedArgvToArgs()
   return returnvar;
 }
 
-        // see if the command needs to be sent to other computers
-        // to maintain sync and do so if neccesary
+// see if the command needs to be sent to other computers
+// to maintain sync and do so if neccesary
 
-int C_Sync(command_t *command)
+static int C_Sync(command_t *command)
 {
   if(command->flags & cf_netvar)
     {
@@ -390,7 +393,7 @@ void C_EchoValue(command_t *command)
 
 // is a string a number?
 
-boolean isnum(char *text)
+static boolean isnum(char *text)
 {
   for(;*text; text++)
     if((*text>'9' || *text<'0') && *text!='-') return false;
@@ -400,7 +403,7 @@ boolean isnum(char *text)
 // take a string and see if it matches a define for a
 // variable. Replace with the literal value if so.
 
-char* C_ValueForDefine(variable_t *variable, char *s)
+static char* C_ValueForDefine(variable_t *variable, char *s)
 {
   int count;
   static char returnstr[10];
@@ -447,7 +450,7 @@ char* C_ValueForDefine(variable_t *variable, char *s)
   return s;
 }
         // set a variable
-void C_SetVariable(command_t *command)
+static void C_SetVariable(command_t *command)
 {
   variable_t* variable;
   int size = 0;
@@ -556,7 +559,7 @@ int thistab = -1;
 // all the commands which begin with this into a
 // list 'tabs'
 
-void GetTabs(char *key)
+static void GetTabs(char *key)
 {
   int i;
   int keylen;

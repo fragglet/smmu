@@ -323,14 +323,12 @@ void P_PlayerThink (player_t* player)
   if(!allowmlook) player->updownangle = 0;
 
   if(player->readyweapon == wp_bfg)
-  {
-       if(bfglook == 0) player->updownangle = 0;
-       if(bfglook == 2 && player->updownangle < -10)
-              player->updownangle = -10;
-  }
-
-        // sf: do this in p_tick.c now for hyperlift-jumping fix
-        // feels different: put back
+    {
+      if(bfglook == 0) player->updownangle = 0;
+      if(bfglook == 2 && player->updownangle < -10)
+	player->updownangle = -10;
+    }
+  
   P_CalcHeight (player); // Determines view height and bobbing
 
   // Determine if there's anything about the sector you're in that's

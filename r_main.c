@@ -709,6 +709,9 @@ CONSOLE_VARIABLE(screensize, screenSize, cf_buffered)
      hide_menu = 20;             // hide the menu for a few tics
      R_SetViewSize (screenSize+3);
   }
+
+  if(screenSize == 8)        // fullscreen
+    HU_ToggleHUD();
 }
 
 CONSOLE_COMMAND(p_dumphubs, 0)

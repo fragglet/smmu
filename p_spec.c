@@ -154,13 +154,15 @@ void P_InitPicAnims (void)
 
       lastanim->istexture = animdefs[i].istexture;
       lastanim->numpics = lastanim->picnum - lastanim->basepic + 1;
-
-      if (lastanim->numpics < 2)
-        I_Error ("P_InitPicAnims: bad cycle from %s to %s",
-                 animdefs[i].startname,
-                 animdefs[i].endname);
-
       lastanim->speed = LONG(animdefs[i].speed); // killough 5/5/98: add LONG()
+
+      // sf: include support for swirly water hack
+      if (lastanim->speed < 65536 && lastanim->numpics != 1)
+	if (lastanim->numpics < 2)
+	  I_Error ("P_InitPicAnims: bad cycle from %s to %s",
+		   animdefs[i].startname,
+		   animdefs[i].endname);
+
       lastanim++;
     }
   Z_ChangeTag (animdefs,PU_CACHE); //jff 3/23/98 allow table to be freed
@@ -924,14 +926,14 @@ int P_CheckTag(line_t *line)
     case 48:  // Scrolling walls
     case 85:
         // sf: scripting
-    case 270:   // WR
-    case 271:
-    case 272:   // W1
+    case 272:   // WR
     case 273:
-    case 274:   // SR
-    case 275:   // S1
-    case 276:   // GR
-    case 277:   // G1
+    case 274:   // W1
+    case 275:
+    case 276:   // SR
+    case 277:   // S1
+    case 278:   // GR
+    case 279:   // G1
       return 1;
     }
 
@@ -1566,20 +1568,20 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
 
         // repeatable
 
-    case 271:  // console command (1sided)
+    case 273:  // console command (1sided)
       if(side) break;
 
-    case 270:  // console command (2sided)
+    case 272:  // console command (2sided)
       t_trigger = thing;
       T_RunScript(line->tag);
       break;
 
         // once-only triggers
 
-    case 273:  // console command (1sided)
+    case 275:  // console command (1sided)
       if(side) break;
 
-    case 272:  // console command (2sided)
+    case 274:  // console command (2sided)
       t_trigger = thing;
       T_RunScript(line->tag);
       line->special = 0;        // clear trigger
@@ -1630,7 +1632,7 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
               line->special = 0;
             break;
 
-          case 146:
+	  case 146:
             // Lower Pillar, Raise Donut
             // 146 W1  EV_DoDonut()
             if (EV_DoDonut(line))
@@ -2052,11 +2054,11 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
       // killough 1/31/98: added demo_compatibility check, added inner switch
 
         // sf: scripting
-    case 276:
-    case 277:
+    case 278:
+    case 279:
       t_trigger = thing;
       T_RunScript(line->tag);
-      if(line->special == 277) line->special = 0;       // clear if G1
+      if(line->special == 279) line->special = 0;       // clear if G1
       break;
 
     default:
@@ -2265,8 +2267,8 @@ void P_UpdateSpecials (void)
           texturetranslation[i] = pic;
         else                    // sf: swirly water hack
           flattranslation[i] = r_swirl ? -1 : pic;
-                // sf: > 65535 : swirly
-        if(anim->speed >> 16) flattranslation[i] = -1;
+                // sf: > 65535 : swirly hack 
+        if(anim->speed > 65535 || anim->numpics==1) flattranslation[i] = -1;
       }
 
   // Check buttons (retriggerable switches) and change texture on timeout

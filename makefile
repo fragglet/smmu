@@ -1,8 +1,5 @@
-################################################################
-#
-# $Id: makefile,v 1.38 1998/05/18 22:59:22 killough Exp $
-#
-################################################################
+############################################################################
+# SMMU Makefile
 
 MODE = RELEASE
 O = $(O_$(MODE))
@@ -14,98 +11,125 @@ DEPENDENCIES = 1
 
 # select platform here:
 DJGPPDOS=1
-#LINUX=1
+# LINUX=1
+
+################################ DJGPP ####################################
 
 ifdef DJGPPDOS
         
-	PLATFORM = djgpp
-        # compiler
-	CC = gcc
+PLATFORM = djgpp
+
+# compiler
+CC=gcc
         
-        # the command you use to delete files
-	RM = del
+# the command you use to delete files
+RM=del
         
-        # the command you use to copy files
-	CP = copy /y
+# the command you use to copy files
+CP=copy /y
         
-        # the exe file name -sf
-	EXE = smmu.exe
+# the exe file name -sf
+EXE=$(O)/smmu.exe
         
-        # options common to all builds
-	CFLAGS_COMMON = -Wall -g
+# options common to all builds
+CFLAGS_COMMON=-Wall -g
+
+# new features; comment out what you don't want at the moment
+CFLAGS_NEWFEATURES=-DDOGS
         
-        # new features; comment out what you don't want at the moment
-	CFLAGS_NEWFEATURES = -DDOGS
+# debug options
+CFLAGS_DEBUG=-g -O2 -DRANGECHECK -DINSTRUMENTED
+LDFLAGS_DEBUG=
         
-        # debug options
-	CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
-        LDFLAGS_DEBUG =
+# optimized (release) options
+CFLAGS_RELEASE=-O3 -ffast-math -fomit-frame-pointer -m486 -mreg-alloc=adcbSDB
+LDFLAGS_RELEASE=
+# -s
+       
+# libraries to link in
+LIBS=-lalleg -lm -lemu
         
-        # optimized (release) options
-        CFLAGS_RELEASE = -O3 -ffast-math -fomit-frame-pointer -m486 -mreg-alloc=adcbSDB
-        LDFLAGS_RELEASE = 
-        # -s
+# this selects flags based on debug and release tagets
+CFLAGS=$(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
+LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
         
-        # libraries to link in
-        LIBS = -lalleg -lm -lemu
-        
-        # this selects flags based on debug and release tagets
-        CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
-        LDFLAGS = $(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
-        
-        # system-specific object files
-        PLATOBJS =                  \
-                $(O)/ser_main.o     \
-                $(O)/ser_port.o     \
-                $(O)/keyboard.o     \
-                $(O)/mmus2mid.o     \
-                $(O)/pproblit.o     \
-                $(O)/drawspan.o     \
-                $(O)/drawcol.o      \
-                $(O)/emu8kmid.o
-        
+# system-specific object files
+PLATOBJS =                  \
+	$(O)/i_main.o       \
+   	$(O)/i_system.o     \
+  	$(O)/i_sound.o      \
+	$(O)/i_video.o      \
+	$(O)/i_net.o        \
+        $(O)/ser_main.o     \
+	$(O)/ser_port.o     \
+	$(O)/keyboard.o     \
+	$(O)/mmus2mid.o     \
+	$(O)/pproblit.o     \
+	$(O)/drawspan.o     \
+	$(O)/drawcol.o      \
+	$(O)/emu8kmid.o
+
+$(EXE): $(OBJS) $(O)/version.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/version.o -o $@ $(LIBS)
+
+doom all: $(EXE)
+
 endif
 
+################################# LINUX #####################################
+
 # nb. linux support not yet finished :(
+
 ifdef LINUX
-	PLATFORM = linux
-        # compiler
-	CC = gcc
+
+PLATFORM = linux
+# compiler
+CC = gcc
         
-        # the command you use to delete files
-	RM = rm
+# the command you use to delete files
+RM = rm
+# the command you use to copy files
+CP = cp
+                
+# options common to all builds
+CFLAGS_COMMON = -Wall -g
         
-        # the command you use to copy files
-	CP = cp
+# new features; comment out what you don't want at the moment
+CFLAGS_NEWFEATURES = -DDOGS
         
-        # the exe file name -sf
-	EXE = xsmmu
+# debug options
+CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
+LDFLAGS_DEBUG =
         
-        # options common to all builds
-	CFLAGS_COMMON = -Wall -g
+# optimized (release) options
+CFLAGS_RELEASE = -O2
+LDFLAGS_RELEASE = 
+# -s
         
-        # new features; comment out what you don't want at the moment
-	CFLAGS_NEWFEATURES = -DDOGS
+# this selects flags based on debug and release tagets
+CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
+LDFLAGS = $(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
         
-        # debug options
-	CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
-        LDFLAGS_DEBUG =
-        
-        # optimized (release) options
-        CFLAGS_RELEASE = -O3
-        LDFLAGS_RELEASE = 
-        # -s
-        
-        # libraries to link in
-        LIBS = -lm -lvga
-        
-        # this selects flags based on debug and release tagets
-        CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
-        LDFLAGS = $(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
-        
-        # system-specific object files
-        PLATOBJS = 
+# system-specific object files
+PLATOBJS =                  \
+	$(O)/i_main.o       \
+	$(O)/i_sound.o      \
+	$(O)/i_system.o     \
+	$(O)/i_net.o
+
+all : xsmmu ssmmu
+
+# X version doesn't work on my pc currently
+# please email me if you have any success
+xsmmu: $(OBJS) $(O)/i_xwin.o $(O)/version.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_xwin.o $(O)/version.o -o $@ -L/usr/X11/lib -lX11 -lXext
+
+ssmmu: $(OBJS) $(O)/i_svga.o $(O)/version.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_svga.o $(O)/version.o -o $@  -lvga
+
 endif
+
+############################## OBJECT FILES #################################
 
 # subdirectory for objects (depends on target, to allow you
 # to build debug and release versions simultaneously)
@@ -121,12 +145,6 @@ OBJS=   \
 	$(O)/doomdef.o      \
         $(O)/doomstat.o     \
         $(O)/dstrings.o     \
-        $(O)/i_main.o       \
-	$(O)/i_input.o	    \
-        $(O)/i_system.o     \
-        $(O)/i_sound.o      \
-        $(O)/i_video.o      \
-        $(O)/i_net.o        \
         $(O)/tables.o       \
         $(O)/f_finale.o     \
         $(O)/f_wipe.o       \
@@ -136,8 +154,8 @@ OBJS=   \
         $(O)/g_game.o       \
 	$(O)/g_cmd.o        \
         $(O)/mn_menus.o     \
-	$(O)/mn_engin.o	    \
 	$(O)/mn_misc.o      \
+	$(O)/mn_engin.o	    \
         $(O)/m_misc.o       \
         $(O)/m_argv.o       \
         $(O)/m_bbox.o       \
@@ -200,8 +218,6 @@ OBJS=   \
 	$(O)/t_oper.o	    \
         $(O)/t_spec.o
 
-doom all: $(O)/$(EXE)
-
 release: clean
 	$(RM) tranmap.dat
 	$(RM) smmu.cfg
@@ -226,9 +242,6 @@ clean:
 	$(RM) $(O_DEBUG)\*.exe
 	$(RM) $(O_RELEASE)\*.o
 	$(RM) $(O_DEBUG)\*.o
-
-$(O)/$(EXE): $(OBJS) $(O)/version.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/version.o -o $@ $(LIBS)
 
 $(O)/%.o:   %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -602,113 +615,3 @@ $(O)/bin2c.exe: $(O)/bin2c.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(O)/bin2c.o -o $@ $(LIBS)
 
 $(O)/bin2c.o: bin2c.c
-
-
-###############################################################################
-# $Log: makefile,v $
-# Revision 1.38  1998/05/18  22:59:22  killough
-# Update p_lights.o depedencies
-#
-# Revision 1.37  1998/05/16  09:41:24  jim
-# formatted net files, installed temp switch for testing Stan/Lee's version
-#
-# Revision 1.36  1998/05/15  00:35:40  killough
-# Remove p_tick.h dependence from i_main.o
-#
-# Revision 1.35  1998/05/13  22:58:58  killough
-# Restore Doom bug compatibility for demos
-#
-# Revision 1.34  1998/05/12  12:47:35  phares
-# Removed OVER_UNDER code
-#
-# Revision 1.33  1998/05/10  23:43:03  killough
-# Add p_user.h to p_user.o, p_telept.o dependencies
-#
-# Revision 1.32  1998/05/05  16:29:20  phares
-# Removed RECOIL and OPT_BOBBING defines
-#
-# Revision 1.31  1998/05/03  23:20:15  killough
-# Reflect current dependencies, beautify
-#
-# Revision 1.30  1998/04/27  02:25:42  killough
-# Fix missing tabs after fixing cvsto script
-#
-# Revision 1.26  1998/04/14  08:14:50  killough
-# remove obsolete ADAPTIVE_GAMETICS
-#
-# Revision 1.25  1998/04/13  13:03:22  killough
-# Add -DADAPTIVE_GAMETIC
-#
-# Revision 1.24  1998/04/13  09:43:20  killough
-# Add watermap.wad to dckboom.zip
-#
-# Revision 1.23  1998/04/12  02:07:37  killough
-# Add r_segs.c dependency for translucency
-#
-# Revision 1.22  1998/04/09  09:18:52  thldrmn
-# Added dependency of d_main.c on d_deh.h
-#
-# Revision 1.21  1998/03/29  21:40:17  jim
-# Fix to DEH text problem
-#
-# Revision 1.20  1998/03/23  15:24:21  phares
-# Changed pushers to linedef control
-#
-# Revision 1.19  1998/03/23  03:23:47  killough
-# Add dckboom, bin2c targets, add new dependencies
-#
-# Revision 1.18  1998/03/20  00:29:51  phares
-# Changed friction to linedef control
-#
-# Revision 1.17  1998/03/16  12:32:18  killough
-# Add -m486 flag for better 486 codegen
-#
-# Revision 1.16  1998/03/11  17:48:20  phares
-# New cheats, clean help code, friction fix
-#
-# Revision 1.15  1998/03/10  07:15:05  jim
-# Initial DEH support added, minus text
-#
-# Revision 1.14  1998/03/09  07:17:18  killough
-# Turn on instrumenting in debug builds
-#
-# Revision 1.13  1998/03/04  21:02:24  phares
-# Dynamic HELP screen
-#
-# Revision 1.12  1998/03/02  11:38:42  killough
-# Add dependencies, clarify CFLAGS_DEBUG
-#
-# Revision 1.11  1998/02/27  08:10:05  phares
-# Added optional player bobbing
-#
-# Revision 1.10  1998/02/24  08:46:08  phares
-# Pushers, recoil, new friction, and over/under work
-#
-# Revision 1.9  1998/02/23  04:42:54  killough
-# Correct depedencies
-#
-# Revision 1.8  1998/02/18  01:00:11  jim
-# Addition of HUD
-#
-# Revision 1.7  1998/02/17  05:41:34  killough
-# Add drawspan.s, drawcol.s, fix some dependencies
-#
-# Revision 1.6  1998/02/08  05:35:13  jim
-# Added generalized linedef types
-#
-# Revision 1.5  1998/02/02  13:26:04  killough
-# Add version information files
-#
-# Revision 1.4  1998/01/30  14:45:16  jim
-# Makefile changed to build BOOM.EXE
-#
-# Revision 1.3  1998/01/26  19:31:15  phares
-# First rev w/o ^Ms
-#
-# Revision 1.2  1998/01/26  05:56:52  killough
-# Add PPro blit routine
-#
-# Revision 1.1.1.1  1998/01/19  14:02:52  rand
-# Lee's Jan 19 sources
-#
-###############################################################################

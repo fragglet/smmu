@@ -56,6 +56,8 @@ enum
 
 // variables
 
+void T_ClearHubScript();
+
 void init_variables();
 svariable_t *new_variable(script_t *script, char *name, int vtype);
 svariable_t *find_variable(char *name);

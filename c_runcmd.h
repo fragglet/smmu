@@ -190,6 +190,7 @@ typedef struct
 
 /***** command running ****/
 
+extern command_t *c_command;
 extern int cmdtype;
 extern char c_argv[MAXTOKENS][MAXTOKENLENGTH];
 extern int c_argc;

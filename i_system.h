@@ -27,16 +27,11 @@
 // Called by DoomMain.
 void I_Init(void);
 
-// I_InitKeyboard. Set up the keyboard
-// to allow breaks while doom is loading
-
-void I_InitKeyboard();
-
 // Called by D_DoomLoop,
 // returns current time in tics.
 // int I_GetTime (void);
 
-int (*I_GetTime)();           // killough
+extern int (*I_GetTime)();           // killough
 int I_GetTime_RealTime();     // killough
 int I_GetTime_Adaptive(void); // killough 4/10/98
 void I_SetTime(int newtime);
@@ -59,8 +54,7 @@ void I_StartFrame (void);
 // Quick syncronous operations are performed here.
 // Can call D_PostEvent.
 
-void I_StartTic (void);
-void I_GetEvent();      // sf: extern
+void I_StartTic(void);
 
 // Asynchronous interrupt functions should maintain private queues
 // that are read by the synchronous functions

@@ -442,11 +442,12 @@ void R_DrawTranslatedColumn (void)
 
 typedef struct
 {
-        int start;      // start of the sequence of colours
-        int number;     // number of colours
+  int start;      // start of the sequence of colours
+  int number;     // number of colours
 } translat_t;
 
-translat_t translations[] = {
+translat_t translations[] =
+{
   {96,  16},     // indigo
   {64,  16},     // brown
   {32,  16},     // red
@@ -458,6 +459,7 @@ translat_t translations[] = {
   {152, 8},      // felt?
   {0,   1},      // bleeacckk!!
   {250, 5},      // purple
+  //  {168, 8}, // bright pink, kinda
   {216, 8},      // vomit yellow
   {16,  16},     // pink
   {56,  8},      // cream
@@ -468,16 +470,16 @@ translat_t translations[] = {
 void R_InitTranslationTables (void)
 {
   int i, c;
-        
+  
   translationtables = Z_Malloc(256 * TRANSLATIONCOLOURS, PU_STATIC, 0);
-
+  
   for(i=0; i<TRANSLATIONCOLOURS; i++)
-  {
-        for(c=0; c<256; c++)
-           translationtables[i*256 + c] =
-            (c < 0x70 || c > 0x7f) ? c : translations[i].start +
-                ((c & 0xf) * (translations[i].number-1))/15;
-  }
+    {
+      for(c=0; c<256; c++)
+	translationtables[i*256 + c] =
+	  (c < 0x70 || c > 0x7f) ? c : translations[i].start +
+	  ((c & 0xf) * (translations[i].number-1))/15;
+    }
 }
 
 //

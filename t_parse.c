@@ -423,34 +423,10 @@ void run_statement()
     }
   else if(tokentype[0] == name)
     {
-      if(!strcmp(tokens[0], "int"))
-	{
-	  spec_int();
-	  return;
-	}
-      else if(!strcmp(tokens[0], "string"))
-	{
-	  spec_string();
-	  return;
-	}
-      else if(!strcmp(tokens[0], "const"))
-	{
-	  spec_const();
-	  return;
-	}
-      else if(!strcmp(tokens[0], "mobj"))
-	{
-	  spec_mobj();
-	  return;
-	}
-      else if(!strcmp(tokens[0], "script"))
-	{
-	  spec_script();
-	  return;
-	}
-      // goto is handled as a function
-      
-      // NB "float" or other types could be added here
+      // NB: goto is a function so is not here
+
+      // if a variable declaration, return now
+      if(spec_variable()) return;
     }
 
   // just a plain expression

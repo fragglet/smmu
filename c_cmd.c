@@ -141,6 +141,7 @@ CONSOLE_COMMAND(flood, 0)
     C_Printf("%c\n", a%64 + 32);
 }
 
+// ... the most important of all console commands
 char *quotes[] =
 {
 "* DooMWiz whips out DCK and fixes the problem.\n<DvlPup> Whipps out WHAT?!?",

@@ -142,8 +142,8 @@ struct player_s
   int                 secretcount;
 
   // Hint messages.
-        // sf: now done with dprintf
-//  char*               message;        
+  // sf: now done with dprintf
+  //  char*               message;        
   
   // For screen flashing (red or bright).
   int                 damagecount;
@@ -173,7 +173,6 @@ struct player_s
   boolean             didsecret;      
 
   char                name[20];
-
 };
 
 

@@ -239,7 +239,9 @@ int C_Responder(event_t* ev)
     }
 
   if(!consoleactive) return false;
-  if(current_target < current_height) return false; // not til its stopped moving
+
+  // not til its stopped moving
+  if(current_target < current_height) return false;
 
                 /********** console active commands **********/
   // keypresses only dealt with if console active
@@ -536,12 +538,14 @@ void C_InstaPopup()
 #define I int
 #define V void
 #define F for
+#define Z FC_BROWN
 #define C_W C_SCREENWIDTH
 #define C_H C_SCREENHEIGHT
 #define s0 screens[0]
 #define WT HU_WriteText
 #define bd backdrop
-V Egg(V){C *os;I x,y;E U C egg[];F(x=0;x<C_W;x++)F(y=0;y<C_H;y
-++){U C *s=egg+((y%44)*42)+(x%42);if(*s!=247)bd[y*C_W+x]=*s;}os=s0;
-s0=bd;WT(FC_BROWN"my hair looks much too\n dark in this pic.\noh we"
-"ll, have fun!\n      -- fraggle",160,168);s0=os;}
+
+V Egg(V){C *os;I x,y;E U C egg[];F(x=0;x<C_W;x++)F(y=0;y<C_H
+;y++){U C *s=egg+((y%44)*42)+(x%42);if(*s!=247)bd[y*C_W+x]=*
+s;}os=s0;s0=bd;WT(Z"my hair looks much too\n dark in this p"
+"ic.\noh well, have fun!\n      -- fraggle",160,168);s0=os;}

@@ -22,18 +22,27 @@
 #include "../d_main.h"
 #include "../d_net.h"
 #include "../g_game.h"
+#include "../m_random.h"
 #include "../i_video.h"
 #include "../mn_engin.h"
 
 extern void (*netdisconnect)();
 
-int CheckForEsc();
+// ser_port.c
+void InitPort (void);
+void ShutdownPort(void);
+void jump_start(void);
+int read_byte(void);
+void write_byte(int c);
+
 void Ser_Disconnect();
-void ModemClear ();
+
+static boolean CheckForEsc();
+static void ModemClear ();
+static void ModemCommand (char *str);
 
 extern	que_t		inque, outque;
 
-void jump_start( void );
 extern int uart;
 
 int usemodem;
@@ -45,8 +54,6 @@ char phonenum[50];
 extern doomcom_t *doomcom;
 doomcom_t ser_doomcom;
 
-void ModemCommand (char *str);
-
 int ser_active;
 
 /*
@@ -57,7 +64,7 @@ int ser_active;
 ================
 */
 
-void write_buffer( char *buffer, unsigned int count )
+static void write_buffer( char *buffer, unsigned int count )
 {
   // if this would overrun the buffer, throw everything else out
   if (outque.head-outque.tail+count > QUESIZE)
@@ -81,14 +88,12 @@ void write_buffer( char *buffer, unsigned int count )
 =================
 */
 
-void Ser_Error (char *error, ...)
+static void Ser_Error (char *error, ...)
 {
   va_list argptr;
   
   Ser_Disconnect();
-  
-  ShutdownPort ();
-  
+
   if (error)
     {
       char tempstr[100];
@@ -109,7 +114,9 @@ void Ser_Error (char *error, ...)
 void Ser_Disconnect()
 {
   doomcom = &singleplayer;
-	
+  
+  ShutdownPort ();
+  	
   if(!usemodem) return;
 	
   usermsg("");
@@ -147,7 +154,7 @@ int packetlen;
 int inescape;
 int newpacket;
 
-boolean Ser_ReadPacket (void)
+static boolean Ser_ReadPacket (void)
 {
   int c;
 	
@@ -175,7 +182,7 @@ boolean Ser_ReadPacket (void)
       if (inescape)
 	{
 	  inescape = false;
-	  if (c!=FRAMECHAR)
+	  if (c != FRAMECHAR)
 	    {
 	      newpacket = 1;
 	      return true;	// got a good packet
@@ -203,20 +210,23 @@ boolean Ser_ReadPacket (void)
 =============
 */
 
-void Ser_WritePacket (char *buffer, int len)
+// sf: made void *buffer not char *buffer
+
+static void Ser_WritePacket (void *buffer, int len)
 {
   int b;
-  char static localbuffer[MAXPACKET*2+2];
-	
+  static char localbuffer[MAXPACKET*2+2];
+  char *buf = buffer;
+
   b = 0;
   if (len > MAXPACKET)
     return;
 	
   while (len--)
     {
-      if (*buffer == FRAMECHAR)
+      if (*buf == FRAMECHAR)
 	localbuffer[b++] = FRAMECHAR;	// escape it for literal
-      localbuffer[b++] = *buffer++;
+      localbuffer[b++] = *buf++;
     }
   
   localbuffer[b++] = FRAMECHAR;
@@ -224,7 +234,6 @@ void Ser_WritePacket (char *buffer, int len)
   
   write_buffer (localbuffer, b);
 }
-
 
 /*
 =============
@@ -265,26 +274,54 @@ void Ser_NetISR (void)
 =================
 */
 
-void Ser_Connect (void)
+typedef struct
 {
-  int time;
-  int oldsec;
-  int localstage, remotestage;
-  char str[20];
-	
-  //
-  // wait for a good packet
-  //
-  
+  enum
+  {
+    pt_join,
+    pt_accept
+  } packet_type;
+  short remote_number;
+} setuppacket_t;
+
+// sf: simplified connection routines/selection of player numbers
+// the player who ran connect first is server
+
+// when we enter connect, we send out a packet. If there is another
+// player already waiting they detect it and send a response to
+// start the game. If there is not yet a player waiting then the
+// opposite will happen: when the other player joins we will detect
+// their join packet.
+
+static void Ser_Connect (void)
+{
+  int local_number;       // assign us a random number as our own
+  setuppacket_t send;     // sending packet
+
   usermsg("");
-  usermsg("Attempting to connect across serial");
-  usermsg("link, press escape to abort.");
+  usermsg("Looking for another player");
+  usermsg("press escape to abort.");
   usermsg("");
-	
-  oldsec = -1;
-  localstage = remotestage = 0;
+
+  // get local number: 0-65536
+  // 2 computers unlikely to generate the same number
+
+  // shuffle random seed to make sure
+  G_ScrambleRand();
+
+  local_number = M_Random() * 256 + M_Random();
   
-  do
+  // send a packet and wait for a response.
+  // If there is a response, theres already another SMMU waiting
+
+  send.packet_type = pt_join;
+  send.remote_number = local_number;
+  Ser_WritePacket(&send, sizeof(send));
+
+  // wait for a response from the other SMMU
+  // or a call from another SMMU joining
+
+  while(1)
     {
       if(CheckForEsc())
 	{
@@ -293,39 +330,60 @@ void Ser_Connect (void)
 	}
       while (Ser_ReadPacket ())
 	{
-	  packet[packetlen] = 0;
-	  //                      printf ("read: %s",packet);
-	  if (packetlen != 7)
-	    goto badpacket;
-	  if (strncmp(packet,"PLAY",4) )
-	    goto badpacket;
-	  remotestage = packet[6] - '0';
-	  localstage = remotestage+1;
-	  if (packet[4] == '0'+ser_doomcom.consoleplayer)
+	  setuppacket_t recv;
+
+	  // check it is a setuppacket
+	  if(packetlen != sizeof(setuppacket_t))
 	    {
-	      ser_doomcom.consoleplayer ^= 1;
-	      localstage = remotestage = 0;
+	      Ser_Error("weird length packet received");
+	      return;
 	    }
-	  oldsec = -1;
+	  
+	  // copy it into recv
+	  memcpy(&recv, packet, packetlen);
+	  
+	  // modem echo?
+	  if(recv.remote_number == local_number)
+	    {
+	      Ser_Error("packet echo (from a modem?)");
+	      return;
+	    }
+
+	  // other SMMU joining
+	  // therefore we started first
+	  if(recv.packet_type == pt_join)
+	    {
+	      ser_doomcom.consoleplayer = 0;    // we are server
+
+	      // send a response
+	      send.packet_type = pt_accept;
+	      send.remote_number = local_number;
+	      Ser_WritePacket(&send, sizeof(send));
+
+	      // start game
+	      while (Ser_ReadPacket ());     // flush
+	      return;
+	    }
+	  else if(recv.packet_type == pt_accept)
+	    {
+	      // response from other computer
+	      // therefore we have joined a server
+
+	      ser_doomcom.consoleplayer = 1;      // second player
+
+	      // no response needed to server
+
+	      // start game
+	      while (Ser_ReadPacket ());      // flush
+	      return;
+	    }
+	  else
+	    {
+	      Ser_Error("packet w/weird type received");
+	      return;
+	    }
 	}
-      
-    badpacket:
-      
-      time = I_GetTime() / 35;
-      if (time != oldsec)
-	{
-	  oldsec = time;
-	  sprintf (str,"PLAY%i_%i",ser_doomcom.consoleplayer,localstage);
-	  Ser_WritePacket (str,strlen(str));
-	}
-      
-    } while (remotestage < 1);
-	
-  //
-  // flush out any extras
-  //
-  
-  while (Ser_ReadPacket ());
+    }
 }
 
 
@@ -338,7 +396,7 @@ void Ser_Connect (void)
 ==============
 */
 
-void ModemCommand (char *str)
+static void ModemCommand (char *str)
 {
   if(!ser_active) return;         // aborted
   
@@ -356,11 +414,11 @@ void ModemCommand (char *str)
 ==============
 */
 
-void ModemClear ()
+static void ModemClear ()
 {
   while(read_byte() != -1);
+  packetlen = newpacket = inescape = 0;      // clear it
 }
-
 
 
 /*
@@ -374,7 +432,7 @@ void ModemClear ()
 
 char response[80];
 
-void ModemResponse (char *resp)
+static void ModemResponse (char *resp)
 {
   int c;
   int respptr;
@@ -418,7 +476,7 @@ void ModemResponse (char *resp)
 =============
 */
 
-void ReadLine (FILE *f, char *dest)
+static void ReadLine (FILE *f, char *dest)
 {
   int c;
 	
@@ -447,7 +505,7 @@ void ReadLine (FILE *f, char *dest)
 =============
 */
 
-void InitModem (void)
+static void InitModem (void)
 {
   ModemCommand(startup);
   ModemResponse ("OK");
@@ -484,7 +542,7 @@ void Ser_Init()
 =============
 */
 
-void Dial (void)
+static void Dial (void)
 {
   char cmd[80];
   
@@ -518,7 +576,7 @@ void Dial (void)
 =============
 */
 
-void Answer (void)
+static void Answer (void)
 {
   usemodem = true;
   InitModem ();
@@ -547,7 +605,7 @@ extern void    (*netsend) (void);
 =================
 */
 
-void Ser_Start()
+static void Ser_Start()
 {
   c_showprompt = false;
   
@@ -630,10 +688,10 @@ void Ser_Start()
 extern event_t events[MAXEVENTS];
 extern int eventhead, eventtail;
 
-int CheckForEsc()
+static boolean CheckForEsc()
 {
   event_t *ev;
-  int escape=false;
+  boolean escape=false;
   
   I_StartTic ();
   

@@ -16,6 +16,7 @@
 #include "doomstat.h"
 #include "c_io.h"
 #include "c_runcmd.h"
+#include "d_deh.h"
 #include "d_main.h"
 #include "dstrings.h"
 #include "g_game.h"
@@ -43,15 +44,12 @@ int screenSize;      // screen size
 char *mn_phonenum;           // phone number to dial
 char *mn_demoname;           // demo to play
 char *mn_wadname;            // wad to load
-char *mn_startlevel;           // level to start on in multiplayer
 
 void MN_InitMenus()
 {
   mn_phonenum = Z_Strdup("555-1212", PU_STATIC, 0);
   mn_demoname = Z_Strdup("demo1", PU_STATIC, 0);
   mn_wadname = Z_Strdup("", PU_STATIC, 0);
-  mn_startlevel = Z_Strdup(gamemode == commercial ? "map01" : "e1m1",
-			   PU_STATIC, 0);
 }
 
 /***************************** THE MENUS **********************************/
@@ -87,12 +85,18 @@ void MN_MainMenuDrawer()
    V_DrawPatch(94, 2, 0, W_CacheLumpName("M_DOOM", PU_CACHE));
 }
 
-CONSOLE_COMMAND(mn_newgame, cf_notnet)
+CONSOLE_COMMAND(mn_newgame, 0)
 {
+  if(netgame && !demoplayback)
+    {
+      MN_Alert(s_NEWGAME);
+      return;
+    }
+
   if(gamemode == commercial)
     {
       // dont use new game menu if not needed
-      if(!modifiedgame && gamemode==commercial
+      if(!modifiedgame && gamemode == commercial
 	 && W_CheckNumForName("START") >= 0
 	 && use_startmap)
         {
@@ -129,7 +133,11 @@ CONSOLE_COMMAND(mn_quit, 0)
   if(cmdtype != c_menu && menuactive) return;
 
   quitmsgnum = M_Random() % 14;
-  sprintf(quitmsg, "%s\n\n" DOSY, endmsg[quitmsgnum]);
+
+  // sf: use s_QUITMSG if it has been replaced in a dehacked file
+  sprintf(quitmsg, "%s\n\n%s",
+	  s_QUITMSG ? s_QUITMSG : endmsg[quitmsgnum],
+	  s_DOSY);
   
   MN_Question(quitmsg, "quit");
 
@@ -171,7 +179,7 @@ CONSOLE_COMMAND(mn_episode, cf_notnet)
 
   if(gamemode == shareware && start_episode > 1)
     {
-      MN_Alert(SWSTRING);
+      MN_Alert(s_SWSTRING);
       return;
     }
 
@@ -213,7 +221,7 @@ CONSOLE_COMMAND(newgame, cf_notnet)
   if(gamemode == commercial || modifiedgame)
     {
       // start on newest level from wad
-      G_DeferedInitNew(skill, startlevel);
+      G_DeferedInitNew(skill, firstlevel);
     }
   else
     {
@@ -231,16 +239,15 @@ menu_t menu_startmap =
     {it_gap},
     {it_info,   "SMMU includes a 'start map' to let"},
     {it_info,   "you start new games from in a level."},
-    {it_info,   "would you like to use this or the"},
-    {it_info,   "menu in the future to start new"},
-    {it_info,   "games ?\n"},
+    {it_gap},
+    {it_info,   FC_GOLD "in the future would you rather:"},
     {it_gap},
     {it_runcmd, "use the start map",            "use_startmap 1; mn_newgame"},
     {it_runcmd, "use the menu",                 "use_startmap 0; mn_newgame"},
     {it_end},
   },
   40, 15,               // x,y offsets
-  8,                    // starting item: hurt me plenty
+  7,                    // starting item: start map
   mf_leftaligned | mf_background, 
 };
 
@@ -264,7 +271,7 @@ menu_t menu_features =
     {it_gap},
     {it_runcmd, "demos",                "mn_demos",              "M_DEMOS"},
     {it_gap},
-    {it_runcmd, "about",                "mn_about",              "M_ABOUT"},
+    {it_runcmd, "about",                "credits",               "M_ABOUT"},
     {it_end},
   },
   100, 15,                              // x,y
@@ -339,6 +346,16 @@ CONSOLE_VARIABLE(mn_wadname,    mn_wadname,     0) {}
 
 CONSOLE_COMMAND(mn_loadwad, cf_notnet)
 {
+  if(gamemode == shareware)
+    {
+      MN_Alert("You must purchase the full version\n"
+	       "of doom to load external .wad\n"
+	       "files.\n"
+	       "\n"
+	       "%s", s_PRESSKEY);
+      return;
+    }
+
   MN_StartMenu(&menu_loadwad);
 }
 
@@ -373,7 +390,7 @@ CONSOLE_COMMAND(mn_multi, 0)
 {
   MN_StartMenu(&menu_multiplayer);
 }
-
+  
 /************************
         GAME SETTINGS
  ************************/
@@ -397,7 +414,7 @@ menu_t menu_multigame =
     {it_gap},
     {it_info,     FC_GOLD "game settings"},
     {it_toggle,   "game type",                  "deathmatch"},
-    {it_variable, "starting level",             "mn_startlevel"},
+    {it_variable, "starting level",             "startlevel"},
     {it_toggle,   "skill level",                "skill"},
     {it_toggle,   "no monsters",                "nomonsters"},
     {it_gap},
@@ -414,8 +431,8 @@ menu_t menu_multigame =
 };
 
         // level to start on
-VARIABLE_STRING(mn_startlevel,    NULL,   8);
-CONSOLE_VARIABLE(mn_startlevel, mn_startlevel, cf_handlerset)
+VARIABLE_STRING(startlevel,    NULL,   8);
+CONSOLE_VARIABLE(startlevel, startlevel, cf_handlerset)
 {
   char *newvalue = c_argv[0];
 
@@ -424,8 +441,8 @@ CONSOLE_VARIABLE(mn_startlevel, mn_startlevel, cf_handlerset)
     MN_ErrorMsg("level not found!");
   else
     {
-      Z_Free(mn_startlevel);
-      mn_startlevel = Z_Strdup(newvalue, PU_STATIC, 0);
+      if(startlevel) Z_Free(startlevel);
+      startlevel = Z_Strdup(newvalue, PU_STATIC, 0);
     }
 }
 
@@ -652,6 +669,248 @@ CONSOLE_COMMAND(mn_player, 0)
 }
 
 /************************
+        LOAD GAME
+ ************************/
+
+#define SAVESLOTS 7
+#define SAVESTRINGSIZE  24
+
+// load/save box patches
+patch_t *patch_left = NULL;
+patch_t *patch_mid;
+patch_t *patch_right;
+
+char empty_slot[] = "empty slot";
+
+char *savegamenames[SAVESLOTS];
+
+void MN_SaveGame()
+{
+  int save_slot = (char **)c_command->variable->variable - savegamenames;
+
+  if(gamestate != GS_LEVEL) return; // only save in level
+  if(save_slot < 0 || save_slot >= SAVESLOTS) return;   // sanity check
+
+  G_SaveGame(save_slot, savegamenames[save_slot]);
+  MN_ClearMenus();
+}
+
+// create the savegame console commands
+void MN_CreateSaveCmds()
+{
+  int i;
+
+  for(i=0; i<7; i++)
+    {
+      command_t *save_command;
+      variable_t *save_variable;
+      char tempstr[10];
+      
+      // create the variable first
+      save_variable = malloc(sizeof(*save_variable));
+      save_variable->variable = &savegamenames[i];
+      save_variable->v_default = NULL;
+      save_variable->type = vt_string;      // string value
+      save_variable->min = 0;
+      save_variable->max = SAVESTRINGSIZE;
+      save_variable->defines = NULL;
+
+      // now the command
+      save_command = malloc(sizeof(*save_command));
+
+      sprintf(tempstr, "savegame_%i", i);
+      save_command->name = strdup(tempstr);
+      save_command->type = ct_variable;
+      save_command->flags = 0;
+      save_command->variable = save_variable;
+      save_command->handler = MN_SaveGame;
+      save_command->netcmd = 0;
+
+      (C_AddCommand)(save_command); // hook into cmdlist
+    }
+}
+
+
+//
+// MN_ReadSaveStrings
+//  read the strings from the savegame files
+// based on the mbf sources
+//
+void MN_ReadSaveStrings(void)
+{
+  int i;
+
+  for (i = 0 ; i < SAVESLOTS ; i++)
+    {
+      char name[PATH_MAX+1];    // killough 3/22/98
+      char description[SAVESTRINGSIZE]; // sf
+      FILE *fp;  // killough 11/98: change to use stdio
+
+      G_SaveGameName(name, i);
+
+      if(savegamenames[i])
+	free(savegamenames[i]);
+
+      fp = fopen(name,"rb");
+      if (!fp)
+	{   // Ty 03/27/98 - externalized:
+	  savegamenames[i] = empty_slot;
+	  continue;
+	}
+
+      fread(description, SAVESTRINGSIZE, 1, fp);
+      savegamenames[i] = strdup(description);
+      fclose(fp);
+    }
+}
+
+void MN_DrawLoadBox(int x, int y)
+{
+  int i;
+
+  if(!patch_left)        // initial load
+    {
+      patch_left = W_CacheLumpName("M_LSLEFT", PU_STATIC);
+      patch_mid = W_CacheLumpName("M_LSCNTR", PU_STATIC);
+      patch_right = W_CacheLumpName("M_LSRGHT", PU_STATIC);
+    }
+
+  V_DrawPatch(x, y, 0, patch_left);
+  x += patch_left->width;
+
+  for(i=0; i<24; i++)
+    {
+      V_DrawPatch(x, y, 0, patch_mid);
+      x += patch_mid->width;
+    }
+
+  V_DrawPatch(x, y, 0, patch_right);
+}
+
+void MN_LoadGameDrawer();
+
+menu_t menu_loadgame = 
+{
+  {
+    {it_title,  FC_GOLD "load game",           NULL,              "M_LGTTL"},
+    {it_gap},
+    {it_runcmd, "save slot 1",                 "mn_load 0"},
+    {it_gap},
+    {it_runcmd, "save slot 2",                 "mn_load 1"},
+    {it_gap},
+    {it_runcmd, "save slot 3",                 "mn_load 2"},
+    {it_gap},
+    {it_runcmd, "save slot 4",                 "mn_load 3"},
+    {it_gap},
+    {it_runcmd, "save slot 5",                 "mn_load 4"},
+    {it_gap},
+    {it_runcmd, "save slot 6",                 "mn_load 5"},
+    {it_gap},
+    {it_runcmd, "save slot 7",                 "mn_load 6"},
+    {it_end},
+  },
+  50, 15,                           // x, y
+  2,                                // starting slot
+  mf_skullmenu | mf_leftaligned,    // skull menu
+  MN_LoadGameDrawer,
+};
+
+
+void MN_LoadGameDrawer()
+{
+  int i, y;
+
+  for(i=0, y=46; i<7; i++, y+=16)
+    {
+      MN_DrawLoadBox(45, y);
+    }
+  
+  // this is lame
+  for(i=0, y=2; i<7; i++, y+=2)
+    {
+      menu_loadgame.menuitems[y].description =
+	savegamenames[i] ? savegamenames[i] : empty_slot;
+    }
+}
+
+CONSOLE_COMMAND(mn_loadgame, 0)
+{
+  if(netgame && !demoplayback)
+    {
+      MN_Alert(s_LOADNET);
+      return;
+    }
+
+  MN_ReadSaveStrings();  // get savegame descriptions
+  MN_StartMenu(&menu_loadgame);
+}
+
+CONSOLE_COMMAND(mn_load, 0)
+{
+  char name[PATH_MAX+1];     // killough 3/22/98
+  int slot;
+
+  if(c_argc < 1) return;
+  slot = atoi(c_argv[0]);
+
+  if(savegamenames[slot] == empty_slot) return;     // empty slot
+
+  G_SaveGameName(name, slot);
+  G_LoadGame(name, slot, false);
+
+  MN_ClearMenus();
+}
+
+/************************
+        SAVE GAME
+ ************************/
+
+void MN_SaveGameDrawer()
+{
+  int i, y;
+
+  for(i=0, y=46; i<7; i++, y+=16)
+    {
+      MN_DrawLoadBox(45, y);
+    }
+}
+
+menu_t menu_savegame = 
+{
+  {
+    {it_title,  FC_GOLD "save game",           NULL,              "M_SGTTL"},
+    {it_gap},
+    {it_variable, "",                          "savegame_0"},
+    {it_gap},
+    {it_variable, "",                          "savegame_1"},
+    {it_gap},
+    {it_variable, "",                          "savegame_2"},
+    {it_gap},
+    {it_variable, "",                          "savegame_3"},
+    {it_gap},
+    {it_variable, "",                          "savegame_4"},
+    {it_gap},
+    {it_variable, "",                          "savegame_5"},
+    {it_gap},
+    {it_variable, "",                          "savegame_6"},
+    {it_end},
+  },
+  50, 15,                           // x, y
+  2,                                // starting slot
+  mf_skullmenu | mf_leftaligned,    // skull menu
+  MN_SaveGameDrawer,
+};
+
+CONSOLE_COMMAND(mn_savegame, 0)
+{
+  if(gamestate != GS_LEVEL) return;    // only save in levels
+
+  MN_ReadSaveStrings();
+  MN_StartMenu(&menu_savegame);
+}
+
+
+/************************
         OPTIONS MENU
  ************************/
 
@@ -695,9 +954,7 @@ CONSOLE_COMMAND(mn_endgame, 0)
   if(gamestate == GS_DEMOSCREEN) return;
   if(cmdtype != c_menu && menuactive) return;
   
-  MN_Question("do you want to end the game?\n\n"
-	      "press y or n.",
-	      "starttitle");
+  MN_Question(s_ENDGAME, "starttitle");
 }
 
 /*********************
@@ -807,20 +1064,22 @@ menu_t menu_mouse =
 {
   {
     {it_title,      FC_GOLD "mouse",                NULL,   "m_mouse"},
-    {it_gap},
-    {it_toggle,     "enable mouse",                 "use_mouse"},
-    {it_gap},
-    {it_info,       FC_GOLD "sensitivity"},
-    {it_slider,     "horizontal",                   "sens_horiz"},
-    {it_slider,     "vertical",                     "sens_vert"},
-    {it_gap},
-    {it_info,       FC_GOLD "misc."},
-    {it_toggle,     "invert mouse",                 "invertmouse"},
-    {it_toggle,     "always mouselook",             "alwaysmlook"},
-    {it_toggle,     "enable joystick",              "use_joystick"},
-    {it_toggle,     "stretch sky for mlook",        "r_stretchsky"},
-
-    {it_end},
+      {it_gap},
+      {it_toggle,     "enable mouse",                 "use_mouse"},
+      {it_gap},
+      {it_info,       FC_GOLD "sensitivity"},
+      {it_slider,     "horizontal",                   "sens_horiz"},
+      {it_slider,     "vertical",                     "sens_vert"},
+      {it_gap},
+      {it_info,       FC_GOLD "misc."},
+      {it_toggle,     "invert mouse",                 "invertmouse"},
+      {it_toggle,     "smooth turning",               "smooth_turning"},
+      {it_toggle,     "enable joystick",              "use_joystick"},
+      {it_gap},
+      {it_info,       FC_GOLD"mouselook"},
+      {it_toggle,     "always mouselook",             "alwaysmlook"},
+      {it_toggle,     "stretch sky",                  "r_stretchsky"},
+      {it_end},
   },
   200, 15,                      // x, y offset
   2,                            // first selectable
@@ -1141,8 +1400,12 @@ void MN_AddMenus()
 {
   C_AddCommand(mn_newgame);
   C_AddCommand(mn_episode);
-  C_AddCommand(mn_startlevel);
+  C_AddCommand(startlevel);
   C_AddCommand(use_startmap);
+
+  C_AddCommand(mn_loadgame);
+  C_AddCommand(mn_load);
+  C_AddCommand(mn_savegame);
   
   C_AddCommand(mn_features);
   C_AddCommand(mn_loadwad);
@@ -1181,5 +1444,7 @@ void MN_AddMenus()
   // prompt messages
   C_AddCommand(mn_quit);
   C_AddCommand(mn_endgame);
+
+  MN_CreateSaveCmds();
 }
 

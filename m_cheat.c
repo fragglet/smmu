@@ -441,6 +441,9 @@ static void cheat_comp()
 static void cheat_friction()
 {
   C_RunTextCmd("varfriction /");        //sf
+        // sf : doom_printf
+  doom_printf(variable_friction ? "Variable Friction enabled" : 
+	      "Variable Friction disabled" );
 }
 
 
@@ -449,6 +452,7 @@ static void cheat_friction()
 static void cheat_pushers()
 {
   C_RunTextCmd("pushers /");            // sf
+  doom_printf(allow_pushers ? "pushers enabled" : "pushers disabled");
 }
 
 // translucency cheat

@@ -1,4 +1,81 @@
 ============================================================================
+19-12-1999
+
+* Have changed compatibility, weapon pref and chat macro commands in
+  g_cmd.c: now "built" by functions rather than using hundreds of
+  "CONSOLE_VARIABLE" macros. Similar system used for the savegame
+  "variables" in mn_menus.c.
+
+* Fixed savegames being saved when not in a game: ie when
+  gamestate != GS_LEVEL.
+
+* Fixed r_data.c loading counter to fill in for extra dots when not
+  building the translucency map.
+
+* Fixed G_Signature() in g_game.c which was still using gameepisode
+  and gamemap rather than gamemapname
+
+============================================================================
+14-12-1999
+
+* Menu practically finished: all left to do is the key bindings menu
+  which will be done once I re-write the key binding system. Also
+  added mn_misc.c which includes new 'widgets' such as automap colour
+  selection, help screens(which inclued support for the boom enhanced
+  menus) and popup messages (quit doom, end game etc)
+
+* Savegame 'variables' added: savegame_0 to savegame_6. These are
+  string variables: when the value of them is changed, the current
+  level is saved to that slot.
+
+* Switched to using emacs rather than ms-dos editor: this is
+  infinitely better imo. Also beautified most of the code I have added.
+
+* Added hubs by popular demand. p_hubs includes most of the hub code.
+  New FraggleScript function changehublevel which goes to another
+  level in the hub. When changing levels in the hub, the current
+  level is saved to a temporary file and catalogued. When returning
+  to that level the file is looked up and restored. If it is not in
+  the catalogue it is loaded normally. 'Seamless' code saves the
+  player's position relative to a sector with a particular tag and
+  then restores the player's position in the new level relative to
+  a corresponding sector. Thus it is possible for level authors to
+  create hubs where the transition between levels is practically
+  'seamless'.
+
+* Changed the screen melt effect to move exactly as the original did:
+  although the new re-written melt 'engine' is still used, the
+  screen 'moves' in the same way as the original.
+
+* Added new types of wait function to FraggleScript:
+	- wait - was already there before, wait for a particular time
+	- tagwait - wait until all sectors with a particular tag have
+		stopped moving
+	- scriptwait - wait for all instances of a particular script
+		to finish
+
+* Got latest version of the Start map from Afterglow which is practically
+  finished. All that needs working on is the Scripting in it. I have
+  included a menu screen which appears the first time you run SMMU
+  which asks if you would rather use the start map or menu in the future
+  to start games. My only concern is that it may take too long to
+  select the 'nightmare' skill level.
+
+* Improved swirling water effect: as well as 'swirling' the texture,
+  parts are stretched and compressed which creates a much better effect.
+
+* Improved makefile to build two versions of SMMU in linux: one for X
+  and one for SVGA. The X version currently suffers from a strange bug
+  which I have not yet been able to find the cause of. I find that the
+  call to XOpenDisplay causes a segviol. If you are
+  reading this and have found the cause of the bug, _please_ email me
+  and let me know so I can fix it because this is one bug that has
+  been pissing me off majorly!
+
+* Re-wrote (practically) the console buffered command system to use
+  linked lists rather than static arrays.
+
+============================================================================
 17-11-1999
 
 * Menu now quite advanced: includes ability to change variables now.
@@ -10,14 +87,18 @@
           used to set the value
         - it_variable is for variables with large numbers of values.
           The enter key is used to activate input of a new value.
+
 * Broke up menu into two modules: mn_menus.c (which holds all the
   actual menu data) and mn_engin.c (the menu 'engine')
+
 * Rewrote the console command caching to used a linked list rather
   than a fixed-length array. The code is much nicer now. Changed
   so console commands are not _always_ buffered, but instead only
   if they have the flag cf_buffered. Some commands have to be
   buffered(v_mode, addfile, nullmodem, answer, dial)
+
 * Added all the compatibility flags for the menu
+
 * Changed d_arbitratenetgame when i noticed it was not working. I
   recently upgraded one of my computers, so while it was in
   d_arbitratenetgame sending out packets, the other was still in r_init.
@@ -25,11 +106,14 @@
   from the other computer. Changed so that packets are only broadcast
   from the server when the function first starts, and subsequent packets
   are only sent to machines which have acknowledged their readiness.
+
 * Fixed some coloured lighting problems again. If you put the chasecam
   on, used the invisibility cheat and looked at a coloured lit area,
   the sprite went that colour. Fixed by setting fuzzy draw to be selected
   by the flags in the vissprite, NOT from a NULL colormap.
+
 * Fixed skin problems with player->mo sprites being set to NULL skin
+
 * Started a linux port! Moved system specific code (i_*) into DJGPP/
   subdirectory and created another, linux/ for linux code. Modified
   makefile to allow for multiple platforms.
@@ -42,6 +126,7 @@
           definitely be neccesary.
         * No sound(linux sound does not work on my PC, its not something
           I can test)
+
 * Started experimenting with networking using TCP/IP. Managed to create
   a working UDP send/receive program with features such as start server,
   search for servers on network, ping server etc. Tried it on my network

@@ -1,26 +1,13 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $
+// SVGA graphics
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// From lxdoom i_video_svga.c
+// Plus parts from the mbf dos i_video.c
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-//
-// DESCRIPTION:
-//      DOOM graphics stuff
-//
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 
 #include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
@@ -48,15 +35,172 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include "../wi_stuff.h"
 #include "../i_video.h"
 
+static boolean initialised = false;
+
+/************************* Input functions ***********************************/
+
+extern int usemouse;   // killough 10/98
+
+// currently no joystick support.
+// does it matter?
+
+static void I_GetEvent()
+{
+  keyboard_update();
+  
+  mouse_update();
+}
+
+//
+// I_StartTic
+//
+
+void I_StartTic()
+{
+  I_GetEvent();
+}
+
+int I_DoomCode2ScanCode(int c)
+{
+  return c;
+}
+
+int I_ScanCode2DoomCode(int c)
+{
+  return c;
+}
+
+// from lxdoom:
+
+static unsigned char scancode2doomcode[256];
+
+static inline void I_InitKBTransTable(void)
+{
+  { // First do rows of standard keys
+#define KEYROWS 5
+    const char keyrow[KEYROWS][20]= { { "1234567890" }, { "qwertyuiop" }, 
+				      { "asdfghjkl;'" }, { "\\zxcvbnm,./`" }, 
+   { KEYD_F1, KEYD_F2, KEYD_F3, KEYD_F4, KEYD_F5, 
+   KEYD_F6, KEYD_F7, KEYD_F8, KEYD_F9, KEYD_F10, 0} };
+    const int scancode4keyrow[KEYROWS] = { SCANCODE_1, SCANCODE_Q,
+					   SCANCODE_A, SCANCODE_BACKSLASH,
+					   SCANCODE_F1 };
+    int i = KEYROWS;
+    while (i--) {
+      int j = strlen(keyrow[i]);
+      while (j--) {
+	scancode2doomcode[(scancode4keyrow[i] + j) & 0xff] = 
+	  keyrow[i][j];
+      }
+    }
+#undef KEYROWS
+  }
+  // Now the rest
+  {
+#define SETKEY(A,B) scancode2doomcode[SCANCODE_ ## A] = KEYD_ ## B
+    SETKEY(BREAK_ALTERNATIVE,PAUSE); // BREAK_ALTERNATIVE is the pause key
+    // (note that BREAK is printscreen) - rain    
+    SETKEY(CURSORRIGHT,RIGHTARROW);
+    SETKEY(CURSORUP,UPARROW);
+    SETKEY(CURSORDOWN,DOWNARROW);
+    SETKEY(CURSORLEFT,LEFTARROW);
+    SETKEY(CURSORBLOCKRIGHT,RIGHTARROW);
+    SETKEY(CURSORBLOCKUP,UPARROW);
+    SETKEY(CURSORBLOCKDOWN,DOWNARROW);
+    SETKEY(CURSORBLOCKLEFT,LEFTARROW);
+    SETKEY(EQUAL,EQUALS);
+    SETKEY(SPACE,SPACEBAR);
+    SETKEY(LEFTALT,LALT);
+    SETKEY(CAPSLOCK,CAPSLOCK);
+    SETKEY(GRAVE, CONSOLE); //sf
+
+#ifdef LCTRL
+    SETKEY(LEFTCONTROL,LCTRL);
+#else
+    SETKEY(LEFTCONTROL,RCTRL);
+#endif
+#ifdef LSHIFT
+    SETKEY(LEFTSHIFT,LSHIFT);
+#else
+    SETKEY(LEFTSHIFT,RSHIFT);
+#endif
+    SETKEY(RIGHTALT,RALT);
+    SETKEY(RIGHTCONTROL,RCTRL);
+    SETKEY(RIGHTSHIFT,RSHIFT);
+    SETKEY(KEYPADENTER,ENTER);
+#undef SETKEY
+#define SETKEY(A) scancode2doomcode[SCANCODE_ ## A] = KEYD_ ## A
+    SETKEY(ESCAPE);
+    SETKEY(TAB);
+    SETKEY(BACKSPACE);
+    SETKEY(MINUS);
+    SETKEY(INSERT);
+    SETKEY(HOME);
+    SETKEY(END);
+    SETKEY(PAGEUP);
+    SETKEY(PAGEDOWN);
+    SETKEY(BACKSPACE);
+    SETKEY(F11);
+    SETKEY(F12);
+    SETKEY(ENTER);
+#undef SETKEY
+  }
+}
+
+event_t ev;
+
+static void I_KBHandler(int scancode, int press)
+{
+
+  ev.type = (press == KEY_EVENTPRESS) ? ev_keydown : ev_keyup;
+  if (scancode < 256) {
+    ev.data1= scancode2doomcode[scancode];
+    
+    D_PostEvent(&ev);
+  }
+}
+
+
+static void I_MouseEventHandler(int button, int dx, int dy, 
+				int dz, int rdx, int rdy, int rdz)
+{
+  ev.type = ev_mouse;
+  ev.data1= ((button & MOUSE_LEFTBUTTON) ? 1 : 0)
+    | ((button & MOUSE_MIDDLEBUTTON) ? 2 : 0)
+    | ((button & MOUSE_RIGHTBUTTON)  ? 4 : 0);
+  ev.data2 = dx << 2; ev.data3 = -(dy << 2);
+
+  D_PostEvent(&ev);
+}
+
+static void I_InitKeyboard()
+{
+  I_InitKBTransTable();
+  
+  // Start RAW keyboard handling
+  keyboard_init();  
+  keyboard_seteventhandler(I_KBHandler);
+
+  mouse_seteventhandler((__mouse_handler)I_MouseEventHandler);
+}
+
+//
+// I_StartFrame
+//
+
+void I_StartFrame()
+{
+}
+
+/************************* Graphics code ********************************/
+
 static enum { flip, flipped, blit } redraw_state;
 static void (*blitfunc)(void* src, int dest, int w, int h, int pitch);
-static enum { F_nomouse, F_mouse } mflag = F_nomouse;
+// static enum { F_nomouse, F_mouse } mflag = F_nomouse;
 int leds_always_off; // Not yet implemented
 int use_vsync; // Hmm...
-
 int hires = 0;
 
-boolean initialised = false;
 static int mode = G320x200x256;
 
 //
@@ -68,10 +212,10 @@ void I_UpdateNoBlit (void)
 }
 
 static int in_graphics_mode;
-static int in_page_flip, in_hires, linear;
-static int scroll_offset;
-static unsigned long screen_base_addr;
-static unsigned destscreen;
+//  static int in_page_flip, in_hires, linear;
+//  static int scroll_offset;
+//  static unsigned long screen_base_addr;
+//  static unsigned destscreen;
 
 void I_FinishUpdate(void)
 {
@@ -118,11 +262,6 @@ void I_ReadScreen(byte *scr)
 
 static void I_PlainBlit(void* src, int dest, int w, int h, int pitch)
 {
-  // sf:
-  w <<= hires;
-  h <<= hires;
-  pitch <<= hires; 
-
   vga_lockvc();
   {
     if (redraw_state != blit) // We probably chose blit to avoid paging
@@ -182,20 +321,20 @@ void I_EndRead(void)
 
 void I_SetPalette(byte *pal)
 {
-    int buffer[256*3];
-    int i;
-
-    if (in_textmode || !vga_oktowrite())
-      return;
-
-    for(i=0; i<256; i++)
-      {
-	buffer[3*i] = (pal[3*i] >> 2);
-	buffer[3*i+1] = (pal[3*i+1] >> 2);
-	buffer[3*i+2] = (pal[3*i+2] >> 2);
-      }
-
-     vga_setpalvec(0, 256, buffer);
+  int buffer[256*3];
+  int i;
+  
+  if (in_textmode || !vga_oktowrite())
+    return;
+  
+  for(i=0; i<256; i++)
+    {
+      buffer[3*i] = (gammatable[usegamma][pal[3*i]] >> 2);
+      buffer[3*i+1] = (gammatable[usegamma][pal[3*i+1]] >> 2);
+      buffer[3*i+2] = (gammatable[usegamma][pal[3*i+2]] >> 2);
+    }
+  
+  vga_setpalvec(0, 256, buffer);
 }
 
 void I_ShutdownGraphics(void)
@@ -216,8 +355,6 @@ extern boolean setsizeneeded;
 static void I_InitGraphicsMode(void)
 {
   const vga_modeinfo * pinfo;
-
-  
 
   //  I_InitKBTransTable();
   fprintf(stderr, "I_InitGraphics: ");
@@ -283,7 +420,7 @@ static void I_InitGraphicsMode(void)
   putc('\n', stderr);
 
   if (vga_setmode(mode))
-    I_Error("Failed to set video mode");
+    I_Error("Failed to set video mode 320x200x256");
 
   //  if (mflag == F_mouse)
   //  mouse_seteventhandler((__mouse_handler)I_MouseEventHandler);
@@ -334,6 +471,8 @@ void I_InitGraphics(void)
   if (nodrawers) // killough 3/2/98: possibly avoid gfx mode
     return;
 
+  I_InitKeyboard();
+
   //
   // enter graphics mode
   //
@@ -347,37 +486,41 @@ void I_InitGraphics(void)
   Z_CheckHeap();
 }
 
-        // the list of video modes is stored here in i_video.c
-        // the console commands to change them are in v_misc.c,
-        // so that all the platform-specific stuff is in here.
-        // v_misc.c does not care about the format of the videomode_t,
-        // all it asks is that it contains a text value 'description'
-        // which describes the mode
-        
+// the list of video modes is stored here in i_video.c
+// the console commands to change them are in v_misc.c,
+// so that all the platform-specific stuff is in here.
+// v_misc.c does not care about the format of the videomode_t,
+// all it asks is that it contains a text value 'description'
+// which describes the mode
+
 videomode_t videomodes[]=
 {
-        {"320x200 Linux"},
-        {NULL}  // last one has NULL description
+  {"320x200 Linux"},
+    {NULL},  // last one has NULL description
 };
 
 void I_SetMode(int i)
 {
-        static int firsttime = true;    // the first time to set mode
-
-        if(firsttime)
-                I_InitGraphicsMode();
-        else
-                I_ResetScreen();
-
-        firsttime = false;
+  static int firsttime = true;    // the first time to set mode
+  
+  if(firsttime)
+    I_InitGraphicsMode();
+  else
+    I_ResetScreen();
+  
+  firsttime = false;
 }
         
 /************************
         CONSOLE COMMANDS
  ************************/
 
+VARIABLE_BOOLEAN(usemouse, NULL,         yesno);
+CONSOLE_VARIABLE(use_mouse, usemouse,    0) {}
+
 void I_Video_AddCommands()
 {
+  C_AddCommand(use_mouse);
 }
 
 //----------------------------------------------------------------------------

@@ -250,14 +250,11 @@ int I_CheckAbort()
 
 extern void I_Sound_AddCommands();
 extern void I_Video_AddCommands();
-extern void I_Input_AddCommands();
-
         // add system specific commands
 void I_AddCommands()
 {
-        I_Video_AddCommands();
-        I_Sound_AddCommands();
-        I_Input_AddCommands();
+  I_Video_AddCommands();
+  I_Sound_AddCommands();
 }
 
 //----------------------------------------------------------------------------

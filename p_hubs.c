@@ -17,7 +17,10 @@
 #include <string.h>
 #include "c_io.h"
 #include "g_game.h"
+#include "p_maputl.h"
 #include "p_setup.h"
+#include "p_spec.h"
+#include "t_vari.h"
 #include "z_zone.h"
 
 #define MAXHUBLEVELS 128
@@ -31,19 +34,23 @@ struct hublevel_s
 
 extern char *gamemapname;
 
+// sf: set when we are changing to
+//  another level in the hub
+boolean hub_changelevel = false;  
+
 hublevel_t hub_levels[MAXHUBLEVELS];
 int num_hub_levels;
 
 // sf: my own tmpnam (djgpp one doesn't work as i want it)
 
-char *tmpnam2()
+char *temp_hubfile()
 {
   static int tmpfilenum = 0;
   char *new_tmpfilename;
 
   new_tmpfilename = malloc(10);
 
-  sprintf(new_tmpfilename, "%i.tmp", tmpfilenum++);
+  sprintf(new_tmpfilename, "smmu%i.tmp", tmpfilenum++);
 
   return new_tmpfilename;  
 }
@@ -57,11 +64,29 @@ void P_ClearHubs()
       remove(hub_levels[i].tmpfile);
 
   num_hub_levels = 0;
+
+  // clear the hub_script
+  T_ClearHubScript();
+}
+
+// seperate function: ensure that atexit is not set twice
+
+void P_ClearHubsAtExit()
+{
+  static boolean atexit_set = false;
+
+  if(atexit_set) return;   // already set
+
+  atexit(P_ClearHubs);
+
+  atexit_set = true;
 }
 
 void P_InitHubs()
 {
   num_hub_levels = 0;
+
+  P_ClearHubsAtExit();    // set P_ClearHubs to be called at exit
 }
 
 static hublevel_t *HublevelForName(char *name)
@@ -99,7 +124,7 @@ static void SaveHubLevel()
 
   // allocate a temp. filename for save
   if(!hublevel->tmpfile)
-    hublevel->tmpfile = tmpnam2();
+    hublevel->tmpfile = temp_hubfile();
 
   G_SaveCurrentLevel(hublevel->tmpfile, "smmu hubs");
 }
@@ -135,6 +160,12 @@ void P_HubChangeLevel(char *levelname)
   LoadHubLevel(levelname);
 }
 
+void P_HubReborn()
+{
+  // called when player is reborn when using hubs
+  LoadHubLevel(levelmapname);
+}
+
 void P_DumpHubs()
 {
   int i;
@@ -146,4 +177,86 @@ void P_DumpHubs()
       C_Printf("%s: %s\n", tempbuf, hub_levels[i].tmpfile ?
 	       hub_levels[i].tmpfile : "");
     }
+}
+
+static fixed_t          save_xoffset;
+static fixed_t          save_yoffset;
+static mobj_t           save_mobj;
+static int              save_sectag;
+static player_t *       save_player;
+static pspdef_t         save_psprites[NUMPSPRITES];
+
+// save a player's position relative to a particular sector
+void P_SavePlayerPosition(player_t *player, int sectag)
+{
+  sector_t *sec;
+  int secnum;
+
+  save_player = player;
+
+  // save psprites whatever happens
+
+  memcpy(save_psprites, player->psprites, sizeof(player->psprites));
+
+  // save sector x,y offset
+
+  save_sectag = sectag;
+
+  C_Printf("sectag: %i\n", sectag);
+
+  if((secnum = P_FindSectorFromTag(sectag, -1)) < 0)
+    {
+      // invalid: sector not found
+      save_sectag = -1;
+      return;
+    }
+  
+  sec = &sectors[secnum];
+
+  // use soundorg x and y as 'centre' of sector
+
+  save_xoffset = player->mo->x - sec->soundorg.x;
+  save_yoffset = player->mo->y - sec->soundorg.y;
+
+  // save mobj so we can restore various bits of data
+
+  memcpy(&save_mobj, player->mo, sizeof(mobj_t));
+
+}
+
+// restore the players position -- sector must be the same shape
+void P_RestorePlayerPosition()
+{
+  sector_t *sec;
+  int secnum;
+
+  // we always save and restore the psprites
+
+  memcpy(save_player->psprites, save_psprites, sizeof(save_player->psprites));
+
+  // restore player position from x,y offset
+
+  if(save_sectag == -1) return;      // no sector relativeness
+
+  if((secnum = P_FindSectorFromTag(save_sectag, -1)) < 0)
+    {
+      // invalid: sector not found
+      return;
+    }
+  
+  sec = &sectors[secnum];
+
+  // restore position
+
+  P_UnsetThingPosition(save_player->mo);
+
+  save_player->mo->x = sec->soundorg.x + save_xoffset;
+  save_player->mo->y = sec->soundorg.y + save_yoffset;
+
+  // restore various other things
+  save_player->mo->angle = save_mobj.angle;
+  save_player->mo->momx = save_mobj.momx;    // keep momentum
+  save_player->mo->momy = save_mobj.momy;
+
+  P_SetThingPosition(save_player->mo);
 }

@@ -1,28 +1,16 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: f_wipe.c,v 1.3 1998/05/03 22:11:24 killough Exp $
+// Mission begin melt/wipe screen special effect.
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
-//
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-//
-// DESCRIPTION:
-//      Mission begin melt/wipe screen special effect.
+// Rewritten by Simon Howard
+// Portions which deal with the movement of the columns adapted
+// from the original sources
 //
 //-----------------------------------------------------------------------------
 
-// rewritten by fraggle =p
-
-static const char rcsid[] = "$Id: f_wipe.c,v 1.3 1998/05/03 22:11:24 killough Exp $";
+// 13/12/99: restored movement of columns to being the same as in the
+// original, while retaining the new 'engine'
 
 #include "c_io.h"
 #include "doomdef.h"
@@ -34,18 +22,16 @@ static const char rcsid[] = "$Id: f_wipe.c,v 1.3 1998/05/03 22:11:24 killough Ex
 
 // array of pointers to the
 // column data for 'superfast' melt
-char *start_screen[MAX_SCREENWIDTH] = {0};
+static char *start_screen[MAX_SCREENWIDTH] = {0};
 
-// worm y 
-int worms[MAX_SCREENWIDTH];
+// y co-ordinate of various columns
+static int worms[SCREENWIDTH];
 
 #define wipe_scrheight (SCREENHEIGHT<<hires)
 #define wipe_scrwidth (SCREENWIDTH<<hires)
 
-int            wipe_speed = 12;
 boolean        inwipe = false;
-boolean        syncmove = false;
-int            starting_height;
+static int     starting_height;
 
 void Wipe_Initwipe()
 {
@@ -55,16 +41,24 @@ void Wipe_Initwipe()
   
   starting_height = current_height<<hires;       // use console height
   
-  for(x=0; x<wipe_scrwidth; x++)
+  worms[0] = starting_height - M_Random()%16;
+
+  for(x=1; x<SCREENWIDTH; x++)
     {
-      worms[x] = starting_height;
+      int r = (M_Random()%3) - 1;
+      worms[x] = worms[x-1] + r;
+      if (worms[x] > 0)
+        worms[x] = 0;
+      else
+        if (worms[x] == -16)
+          worms[x] = -15;
     }
-  
-  syncmove = false;
 }
 
 void Wipe_StartScreen()
 {
+  int x, y;
+
   Wipe_Initwipe();
   
   if(!start_screen[0])
@@ -73,14 +67,16 @@ void Wipe_StartScreen()
       for(x=0;x<MAX_SCREENWIDTH;x++)
 	start_screen[x] = Z_Malloc(MAX_SCREENHEIGHT,PU_STATIC,0);
     }
-  
-  {
-    int x, y;
-    for(x=0; x<wipe_scrwidth; x++)
-      for(y=0; y<wipe_scrheight-worms[x]; y++)
+
+  for(x=0; x<wipe_scrwidth; x++)
+    {
+      // limit check
+      int wormy = worms[x >> hires] > 0 ? worms[x >> hires] : 0; 
+      
+      for(y=0; y<wipe_scrheight-wormy; y++)
 	*(start_screen[x] + y) =
-	  *(screens[0] + (y+worms[x]) * wipe_scrwidth + x);
-  }
+	  *(screens[0] + (y+wormy) * wipe_scrwidth + x);
+    }
   
   return;
 }
@@ -93,12 +89,14 @@ void Wipe_Drawer()
     {
       char *dest;
       char *src;
-      int y;
+      int wormy, y;
       
+      wormy = worms[x >> hires] > 0 ? worms[x >> hires] : 0;  // limit check
+      wormy <<= hires;
       src = start_screen[x];
-      dest = screens[0] + wipe_scrwidth*worms[x] + x;
+      dest = screens[0] + wipe_scrwidth*wormy + x;
       
-      for(y=worms[x]; y<wipe_scrheight; y++)
+      for(y=wormy; y<wipe_scrheight; y++)
 	{
 	  *dest = *src;
 	  dest += wipe_scrwidth; src++;
@@ -112,35 +110,28 @@ void Wipe_Ticker()
 {
   boolean done;
   int x;
-  boolean keepsyncmove = false; // start moving random, then move together
-  int moveamount = 0;
   
   done = true;  // default to true
   
-  for(x=0; x<wipe_scrwidth; x++)
-    {
-      moveamount += (M_Random()%5) - 2;
-      if(moveamount < 0) moveamount = 0;
-      
-      if(worms[x] < wipe_scrheight)
-	{                // move the worm down
-	  int dy;
-	  
-	  dy = syncmove ? 12 : moveamount;
-	  dy = (dy * wipe_speed) / 12;
+    for (x=0; x<SCREENWIDTH; x++)
+      if (worms[x]<0)
+        {
+          worms[x]++;
+          done = false;
+        }
+      else
+        if (worms[x] < wipe_scrheight)
+          {
+            int dy;
 
-	  worms[x] += dy << hires;
-
-	  // move together after a certain amount
-	  if(worms[x] > 20+starting_height) keepsyncmove = true; 
-
-	  done = false; // not yet finished
-	}
-    }
+            dy = (worms[x] < 16) ? worms[x]+1 : 8;
+            if (worms[x]+dy >= wipe_scrheight)
+              dy = wipe_scrheight - worms[x];
+            worms[x] += dy;
+            done = false;
+          }
   
   if(done)
     inwipe = false;
-  
-  syncmove = keepsyncmove;
 }
 

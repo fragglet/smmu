@@ -90,7 +90,8 @@ void Z_ZoneHistory(char *);
 
 #ifdef INSTRUMENTED
 extern int printstats;        // killough 8/23/98
-void Z_PrintStats(void);      // killough 8/23/98
+//void Z_PrintStats(void);      // killough 8/23/98
+char *Z_PrintStats(void);     // haleyjd 1/13/00:  wtf??
 #endif
 
 #endif

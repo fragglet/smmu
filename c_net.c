@@ -17,6 +17,7 @@
 #include "c_io.h"
 #include "c_runcmd.h"
 #include "c_net.h"
+#include "d_main.h"
 #include "g_game.h"
 #include "doomdef.h"
 #include "doomstat.h"
@@ -228,10 +229,12 @@ void C_SendNetData()
 	  command = command->next;
         }
     }
+
+  demo_insurance = 1;      // always use 1 in multiplayer
   
   if(consoleplayer == 0)      // if server, send command to warp to map
     {
-      sprintf(tempstr, "map %s", G_GetNameForMap(startepisode, startmap));
+      sprintf(tempstr, "map %s", startlevel);
       C_RunTextCmd(tempstr);
     }
 }

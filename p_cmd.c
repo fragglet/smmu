@@ -121,20 +121,12 @@ CONSOLE_NETVAR(recoil, weapon_recoil, cf_server, netcmd_recoil) {}
 // allow pushers
 
 VARIABLE_BOOLEAN(allow_pushers, &default_allow_pushers, onoff);
-CONSOLE_NETVAR(pushers, allow_pushers, cf_server, netcmd_pushers)
-{
-  doom_printf(allow_pushers ? "pushers enabled" : "pushers disabled");
-}
+CONSOLE_NETVAR(pushers, allow_pushers, cf_server, netcmd_pushers) {}
 
 // varying friction
 
 VARIABLE_BOOLEAN(variable_friction, &default_variable_friction, onoff);
-CONSOLE_NETVAR(varfriction, variable_friction, cf_server, netcmd_varfriction)
-{
-        // sf : doom_printf
-  doom_printf(variable_friction ? "Variable Friction enabled" : 
-	      "Variable Friction disabled" );
-}
+CONSOLE_NETVAR(varfriction, variable_friction, cf_server, netcmd_varfriction){}
 
 // enable nukage
 
@@ -169,7 +161,6 @@ CONSOLE_NETVAR(fraglimit, levelFragLimit, cf_server, netcmd_fraglimit) {}
 VARIABLE_BOOLEAN(fastparm, NULL,                    onoff);
 CONSOLE_NETVAR(fast, fastparm, cf_server, netcmd_fast)
 {
-  doom_printf("fast monsters %s", fastparm ? "on" : "off");
   G_SetFastParms(fastparm); // killough 4/10/98: set -fast parameter correctly
 }
 

@@ -30,6 +30,7 @@ extern char **wadfiles;       // killough 11/98
 
 // jff make startskill globally visible
 extern skill_t startskill;
+extern char *startlevel;
 
 void D_AddFile(char *file);
 void D_ListWads();
@@ -60,7 +61,7 @@ extern boolean redrawsbar, redrawborder;
 void D_PostEvent(event_t* ev);
 
 extern camera_t *camera;
-extern char startlevel[9];       // sf: first level of new wads
+extern char firstlevel[9];       // sf: first level of new wads
 
 //
 // BASE LEVEL

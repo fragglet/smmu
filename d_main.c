@@ -116,6 +116,7 @@ extern boolean inhelpscreens;
 skill_t startskill;
 int     startepisode;
 int     startmap;
+char    *startlevel;
 boolean autostart;
 FILE    *debugfile;
 
@@ -129,7 +130,8 @@ char    basedefault[PATH_MAX+1];   // default file
 char    baseiwad[PATH_MAX+1];      // jff 3/23/98: iwad directory
 char    basesavegame[PATH_MAX+1];  // killough 2/16/98: savegame directory
 
-char    startlevel[9] = "";     // set from iwad
+// set from iwad: level to start new games from
+char firstlevel[9] = "";     
 
 //jff 4/19/98 list of standard IWAD names
 const char *const standard_iwads[]=
@@ -328,68 +330,68 @@ void D_640PageDrawer(char *key);
 void D_PageDrawer(void)
 {
   if (pagename)
-  {
-        int l = W_CheckNumForName(pagename);
-        if(l == -1)
+    {
+      int l = W_CheckNumForName(pagename);
+      if(l == -1)
         {
-            MN_DrawCredits();        // just draw the credits instead
-            return;
+	  MN_DrawCredits();        // just draw the credits instead
+	  return;
         }
-
-        if(hires)               // check for original title screen
+      
+      if(hires)               // check for original title screen
         {
-                long checksum = W_LumpCheckSum(l);
-                if(checksum == DOOM1TITLEPIC)
-                {
-                        D_640PageDrawer("UDTTL");
-                        return;
-                }
-                if(checksum == DOOM2TITLEPIC)
-                {
-                        D_640PageDrawer("D2TTL");
-                        return;
-                }
+	  long checksum = W_LumpCheckSum(l);
+	  if(checksum == DOOM1TITLEPIC)
+	    {
+	      D_640PageDrawer("UDTTL");
+	      return;
+	    }
+	  if(checksum == DOOM2TITLEPIC)
+	    {
+	      D_640PageDrawer("D2TTL");
+	      return;
+	    }
         }
-                // otherwise draw simple 320x200 pic
-                // sf: removed useless crap (purpose ???)
-        {
-                byte *t = W_CacheLumpNum(l, PU_CACHE);
-                V_DrawPatch(0, 0, 0, (patch_t *) t);
+      // otherwise draw simple 320x200 pic
+      // sf: removed useless crap (purpose ???)
+      {
+	byte *t = W_CacheLumpNum(l, PU_CACHE);
+	V_DrawPatch(0, 0, 0, (patch_t *) t);
         }
-  }
+    }
   else
-        MN_DrawCredits();
-
-   
-/*  {
+    MN_DrawCredits();
+  
+  
+  /*  {
       char tempstr[100];
       sprintf(tempstr, "titlepic checksum: %i", (int)W_LumpCheckSum(
-                W_GetNumForName("TITLEPIC")) );
+      W_GetNumForName("TITLEPIC")) );
       V_WriteText(tempstr, 0, 0);
-  }*/
+      }*/
 }
 
         // sf: 640x400 title screens at satori's request
 void D_640PageDrawer(char *key)
 {
-        char tempstr[10];
-
-        // draw the patches
-
-        sprintf(tempstr, "%s00", key);
-        V_DrawPatchUnscaled(0, 0, 0, W_CacheLumpName(tempstr, PU_CACHE));
-        
-        sprintf(tempstr, "%s01", key);
-        V_DrawPatchUnscaled(0, SCREENHEIGHT, 0,
-                        W_CacheLumpName(tempstr, PU_CACHE));
-
-        sprintf(tempstr, "%s10", key);
-        V_DrawPatchUnscaled(SCREENWIDTH, 0, 0,
-                        W_CacheLumpName(tempstr, PU_CACHE));
-
-        sprintf(tempstr, "%s11", key);
-        V_DrawPatchUnscaled(SCREENWIDTH, SCREENHEIGHT, 0,
-                        W_CacheLumpName(tempstr, PU_CACHE));
+  char tempstr[10];
+  
+  // draw the patches
+  
+  sprintf(tempstr, "%s00", key);
+  V_DrawPatchUnscaled(0, 0, 0, W_CacheLumpName(tempstr, PU_CACHE));
+  
+  sprintf(tempstr, "%s01", key);
+  V_DrawPatchUnscaled(0, SCREENHEIGHT, 0,
+		      W_CacheLumpName(tempstr, PU_CACHE));
+  
+  sprintf(tempstr, "%s10", key);
+  V_DrawPatchUnscaled(SCREENWIDTH, 0, 0,
+		      W_CacheLumpName(tempstr, PU_CACHE));
+  
+  sprintf(tempstr, "%s11", key);
+  V_DrawPatchUnscaled(SCREENWIDTH, SCREENHEIGHT, 0,
+		      W_CacheLumpName(tempstr, PU_CACHE));
 }
 
 //
@@ -556,11 +558,11 @@ void D_AddFile(char *file)
         //sf: console command to list loaded files
 void D_ListWads()
 {
-        int i;
-        C_Printf(FC_GRAY "Loaded WADs:\n" FC_RED);
-
-        for(i=0; i<numwadfiles; i++)
-                C_Printf("%s\n",wadfiles[i]);
+  int i;
+  C_Printf(FC_GRAY "Loaded WADs:\n" FC_RED);
+  
+  for(i=0; i<numwadfiles; i++)
+    C_Printf("%s\n",wadfiles[i]);
 }
 
 // Return the path where the executable lies -- Lee Killough
@@ -862,6 +864,8 @@ char *FindIWADFile(void)
 //
 // jff 4/19/98 rewritten to use a more advanced search algorithm
 
+char *game_name = "unknown game";        // description of iwad
+
 void IdentifyVersion (void)
 {
   int         i;    //jff 3/24/98 index of args on commandline
@@ -896,19 +900,18 @@ void IdentifyVersion (void)
 		&gamemission,   // joel 10/16/98 gamemission added
 		&haswolflevels);
 
-#ifdef GAMEBAR
       switch(gamemode)
 	{
 	case retail:
-	  puts("Ultimate DOOM version");  // killough 8/8/98
+	  game_name = "Ultimate DOOM version";  // killough 8/8/98
 	  break;
 
 	case registered:
-	  puts("DOOM Registered version");
+	  game_name = "DOOM Registered version";
 	  break;
 
 	case shareware:
-	  puts("DOOM Shareware version");
+	  game_name = "DOOM Shareware version";
 	  break;
 
 	case commercial:
@@ -917,11 +920,11 @@ void IdentifyVersion (void)
 	  switch (gamemission)
 	    {
 	    case pack_tnt:
-	      puts ("Final DOOM: TNT - Evilution version");
+	      game_name = "Final DOOM: TNT - Evilution version";
 	      break;
 
 	    case pack_plut:
-	      puts ("Final DOOM: The Plutonia Experiment version");
+	      game_name = "Final DOOM: The Plutonia Experiment version";
 	      break;
 
 	    case doom2:
@@ -931,11 +934,11 @@ void IdentifyVersion (void)
 	      if (i>=10 && !strnicmp(iwad+i-10,"doom2f.wad",10))
 		{
 		  language=french;
-		  puts("DOOM II version, French language");  // killough 8/8/98
+		  game_name = "DOOM II version, French language";
 		}
 	      else
-		puts(haswolflevels ? "DOOM II version" :  // killough 10/98
-		     "DOOM II version, german edition, no wolf levels");
+		game_name = haswolflevels ? "DOOM II version" :
+		     "DOOM II version, german edition, no wolf levels";
 	      break;
 	    }
 	  // joel 10/16/88 end Final DOOM fix
@@ -943,7 +946,8 @@ void IdentifyVersion (void)
 	default:
 	  break;
 	}
-#endif
+
+      puts(game_name);
 
       if (gamemode == indetermined)
 	puts("Unknown Game Version, may not work");  // killough 8/8/98
@@ -1161,9 +1165,9 @@ static void D_ProcessDehInWad(int i)
         //sf:
 void startupmsg(char *func, char *desc)
 {
-        usermsg(in_textmode ? "%s: %s"  // add colours in console mode
-                            : FC_GRAY "%s: " FC_RED "%s",
-                            func, desc);
+  // add colours in console mode
+  usermsg(in_textmode ? "%s: %s" : FC_GRAY "%s: " FC_RED "%s",
+	  func, desc);
 }
 
         // sf: this is really part of D_DoomMain but I made it into
@@ -1174,16 +1178,16 @@ void D_SetGraphicsMode()
 {
    DEBUGMSG("** set graphics mode\n");
 
-   I_InitKeyboard(); // last chance for ctrl-c
-
              // set graphics mode
    I_InitGraphics();
 
+   DEBUGMSG("done\n");
           // set up the console to display startup messages
    gamestate = GS_CONSOLE; 
    current_height = SCREENHEIGHT;
    c_showprompt = false;
-        
+
+   C_Puts(game_name);    // display description of gamemode
    D_ListWads();         // list wads to the console
    C_Printf("\n");       // leave a gap
 }
@@ -1313,7 +1317,6 @@ void D_DoomMain(void)
     // 25/10/99: use same name as exe
     sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
     D_AddFile(filestr);
-    D_AddFile("start.wad");
   }
 
   modifiedgame = false;         // reset, ignoring smmu.wad etc.
@@ -1508,15 +1511,16 @@ void D_DoomMain(void)
   startupmsg("I_Init","Setting up machine state.");
   I_Init();
 
- /************************************************************************/
+  /************************************************************************/
+  
+  // devparm override of early set graphics mode
 
-        // devparm override of early set graphics mode
   if(!textmode_startup && !devparm)
-  {
-     startupmsg("D_SetGraphicsMode", "Set graphics mode");
-     D_SetGraphicsMode();
-  }
-
+    {
+      startupmsg("D_SetGraphicsMode", "Set graphics mode");
+      D_SetGraphicsMode();
+    }
+  
   startupmsg("R_Init","Init DOOM refresh daemon");
   R_Init();
 
@@ -1542,11 +1546,11 @@ void D_DoomMain(void)
   D_CheckNetGame();
 
   if(devparm)   // we wait if in devparm so the user can see the messages
-  {
-        printf("devparm: press a key..\n");
-        getchar();
-  }
-
+    {
+      printf("devparm: press a key..\n");
+      getchar();
+    }
+  
  /****************** Must be in graphics mode by now! *********************/
 
         // check
@@ -1555,11 +1559,12 @@ void D_DoomMain(void)
   C_Printf("\n");
   C_Seperator();
   C_Printf(	
-	"\n"
-        FC_GRAY "SMMU" FC_RED " by Simon Howard 'Fraggle'\n"
-        "http://fraggle.tsx.org/ \n"
-        "version %i.%02i '%s' \n\n",
-                VERSION/100, VERSION%100, version_name);
+	   "\n"
+	   FC_GRAY "SMMU" FC_RED " by Simon Howard 'Fraggle'\n"
+	   "http://fraggle.tsx.org/ \n"
+	   "version %i.%02i '%s' \n\n",
+	   VERSION/100, VERSION%100, version_name);
+  
   if(!textmode_startup && !devparm)
     C_Update();
 
@@ -1619,7 +1624,9 @@ void D_DoomMain(void)
 
   DEBUGMSG("start gamestate: title screen or whatever\n");
 
-// killough 12/98: inlined D_DoomLoop
+  startlevel = Z_Strdup(G_GetNameForMap(startepisode, startmap), PU_STATIC, 0);
+
+  // killough 12/98: inlined D_DoomLoop
 
   if (slot && ++slot < myargc)
     {
@@ -1633,17 +1640,17 @@ void D_DoomMain(void)
       if (demorecording)
 	  G_BeginRecording();
       if(netgame)
-      {
+	{
           C_SendNetData();
-      }
+	}
       else if(autostart)
-      {
-	  G_InitNewNum(startskill, startepisode, startmap);
-      }
+	{
+	  G_InitNew(startskill, startlevel);
+	}
       else
-      {
+	{
           D_StartTitle();                 // start up intro loop
-      }
+	}
     }
 
   // this fixes a strange bug, don't know why but it works
@@ -1688,66 +1695,67 @@ void D_DoomMain(void)
 
 void D_ReInitWadfiles()
 {
-    R_FreeData();
-    R_Init();
-    P_Init();
+  R_FreeData();
+  R_Init();
+  P_Init();
 }
 
 void D_NewWadLumps(int handle)
 {
-    int i;
-    char firstlevel[9] = "";
-
-    for(i=0; i<numlumps; i++)
+  int i;
+  char wad_firstlevel[9] = "";
+  
+  for(i=0; i<numlumps; i++)
     {
-       if(lumpinfo[i]->handle != handle) continue;
+      if(lumpinfo[i]->handle != handle) continue;
+      
+      if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
+	{
+	  char *name = lumpinfo[i-1]->name; // previous lump
+	  
+	  // 'ExMy'
+	  if(isExMy(name) && isExMy(wad_firstlevel))
+	    {
+	      if(name[1] < wad_firstlevel[1] ||       // earlier episode?
+		 // earlier level in the same episode?
+                 (name[1] == wad_firstlevel[1] && name[3] < wad_firstlevel[3]) )
+		strncpy(wad_firstlevel, name, 8);
+	    }
+	  if(isMAPxy(name) && isMAPxy(wad_firstlevel))
+	    {
+	      if(name[3] < wad_firstlevel[3] || // earlier 10 levels
+		 // earlier in the same 10 levels?
+                 (name[3] == wad_firstlevel[3] && name[4] < wad_firstlevel[4]))
+		strncpy(wad_firstlevel, name, 8);
+	    }
 
-       if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
-       {
-           char *name = lumpinfo[i-1]->name; // previous lump
-                    
-                   // 'ExMy'
-           if(isExMy(name) && isExMy(firstlevel))
-           {
-               if(name[1] < firstlevel[1] ||       // earlier episode?
-                      // earlier level in the same episode?
-                 (name[1] == firstlevel[1] && name[3] < firstlevel[3]) )
-                       strncpy(firstlevel, name, 8);
-           }
-           if(isMAPxy(name) && isMAPxy(firstlevel))
-           {
-               if(name[3] < firstlevel[3] || // earlier 10 levels
-                        // earlier in the same 10 levels?
-                 (name[3] == firstlevel[3] && name[4] < firstlevel[4]))
-                       strncpy(firstlevel, name, 8);
-           }
-                   // none set yet
-                   // ignore ones called 'start' as these are checked
-                   // elsewhere (m_menu.c)
-           if(!*firstlevel && strcmp(name, "START") )
-                strncpy(firstlevel, name, 8);
-       }
-                
-            // new sound
-       if(!strncmp(lumpinfo[i]->name, "DSCHGUN",8)) // chaingun sound
-          S_Chgun();
-       if(!strncmp(lumpinfo[i]->name, "DS", 2))
-       {
-           S_UpdateSound(i);
-       }
+	  // none set yet
+	  // ignore ones called 'start' as these are checked
+	  // elsewhere (m_menu.c)
+	  if(!*wad_firstlevel && strcmp(name, "START") )
+	    strncpy(wad_firstlevel, name, 8);
+	}
+      
+      // new sound
+      if(!strncmp(lumpinfo[i]->name, "DSCHGUN",8)) // chaingun sound
+	S_Chgun();
+      if(!strncmp(lumpinfo[i]->name, "DS", 2))
+	{
+	  S_UpdateSound(i);
+	}
                 // skins
-       if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
-       {
-           P_ParseSkin(i);
-       }
-       if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
-       {
-           D_ProcessDehInWad(i);
-       }
+      if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
+	{
+	  P_ParseSkin(i);
+	}
+      if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
+	{
+	  D_ProcessDehInWad(i);
+	}
     } 
-
-    if(*firstlevel) // a new first level?
-       strcpy(startlevel, firstlevel);
+  
+  if(*wad_firstlevel) // a new first level?
+    strcpy(firstlevel, wad_firstlevel);
 }
 
 void usermsg(char *s, ...)

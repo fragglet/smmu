@@ -444,8 +444,6 @@ static void W_InitResources()          // sf
 
 void W_AddPredefines()
 {
-  int i;
-
   // predefined lumps removed now
   numlumps = 0;
 

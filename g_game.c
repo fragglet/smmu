@@ -61,6 +61,7 @@ rcsid[] = "$Id: g_game.c,v 1.59 1998/06/03 20:23:10 killough Exp $";
 #include "g_game.h"
 #include "c_net.h"
 #include "d_net.h"
+#include "p_hubs.h"
 
 #define SAVEGAMESIZE  0x20000
 #define SAVESTRINGSIZE  24
@@ -74,8 +75,6 @@ static byte     *demobuffer;   // made some static -- killough
 static size_t   maxdemosize;
 static byte     *demo_p;
 static short    consistancy[MAXPLAYERS][BACKUPTICS];
-
-boolean         hub_changelevel = false;     // sf: hubs
 
 gameaction_t    gameaction;
 gamestate_t     gamestate;
@@ -115,7 +114,9 @@ byte            *savebuffer;
 int             autorun = false;      // always running?          // phares
 int             automlook = false;
 int             bfglook = 1;
-        // sf: moved sensitivity here
+int             smooth_turning = 0;       // sf
+
+// sf: moved sensitivity here
 int             mouseSensitivity_horiz; // has default   //  killough
 int             mouseSensitivity_vert;  // has default
 int             invert_mouse = true;
@@ -273,15 +274,19 @@ void G_BuildTiccmd(ticcmd_t* cmd)
   memcpy(cmd, base, sizeof *cmd);
 
 #ifdef CONSHUGE
-  if(gamestate == GS_CONSOLE)     // in console mode the whole ticcmd is used
-  {                             // to transfer console command chars
-        int i;
-                // fill ticcmd with console chars
-        for(i=0;i<sizeof(ticcmd_t);i++)
+  // in console mode the whole ticcmd is used
+  // to transfer console command chars
+
+  if(gamestate == GS_CONSOLE)
+    {                         
+      int i;
+
+      // fill ticcmd with console chars
+      for(i=0;i<sizeof(ticcmd_t);i++)
         {
-              ((unsigned char*)cmd)[i] = C_dequeueChatChar();
+	  ((unsigned char*)cmd)[i] = C_dequeueChatChar();
         }
-        return;
+      return;
   }
 #endif
 
@@ -505,7 +510,8 @@ void G_BuildTiccmd(ticcmd_t* cmd)
 
   // we average the mouse movement as well
   // this is most important in smoothing movement
-  
+
+  if(smooth_turning)
   {
     static int oldmousex=0, mousex2;
     static int oldmousey=0, mousey2;
@@ -570,8 +576,50 @@ void G_BuildTiccmd(ticcmd_t* cmd)
       cmd->buttons = BT_SPECIAL | BTS_SAVEGAME | (savegameslot<<BTS_SAVESHIFT);
     }
 
-    if(ticnum == newtics - 1)   // only if the last tic being built
-            mousex = mousey = 0;  // clear them
+  if(ticnum == newtics - 1)   // only if the last tic being built
+    mousex = mousey = 0;  // clear them
+}
+
+//
+// G_SetGameMap
+//
+// sf: from gamemapname, get gamemap and gameepisode
+//
+
+void G_SetGameMap()
+{
+  gamemap = G_GetMapForName(gamemapname);
+  
+  if(gamemode != commercial)
+    {
+      gameepisode = gamemap/10;
+      gamemap = gamemap%10;
+    }
+  else
+    gameepisode = 1;
+
+  if (gameepisode < 1)
+    gameepisode = 1;
+
+  if (gamemode == retail)
+    {
+      if (gameepisode > 4)
+	gameepisode = 4;
+    }
+  else
+    if (gamemode == shareware)
+      {
+	if (gameepisode > 1)
+	  gameepisode = 1; // only start episode 1 on shareware
+      }
+    else
+      if (gameepisode > 3)
+	gameepisode = 3;
+
+  if (gamemap < 0)
+    gamemap = 0;
+  if (gamemap > 9 && gamemode != commercial)
+    gamemap = 9;
 }
 
 //
@@ -632,9 +680,15 @@ static void G_DoLoadLevel(void)
 
   C_Popup();  // pop up the console
 
-  // sf: no screen wipe while changing hub level
-  if (wipegamestate == GS_LEVEL && !hub_changelevel)
-    wipegamestate = -1;             // force a wipe
+  // sf: if loading a hub level, restore position relative to sector
+  //  for 'seamless' travel between levels
+  if(hub_changelevel) 
+    P_RestorePlayerPosition();
+  else
+    {  // sf: no screen wipe while changing hub level
+      if (wipegamestate == GS_LEVEL)
+	wipegamestate = -1;             // force a wipe
+    }
 }
 
 //
@@ -715,10 +769,10 @@ boolean G_Responder(event_t* ev)
 
         // sf: just what _was_ this doing in m_responder anyway?
   if (ev->type == ev_keydown && ev->data1 == key_autorun)      // Autorun
-  {
-     autorun = !autorun;
-     return true;
-  }
+    {
+      autorun = !autorun;
+      return true;
+    }
 
   if(ev->type == ev_keydown && ev->data1 == key_zoomin)
     {
@@ -942,8 +996,8 @@ static void G_DoCompleted(void)
 
   if(*info_nextlevel)
     {
-      wminfo.next=G_GetMapForName(info_nextlevel);
-      if(gamemode!=commercial) wminfo.next=wminfo.next%10;
+      wminfo.next = G_GetMapForName(info_nextlevel);
+      if(gamemode!=commercial) wminfo.next = wminfo.next % 10;
       wminfo.next--;
     }
 
@@ -1250,14 +1304,10 @@ unsigned long long G_Signature(void)
 {
   unsigned long long s = 0;
   int lump, i;
-  char name[9];
+  //  char name[9];
   
-  if (gamemode == commercial)
-    sprintf(name, "map%02d", gamemap);
-  else
-    sprintf(name, "E%dM%d", gameepisode, gamemap);
-
-  lump = W_CheckNumForName(name);
+  // sf: use gamemapname now, not gameepisode and gamemap
+  lump = W_CheckNumForName(gamemapname);
 
   if (lump != -1 && (i = lump+10) < numlumps)
     do
@@ -1428,6 +1478,8 @@ static void G_DoLoadGame(void)
     gamemapname[8] = 0;        // ending NULL
   }
 
+  G_SetGameMap();       // get gameepisode, map
+
   if (!forced_loadgame)
    {  // killough 3/16/98, 12/98: check lump name checksum
      checksum = G_Signature();
@@ -1438,6 +1490,7 @@ static void G_DoLoadGame(void)
 	 if (save_p[sizeof checksum])
 	   strcat(strcat(msg,"Wads expected:\n\n"), save_p + sizeof checksum);
 	 strcat(msg, "\nAre you sure?");
+	 C_Puts(msg);
 	 G_LoadGameErr(msg);
 	 free(msg);
 	 return;
@@ -1457,9 +1510,11 @@ static void G_DoLoadGame(void)
   idmusnum = *(signed char *) save_p++;
 
   // load a base level
-  // sf: changed to use g_doloadlevel instead of g_initnew
-  G_DoLoadLevel();
-  //  G_InitNew(gameskill, gamemapname);
+  // sf: in hubs, use g_doloadlevel instead of g_initnew
+  if(hub_changelevel)
+    G_DoLoadLevel();
+  else
+    G_InitNew(gameskill, gamemapname);
 
   // killough 3/1/98: Read game options
   // killough 11/98: move down to here
@@ -1481,14 +1536,14 @@ static void G_DoLoadGame(void)
   P_UnArchiveRNG();    // killough 1/18/98: load RNG information
   P_UnArchiveMap();    // killough 1/22/98: load automap information
   P_UnArchiveScripts(); // sf: scripting
-
   P_FreeObjTable();
 
   if (*save_p != 0xe6)
     {
-      Z_Free(savebuffer);
       C_SetConsole();
-      C_Printf("bad savegame\n");
+      C_Printf("bad savegame: offset 0x%x is 0x%x\n",
+	       save_p-savebuffer, *save_p);
+      Z_Free(savebuffer);
       return; 
     }
 
@@ -1515,6 +1570,11 @@ static void G_DoLoadGame(void)
     else       // Loading games from menu isn't allowed during demo recordings,
       if (demorecording) // So this can only possibly be a -recordfrom command.
 	G_BeginRecording();// Start the -recordfrom, since the game was loaded.
+
+  // sf: if loading a hub level, restore position relative to sector
+  //  for 'seamless' travel between levels
+  if(hub_changelevel) 
+    P_RestorePlayerPosition();
 }
 
 //
@@ -1648,39 +1708,39 @@ void G_Ticker(void)
                 // sf: merge special into the other loop
               if (players[i].cmd.buttons & BT_SPECIAL)
                 {
-                    // killough 9/29/98: allow multiple special buttons
-                    if (players[i].cmd.buttons & BTS_PAUSE)
+		  // killough 9/29/98: allow multiple special buttons
+		  if (players[i].cmd.buttons & BTS_PAUSE)
                     {
                       paused ^= 1;
-                      doom_printf("game %spaused", paused ? "" : "un");
                       if (paused)
                         S_PauseSound();
                       else
                         S_ResumeSound();
                     }
-        
-                    if (players[i].cmd.buttons & BTS_SAVEGAME)
-                      {
-                        if (!savedescription[0])
-                          strcpy(savedescription, "NET GAME");
-                        savegameslot =
-                          (players[i].cmd.buttons & BTS_SAVEMASK)>>BTS_SAVESHIFT;
-                        gameaction = ga_savegame;
-                      }
+		  
+		  if (players[i].cmd.buttons & BTS_SAVEGAME)
+		    {
+		      if (!savedescription[0])
+			strcpy(savedescription, "NET GAME");
+		      savegameslot =
+			(players[i].cmd.buttons & BTS_SAVEMASK)>>BTS_SAVESHIFT;
+		      gameaction = ga_savegame;
+		    }
                 }
             }
         }
     }
 
   if((walkcam_active = camera==&walkcamera)) P_WalkTicker();
+  if((chasecam_active = camera==&chasecam)) P_ChaseTicker();
 
   // cooldemo countdown
-
+  
   if(demoplayback && cooldemo)
-          if(cooldemo_tics)
-                cooldemo_tics--;
-          else
-                G_CoolViewPoint();                
+    if(cooldemo_tics)
+      cooldemo_tics--;
+    else
+      G_CoolViewPoint();                
 
   DEBUGMSG("  g_ticker: main actions\n");
 
@@ -1693,12 +1753,16 @@ void G_Ticker(void)
   C_NetTicker();        // sf: console network commands
   if(inwipe) Wipe_Ticker();
 
-  if(gamestate == GS_LEVEL)     // sf: slightly more understandable,
-  {                             // killoughs system was pointlessly complex
-	P_Ticker();
-	ST_Ticker(); 
-	AM_Ticker(); 
-	HU_Ticker();
+  // sf: slightly more understandable,
+  // killoughs system was pointlessly complex
+  // obfuscation is useful but insane when taken to the extreme
+
+  if(gamestate == GS_LEVEL)
+  {                    
+    P_Ticker();
+    ST_Ticker(); 
+    AM_Ticker(); 
+    HU_Ticker();
   }
   else if(paused & 2 );
   else if(gamestate == GS_INTERMISSION) WI_Ticker();
@@ -1892,7 +1956,13 @@ void G_DoReborn(int playernum)
   hub_changelevel = false;
 
   if (!netgame)
-    gameaction = ga_loadlevel;      // reload the level from scratch
+    {
+      // reload level from scratch
+      // sf: use P_HubReborn, so that if in a hub, we restart from the
+      // last time we entered this level
+      // normal levels are unaffected
+      P_HubReborn();
+    }
   else
     {                               // respawn at the start
       int i;
@@ -2140,13 +2210,8 @@ void G_ReloadDefaults(void)
         // sf: seperate function
 void G_ScrambleRand()
 {                            // killough 3/26/98: shuffle random seed
-
-#ifdef DJGPP
-    struct timeval tv;         // use the clock to shuffle random seed
-    struct timezone tz;
-    gettimeofday(&tv,&tz);
-    rngseed += tv.tv_sec*1000ul + tv.tv_usec/1000ul + gametic;
-#endif
+  // sf: simpler
+  rngseed = time(NULL);
 }
 
 void G_DoNewGame (void)
@@ -2204,17 +2269,6 @@ void G_InitNewNum(skill_t skill, int episode, int map)
 void G_InitNew(skill_t skill, char *name)
 {
   int i;
-  int episode, map;
-
-  map = G_GetMapForName(name);
-  
-  if(gamemode != commercial)
-    {
-      episode = map/10;
-      map = map%10;
-    }
-  else
-    episode = 1;
 
   if (paused)
     {
@@ -2226,29 +2280,6 @@ void G_InitNew(skill_t skill, char *name)
 
   if (skill > sk_nightmare)
     skill = sk_nightmare;
-
-  if (episode < 1)
-    episode = 1;
-
-  if (gamemode == retail)
-    {
-      if (episode > 4)
-	episode = 4;
-    }
-  else
-    if (gamemode == shareware)
-      {
-	if (episode > 1)
-	  episode = 1; // only start episode 1 on shareware
-      }
-    else
-      if (episode > 3)
-	episode = 3;
-
-  if (map < 0)
-    map = 0;
-  if (map > 9 && gamemode != commercial)
-    map = 9;
 
   G_SetFastParms(fastparm || skill == sk_nightmare);  // killough 4/10/98
 
@@ -2264,20 +2295,20 @@ void G_InitNew(skill_t skill, char *name)
   paused = false;
 
   if(demoplayback)
-  {
-    netgame = false;
-    displayplayer = consoleplayer = 0;
-    P_ResetChasecam();      // sf: displayplayer changed
-  }
+    {
+      netgame = false;
+      displayplayer = consoleplayer = 0;
+      P_ResetChasecam();      // sf: displayplayer changed
+    }
 
   G_StopDemo();
 
   automapactive = false;
-  gameepisode = episode;
-  gamemap = map;
   gameskill = skill;
+
   if(gamemapname) free(gamemapname);    //sf
   gamemapname = strdup(name);
+  G_SetGameMap();  // sf
   
   //jff 4/16/98 force marks on automap cleared every new level start
   AM_clearMarks();
@@ -2732,59 +2763,59 @@ extern mapthing_t *camerathing[MAXCAMERAS];
         // cool demo: change to new viewpoint
 void G_CoolViewPoint()
 {
-                // 2 if no cameras, 3 if cameras
-        int viewtype = M_Random() % (2 + !!numcameraviews);
-        int old_displayplayer = displayplayer;
-
-                // pick the next player
-	do
-	{ 
-	    displayplayer++; 
-	    if (displayplayer == MAXPLAYERS) 
-		displayplayer = 0; 
-        } while (!playeringame[displayplayer]);
-
-        if(displayplayer != old_displayplayer)
-        {
-                ST_Start();
-                HU_Start();
-                S_UpdateSounds(players[displayplayer].mo);
-                P_ResetChasecam();      // reset the chasecam
-        }
-
-                // turn off the chasecam?
-        if(chasecam_active && viewtype != 1)
-        {
-                chasecam_active = false;
-                P_ChaseEnd();
-        }
-
-        if(viewtype == 0)       // normal player-view
-        {
-        }
-        else if(viewtype == 1)  // view from the chasecam
-        {
-                chasecam_active = true;
-                P_ChaseStart();
-        }
-        else if(viewtype == 2) // camera view
-        {
-                int cam = M_Random() % numcameraviews;
-
-                P_ResetChasecam();      // turn off the chasecam
-                                        // if its still on
-
-                intercam.x = camerathing[cam]->x*FRACUNIT;
-                intercam.y = camerathing[cam]->y*FRACUNIT;
-                intercam.angle = R_WadToAngle(camerathing[cam]->angle);
-                intercam.updownangle = 0;
-                intercam.z = R_PointInSubsector(intercam.x, intercam.y)
-                                ->sector->floorheight + 41*FRACUNIT;
-                camera = &intercam;
-        }
-
-                // pic a random number of tics until changing the viewpoint
-        cooldemo_tics = (7 + M_Random() % 13) * 35;
+  // 2 if no cameras, 3 if cameras
+  int viewtype = M_Random() % (2 + !!numcameraviews);
+  int old_displayplayer = displayplayer;
+  
+  // pick the next player
+  do
+    { 
+      displayplayer++; 
+      if (displayplayer == MAXPLAYERS) 
+	displayplayer = 0; 
+    } while (!playeringame[displayplayer]);
+  
+  if(displayplayer != old_displayplayer)
+    {
+      ST_Start();
+      HU_Start();
+      S_UpdateSounds(players[displayplayer].mo);
+      P_ResetChasecam();      // reset the chasecam
+    }
+  
+  // turn off the chasecam?
+  if(chasecam_active && viewtype != 1)
+    {
+      chasecam_active = false;
+      P_ChaseEnd();
+    }
+  
+  if(viewtype == 0)       // normal player-view
+    {
+    }
+  else if(viewtype == 1)  // view from the chasecam
+    {
+      chasecam_active = true;
+      P_ChaseStart();
+    }
+  else if(viewtype == 2) // camera view
+    {
+      int cam = M_Random() % numcameraviews;
+      
+      P_ResetChasecam();      // turn off the chasecam
+      // if its still on
+      
+      intercam.x = camerathing[cam]->x*FRACUNIT;
+      intercam.y = camerathing[cam]->y*FRACUNIT;
+      intercam.angle = R_WadToAngle(camerathing[cam]->angle);
+      intercam.updownangle = 0;
+      intercam.z = R_PointInSubsector(intercam.x, intercam.y)
+	->sector->floorheight + 41*FRACUNIT;
+      camera = &intercam;
+    }
+  
+  // pic a random number of tics until changing the viewpoint
+  cooldemo_tics = (7 + M_Random() % 13) * 35;
 }
 
 //----------------------------------------------------------------------------

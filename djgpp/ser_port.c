@@ -10,23 +10,25 @@
 //
 //---------------------------------------------------------------------------
 
-#include "ser_main.h"
-#include "../d_net.h"
-#include "../c_io.h"
 #include <dos.h>
 #include <pc.h>
 #include <go32.h>
 #include <dpmi.h>
 
+#include "ser_main.h"
+
+#include "../d_main.h"
+#include "../d_net.h"
+#include "../c_io.h"
+
 void jump_start( void );
 
-void isr_8250 (void);
+static void isr_8250 (void);
 
 union REGS regs;
 struct SREGS sregs;
 
 que_t inque, outque;
-
 
 int uart;                   // io address
 enum {UART_8250, UART_16550} uart_type;
@@ -91,11 +93,8 @@ void GetUart (void)
     sscanf (_argv[p+1],"%i",&irq);
   */
 
-  C_Printf ("Looking for UART at port 0x%x, irq %i\n",uart,irq);
+  usermsg("Looking for UART at port 0x%x, irq %i",uart,irq);
 }
-
-
-
 
 /*
 ===============
@@ -109,6 +108,12 @@ void InitPort (void)
 {
   int mcr;
   int temp;
+
+  //
+  // Reset the output queue
+  //
+
+  outque.head = outque.tail = 0;
 
   //
   // find the irq and io address of the port
@@ -125,32 +130,32 @@ void InitPort (void)
   //
   // check for a 16550
   //
-  OUTPUT( uart + FIFO_CONTROL_REGISTER, FCR_FIFO_ENABLE + FCR_TRIGGER_04 );
-  temp = INPUT( uart + INTERRUPT_ID_REGISTER );
-  if ( ( temp & 0xf8 ) == 0xc0 )
+  OUTPUT(uart + FIFO_CONTROL_REGISTER, FCR_FIFO_ENABLE + FCR_TRIGGER_04);
+  temp = INPUT(uart + INTERRUPT_ID_REGISTER);
+  if ((temp & 0xf8) == 0xc0)
     {
       uart_type = UART_16550;
-      C_Printf ("UART is a 16550\n\n");
+      usermsg ("UART is a 16550\n\n");
     }
   else
     {
       uart_type = UART_8250;
-      OUTPUT( uart + FIFO_CONTROL_REGISTER, 0 );
-      C_Printf ("UART is an 8250\n\n");
+      OUTPUT(uart + FIFO_CONTROL_REGISTER, 0);
+      usermsg("UART is an 8250\n\n");
     }
   
   //
   // prepare for interrupts
   //
 
-  OUTPUT( uart + INTERRUPT_ENABLE_REGISTER, 0 );
-  mcr = INPUT( uart + MODEM_CONTROL_REGISTER );
+  OUTPUT(uart + INTERRUPT_ENABLE_REGISTER, 0);
+  mcr = INPUT(uart + MODEM_CONTROL_REGISTER);
   mcr |= MCR_OUT2;
   mcr &= ~MCR_LOOPBACK;
-  OUTPUT( uart + MODEM_CONTROL_REGISTER, mcr );
+  OUTPUT(uart + MODEM_CONTROL_REGISTER, mcr);
   
-  INPUT( uart );  // Clear any pending interrupts
-  INPUT( uart + INTERRUPT_ID_REGISTER );
+  INPUT(uart);  // Clear any pending interrupts
+  INPUT(uart + INTERRUPT_ID_REGISTER);
   
   //
   // hook the irq vector
@@ -159,33 +164,30 @@ void InitPort (void)
   
   asm("cli"); // disable interrupts
 
-  _go32_dpmi_get_protected_mode_interrupt_vector
-    (irqintnum, &oldirqvect);
-  newirqvect.pm_offset=(int)isr_8250;
-  newirqvect.pm_selector=_go32_my_cs();
+  _go32_dpmi_get_protected_mode_interrupt_vector(irqintnum, &oldirqvect);
+  newirqvect.pm_offset = (int)isr_8250;
+  newirqvect.pm_selector = _go32_my_cs();
   _go32_dpmi_allocate_iret_wrapper(&newirqvect);
-  _go32_dpmi_set_protected_mode_interrupt_vector
-    (irqintnum, &newirqvect);
+  _go32_dpmi_set_protected_mode_interrupt_vector(irqintnum, &newirqvect);
 
   asm("sti"); // enable interrupts
 	
-
-  OUTPUT( 0x20 + 1, INPUT( 0x20 + 1 ) & ~(1<<irq) );
+  OUTPUT(0x20 + 1, INPUT(0x20 + 1) & ~(1<<irq));
 
   asm("cli"); // disable again
 
   // enable RX and TX interrupts at the uart
   
-  OUTPUT( uart + INTERRUPT_ENABLE_REGISTER,
-	  IER_RX_DATA_READY + IER_TX_HOLDING_REGISTER_EMPTY);
+  OUTPUT(uart + INTERRUPT_ENABLE_REGISTER,
+	 IER_RX_DATA_READY + IER_TX_HOLDING_REGISTER_EMPTY);
 
   // enable interrupts through the interrupt controller
   
-  OUTPUT( 0x20, 0xc2 );
+  OUTPUT(0x20, 0xc2);
 
   // set DTR
-  OUTPUT( uart + MODEM_CONTROL_REGISTER
-	  , INPUT( uart + MODEM_CONTROL_REGISTER ) | MCR_DTR);
+  OUTPUT(uart + MODEM_CONTROL_REGISTER
+	  , INPUT(uart + MODEM_CONTROL_REGISTER) | MCR_DTR);
   
   asm("sti"); // re-enable
 }
@@ -201,10 +203,10 @@ void InitPort (void)
 
 void ShutdownPort ( void )
 {
-  OUTPUT( uart + INTERRUPT_ENABLE_REGISTER, 0 );
-  OUTPUT( uart + MODEM_CONTROL_REGISTER, 0 );
+  OUTPUT(uart + INTERRUPT_ENABLE_REGISTER, 0);
+  OUTPUT(uart + MODEM_CONTROL_REGISTER, 0);
   
-  OUTPUT( 0x20 + 1, INPUT( 0x20 + 1 ) | (1<<irq) );
+  OUTPUT(0x20 + 1, INPUT(0x20 + 1) | (1<<irq));
   
   // restore old irq
   asm("cli");
@@ -219,6 +221,8 @@ void ShutdownPort ( void )
   regs.x.ax = 0xf3;               //f3= 9600 n 8 1
   regs.x.dx = comport - 1;
   int86 (0x14, &regs, &regs);
+
+  usermsg("shutting down serial port");
 }
 
 
@@ -239,8 +243,6 @@ void write_byte( int c )
   outque.data[outque.head%QUESIZE] = c;
   outque.head++;
 }
-
-
 
 //==========================================================================
 
@@ -328,12 +330,12 @@ void isr_8250(void)
 void jump_start( void )
 {
   int c;
-  
+
   if (outque.tail < outque.head)
     {
-      c = outque.data [outque.tail%QUESIZE];
+      c = outque.data[outque.tail % QUESIZE];
       outque.tail++;
-      OUTPUT( uart, c );
+      OUTPUT(uart, c);
     }
 }
 

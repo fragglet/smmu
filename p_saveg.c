@@ -32,8 +32,8 @@ rcsid[] = "$Id: p_saveg.c,v 1.17 1998/05/03 23:10:22 killough Exp $";
 #include "m_random.h"
 #include "am_map.h"
 #include "p_enemy.h"
+#include "p_hubs.h"
 #include "p_skin.h"
-
 #include "t_vari.h"
 #include "t_script.h"
 
@@ -43,24 +43,23 @@ byte *save_p;
 //  so that the load/save works on SGI&Gecko.
 // #define PADSAVEP()    do { save_p += (4 - ((int) save_p & 3)) & 3; } while (0)
 
-        // sf:  uncomment above for sgi and gecko then
-        // this makes for smaller savegames
+// sf: uncomment above for sgi and gecko if you want then
+// this makes for smaller savegames
 #define PADSAVEP()      {}
-
 
 int num_thinkers;       // number of thinkers in level being archived
 
+// sf: globalised for script mobj pointers
 
-        // sf: globalised for script mobj pointers
-mobj_t    **mobj_p;    // killough 2/14/98: Translation table
+mobj_t **mobj_p;    // killough 2/14/98: Translation table
 
         // sf: seperate function
 void P_FreeObjTable()
 {
   free(mobj_p);    // free translation table
 }
-        // sf: made these into seperate functions
-        //     for FraggleScript saving object ptrs too
+// sf: made these into seperate functions
+//     for FraggleScript saving object ptrs too
 
 void P_NumberObjects()
 {
@@ -79,25 +78,26 @@ void P_NumberObjects()
 
 void P_DeNumberObjects()
 {
-    thinker_t *prev = &thinkercap;
-    thinker_t *th;
-
-    for (th = thinkercap.next ; th != &thinkercap ; prev=th, th=th->next)
-      th->prev = prev;
+  thinker_t *prev = &thinkercap;
+  thinker_t *th;
+  
+  for (th = thinkercap.next ; th != &thinkercap ; prev=th, th=th->next)
+    th->prev = prev;
 }
 
         // get the mobj number from the mobj
 int P_MobjNum(mobj_t *mo)
 {
-    long l = mo ? (long)mo->thinker.prev : -1;   // -1 = NULL
-         // extra check for invalid thingnum (prob. still ptr)
-    if(l<0 || l>num_thinkers) l = -1;
-    return l;
+  long l = mo ? (long)mo->thinker.prev : -1;   // -1 = NULL
+ 
+  // extra check for invalid thingnum (prob. still ptr)
+  if(l<0 || l>num_thinkers) l = -1;
+  return l;
 }
 
-mobj_t *P_MobjForNum(int num)
+mobj_t *P_MobjForNum(int n)
 {
-    return num == -1 ? NULL : mobj_p[num];
+  return (n == -1) ? (NULL) : (mobj_p[n]);
 }
 
 //
@@ -108,6 +108,7 @@ void P_ArchivePlayers (void)
   int i;
 
   CheckSaveGame(sizeof(player_t) * MAXPLAYERS); // killough
+
   for (i=0 ; i<MAXPLAYERS ; i++)
     if (playeringame[i])
       {
@@ -139,19 +140,27 @@ void P_UnArchivePlayers (void)
 
         PADSAVEP();
 
-        memcpy(&players[i], save_p, sizeof(player_t));
+	// sf: when loading a hub level using save games,
+	//     do not change the player data when crossing
+	//     levels: ie. retain the same weapons etc.
+
+	if(!hub_changelevel)
+	{
+	  memcpy(&players[i], save_p, sizeof(player_t));
+	  for (j=0 ; j<NUMPSPRITES ; j++)
+	    if (players[i].psprites[j].state)
+	      players[i].psprites[j].state =
+		&states[ (int)players[i].psprites[j].state ];
+	}
+
         save_p += sizeof(player_t);
 
         // will be set when unarc thinker
         players[i].mo = NULL;
-//        players[i].message = NULL;
         players[i].attacker = NULL;
 	players[i].skin = &marine;  // reset skin
-
-        for (j=0 ; j<NUMPSPRITES ; j++)
-          if (players[i]. psprites[j].state)
-            players[i]. psprites[j].state =
-              &states[ (int)players[i].psprites[j].state ];
+	players[i].attackdown = players[i].usedown = false;  // sf
+	players[i].cmd.buttons = 0;    // sf
       }
 }
 
@@ -974,11 +983,11 @@ void P_ArchiveMap(void)
 
 void P_UnArchiveMap(void)
 {
-  memcpy(&automapactive, save_p, sizeof automapactive);
+  if(!hub_changelevel) memcpy(&automapactive, save_p, sizeof automapactive);
   save_p += sizeof automapactive;
-  memcpy(&followplayer, save_p, sizeof followplayer);
+  if(!hub_changelevel) memcpy(&followplayer, save_p, sizeof followplayer);
   save_p += sizeof followplayer;
-  memcpy(&automap_grid, save_p, sizeof automap_grid);
+  if(!hub_changelevel) memcpy(&automap_grid, save_p, sizeof automap_grid);
   save_p += sizeof automap_grid;
 
   if (automapactive)
@@ -1015,155 +1024,155 @@ void P_UnArchiveMap(void)
 
 void P_ArchiveLevelScript()
 {
-        int num_variables = 0;
-        int i;
-        short *short_p;
-
-        // all we really need to do is save the variables
-        // count the variables first
-
-                // count number of variables
-        num_variables = 0;
-        for(i=0; i<VARIABLESLOTS; i++)
-        {
-                svariable_t *sv = levelscript.variables[i];
-                while(sv && sv->type != svt_label)
-                {
-                    num_variables++;
-                    sv = sv->next;
-                }
-        }
-
-        CheckSaveGame(sizeof(short));
-
-        short_p = (short *) save_p;
-        *short_p++ = num_variables;    // write num_variables
-        save_p = (char*) short_p;      // restore save_p
-
-        // go thru hash chains, store each variable
-        for(i=0; i<VARIABLESLOTS; i++)
-        {
-            // go thru this hashchain
-            svariable_t *sv = levelscript.variables[i];
-
-                // once we get to a label there can be no more actual
-                // variables in the list to store
-            while(sv && sv->type != svt_label)
-            {
-
-                CheckSaveGame(strlen(sv->name)+10); // 10 for type and safety
-
-                // write svariable: name
-
-                strcpy(save_p, sv->name);
-                save_p += strlen(sv->name) + 1; // 1 extra for ending NULL
+  int num_variables = 0;
+  int i;
+  short *short_p;
+  
+  // all we really need to do is save the variables
+  // count the variables first
+  
+  // count number of variables
+  num_variables = 0;
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      svariable_t *sv = levelscript.variables[i];
+      while(sv && sv->type != svt_label)
+	{
+	  num_variables++;
+	  sv = sv->next;
+	}
+    }
+  
+  CheckSaveGame(sizeof(short));
+  
+  short_p = (short *) save_p;
+  *short_p++ = num_variables;    // write num_variables
+  save_p = (char*) short_p;      // restore save_p
+  
+  // go thru hash chains, store each variable
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      // go thru this hashchain
+      svariable_t *sv = levelscript.variables[i];
+      
+      // once we get to a label there can be no more actual
+      // variables in the list to store
+      while(sv && sv->type != svt_label)
+	{
+	  
+	  CheckSaveGame(strlen(sv->name)+10); // 10 for type and safety
+	  
+	  // write svariable: name
+	  
+	  strcpy(save_p, sv->name);
+	  save_p += strlen(sv->name) + 1; // 1 extra for ending NULL
                 
-                // type
-                *save_p++ = sv->type;   // store type;
-
-                switch(sv->type)        // store depending on type
-                {
-                    case svt_string:
-                    {
-                        CheckSaveGame(strlen(sv->value.s)+5); // 5 for safety
-                        strcpy(save_p, sv->value.s);
-                        save_p += strlen(sv->value.s) + 1;
-                        break;
-                    }
-                    case svt_int:
-                    {
-                        long *long_p;
-
-                        CheckSaveGame(sizeof(long)); 
-                        long_p = (long *) save_p;
-                        *long_p++ = sv->value.i;
-                        save_p = (char *)long_p;
-                        break;
-                    }
-                    case svt_mobj:
-                    {
-                        long *long_p;
-
-                        CheckSaveGame(sizeof(long)); 
-                        long_p = (long *) save_p;
-                        *long_p++ = P_MobjNum(sv->value.mobj);
-                        save_p = (char *)long_p;
-                        break;
-                    }
-                }
-                sv = sv->next;
-            }
-        }
+	  // type
+	  *save_p++ = sv->type;   // store type;
+	  
+	  switch(sv->type)        // store depending on type
+	    {
+	    case svt_string:
+	      {
+		CheckSaveGame(strlen(sv->value.s)+5); // 5 for safety
+		strcpy(save_p, sv->value.s);
+		save_p += strlen(sv->value.s) + 1;
+		break;
+	      }
+	    case svt_int:
+	      {
+		long *long_p;
+		
+		CheckSaveGame(sizeof(long)); 
+		long_p = (long *) save_p;
+		*long_p++ = sv->value.i;
+		save_p = (char *)long_p;
+		break;
+	      }
+	    case svt_mobj:
+	      {
+		long *long_p;
+		
+		CheckSaveGame(sizeof(long)); 
+		long_p = (long *) save_p;
+		*long_p++ = P_MobjNum(sv->value.mobj);
+		save_p = (char *)long_p;
+		break;
+	      }
+	    }
+	  sv = sv->next;
+	}
+    }
 }
 
 void P_UnArchiveLevelScript()
 {
-        short *short_p;
-        int i;
-        int num_variables;
+  short *short_p;
+  int i;
+  int num_variables;
+  
+  // free all the variables in the current levelscript first
+  
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      svariable_t *sv = levelscript.variables[i];
+      
+      while(sv && sv->type != svt_label)
+	{
+	  svariable_t *next = sv->next;
+	  Z_Free(sv);
+	  sv = next;
+	}
+      levelscript.variables[i] = sv;       // null or label
+    }
 
-        // free all the variables in the current levelscript first
-
-        for(i=0; i<VARIABLESLOTS; i++)
-        {
-           svariable_t *sv = levelscript.variables[i];
-
-           while(sv && sv->type != svt_label)
-           {
-                svariable_t *next = sv->next;
-                Z_Free(sv);
-                sv = next;
-           }
-           levelscript.variables[i] = sv;       // null or label
-        }
-
-        // now read the number of variables from the savegame file
-
-        short_p = (short *)save_p;
-        num_variables = *short_p++;
-        save_p = (char *)short_p;
-
-        for(i=0; i<num_variables; i++)
-        {
-            svariable_t *sv = Z_Malloc(sizeof(svariable_t), PU_LEVEL, 0);
-            int hashkey;
-
-                // name
-            sv->name = Z_Strdup(save_p, PU_LEVEL, 0);
-            save_p += strlen(sv->name) + 1;
-
-            sv->type = *save_p++;
-
-            switch(sv->type)        // read depending on type
-            {
-                case svt_string:
-                {
-                    sv->value.s = Z_Strdup(save_p, PU_LEVEL, 0);
-                    save_p += strlen(sv->value.s) + 1;
-                    break;
-                }
-                case svt_int:
-                {
-                    long *long_p = (long *) save_p;
-                    sv->value.i = *long_p++;
-                    save_p = (char *)long_p;
-                    break;
-                }
-                case svt_mobj:
-                {
-                    long *long_p = (long *) save_p;
-                    sv->value.mobj = P_MobjForNum(*long_p++);
-                    save_p = (char *)long_p;
-                    break;
-                }
-                default:
-            }
-
-             // link in the new variable
-            hashkey = variable_hash(sv->name);
-            sv->next = levelscript.variables[hashkey];
-            levelscript.variables[hashkey] = sv;
-        }
+  // now read the number of variables from the savegame file
+  
+  short_p = (short *)save_p;
+  num_variables = *short_p++;
+  save_p = (char *)short_p;
+  
+  for(i=0; i<num_variables; i++)
+    {
+      svariable_t *sv = Z_Malloc(sizeof(svariable_t), PU_LEVEL, 0);
+      int hashkey;
+      
+      // name
+      sv->name = Z_Strdup(save_p, PU_LEVEL, 0);
+      save_p += strlen(sv->name) + 1;
+      
+      sv->type = *save_p++;
+      
+      switch(sv->type)        // read depending on type
+	{
+	case svt_string:
+	  {
+	    sv->value.s = Z_Strdup(save_p, PU_LEVEL, 0);
+	    save_p += strlen(sv->value.s) + 1;
+	    break;
+	  }
+	case svt_int:
+	  {
+	    long *long_p = (long *) save_p;
+	    sv->value.i = *long_p++;
+	    save_p = (char *)long_p;
+	    break;
+	  }
+	case svt_mobj:
+	  {
+	    long *long_p = (long *) save_p;
+	    sv->value.mobj = P_MobjForNum(*long_p++);
+	    save_p = (char *)long_p;
+	    break;
+	  }
+	default:
+	}
+      
+      // link in the new variable
+      hashkey = variable_hash(sv->name);
+      sv->next = levelscript.variables[hashkey];
+      levelscript.variables[hashkey] = sv;
+    }
 
 }
 
@@ -1173,304 +1182,309 @@ extern runningscript_t runningscripts;        // t_script.c
 runningscript_t *new_runningscript();         // t_script.c
 void clear_runningscripts();                  // t_script.c
 
-        // save a given runningscript
+// save a given runningscript
+
 void P_ArchiveRunningScript(runningscript_t *rs)
 {
-        short *short_p;
-        int i;
-        int num_variables;
+  short *short_p;
+  int i;
+  int num_variables;
+  
+  CheckSaveGame(sizeof(short) * 8); // room for 8 shorts
+  
+  short_p = (short *) save_p;
 
-        CheckSaveGame(sizeof(short) * 5); // 5 shorts
+  *short_p++ = rs->script->scriptnum;      // save scriptnum
+  *short_p++ = rs->savepoint - rs->script->data; // offset
+  *short_p++ = rs->wait_type;
+  *short_p++ = rs->wait_data;
+  
+  // save pointer to trigger using prev
+  *short_p++ = P_MobjNum(rs->trigger);
+  
+  // count number of variables
+  num_variables = 0;
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      svariable_t *sv = rs->variables[i];
+      while(sv && sv->type != svt_label)
+	{
+	  num_variables++;
+	  sv = sv->next;
+	}
+    }
+  *short_p++ = num_variables;
 
-        short_p = (short *) save_p;
-
-        *short_p++ = rs->script->scriptnum;      // save scriptnum
-        *short_p++ = rs->savepoint - rs->script->data; // offset
-        *short_p++ = rs->timer;        // timer
-                // save pointer to trigger using prev
-        *short_p++ = P_MobjNum(rs->trigger);
-
-                // count number of variables
-        num_variables = 0;
-        for(i=0; i<VARIABLESLOTS; i++)
-        {
-                svariable_t *sv = rs->variables[i];
-                while(sv && sv->type != svt_label)
-                {
-                    num_variables++;
-                    sv = sv->next;
-                }
-        }
-        *short_p++ = num_variables;
-
-        save_p = (char *)short_p;
-
-        // save num_variables
-
-                // store variables
-        // go thru hash chains, store each variable
-        for(i=0; i<VARIABLESLOTS; i++)
-        {
-            // go thru this hashchain
-            svariable_t *sv = rs->variables[i];
-
-                // once we get to a label there can be no more actual
-                // variables in the list to store
-            while(sv && sv->type != svt_label)
-            {
-
-                CheckSaveGame(strlen(sv->name)+10); // 10 for type and safety
-
-                // write svariable: name
-
-                strcpy(save_p, sv->name);
-                save_p += strlen(sv->name) + 1; // 1 extra for ending NULL
+  save_p = (char *)short_p;
+  
+  // save num_variables
+  
+  // store variables
+  // go thru hash chains, store each variable
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      // go thru this hashchain
+      svariable_t *sv = rs->variables[i];
+      
+      // once we get to a label there can be no more actual
+      // variables in the list to store
+      while(sv && sv->type != svt_label)
+	{
+	  
+	  CheckSaveGame(strlen(sv->name)+10); // 10 for type and safety
+	  
+	  // write svariable: name
+	  
+	  strcpy(save_p, sv->name);
+	  save_p += strlen(sv->name) + 1; // 1 extra for ending NULL
                 
-                // type
-                *save_p++ = sv->type;   // store type;
-
-                switch(sv->type)        // store depending on type
-                {
-                    case svt_string:
-                    {
-                        CheckSaveGame(strlen(sv->value.s)+5); // 5 for safety
-                        strcpy(save_p, sv->value.s);
-                        save_p += strlen(sv->value.s) + 1;
-                        break;
-                    }
-                    case svt_int:
-                    {
-                        long *long_p;
-
-                        CheckSaveGame(sizeof(long)+4); 
-                        long_p = (long *) save_p;
-                        *long_p++ = sv->value.i;
-                        save_p = (char *)long_p;
-                        break;
-                    }
-                    case svt_mobj:
-                    {
-                        long *long_p;
-
-                        CheckSaveGame(sizeof(long)+4); 
-                        long_p = (long *) save_p;
-                        *long_p++ = P_MobjNum(sv->value.mobj);
-                        save_p = (char *)long_p;
-                        break;
-                    }
-                        // others do not appear in user scripts
-
-                    default:
-                }
-
-                sv = sv->next;
-            }
-        }
+	  // type
+	  *save_p++ = sv->type;   // store type;
+	  
+	  switch(sv->type)        // store depending on type
+	    {
+	    case svt_string:
+	      {
+		CheckSaveGame(strlen(sv->value.s)+5); // 5 for safety
+		strcpy(save_p, sv->value.s);
+		save_p += strlen(sv->value.s) + 1;
+		break;
+	      }
+	    case svt_int:
+	      {
+		long *long_p;
+		
+		CheckSaveGame(sizeof(long)+4); 
+		long_p = (long *) save_p;
+		*long_p++ = sv->value.i;
+		save_p = (char *)long_p;
+		break;
+	      }
+	    case svt_mobj:
+	      {
+		long *long_p;
+		
+		CheckSaveGame(sizeof(long)+4); 
+		long_p = (long *) save_p;
+		*long_p++ = P_MobjNum(sv->value.mobj);
+		save_p = (char *)long_p;
+		break;
+	      }
+	    // others do not appear in user scripts
+	    
+	    default:
+	    }
+	  
+	  sv = sv->next;
+	}
+    }
 }
 
-        // get the next runningscript
+// get the next runningscript
+
 runningscript_t *P_UnArchiveRunningScript()
 {
-        int i;
-        int scriptnum;
-        int num_variables;
-        runningscript_t *rs;
+  int i;
+  int scriptnum;
+  int num_variables;
+  runningscript_t *rs;
 
-         // create a new runningscript
-        rs = new_runningscript();
+  // create a new runningscript
+  rs = new_runningscript();
+  
+  {
+    short *short_p = (short*) save_p;
+    
+    scriptnum = *short_p++;        // get scriptnum
+    
+    // levelscript?
+    rs->script = scriptnum == -1 ? &levelscript : scripts[scriptnum];
+    
+    // read out offset from save
+    rs->savepoint = rs->script->data + (*short_p++);
+    rs->wait_type = *short_p++;
+    rs->wait_data = *short_p++;
+    // read out trigger thing
+    rs->trigger = P_MobjForNum(*short_p++);
+    
+    // get number of variables
+    num_variables = *short_p++;
 
-        {
-             short *short_p = (short*) save_p;
-
-             scriptnum = *short_p++;        // get scriptnum
-
-                // levelscript?
-             rs->script = scriptnum == -1 ? &levelscript : scripts[scriptnum];
-
-                // read out offset from save
-             rs->savepoint = rs->script->data + (*short_p++);
-             rs->timer = *short_p++;
-                // read out trigger thing
-             rs->trigger = P_MobjForNum(*short_p++);
-
-                // get number of variables
-             num_variables = *short_p++;
-
-             save_p = (char*) short_p;      // restore save_p
-        }
-
-        // read out the variables now (fun!)
-
-        // start with basic script slots/labels
-
-        for(i=0; i<VARIABLESLOTS; i++)
-          rs->variables[i] = rs->script->variables[i];
-
-        for(i=0; i<num_variables; i++)
-        {
-            svariable_t *sv = Z_Malloc(sizeof(svariable_t), PU_LEVEL, 0);
-            int hashkey;
-
-                // name
-            sv->name = Z_Strdup(save_p, PU_LEVEL, 0);
-            save_p += strlen(sv->name) + 1;
-
-            sv->type = *save_p++;
-
-            switch(sv->type)        // read depending on type
-            {
-                case svt_string:
-                {
-                    sv->value.s = Z_Strdup(save_p, PU_LEVEL, 0);
-                    save_p += strlen(sv->value.s) + 1;
-                    break;
-                }
-                case svt_int:
-                {
-                    long *long_p = (long *) save_p;
-                    sv->value.i = *long_p++;
-                    save_p = (char *)long_p;
-                    break;
-                }
-                case svt_mobj:
-                {
-                    long *long_p = (long *) save_p;
-                    sv->value.mobj = P_MobjForNum(*long_p++);
-                    save_p = (char *)long_p;
-                    break;
-                }
-                default:
-            }
-
-             // link in the new variable
-            hashkey = variable_hash(sv->name);
-            sv->next = rs->variables[hashkey];
-            rs->variables[hashkey] = sv;
-        }
-
-        return rs;
+    save_p = (char*) short_p;      // restore save_p
+  }
+  
+  // read out the variables now (fun!)
+  
+  // start with basic script slots/labels
+  
+  for(i=0; i<VARIABLESLOTS; i++)
+    rs->variables[i] = rs->script->variables[i];
+  
+  for(i=0; i<num_variables; i++)
+    {
+      svariable_t *sv = Z_Malloc(sizeof(svariable_t), PU_LEVEL, 0);
+      int hashkey;
+      
+      // name
+      sv->name = Z_Strdup(save_p, PU_LEVEL, 0);
+      save_p += strlen(sv->name) + 1;
+      
+      sv->type = *save_p++;
+      
+      switch(sv->type)        // read depending on type
+	{
+	case svt_string:
+	  {
+	    sv->value.s = Z_Strdup(save_p, PU_LEVEL, 0);
+	    save_p += strlen(sv->value.s) + 1;
+	    break;
+	  }
+	case svt_int:
+	  {
+	    long *long_p = (long *) save_p;
+	    sv->value.i = *long_p++;
+	    save_p = (char *)long_p;
+	    break;
+	  }
+	case svt_mobj:
+	  {
+	    long *long_p = (long *) save_p;
+	    sv->value.mobj = P_MobjForNum(*long_p++);
+	    save_p = (char *)long_p;
+	    break;
+	  }
+	default:
+	}
+      
+      // link in the new variable
+      hashkey = variable_hash(sv->name);
+      sv->next = rs->variables[hashkey];
+      rs->variables[hashkey] = sv;
+    }
+  
+  return rs;
 }
 
         // archive all runningscripts in chain
 void P_ArchiveRunningScripts()
 {
-        long *long_p;
-        runningscript_t *rs;
-        int num_runningscripts = 0;
-
-        // count runningscripts
-        for(rs = runningscripts.next; rs; rs = rs->next)
-                num_runningscripts++;
-
-        CheckSaveGame(sizeof(long));
-
-        // store num_runningscripts
-        long_p = (long *) save_p;
-        *long_p++ = num_runningscripts;
-        save_p = (char *) long_p;        
-
-                // now archive them
-        rs = runningscripts.next;
-        while(rs)
-        {
-          P_ArchiveRunningScript(rs);
-          rs = rs->next;
-        }
-
-        long_p = (long *) save_p;
+  long *long_p;
+  runningscript_t *rs;
+  int num_runningscripts = 0;
+  
+  // count runningscripts
+  for(rs = runningscripts.next; rs; rs = rs->next)
+    num_runningscripts++;
+  
+  CheckSaveGame(sizeof(long));
+  
+  // store num_runningscripts
+  long_p = (long *) save_p;
+  *long_p++ = num_runningscripts;
+  save_p = (char *) long_p;        
+  
+  // now archive them
+  rs = runningscripts.next;
+  while(rs)
+    {
+      P_ArchiveRunningScript(rs);
+      rs = rs->next;
+    }
+  
+  long_p = (long *) save_p;
 }
 
         // restore all runningscripts from save_p
 void P_UnArchiveRunningScripts()
 {
-        runningscript_t *rs;
-        long *long_p;
-        int num_runningscripts;
-        int i;
-
-        // remove all runningscripts first : may have been started
-        // by levelscript on level load
-
-        clear_runningscripts(); 
-
-        // get num_runningscripts
-        long_p = (long *) save_p;
-        num_runningscripts = *long_p++;
-        save_p = (char *) long_p;        
-
-        for(i=0; i<num_runningscripts; i++)
-        {
-                        // get next runningscript
-                rs = P_UnArchiveRunningScript();
-
-                        // hook into chain
-                rs->next = runningscripts.next;
-                rs->prev = &runningscripts;
-                rs->prev->next = rs;
-                if(rs->next)
-                  rs->next->prev = rs;
-        }
+  runningscript_t *rs;
+  long *long_p;
+  int num_runningscripts;
+  int i;
+  
+  // remove all runningscripts first : may have been started
+  // by levelscript on level load
+  
+  clear_runningscripts(); 
+  
+  // get num_runningscripts
+  long_p = (long *) save_p;
+  num_runningscripts = *long_p++;
+  save_p = (char *) long_p;        
+  
+  for(i=0; i<num_runningscripts; i++)
+    {
+      // get next runningscript
+      rs = P_UnArchiveRunningScript();
+      
+      // hook into chain
+      rs->next = runningscripts.next;
+      rs->prev = &runningscripts;
+      rs->prev->next = rs;
+      if(rs->next)
+	rs->next->prev = rs;
+    }
 }
 
 /******************** save spawnedthings *****************/
 
 void P_ArchiveSpawnedThings()
 {
-        int i;
-        long *long_p;
-
-        CheckSaveGame(sizeof(long) * numthings); // killough
-
-        long_p = (long *) save_p;
-
-        for(i=0; i<numthings; i++)
-        {
-           *long_p++ = P_MobjNum(spawnedthings[i]);       // store it
-        }
-
-        save_p = (char *) long_p;       // restore save_p
+  int i;
+  long *long_p;
+  
+  CheckSaveGame(sizeof(long) * numthings); // killough
+  
+  long_p = (long *) save_p;
+  
+  for(i=0; i<numthings; i++)
+    {
+      *long_p++ = P_MobjNum(spawnedthings[i]);       // store it
+    }
+  
+  save_p = (char *) long_p;       // restore save_p
 }
 
 void P_UnArchiveSpawnedThings()
 {
-        long *long_p;
-        int i;
-
-        // restore spawnedthings
-        long_p = (long *) save_p;
-
-        for(i=0; i<numthings; i++)
-        {
-           spawnedthings[i] = P_MobjForNum(*long_p++);
-        }
-
-        save_p = (char *) long_p;       // restore save_p
+  long *long_p;
+  int i;
+  
+  // restore spawnedthings
+  long_p = (long *) save_p;
+  
+  for(i=0; i<numthings; i++)
+    {
+      spawnedthings[i] = P_MobjForNum(*long_p++);
+    }
+  
+  save_p = (char *) long_p;       // restore save_p
 }
 
         /*************** main script saving functions ************/
 
 void P_ArchiveScripts()
 {
-                // save thing list
-        P_ArchiveSpawnedThings();
+  // save thing list
+  P_ArchiveSpawnedThings();
+ 
+  // save levelscript
+  P_ArchiveLevelScript();
 
-                // save levelscript
-        P_ArchiveLevelScript();
-
-                // save runningscripts
-        P_ArchiveRunningScripts();
+  // save runningscripts
+  P_ArchiveRunningScripts();
 }
 
 void P_UnArchiveScripts()
 {
-                // get thing list
-        P_UnArchiveSpawnedThings();
+  // get thing list
+  P_UnArchiveSpawnedThings();
 
-                // restore levelscript
-        P_UnArchiveLevelScript();
+  // restore levelscript
+  P_UnArchiveLevelScript();
 
-                // restore runningscripts
-        P_UnArchiveRunningScripts();
+  // restore runningscripts
+  P_UnArchiveRunningScripts();
 }
 
 

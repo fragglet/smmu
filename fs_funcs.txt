@@ -2,7 +2,6 @@
 //    Doom FraggleScript functions.
 //      subject to change. functions marked with '*' not yet implemeted
 
-
 //      Standard functions:
 
 break()                 -- jump out of current loop
@@ -16,8 +15,13 @@ rnd()                   -- return a random number from 0 to 255
 input()                 -- get input from the user (not implemented in doom)
 beep()                  -- make a beeping sound
 clock()                 -- get the current time (100 clocks = 1 second)
-wait(n)                 -- delay for n clocks
 startscript(scriptnum)  -- start off a new instance of a script
+
+// Wait functions
+
+wait(n)                 -- delay for n clocks (1 clock = 1/100 second)
+tagwait(n)              -- wait for all sectors w/tag n to stop moving
+scriptwait(n)           -- wait for all instances of script n to finish
 
 //      player:         (some functions default to triggering player)
 //              eg. 
@@ -48,9 +52,11 @@ lightlevel(sectag) -- get lightlevel
 lightlevel(sectag, newval)     -- set lightlevel
 fadelight(sectag, newval, [speed]) -- fade lightlevel to new value
 
+colormap(sectag)               -- get colormap used in sector
+colormap(sectag, newmap)       -- set colormap in sector
+
 *special                       -- get/set special sector type
 *friction                      -- get/set sector friction
-*colormap                      -- get/set sector colormap
 
 //      mobj:   (defaults to trigger object on some funcs)
 
@@ -86,8 +92,13 @@ clearcamera()              -- switch off camera
 //      levels:
 
 exitlevel()                -- same as console command
+changehublevel(levelname, sectag)
+                           -- go to another level in the hub
+                              levelname: level to go to
+                              sectag: must have sector in both levels of the
+                                      same shape and with this tag
+                                      for 'seamless' movement between levels
 *changelevel               -- like 'map' command
-//        (hub functions todo..)
 
 //      sound: (lump is string w/o 'ds' eg. "frad" = DSFRAD lump)
 

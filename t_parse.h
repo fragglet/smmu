@@ -123,5 +123,6 @@ extern int bracetype;
 // FraggleScript variables/functions
 
 extern script_t global_script; 
+extern script_t hub_script;
 
 #endif

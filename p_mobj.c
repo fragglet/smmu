@@ -726,7 +726,6 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
   P_AddThinker(&mobj->thinker);
 
   mobj->colour = (info->flags & MF_TRANSLATION) >> MF_TRANSSHIFT;
-  mobj->colour = 0;
 
   return mobj;
 }

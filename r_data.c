@@ -39,9 +39,9 @@ rcsid[] = "$Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $";
 
 static void R_LoadDoom1();
 static int R_Doom1Texture(const char *name);
-void error_printf(char *s, ...);
-FILE *error_file = NULL;
-char *error_filename;
+static void error_printf(char *s, ...);
+static FILE *error_file = NULL;
+static char *error_filename;
 
 //
 // Graphics.
@@ -869,12 +869,12 @@ void R_InitTranMap(int progress)
         }
       else
 	if (progress)
-        {
-           int i;
-           for(i=0; i<8; i++)
-                V_LoadingIncrease();    // 8 '.'s
-        }
-
+	  {
+	    int i;
+	    for(i=0; i<8; i++)
+	      V_LoadingIncrease();    // 8 '.'s
+	  }
+      
       if (cachefp)              // killough 11/98: fix filehandle leak
 	fclose(cachefp);
 
@@ -898,6 +898,15 @@ void R_InitData(void)
   R_InitSpriteLumps();
   if (general_translucency)             // killough 3/1/98, 10/98
     R_InitTranMap(1);          // killough 2/21/98, 3/6/98
+  else
+    {
+      // sf: fill in dots missing from no translucency build
+      int i;
+      for(i=0; i<8; i++)
+	V_LoadingIncrease();    // 8 '.'s
+    }
+  
+  
   R_LoadDoom1();
 }
 
@@ -914,14 +923,14 @@ int R_FlatNumForName(const char *name)    // killough -- const added
 {
   int i = (W_CheckNumForName)(name, ns_flats);
   if (i == -1)
-  {
-    if(!level_error)
     {
-        C_Printf("R_FlatNumForName: %.8s not found\n", name);
-        level_error = true;
+      if(!level_error)
+	{
+	  C_Printf("R_FlatNumForName: %.8s not found\n", name);
+	  level_error = true;
+	}
+      return -1;
     }
-    return -1;
-  }
   return i - firstflat;
 }
 
@@ -1063,48 +1072,48 @@ void R_PrecacheLevel(void)
 
 void R_FreeData()
 {
-        int i;
+  int i;
 
-//        for(i=0;i<numcolormaps;i++)
-  //              Z_Free(colormaps[i]);
+  //  for(i=0;i<numcolormaps;i++)
+  //    Z_Free(colormaps[i]);
 
-    //    Z_Free(colormaps);
-
-        for(i=0;i<numtextures;i++)
-        {
-                Z_Free(textures[i]);
-                Z_Free(texturecolumnofs[i]);
-                Z_Free(texturecolumnlump[i]);
-        }
-        Z_Free(textures);
-        Z_Free(texturecolumnofs);
-        Z_Free(texturecolumnlump);
-        Z_Free(texturecomposite);
-        Z_Free(texturecompositesize);
-        Z_Free(textureheight);
-        Z_Free(texturetranslation);
-        Z_Free(texturewidthmask);
-
-        Z_Free(spritewidth);
-        Z_Free(spriteoffset);
-        Z_Free(spritetopoffset);
-
-        Z_Free(flattranslation);
-
-        Z_Free(main_tranmap);
+  //  Z_Free(colormaps);
+  
+  for(i=0;i<numtextures;i++)
+    {
+      Z_Free(textures[i]);
+      Z_Free(texturecolumnofs[i]);
+      Z_Free(texturecolumnlump[i]);
+    }
+  Z_Free(textures);
+  Z_Free(texturecolumnofs);
+  Z_Free(texturecolumnlump);
+  Z_Free(texturecomposite);
+  Z_Free(texturecompositesize);
+  Z_Free(textureheight);
+  Z_Free(texturetranslation);
+  Z_Free(texturewidthmask);
+	
+  Z_Free(spritewidth);
+  Z_Free(spriteoffset);
+  Z_Free(spritetopoffset);
+  
+  Z_Free(flattranslation);
+  
+  Z_Free(main_tranmap);
 }
 
 /********************************
         Doom I texture conversion
  *********************************/
 
- // convert old doom I levels so they will
- // work under doom II
+// convert old doom I levels so they will
+// work under doom II
 
 typedef struct
 {
-        char *doom1;
-        char *doom2;
+  char *doom1;
+  char *doom2;
 } doom1text_t;
 
 doom1text_t txtrconv[256];
@@ -1115,82 +1124,86 @@ int numconvs = 0;
 
 static void R_LoadDoom1Parse(char *line)
 {
-
-        while(*line == ' ') line++;
-        if(line[0] == ';') return;      // comment
-        if(!*line || *line<32) return;      // empty line
-
-        if(!txtrconv[numconvs].doom1)
-        {
-                memset(txtrconv[numconvs].doom1 = malloc(9), 0, 9);
-                memset(txtrconv[numconvs].doom2 = malloc(9), 0, 9);
-        }
-        strncpy(txtrconv[numconvs].doom1, line, 8);
-         RemoveEndSpaces(txtrconv[numconvs].doom1);
-        strncpy(txtrconv[numconvs].doom2, line+9, 8);
-         RemoveEndSpaces(txtrconv[numconvs].doom2);
-
-        numconvs++;
+  while(*line == ' ') line++;
+  if(line[0] == ';') return;      // comment
+  if(!*line || *line<32) return;      // empty line
+  
+  if(!txtrconv[numconvs].doom1)
+    {
+      memset(txtrconv[numconvs].doom1 = malloc(9), 0, 9);
+      memset(txtrconv[numconvs].doom2 = malloc(9), 0, 9);
+    }
+  strncpy(txtrconv[numconvs].doom1, line, 8);
+  RemoveEndSpaces(txtrconv[numconvs].doom1);
+  strncpy(txtrconv[numconvs].doom2, line+9, 8);
+  RemoveEndSpaces(txtrconv[numconvs].doom2);
+  
+  numconvs++;
 }
 
 static void R_LoadDoom1()
 {
-        char *lump;
-        char *startofline, *rover;
-        int ll, lumpnum;
+  char *lump;
+  char *startofline, *rover;
+  int ll, lumpnum;
+  
+  if((lumpnum = W_CheckNumForName("TXTRCONV")) == -1)
+    return;
+  
+  lump = W_CacheLumpNum(lumpnum, PU_STATIC);
+  
+  ll = W_LumpLength(lumpnum);
+  
+  startofline = rover = lump;
+  numconvs = 0;
+  
+  while(rover < lump+ll)
+    {
+      if(*rover == '\n') // newline
+	{
+	  *rover = 0;
+	  R_LoadDoom1Parse(startofline);
+	  *rover = '\n';
+	  startofline = rover+1;
+	}
+      // replace control characters with spaces
+      if(*rover < ' ') *rover = ' ';
+      rover++;
+    }
+  R_LoadDoom1Parse(startofline);  // parse the last line
+  
+  // _must_ be freed, not changetagged, as the
+  // lump has changed slightly and may not work
+  // if this has to be loaded again
 
-        if((lumpnum = W_CheckNumForName("TXTRCONV")) == -1)
-                return;
-
-        lump = W_CacheLumpNum(lumpnum, PU_STATIC);
-
-        ll = W_LumpLength(lumpnum);
-
-        startofline = rover = lump;
-        numconvs = 0;
-
-        while(rover < lump+ll)
-        {
-                if(*rover == '\n') // newline
-                {
-                        *rover = 0;
-                        R_LoadDoom1Parse(startofline);
-                        *rover = '\n';
-                        startofline = rover+1;
-                }
-                        // replace control characters with spaces
-                if(*rover < ' ') *rover = ' ';
-                rover++;
-        }
-        R_LoadDoom1Parse(startofline);  // parse the last line
-
-        Z_Free(lump);   // _must_ be freed, not changetagged, as the
-                        // lump has changed slightly and may not work
-                        // if this has to be loaded again
+  Z_Free(lump);   
 }
 
 static int R_Doom1Texture(const char *name)
 {
-        int i;
+  int i;
 
-        // slow i know; should be hash tabled
-
-        for(i=0; i<numconvs; i++)
-        {
-                if(!strncasecmp(name, txtrconv[i].doom1, 8))   // found it
-                {
-                   doom1level = true;
-                   return R_CheckTextureNumForName(txtrconv[i].doom2);
-                }
-        }
-
-        return -1;
+  // slow i know; should be hash tabled
+  // mind you who cares? it's only going to be
+  // used by a few people and only at the start of 
+  // the level
+  
+  for(i=0; i<numconvs; i++)
+    {
+      if(!strncasecmp(name, txtrconv[i].doom1, 8))   // found it
+	{
+	  doom1level = true;
+	  return R_CheckTextureNumForName(txtrconv[i].doom2);
+	}
+    }
+  
+  return -1;
 }
 
 // sf: error printf
 // for use w/graphical startup
 
-void error_printf(char *s, ...)
+static void error_printf(char *s, ...)
 {
   static char tmp[1024];
   va_list v;

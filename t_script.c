@@ -17,6 +17,7 @@
 #include "d_net.h"
 #include "p_info.h"
 #include "p_mobj.h"
+#include "p_spec.h"
 #include "w_wad.h"
 #include "z_zone.h"
 
@@ -70,7 +71,7 @@ void T_ClearScripts()
   levelscript.data[0] = NULL;
   
   levelscript.scriptnum = -1;
-  levelscript.parent = &global_script;
+  levelscript.parent = &hub_script;
 
   // clear levelscript variables
   
@@ -176,6 +177,47 @@ static void free_runningscript(runningscript_t *runscr)
   freelist = runscr;
 }
 
+static boolean wait_finished(runningscript_t *script)
+{
+  switch(script->wait_type)
+    {
+    case wt_none: return true;        // uh? hehe
+    case wt_scriptwait:               // waiting for script to finish
+      {
+	runningscript_t *current;
+	for(current = runningscripts.next; current; current = current->next)
+	  {
+	    if(current == script) continue;  // ignore this script
+	    if(current->script->scriptnum == script->wait_data)
+	      return false;        // script still running
+	  }
+	return true;        // can continue now
+      }
+
+    case wt_delay:                          // just count down
+      {
+	return --script->wait_data <= 0;
+      }
+    
+    case wt_tagwait:
+      {
+	int secnum = -1;
+
+	while ((secnum = P_FindSectorFromTag(script->wait_data, secnum)) >= 0)
+	  {
+	    sector_t *sec = &sectors[secnum];
+	    if(sec->floordata || sec->ceilingdata || sec->lightingdata)
+	      return false;        // not finished
+	  }
+	return true;
+      }
+
+    default: return true;
+    }
+
+  return false;
+}
+
 void T_DelayedScripts()
 {
   runningscript_t *current, *next;
@@ -187,7 +229,7 @@ void T_DelayedScripts()
   
   while(current)
     {
-      if(--current->timer <= 0)
+      if(wait_finished(current))
 	{
 	  // copy out the script variables from the
 	  // runningscript_t
@@ -214,23 +256,17 @@ void T_DelayedScripts()
                 
 }
 
-// script function
-
-void SF_Wait()
+static runningscript_t *T_SaveCurrentScript()
 {
   runningscript_t *runscr;
   int i;
 
-  if(t_argc != 1)
-    {
-      script_error("incorrect arguments to function\n");
-      return;
-    }
-
   runscr = new_runningscript();
   runscr->script = current_script;
   runscr->savepoint = rover;
-  runscr->timer = (intvalue(t_argv[0]) * 35) / 100;
+
+  // leave to other functions to set wait_type: default to wt_none
+  runscr->wait_type = wt_none;
 
   // hook into chain at start
   
@@ -256,6 +292,60 @@ void SF_Wait()
   runscr->trigger = current_script->trigger;      // save trigger
   
   killscript = true;      // stop the script
+
+  return runscr;
+}
+
+// script function
+
+void SF_Wait()
+{
+  runningscript_t *runscr;
+
+  if(t_argc != 1)
+    {
+      script_error("incorrect arguments to function\n");
+      return;
+    }
+
+  runscr = T_SaveCurrentScript();
+
+  runscr->wait_type = wt_delay;
+  runscr->wait_data = (intvalue(t_argv[0]) * 35) / 100;
+}
+
+// wait for sector with particular tag to stop moving
+void SF_TagWait()
+{
+  runningscript_t *runscr;
+
+  if(t_argc != 1)
+    {
+      script_error("incorrect arguments to function\n");
+      return;
+    }
+
+  runscr = T_SaveCurrentScript();
+
+  runscr->wait_type = wt_tagwait;
+  runscr->wait_data = intvalue(t_argv[0]);
+}
+
+// wait for a script to finish
+void SF_ScriptWait()
+{
+  runningscript_t *runscr;
+
+  if(t_argc != 1)
+    {
+      script_error("incorrect arguments to function\n");
+      return;
+    }
+
+  runscr = T_SaveCurrentScript();
+
+  runscr->wait_type = wt_scriptwait;
+  runscr->wait_data = intvalue(t_argv[0]);
 }
 
 extern mobj_t *trigger_obj;           // in t_func.c
@@ -281,7 +371,7 @@ void SF_StartScript()
   runscr = new_runningscript();
   runscr->script = scripts[snum];
   runscr->savepoint = scripts[snum]->data; // start at beginning
-  runscr->timer = 1;      // start straight away
+  runscr->wait_type = wt_none;      // start straight away
 
   // hook into chain at start
   
@@ -309,6 +399,35 @@ void SF_StartScript()
 
 }
 
+void SF_ScriptRunning()
+{
+  runningscript_t *current;
+  int snum;
+
+  if(t_argc < 1)
+    {
+      script_error("not enough arguments to function\n");
+      return;
+    }
+
+  snum = intvalue(t_argv[0]);
+  
+  for(current=runningscripts.next; current; current=current->next)
+    {
+      if(current->script->scriptnum == snum)
+	{
+	  // script found so return
+	  t_return.type = svt_int;
+	  t_return.value.i = 1;
+	  return;
+	}
+    }
+
+  // script not found
+  t_return.type = svt_int;
+  t_return.value.i = 0;
+}
+
 // running scripts
 
 CONSOLE_COMMAND(t_running, 0)
@@ -324,8 +443,25 @@ CONSOLE_COMMAND(t_running, 0)
   
   while(current)
     {
-      C_Printf("%i: T-%i tics\n", current->script->scriptnum,
-	       current->timer);
+      C_Printf("%i:", current->script->scriptnum);
+      switch(current->wait_type)
+	{
+	case wt_none:
+	  C_Printf("waiting for nothing?\n");
+	  break;
+	case wt_delay:
+	  C_Printf("delay %i tics\n", current->wait_data);
+	  break;
+	case wt_tagwait:
+	  C_Printf("waiting for tag %i\n", current->wait_data);
+	  break;
+	case wt_scriptwait:
+	  C_Printf("waiting for script %i\n", current->wait_data);
+	  break;
+	default:
+	  C_Printf("unknown wait type \n");
+	  break;
+	}
       current = current->next;
     }
 }

@@ -1,23 +1,13 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
 //
-// $Id: m_menu.h,v 1.4 1998/05/16 09:17:18 killough Exp $
+// Menu engine.
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// All the main functions of the menu
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
+// By Simon Howard
 //
-// The source is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// DESCRIPTION:
-//   Menu widget stuff, episode selection and such.
-//    
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
 #ifndef __MN_MENU__
 #define __MN_MENU__
@@ -27,16 +17,9 @@
 
 typedef struct menu_s menu_t;
 typedef struct menuitem_s menuitem_t;
+typedef struct menuwidget_s menuwidget_t;
 
-
-//
-// MENUS
-//
-// Called by main loop,
-// saves config file and calls I_Quit when user exits.
-// Even when the menu is not displayed,
-// this can resize the view and change game parameters.
-// Does all the real work of the menu interaction.
+// responder for events
 
 boolean MN_Responder (event_t *ev);
 
@@ -48,6 +31,7 @@ void MN_Ticker (void);
 // Called by main loop,
 // draws the menus directly into the screen buffer.
 
+void MN_DrawMenu(menu_t *menu);
 void MN_Drawer (void);
 
 // Called by D_DoomMain,
@@ -139,6 +123,27 @@ struct menu_s
   } flags;               
   void (*drawer)();       // seperate drawer function 
 };
+
+// menu 'widgets':
+// A structured way for the menu to display things
+// other than the usual menus
+//
+// if current_menuwidget is not NULL, the drawer in
+// the menuwidget pointed to by it is called by
+// MN_Drawer. Also events caught by MN_Responder are
+// sent to current_menuwidget->responder
+
+struct menuwidget_s
+{
+  void (*drawer)();
+  boolean (*responder)(event_t *ev);
+};
+
+extern menu_t *current_menu;                  // current menu being drawn
+extern menuwidget_t *current_menuwidget;      // current widget being drawn
+
+// size of automap colour blocks
+#define BLOCK_SIZE 9
 
 void MN_ErrorMsg(char *s, ...);
 

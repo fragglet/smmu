@@ -28,7 +28,6 @@
 #include "w_wad.h"
 #include "v_video.h"
 
-
 #define SKULL_HEIGHT 19
 #define BLINK_TIME 8
 #define MENU_HISTORY 128
@@ -37,9 +36,9 @@
 #define background_flat "FLOOR4_8"
 
 // colours
-#define unselect_colour                 CR_RED
-#define select_colour                   CR_GRAY
-#define var_colour                      CR_GREEN
+int unselect_colour =   CR_RED;
+int select_colour   =   CR_GRAY;
+int var_colour      =   CR_GREEN;
 
 boolean menuactive = false;             // menu active?
 menu_t *current_menu;   // the current menu_t being displayed
@@ -62,8 +61,11 @@ char menu_error_message[128];
 int menu_error_time = 0;
 
 int hide_menu = 0;      // hide the menu for a duration of time
-
 int menutime = 0;
+
+// menu widget for alternate
+// drawer + responder
+menuwidget_t *current_menuwidget = NULL; 
 
 patch_t *skulls[2];
 
@@ -85,6 +87,8 @@ static command_t *input_command = NULL;       // NULL if not typing in
 static char input_buffer[128] = "";
 
 /******** functions **********/
+
+static menu_t *drawing_menu;
 
         // init menu
 void MN_Init()
@@ -236,9 +240,6 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour,
 
 	MN_GetItemVariable(item);
 	
-	// adjust colour for different coloured variables
-	if(colour == unselect_colour) colour = var_colour;
-	
 	// create variable description:
 	// Use console variable descriptions.
 	
@@ -247,13 +248,21 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour,
           sprintf(varvalue, "%s_", input_buffer);
 	else
           strcpy(varvalue, C_VariableStringValue(item->var));
-	
+
+	if(drawing_menu->flags & mf_background)
+	  {
+	    // include gap on fullscreen menus
+	    x += GAP;
+	    // adjust colour for different coloured variables
+	    if(colour == unselect_colour) colour = var_colour;
+	  }
+
         // draw it
         MN_WriteTextColoured
 	  (
 	   varvalue,
            colour,
-           x + GAP + (leftaligned ? MN_StringWidth(item->description) : 0),
+           x + (leftaligned ? MN_StringWidth(item->description) : 0),
 	   y
 	   );
 	break;
@@ -283,10 +292,9 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour,
 
     case it_automap:
       {
-#define BLOCK_SIZE 9
-	char block[BLOCK_SIZE*BLOCK_SIZE];
 	int bx, by;
 	int colour;
+	char block[BLOCK_SIZE*BLOCK_SIZE];
 	
 	MN_GetItemVariable(item);
 
@@ -296,20 +304,28 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour,
 	colour = *(int *)item->var->variable;
 
 	// create block
-
 	// border
 	memset(block, 0, BLOCK_SIZE*BLOCK_SIZE);
-
-	// middle
-	for(bx=1; bx<BLOCK_SIZE-1; bx++)
-	  for(by=1; by<BLOCK_SIZE-1; by++)
-	    block[by*BLOCK_SIZE+bx] = colour;
-
+	    
+	if(colour)
+	  {	
+	    // middle
+	    for(bx=1; bx<BLOCK_SIZE-1; bx++)
+	      for(by=1; by<BLOCK_SIZE-1; by++)
+		block[by*BLOCK_SIZE+bx] = colour;
+	  }
 	// draw it
-
+	
 	V_DrawBlock(x+GAP, y-1, 0, BLOCK_SIZE, BLOCK_SIZE, block);
-      }
-    
+	
+	if(!colour)
+	  {
+	    // draw patch w/cross
+	    V_DrawPatch(x+GAP+1, y, 0, W_CacheLumpName("M_PALNO", PU_CACHE));
+	  }
+	
+      }    
+
     default:
       {
         break;
@@ -320,15 +336,18 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour,
 }
 
         // draw a menu
-static void MN_DrawMenu(menu_t *menu)
+void MN_DrawMenu(menu_t *menu)
 {
   int y;
   int itemnum;
+  char *helpmsg = "";
   
   if(menu->flags & mf_background) // draw background
     MN_DrawBackground(background_flat, screens[0]);
   
   if(menu->drawer) menu->drawer();
+
+  drawing_menu = menu;
   
   y = menu->y;
   
@@ -337,8 +356,8 @@ static void MN_DrawMenu(menu_t *menu)
       int item_height;
       // choose item colour based on selected item
       int item_colour =
-	menu->selected == itemnum && !(menu->flags & mf_skullmenu) ?
-	select_colour : unselect_colour;
+	menu->selected == itemnum &&
+	!(menu->flags & mf_skullmenu) ?	select_colour : unselect_colour;
       
       // if skull menu, left aligned
       item_height =
@@ -362,27 +381,9 @@ static void MN_DrawMenu(menu_t *menu)
       
       y += item_height;            // go down by item height
     }
-}
 
-        // drawer
-void MN_Drawer()
-{
-  char *helpmsg = "";
-  
-  // redraw needed if menu hidden
-  if(hide_menu) redrawsbar = redrawborder = true;
-  
-  if(!menuactive || hide_menu) return;
-  
-      // display popup messages
-  if(popup_message_active)
-    {
-      MN_PopupDrawer();
-      return;
-    }
+  if(menu->flags & mf_skullmenu) return; // no help msg in skull menu
 
-  MN_DrawMenu(current_menu);
-  
   // choose help message to print
   
   if(menu_error_time)             // error message takes priority
@@ -390,8 +391,7 @@ void MN_Drawer()
   else
     {
       // write some help about the item
-      menuitem_t *menuitem =
-	&current_menu->menuitems[current_menu->selected];
+      menuitem_t *menuitem = &menu->menuitems[menu->selected];
       
       if(menuitem->type == it_variable)       // variable
 	helpmsg = "press enter to change";
@@ -407,7 +407,28 @@ void MN_Drawer()
 	    helpmsg = "use left/right to change value";
 	}
     }
+
   MN_WriteTextColoured(helpmsg, CR_GOLD, 10, 192);
+}
+
+        // drawer
+void MN_Drawer()
+{ 
+  // redraw needed if menu hidden
+  if(hide_menu) redrawsbar = redrawborder = true;
+  // activate menu if displaying widget
+  if(current_menuwidget) menuactive = true; 
+  if(!menuactive || hide_menu) return;
+
+  if(current_menuwidget)
+    {
+      // alternate drawer
+      if(current_menuwidget->drawer)
+	current_menuwidget->drawer();
+      return;
+    }
+ 
+  MN_DrawMenu(current_menu);  
 }
 
         // whether a menu item is a 'gap' item
@@ -435,13 +456,17 @@ boolean MN_TempResponder(unsigned char key)
     }
   if(key == key_hud)
     {
-      HU_OverlayStyle();
+      C_RunTextCmd("hu_overlaystyle /");
+      return true;
+    }
+  if(key == key_help)
+    {
+      C_RunTextCmd("help");
       return true;
     }
   return false;
 }
                 
-
         // responder
 boolean MN_Responder (event_t *ev)
 {
@@ -451,10 +476,12 @@ boolean MN_Responder (event_t *ev)
   if(ev->type != ev_keydown)
     return false;   // no use for it
 
-  // are we displaying a pop-up message?
+  // are we displaying an alternate menu widget?
 
-  if(popup_message_active)
-    return MN_PopupResponder(ev);
+  if(current_menuwidget)
+    return
+      current_menuwidget->responder ?
+      current_menuwidget->responder(ev) : false;
 
   // are we inputting a new value into a variable?
   
@@ -468,18 +495,16 @@ boolean MN_Responder (event_t *ev)
       if(ev->data1 == KEYD_ENTER && input_buffer[0])
 	{
 	  char *temp;
-	  // place " marks round the string for the console
-	  // ugh.
 	  temp = strdup(input_buffer);
 	  sprintf(input_buffer, "\"%s\"", temp);
 	  free(temp);
-	  
+
 	  // set the command
-	  cmdtype = c_typed;
+	  cmdtype = c_menu;
 	  C_RunCommand(input_command, input_buffer);
-	  input_command = false;
+	  input_command = NULL;
 	}
-      
+
       // check for backspace
       if(ev->data1 == KEYD_BACKSPACE && input_buffer[0])
 	input_buffer[strlen(input_buffer)-1] = 0;
@@ -488,7 +513,9 @@ boolean MN_Responder (event_t *ev)
       
       // only care about valid characters
       // dont allow too many characters on one command line
-      if(ch > 31 && ch < 127 && strlen(input_buffer) < 126)
+      if(ch > 31 && ch < 127 && strlen(input_buffer) < 126
+	 && (input_command->variable->type != vt_string ||
+	     strlen(input_buffer) < input_command->variable->max))
 	sprintf(input_buffer, "%s%c", input_buffer, ch);
       
       return true;
@@ -510,6 +537,8 @@ boolean MN_Responder (event_t *ev)
       else MN_StartControlPanel();
       
       S_StartSound(NULL, menuactive ? sfx_swtchn : sfx_swtchx);
+
+      return true;
     }
 
   if(MN_TempResponder(ev->data1)) return true;
@@ -592,6 +621,16 @@ boolean MN_Responder (event_t *ev)
 	    input_command = C_GetCmdForName(menuitem->data);
 	    input_buffer[0] = 0;             // clear input buffer
 	    break;
+	  }
+
+	case it_automap:
+	  {
+	    menuitem_t *menuitem =
+	      &current_menu->menuitems[current_menu->selected];
+
+	    MN_SelectColour(menuitem->data);
+
+	    return true;
 	  }
 	
 	default: break;
@@ -770,6 +809,7 @@ void MN_ErrorMsg(char *s, ...)
 }
 
 extern void MN_AddMenus();              // mn_menus.c
+extern void MN_AddMiscCommands();       // mn_misc.c
 
 void MN_AddCommands()
 {
@@ -777,6 +817,7 @@ void MN_AddCommands()
   C_AddCommand(mn_prevmenu);
 
   MN_AddMenus();               // add commands to call the menus
+  MN_AddMiscCommands();
 }
 
 /////////////////////////////
@@ -868,35 +909,6 @@ void MN_DrawDistortedBackground(char* patchname, byte *back_dest)
 	  memcpy (back_dest,back_src+((y & 63)<<6),64);
 	  back_dest += 64;
 	}
-}
-
-void MN_DrawCredits(void)     // killough 10/98: credit screen
-{
-  inhelpscreens = true;
-
-        // sf: altered for SMMU
-
-  MN_DrawDistortedBackground(gamemode==commercial ? "SLIME05" : "LAVA1",
-                                screens[0]);
-
-        // sf: SMMU credits
-  V_WriteText(
-	      FC_GRAY "SMMU:" FC_RED " \"Smack my marine up\"\n"
-	      "\n"
-	      "Port by Simon Howard 'Fraggle'\n"
-	      "\n"
-	      "Based on the MBF port by Lee Killough\n"
-	      "\n"
-	      FC_GRAY "Programming:" FC_RED " Simon Howard\n"
-	      FC_GRAY "Graphics:" FC_RED " Bob Satori\n"
-	      FC_GRAY "Level editing/start map:" FC_RED " Derek MacDonald\n"
-	      "\n"
-	      "\n"
-	      "Copyright(C) 1999 Simon Howard\n"
-	      FC_GRAY"         http://fraggle.tsx.org/",
-	      10, 60);
-
-
 }
 
         // activate main menu

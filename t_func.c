@@ -28,6 +28,7 @@
 #include "p_mobj.h"
 #include "p_tick.h"
 #include "p_spec.h"
+#include "p_hubs.h"
 #include "p_inter.h"
 #include "r_data.h"
 #include "r_main.h"
@@ -90,8 +91,8 @@ void SF_Rnd()
   t_return.value.i = P_Random(pr_script);
 }
 
-        // looping section. using the rover, find the highest level
-        // loop we are currently in and return the section_t for it.
+// looping section. using the rover, find the highest level
+// loop we are currently in and return the section_t for it.
 
 section_t *looping_section()
 {
@@ -357,7 +358,10 @@ void SF_PlayerObj()
 }
 
 extern void SF_StartScript();      // in t_script.c
+extern void SF_ScriptRunning();
 extern void SF_Wait();
+extern void SF_TagWait();
+extern void SF_ScriptWait();
 
 /*********** Mobj code ***************/
 
@@ -1084,6 +1088,8 @@ void SF_CeilingTexture()
 
 void SF_ChangeHubLevel()
 {
+  int tagnum;
+
   if(!t_argc)
     {
       script_error("hub level to go to not specified!\n");
@@ -1094,7 +1100,31 @@ void SF_ChangeHubLevel()
       script_error("level argument is not a string!\n");
       return;
     }
+
+  // second argument is tag num for 'seamless' travel
+  if(t_argc > 1)
+    tagnum = intvalue(t_argv[1]);
+  else
+    tagnum = -1;
+
+  P_SavePlayerPosition(current_script->trigger->player, tagnum);
   P_HubChangeLevel(t_argv[0].value.s);
+}
+
+// for start map: start new game on a particular skill
+void SF_StartSkill()
+{
+  int skill;
+
+  if(t_argc < 1) 
+    { script_error("need skill level to start on\n"); return;}
+
+  // -1: 1-5 is how we normally see skills
+  // 0-4 is how doom sees them
+
+  skill = intvalue(t_argv[0]) - 1;
+
+  G_DeferedInitNew(skill, firstlevel);
 }
 
         /************* init_functions *******************/
@@ -1121,9 +1151,13 @@ void init_functions()
   new_function("beep", SF_Beep);
   new_function("clock", SF_Clock);
   new_function("wait", SF_Wait);
+  new_function("tagwait", SF_TagWait);
+  new_function("scriptwait", SF_ScriptWait);
   new_function("startscript", SF_StartScript);
+  new_function("scriptrunning", SF_ScriptRunning);
   
   // doom stuff
+  new_function("startskill", SF_StartSkill);
   new_function("exitlevel", SF_ExitLevel);
   new_function("tip", SF_Tip);
   new_function("message", SF_Message);

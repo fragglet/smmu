@@ -16,6 +16,7 @@
 #include "z_zone.h"
 
 #include "t_parse.h"
+#include "t_spec.h"
 #include "t_vari.h"
 
 int find_operator(int start, int stop, char *value);
@@ -146,11 +147,12 @@ void spec_for()                 // for() loop
 /**************************** Variable Creation ****************************/
 
 int newvar_type;
+script_t *newvar_script;
 
 // called for each individual variable in a statement
 //  newvar_type must be set
 
-void create_variable(int start, int stop)
+static void create_variable(int start, int stop)
 {
   if(killscript) return;
   
@@ -163,10 +165,10 @@ void create_variable(int start, int stop)
   
   // check if already exists, only checking
   // the current script
-  if( variableforname(current_script, tokens[start]) )
+  if( variableforname(newvar_script, tokens[start]) )
     return;  // already one
   
-  new_variable(current_script, tokens[start], newvar_type);
+  new_variable(newvar_script, tokens[start], newvar_type);
   
   if(stop != start) evaluate_expression(start, stop);
 }
@@ -174,9 +176,9 @@ void create_variable(int start, int stop)
 // divide a statement (without type prefix) into individual
 // variables to be create them using create_variable
 
-void parse_var_line(start)
+static void parse_var_line(int start)
 {
-  int starttoken = 1, endtoken;   // start on second token(1)
+  int starttoken = start, endtoken;
   
   while(1)
     {
@@ -190,45 +192,56 @@ void parse_var_line(start)
   create_variable(starttoken, num_tokens-1);
 }
 
-// these functions merely set newvar_type, strip the prefix
-// from the statement and call parse_var_line
-
-
-// int %s.  Create a new integer variable
-
-void spec_int()
+boolean spec_variable()
 {
-  newvar_type = svt_int;
-  
-  parse_var_line();
-}
+  int start = 0;
 
-// string %s.  Create a new string variable
-// rather similar to spec_int =)
+  newvar_type = -1;                 // init to -1
+  newvar_script = current_script;   // use current script
 
-void spec_string()
-{
-  newvar_type = svt_string;
-  
-  parse_var_line();
-}
+  // check for 'hub' keyword to make a hub variable
+  if(!strcmp(tokens[start], "hub"))
+    {
+      newvar_script = &hub_script;
+      start++;  // skip first token
+    }
 
-// const %s is rather strange. It is initially set to variable
-// type svt_const. svt_const is 'metamorphic': it adopts the
-// type of the first value it is set to. This allows statements
-// such as "const a=3;".
-// lame, but it works
+  // now find variable type
+  if(!strcmp(tokens[start], "const"))
+    {
+      newvar_type = svt_const;
+      start++;
+    }
+  else if(!strcmp(tokens[start], "string"))
+    {
+      newvar_type = svt_string;
+      start++;
+    }
+  else if(!strcmp(tokens[start], "int"))
+    {
+      newvar_type = svt_int;
+      start++;
+    }
+  else if(!strcmp(tokens[start], "mobj"))
+    {
+      newvar_type = svt_mobj;
+      start++;
+    }
+  else if(!strcmp(tokens[start], "script"))     // check for script creation
+    {
+      spec_script();
+      return true;       // used tokens
+    }
 
-void spec_const()
-{
-  newvar_type = svt_const;
-  
-  parse_var_line();
-}
+  // other variable types could be added: eg float
 
-void spec_mobj()
-{
-  newvar_type = svt_mobj;
-  
-  parse_var_line();
+  // are we creating a new variable?
+
+  if(newvar_type != -1)
+    {
+      parse_var_line(start);
+      return true;       // used tokens
+    }
+
+  return false; // not used: try normal parsing
 }

@@ -62,7 +62,7 @@ void PacketGet (void)
 //
 void I_InitNetwork (void)
 {
-  int                 i,j;
+  int                 i;
 
   // set up the singleplayer doomcom
 

@@ -118,9 +118,11 @@ static size_t virtual_memory;
 
 int printstats;                    // killough 8/23/98
 
+char tempstr[128]; // haleyjd 1/12/00:  wtf?
+
 char *Z_PrintStats(void)            // Print allocation statistics
 {
-  char tempstr[128];
+  //char tempstr[128];
 
   if (printstats)
     {

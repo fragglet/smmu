@@ -187,7 +187,8 @@ CONSOLE_NETCMD(map, cf_server, netcmd_map)
 {
   if(!c_argc)
     {
-      C_Printf("usage: map <mapname>\n");
+      C_Printf("usage: map <mapname>\n"
+               "   or map <wadfile.wad>\n");
       return;
     }
   
@@ -204,7 +205,7 @@ CONSOLE_NETCMD(map, cf_server, netcmd_map)
 	{
 	  if(D_AddNewFile(c_argv[0]))
 	    {
-	      G_InitNew(gameskill, startlevel);
+	      G_InitNew(gameskill, firstlevel);
 	    }
 	  return;
 	}
@@ -229,12 +230,6 @@ CONSOLE_NETVAR(name, default_name, cf_handlerset, netcmd_name)
     }
 }
 
-
-// screen wipe speed
-
-VARIABLE_INT(wipe_speed, NULL,                  1, 200, NULL);
-CONSOLE_VARIABLE(wipe_speed, wipe_speed, 0) {}
-
 // screenshot type
 
 char *str_pcx[] = {"bmp", "pcx"};
@@ -247,30 +242,52 @@ extern int textmode_startup;            // d_main.c
 VARIABLE_BOOLEAN(textmode_startup, NULL,        onoff);
 CONSOLE_VARIABLE(textmode_startup, textmode_startup, 0) {}
 
+// demo insurance
+
+extern int demo_insurance;
+char *insure_str[]={"off", "on", "when recording"};
+VARIABLE_INT(demo_insurance, &default_demo_insurance, 0, 2, insure_str);
+CONSOLE_VARIABLE(demo_insurance, demo_insurance, cf_notnet) {}
+
+extern int smooth_turning;
+VARIABLE_BOOLEAN(smooth_turning, NULL,          onoff);
+CONSOLE_VARIABLE(smooth_turning, smooth_turning, 0) {}
+
         /********* chat macros ************/
 
-        // must be done with variable_t :(
-variable_t var_chatmacro0 = {&chat_macros[0], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro1 = {&chat_macros[1], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro2 = {&chat_macros[2], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro3 = {&chat_macros[3], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro4 = {&chat_macros[4], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro5 = {&chat_macros[5], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro6 = {&chat_macros[6], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro7 = {&chat_macros[7], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro8 = {&chat_macros[8], NULL, vt_string, 0, 128, NULL};
-variable_t var_chatmacro9 = {&chat_macros[9], NULL, vt_string, 0, 128, NULL};
+void G_AddChatMacros()
+{
+  int i;
 
-CONSOLE_VARIABLE(chatmacro0, chatmacro0, 0) {}
-CONSOLE_VARIABLE(chatmacro1, chatmacro1, 0) {}
-CONSOLE_VARIABLE(chatmacro2, chatmacro2, 0) {}
-CONSOLE_VARIABLE(chatmacro3, chatmacro3, 0) {}
-CONSOLE_VARIABLE(chatmacro4, chatmacro4, 0) {}
-CONSOLE_VARIABLE(chatmacro5, chatmacro5, 0) {}
-CONSOLE_VARIABLE(chatmacro6, chatmacro6, 0) {}
-CONSOLE_VARIABLE(chatmacro7, chatmacro7, 0) {}
-CONSOLE_VARIABLE(chatmacro8, chatmacro8, 0) {}
-CONSOLE_VARIABLE(chatmacro9, chatmacro9, 0) {}
+  for(i=0; i<10; i++)
+    {
+      variable_t *variable;
+      command_t *command;
+      char tempstr[10];
+      
+      // create the variable first
+      variable = malloc(sizeof(*variable));
+      variable->variable = &chat_macros[i];
+      variable->v_default = NULL;
+      variable->type = vt_string;      // string value
+      variable->min = 0;
+      variable->max = 128;              // 40 chars is enough
+      variable->defines = NULL;
+
+      // now the command
+      command = malloc(sizeof(*command));
+
+      sprintf(tempstr, "chatmacro%i", i);
+      command->name = strdup(tempstr);
+      command->type = ct_variable;
+      command->flags = 0;
+      command->variable = variable;
+      command->handler = NULL;
+      command->netcmd = 0;
+
+      (C_AddCommand)(command); // hook into cmdlist
+    }
+}
 
         /********** weapon prefs **************/
 
@@ -293,68 +310,105 @@ char *weapon_str[] =
 {"fist", "pistol", "shotgun", "chaingun", "rocket launcher", "plasma gun",
  "bfg", "chainsaw", "double shotgun"};
 
-variable_t var_weaponpref1 = {&weapon_preferences[0][0], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref2 = {&weapon_preferences[0][1], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref3 = {&weapon_preferences[0][2], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref4 = {&weapon_preferences[0][3], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref5 = {&weapon_preferences[0][4], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref6 = {&weapon_preferences[0][5], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref7 = {&weapon_preferences[0][6], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref8 = {&weapon_preferences[0][7], NULL, vt_int, 1,9, weapon_str};
-variable_t var_weaponpref9 = {&weapon_preferences[0][8], NULL, vt_int, 1,9, weapon_str};
+void G_WeapPrefHandler()
+{
+  int prefnum = (int *)c_command->variable->variable - weapon_preferences[0];
+  G_SetWeapPref(prefnum, atoi(c_argv[0]));
+}
 
-CONSOLE_VARIABLE(weappref_1, weaponpref1, cf_handlerset) {G_SetWeapPref(0, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_2, weaponpref2, cf_handlerset) {G_SetWeapPref(1, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_3, weaponpref3, cf_handlerset) {G_SetWeapPref(2, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_4, weaponpref4, cf_handlerset) {G_SetWeapPref(3, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_5, weaponpref5, cf_handlerset) {G_SetWeapPref(4, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_6, weaponpref6, cf_handlerset) {G_SetWeapPref(5, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_7, weaponpref7, cf_handlerset) {G_SetWeapPref(6, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_8, weaponpref8, cf_handlerset) {G_SetWeapPref(7, atoi(c_argv[0]));}
-CONSOLE_VARIABLE(weappref_9, weaponpref9, cf_handlerset) {G_SetWeapPref(8, atoi(c_argv[0]));}
+void G_AddWeapPrefs()
+{
+  int i;
+
+  for(i=0; i<9; i++)
+    {
+      variable_t *variable;
+      command_t *command;
+      char tempstr[10];
+      
+      // create the variable first
+      variable = malloc(sizeof(*variable));
+      variable->variable = &weapon_preferences[0][i];
+      variable->v_default = NULL;
+      variable->type = vt_int;
+      variable->min = 1;
+      variable->max = 9;
+      variable->defines = weapon_str;  // use weapon string defines
+
+      // now the command
+      command = malloc(sizeof(*command));
+
+      sprintf(tempstr, "weappref_%i", i+1);
+      command->name = strdup(tempstr);
+      command->type = ct_variable;
+      command->flags = cf_handlerset;
+      command->variable = variable;
+      command->handler = G_WeapPrefHandler;
+      command->netcmd = 0;
+
+      (C_AddCommand)(command); // hook into cmdlist
+    }
+}
 
 //      compatibility vectors
-// ugh
 
-variable_t var_comp_telefrag  = {&comp[comp_telefrag],  &default_comp[comp_telefrag], vt_int, 0, 1, yesno};
-variable_t var_comp_dropoff   = {&comp[comp_dropoff],   &default_comp[comp_dropoff], vt_int, 0, 1, yesno};
-variable_t var_comp_vile      = {&comp[comp_vile],      &default_comp[comp_vile], vt_int, 0, 1, yesno};
-variable_t var_comp_pain      = {&comp[comp_pain],      &default_comp[comp_pain], vt_int, 0, 1, yesno};
-variable_t var_comp_skull     = {&comp[comp_skull],     &default_comp[comp_skull], vt_int, 0, 1, yesno};
-variable_t var_comp_blazing   = {&comp[comp_blazing],   &default_comp[comp_blazing], vt_int, 0, 1, yesno};
-variable_t var_comp_doorlight = {&comp[comp_doorlight], &default_comp[comp_doorlight], vt_int, 0, 1, yesno};
-variable_t var_comp_model     = {&comp[comp_model],     &default_comp[comp_model], vt_int, 0, 1, yesno};
-variable_t var_comp_god       = {&comp[comp_god],       &default_comp[comp_god], vt_int, 0, 1, yesno};
-variable_t var_comp_falloff   = {&comp[comp_falloff],   &default_comp[comp_falloff], vt_int, 0, 1, yesno};
-variable_t var_comp_floors    = {&comp[comp_floors],    &default_comp[comp_floors], vt_int, 0, 1, yesno};
-variable_t var_comp_skymap    = {&comp[comp_skymap],    &default_comp[comp_skymap], vt_int, 0, 1, yesno};
-variable_t var_comp_pursuit   = {&comp[comp_pursuit],   &default_comp[comp_pursuit], vt_int, 0, 1, yesno};
-variable_t var_comp_doorstuck = {&comp[comp_doorstuck], &default_comp[comp_doorstuck], vt_int, 0, 1, yesno};
-variable_t var_comp_staylift  = {&comp[comp_staylift],  &default_comp[comp_staylift], vt_int, 0, 1, yesno};
-variable_t var_comp_zombie    = {&comp[comp_zombie],    &default_comp[comp_zombie], vt_int, 0, 1, yesno};
-variable_t var_comp_stairs    = {&comp[comp_stairs],    &default_comp[comp_stairs], vt_int, 0, 1, yesno};
-variable_t var_comp_infcheat  = {&comp[comp_infcheat],  &default_comp[comp_infcheat], vt_int, 0, 1, yesno};
-variable_t var_comp_zerotags  = {&comp[comp_zerotags],  &default_comp[comp_zerotags], vt_int, 0, 1, yesno};
+// names given to cmds
+const char *comp_strings[] =
+{
+  "telefrag",
+  "dropoff",
+  "vile",
+  "pain",
+  "skull",
+  "blazing",
+  "doorlight",
+  "model",
+  "god",
+  "falloff",
+  "floors",
+  "skymap",
+  "pursuit",
+  "doorstuck",
+  "staylift",
+  "zombie",
+  "stairs",
+  "infcheat",
+  "zerotags",
+};
 
-CONSOLE_NETVAR(comp_telefrag,  comp_telefrag,  cf_server, netcmd_comp_0) {}
-CONSOLE_NETVAR(comp_dropoff,   comp_dropoff,   cf_server, netcmd_comp_1) {}
-CONSOLE_NETVAR(comp_vile,      comp_vile,      cf_server, netcmd_comp_2) {}
-CONSOLE_NETVAR(comp_pain,      comp_pain,      cf_server, netcmd_comp_3) {}
-CONSOLE_NETVAR(comp_skull,     comp_skull,     cf_server, netcmd_comp_4) {}
-CONSOLE_NETVAR(comp_blazing,   comp_blazing,   cf_server, netcmd_comp_5) {}
-CONSOLE_NETVAR(comp_doorlight, comp_doorlight, cf_server, netcmd_comp_6) {}
-CONSOLE_NETVAR(comp_model,     comp_model,     cf_server, netcmd_comp_7) {}
-CONSOLE_NETVAR(comp_god,       comp_god,       cf_server, netcmd_comp_8) {}
-CONSOLE_NETVAR(comp_falloff,   comp_falloff,   cf_server, netcmd_comp_9) {}
-CONSOLE_NETVAR(comp_floors,    comp_floors,    cf_server, netcmd_comp_10) {}
-CONSOLE_NETVAR(comp_skymap,    comp_skymap,    cf_server, netcmd_comp_11) {}
-CONSOLE_NETVAR(comp_pursuit,   comp_pursuit,   cf_server, netcmd_comp_12) {}
-CONSOLE_NETVAR(comp_doorstuck, comp_doorstuck, cf_server, netcmd_comp_13) {}
-CONSOLE_NETVAR(comp_staylift,  comp_staylift,  cf_server, netcmd_comp_14) {}
-CONSOLE_NETVAR(comp_zombie,    comp_zombie,    cf_server, netcmd_comp_15) {}
-CONSOLE_NETVAR(comp_stairs,    comp_stairs,    cf_server, netcmd_comp_16) {}
-CONSOLE_NETVAR(comp_infcheat,  comp_infcheat,  cf_server, netcmd_comp_17) {}
-CONSOLE_NETVAR(comp_zerotags,  comp_zerotags,  cf_server, netcmd_comp_18) {}
+void G_AddCompat()
+{
+  int i;
+
+  for(i=0; i<=comp_zerotags; i++)
+    {
+      variable_t *variable;
+      command_t *command;
+      char tempstr[20];
+      
+      // create the variable first
+      variable = malloc(sizeof(*variable));
+      variable->variable = &comp[i];
+      variable->v_default = &default_comp[i];
+      variable->type = vt_int;      // string value
+      variable->min = 0;
+      variable->max = 1;
+      variable->defines = yesno;
+
+      // now the command
+      command = malloc(sizeof(*command));
+
+      sprintf(tempstr, "comp_%s", comp_strings[i]);
+      command->name = strdup(tempstr);
+      command->type = ct_variable;
+      command->flags = cf_server | cf_netvar;
+      command->variable = variable;
+      command->handler = NULL;
+      command->netcmd = netcmd_comp_0 + i;
+
+      (C_AddCommand)(command); // hook into cmdlist
+    }
+}
 
 void G_AddCommands()
 {
@@ -382,48 +436,11 @@ void G_AddCommands()
   C_AddCommand(kill);
   C_AddCommand(map);
   C_AddCommand(name);
-  C_AddCommand(wipe_speed);
   C_AddCommand(textmode_startup);
+  C_AddCommand(demo_insurance);
+  C_AddCommand(smooth_turning);
   
-  C_AddCommand(chatmacro0);
-  C_AddCommand(chatmacro1);
-  C_AddCommand(chatmacro2);
-  C_AddCommand(chatmacro3);
-  C_AddCommand(chatmacro4);
-  C_AddCommand(chatmacro5);
-  C_AddCommand(chatmacro6);
-  C_AddCommand(chatmacro7);
-  C_AddCommand(chatmacro8);
-  C_AddCommand(chatmacro9);
-  
-  C_AddCommand(weappref_1);
-  C_AddCommand(weappref_2);
-  C_AddCommand(weappref_3);
-  C_AddCommand(weappref_4);
-  C_AddCommand(weappref_5);
-  C_AddCommand(weappref_6);
-  C_AddCommand(weappref_7);
-  C_AddCommand(weappref_8);
-  C_AddCommand(weappref_9);
-  
-  C_AddCommand(comp_telefrag);
-  C_AddCommand(comp_dropoff);
-  C_AddCommand(comp_vile);
-  C_AddCommand(comp_pain);
-  C_AddCommand(comp_skull);
-  C_AddCommand(comp_blazing);
-  C_AddCommand(comp_doorlight);
-  C_AddCommand(comp_model);
-  C_AddCommand(comp_god);
-  C_AddCommand(comp_falloff);
-  C_AddCommand(comp_floors);
-  C_AddCommand(comp_skymap);
-  C_AddCommand(comp_pursuit);
-  C_AddCommand(comp_doorstuck);
-  C_AddCommand(comp_staylift);
-  C_AddCommand(comp_zombie);
-  C_AddCommand(comp_stairs);
-  C_AddCommand(comp_infcheat);
-  C_AddCommand(comp_zerotags);
-      
+  G_AddChatMacros();
+  G_AddWeapPrefs();
+  G_AddCompat();
 }

@@ -27,6 +27,7 @@ rcsid[] = "$Id: p_inter.c,v 1.10 1998/05/03 23:09:29 killough Exp $";
 #include "doomstat.h"
 #include "dstrings.h"
 #include "m_random.h"
+#include "g_game.h"
 #include "hu_stuff.h"
 #include "hu_frags.h"
 #include "am_map.h"
@@ -604,7 +605,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 
   // sf: display message usign player_printf
   if(message)
-        player_printf(player, "%c%s", 128+mess_colour, message);
+    player_printf(player, "%c%s", 128+mess_colour, message);
   if(removeobj)
     P_RemoveMobj (special);
 

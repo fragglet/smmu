@@ -12,13 +12,15 @@
 
 // pop-up messages
 
-void MN_PopupDrawer();
-boolean MN_PopupResponder(event_t *ev);
 void MN_Alert(char *message, ...);
 void MN_Question(char *message, char *command);
 
-extern char popup_message[128];
-extern boolean popup_message_active;
+// help screens
 
+void MN_StartHelpScreen();
+
+// map colour selection
+
+void MN_SelectColour(char *variable_name);
 
 #endif /** __MN_MISC_H__ **/

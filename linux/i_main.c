@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 
   Z_Init();                  // 1/18/98 killough: start up memory stuff first
   atexit(I_Quit);
-//  signal(SIGSEGV, handler);
+  signal(SIGSEGV, handler);
   signal(SIGTERM, handler);
   signal(SIGILL,  handler);
   signal(SIGFPE,  handler);

@@ -408,63 +408,63 @@ int numcameraviews=0;
 
 void WI_StopCamera()
 {
-        numcameraviews = 0;
-        realbackdrop = 0;
+  numcameraviews = 0;
+  realbackdrop = 0;
 }
-                   
+
 void WI_TickerCamera()
 {
-        if(!realbackdrop) return;
+  if(!realbackdrop) return;
 }
 
 void WI_AddCamera(mapthing_t *mthing)
 {
-        camerathing[numcameraviews] = mthing;
-        numcameraviews++;
+  camerathing[numcameraviews] = mthing;
+  numcameraviews++;
 }
 
 // set up the intermissions camera
 
 void WI_StartCamera()
 {
-        int i;
-
-        if(numcameraviews)
-        {
-                realbackdrop = 1;
-                        // pick a camera at random
-                wi_camera = camerathing[M_Random() % numcameraviews];
-
-                // centre the view
-                players[displayplayer].updownangle = 0;
-
-                // remove the player mobjs (look silly in camera view)
-                for(i=0; i<MAXPLAYERS; i++)
-                {
-                        if(!playeringame[i]) continue;
-                                // this is strange. the monsters can still
-                                // see the player Mobj, (and even kill it!)
-                                // even tho it has been removed from the
-                                // level. I make it unshootable first so
-                                // they lose interest.
-                        players[i].mo->flags &= ~MF_SHOOTABLE;
-                        P_RemoveMobj(players[i].mo);
-                }
-
-
-                intercam.x = wi_camera->x*FRACUNIT;
-                intercam.y = wi_camera->y*FRACUNIT;
-                intercam.angle = R_WadToAngle(wi_camera->angle);
-                intercam.updownangle = 0;
-                intercam.z = R_PointInSubsector(intercam.x, intercam.y)
-                                ->sector->floorheight + 41*FRACUNIT;
-                R_SetViewSize (11);     // force fullscreen
-        }
-        else            // no camera, boring interpic
-        {
-                realbackdrop = 0;
-                wi_camera = NULL;
-        }
+  int i;
+  
+  if(numcameraviews)
+    {
+      realbackdrop = 1;
+      // pick a camera at random
+      wi_camera = camerathing[M_Random() % numcameraviews];
+      
+      // centre the view
+      players[displayplayer].updownangle = 0;
+      
+      // remove the player mobjs (look silly in camera view)
+      for(i=0; i<MAXPLAYERS; i++)
+	{
+	  if(!playeringame[i]) continue;
+	  // this is strange. the monsters can still
+	  // see the player Mobj, (and even kill it!)
+	  // even tho it has been removed from the
+	  // level. I make it unshootable first so
+	  // they lose interest.
+	  players[i].mo->flags &= ~MF_SHOOTABLE;
+	  P_RemoveMobj(players[i].mo);
+	}
+      
+      
+      intercam.x = wi_camera->x*FRACUNIT;
+      intercam.y = wi_camera->y*FRACUNIT;
+      intercam.angle = R_WadToAngle(wi_camera->angle);
+      intercam.updownangle = 0;
+      intercam.z = R_PointInSubsector(intercam.x, intercam.y)
+	->sector->floorheight + 41*FRACUNIT;
+      R_SetViewSize (11);     // force fullscreen
+    }
+  else            // no camera, boring interpic
+    {
+      realbackdrop = 0;
+      wi_camera = NULL;
+    }
 }
 
 // ====================================================================
@@ -475,10 +475,10 @@ void WI_StartCamera()
 //
 static void WI_slamBackground(void)
 {
-    if(realbackdrop)
-      R_RenderPlayerView (players+displayplayer, &intercam);
-    else
-      V_CopyRect(0, 0, 1, SCREENWIDTH, SCREENHEIGHT, 0, 0, 0);  // killough 11/98
+  if(realbackdrop)
+    R_RenderPlayerView (players+displayplayer, &intercam);
+  else
+    V_CopyRect(0, 0, 1, SCREENWIDTH, SCREENHEIGHT, 0, 0, 0);  // killough 11/98
 }
 
 // ====================================================================
@@ -505,29 +505,29 @@ static void WI_drawLF(void)
 {
   int y = WI_TITLEY;
   patch_t *patch=NULL;
-
-  if(wbs->last>=0)
-  {
-          patch=lnames[wbs->last];
-  }
-  else  // new level
-  {
-          if(*info_levelpic)
-          {
-              patch=W_CacheLumpName(info_levelpic,PU_CACHE);
-          }
-  }
-  if(patch)
-  {
-          // draw <LevelName> 
-      V_DrawPatch((SCREENWIDTH - SHORT(patch->width))/2,
-                      y, FB, patch);
-      y += (5*SHORT(patch->height))/4;
   
-          // draw "Finished!"
+  if(wbs->last>=0)
+    {
+      patch=lnames[wbs->last];
+    }
+  else  // new level
+    {
+      if(*info_levelpic)
+	{
+	  patch=W_CacheLumpName(info_levelpic,PU_CACHE);
+	}
+    }
+  if(patch)
+    {
+      // draw <LevelName> 
+      V_DrawPatch((SCREENWIDTH - SHORT(patch->width))/2,
+		  y, FB, patch);
+      y += (5*SHORT(patch->height))/4;
+      
+      // draw "Finished!"
       V_DrawPatch((SCREENWIDTH - SHORT(finished->width))/2,
-              y, FB, finished);
-  }
+		  y, FB, finished);
+    }
 }
 
 
@@ -540,19 +540,19 @@ static void WI_drawLF(void)
 static void WI_drawEL(void)
 {
   int y = WI_TITLEY;
-
+  
   if(wbs->next>=0)
-  {
+    {
       // draw "Entering"
       V_DrawPatch((SCREENWIDTH - SHORT(entering->width))/2,
                   y, FB, entering);
-       
+      
       // draw level
       y += (5*SHORT(lnames[wbs->next]->height))/4;
       
       V_DrawPatch((SCREENWIDTH - SHORT(lnames[wbs->next]->width))/2,
                   y, FB, lnames[wbs->next]);
-  }
+    }
 }
 
 

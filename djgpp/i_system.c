@@ -30,6 +30,8 @@ extern void (*keyboard_lowlevel_callback)(int);  // should be in <allegro.h>
 #include <gppconio.h>
 #include <sys/nearptr.h>
 
+#include "ser_main.h"
+
 #include "../c_runcmd.h"
 #include "../i_system.h"
 #include "../i_sound.h"
@@ -72,9 +74,9 @@ int  I_GetTime_RealTime (void)
 
 void I_SetTime(int newtime)
 {
-        asm("cli");
-        realtic = newtime;
-        asm("sti");
+  asm("cli");
+  realtic = newtime;
+  asm("sti");
 }
 
         //sf: made a #define, changed to 16
@@ -178,7 +180,6 @@ void I_InitKeyboard()
   I_ResetLEDs();
 }
 
-
 void I_Init(void)
 {
   extern int key_autorun;
@@ -230,8 +231,6 @@ void I_Init(void)
     if (!(nomusicparm && nosfxparm))
       I_InitSound();
   }
-
-  I_CheckVESA();
 
   // get modem cfg
 
@@ -289,6 +288,7 @@ void I_Error(const char *error, ...) // killough 3/20/98: add const
 void I_EndDoom(void)
 {
   int lump;
+
   if (lumpinfo && (lump = W_CheckNumForName("ENDOOM")) != -1) // killough 10/98
     {  // killough 8/19/98: simplify
       memcpy(0xb8000 + (byte *) __djgpp_conventional_base,
@@ -300,28 +300,28 @@ void I_EndDoom(void)
         // check for ESC button pressed, regardless of keyboard handler
 int I_CheckAbort()
 {
-        if(keyboard_installed)
-        {
-           event_t *ev;
-
-           I_StartTic ();       // build events
-
-                // use the keyboard handler
-           for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
-           { 
-              ev = &events[eventtail]; 
-              if (ev->type == ev_keydown && ev->data1 == key_escape)      // phares
-              {                   // abort
-                return true;
-              }
-           }
-        }
-        else
-        {
-                // check normal keyboard handler
-           while(kbhit()) if(getch() == 27) return true;
-        }
-        return false;
+  if(keyboard_installed)
+    {
+      event_t *ev;
+      
+      I_StartTic ();       // build events
+      
+      // use the keyboard handler
+      for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
+	{ 
+	  ev = &events[eventtail]; 
+	  if (ev->type == ev_keydown && ev->data1 == key_escape)      // phares
+	    {                   // abort
+	      return true;
+	    }
+	}
+    }
+  else
+    {
+      // check normal keyboard handler
+      while(kbhit()) if(getch() == 27) return true;
+    }
+  return false;
 }
 
 /*************************
@@ -333,15 +333,15 @@ VARIABLE_INT(realtic_clock_rate, NULL,  0, 500, NULL);
 
 CONSOLE_VARIABLE(i_gamespeed, realtic_clock_rate, 0)
 {
-    if (realtic_clock_rate != 100)
-      {
-        I_GetTime_Scale = ((long long) realtic_clock_rate << CLOCK_BITS) / 100;
-        I_GetTime = I_GetTime_Scaled;
-      }
-    else
-      I_GetTime = I_GetTime_RealTime;
-
-    ResetNet();         // reset the timers and stuff
+  if (realtic_clock_rate != 100)
+    {
+      I_GetTime_Scale = ((long long) realtic_clock_rate << CLOCK_BITS) / 100;
+      I_GetTime = I_GetTime_Scaled;
+    }
+  else
+    I_GetTime = I_GetTime_RealTime;
+  
+  ResetNet();         // reset the timers and stuff
 }
 
 CONSOLE_VARIABLE(i_ledsoff, leds_always_off, 0)
@@ -357,13 +357,12 @@ extern void Ser_AddCommands();
         // add system specific commands
 void I_AddCommands()
 {
-        C_AddCommand(i_ledsoff);
-        C_AddCommand(i_gamespeed);
-
-        I_Video_AddCommands();
-        I_Sound_AddCommands();
-        I_Input_AddCommands();
-        Ser_AddCommands();
+  C_AddCommand(i_ledsoff);
+  C_AddCommand(i_gamespeed);
+  
+  I_Video_AddCommands();
+  I_Sound_AddCommands();
+  Ser_AddCommands();
 }
 
 //----------------------------------------------------------------------------
