@@ -37,8 +37,11 @@ extern int MidiToMIDI(UBYTE *mid,MIDI *mididata);
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.1  2001-01-14 21:08:01  fraggle
+// Move mmus2mid to system-nonspecific so other platforms can use it
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
