@@ -523,7 +523,7 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
 
   P_PlayerThink (&predicted_player);
   P_MobjThinker(&predicted_mobj);
-
+  
   // sf: run heads up - make sure we update the lightup crosshair
 
   HU_Ticker();
@@ -540,7 +540,10 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-07 13:01:12  fraggle
+// Revision 1.4  2000-05-22 10:14:02  fraggle
+// nothing
+//
+// Revision 1.3  2000/05/07 13:01:12  fraggle
 // lightup crosshair prediction
 //
 // Revision 1.2  2000/05/02 15:43:41  fraggle
