@@ -170,6 +170,9 @@ build : $(EXE)
 $(EXE): $(OBJS) version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) version.o -o $@ $(LIBS)
 
+dedicated :
+        make -f dedserv.mak
+
 endif
 
 #---------------------------------------------------------------------------
