@@ -113,6 +113,8 @@ static int lastpacket_time;
 
 boolean out_of_sync;
 
+static int skiptics;
+
 int cl_stack=2;
 
 //===========================================================================
@@ -1076,6 +1078,23 @@ static void CL_ResendTics(clticresend_t *tr)
 
 //-------------------------------------------------------------------------
 //
+// CL_Speedup
+//
+// Speed up or slow down the game by an amount specified by the server.
+// Uses skiptics - replacement for the old system which tried to adjust
+// based on maketic and nettics of the key player
+//
+
+static void CL_Speedup(speeduppacket_t *speedup)
+{
+  if(!CL_CorrectPacket(speedup->packet_num))
+    return;
+
+  skiptics += speedup->skiptics;
+}
+
+//-------------------------------------------------------------------------
+//
 // CL_TextMsg
 //
 // Server can send text messages to clients which will be displayed on
@@ -1117,7 +1136,7 @@ static void CL_PlayerQuit(quitpacket_t *qp)
 
   // spawn 
 
-  if(1) //gamestate == GS_LEVEL)
+  if(gamestate == GS_LEVEL)
     {
       P_SpawnMobj(players[pl].mo->x, players[pl].mo->y, players[pl].mo->z,
 		  MT_TFOG);
@@ -1257,6 +1276,10 @@ static void CL_NetPacket(netpacket_t *packet)
       
     case pt_clticresend:              // resend tics
       CL_ResendTics(&packet->data.clticresend);
+      break;
+
+    case pt_speedup:                // speedup packet
+      CL_Speedup(&packet->data.speedup);
       break;
       
     case pt_ping:                     // send ping reply
@@ -1436,7 +1459,6 @@ void CL_ReadTiccmds()
 //
 
 static int oldentertic;
-static int skiptics;
 
 void NetUpdate()
 {
@@ -1454,11 +1476,11 @@ void NetUpdate()
 
   if(skiptics)
     {
-      if(skiptics > newtics)
-	 {
-	   skiptics -= newtics;
-	   newtics = 0;
-	 }
+      if(skiptics > 0 && skiptics > newtics)
+	{
+	  skiptics -= newtics;
+	  newtics = 0;
+	}
       else
 	{
 	  newtics -= skiptics;
@@ -1636,31 +1658,6 @@ static boolean RunGameTics()
 	lowtic = nettics[i];
     }
 
-  // check relative to player 0
-  
-  if(consoleplayer != key)       // key player does not adapt
-    {
-      int keytic = nettics[key]; // + latency;
-      
-      doom_printf("lag: %i", maketic - keytic);
-      // see if we are too slow
-      
-      if(keytic - maketic > 6)
-	{
-	  //	  C_Printf("too slow\n");
-	  skiptics = -1;
-	}
-
-      if(keytic - nettics[key] > 6)
-	{
-	  //      C_Printf("too fast\n");
-	  skiptics = 1;
-	}
-    }
-
-  //  if(maketic - gametic > 8)
-  //    skiptics = 1;
-
   // set open socket if we havent received packets from server
   // for a while
 
@@ -1727,12 +1724,15 @@ static boolean RunGameTics()
 
   if(gamestate == GS_LEVEL)
     {
-      availabletics = maketic - gametic;
-
-      if(availabletics > prediction_threshold)
+      // sf: only run multiples of 2 tics
+      // otherwise we can end up flicking between eg. 4 and 5 and it jumps
+      availabletics = (maketic - gametic) & ~1;
+      
+      if(prediction_threshold < 16 &&            // 16 = predict max
+	 availabletics > prediction_threshold)
 	availabletics = prediction_threshold;
       
-      doom_printf("tics predicted: %i\n", availabletics);
+      // doom_printf("tics predicted: %i", availabletics);
       
       if(availabletics)
 	{
@@ -1885,6 +1885,8 @@ CONSOLE_COMMAND(restart, 0)
   CL_SendStartGame();
 }
 
+CONSOLE_INT(prediction, prediction_threshold, NULL, 0, 16, NULL, 0) {}
+
 void CL_Demo_AddCommands();                  // cl_demo.c
 
 void CL_AddCommands()
@@ -1895,12 +1897,17 @@ void CL_AddCommands()
   C_AddCommand(disconnect);
   C_AddCommand(latency);
   C_AddCommand(restart);
+
+  C_AddCommand(prediction);
 }
 
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:40  fraggle
+// Revision 1.3  2000-05-03 16:21:23  fraggle
+// client speedup code
+//
+// Revision 1.2  2000/05/02 15:43:40  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
