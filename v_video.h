@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: v_video.h,v 1.9 1998/05/06 11:12:54 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Gamma correction LUT.
@@ -70,11 +77,12 @@ typedef enum
   CR_BLUE,    //7
   CR_ORANGE,  //8
   CR_YELLOW,  //9
-  CR_LIMIT    //10 //jff 2/27/98 added for range check
+  CR_LIMIT,   //10 //jff 2/27/98 added for range check
 } crange_idx_e;
 //jff 1/16/98 end palette color range additions
 
 #define CR_DEFAULT CR_RED   /* default value for out of range colors */
+#define CR_TRANS CR_LIMIT /* use limit as translucent -- for text */
 
 extern byte *screens[5];
 extern int  dirtybox[4];
@@ -121,33 +129,9 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest);
 
 //----------------------------------------------------------------------------
 //
-// $Log: v_video.h,v $
-// Revision 1.9  1998/05/06  11:12:54  jim
-// Formattted v_video.*
-//
-// Revision 1.8  1998/05/03  22:53:58  killough
-// beautification
-//
-// Revision 1.7  1998/04/24  08:09:44  jim
-// Make text translate tables lumps
-//
-// Revision 1.6  1998/03/02  11:43:06  killough
-// Add cr_blue_status for blue statusbar numbers
-//
-// Revision 1.5  1998/02/27  19:22:11  jim
-// Range checked hud/sound card variables
-//
-// Revision 1.4  1998/02/19  16:55:06  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.3  1998/02/17  23:00:41  jim
-// Added color translation machinery and data
-//
-// Revision 1.2  1998/01/26  19:27:59  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:05  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,20 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Main loop menu stuff.
@@ -24,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_argv.h"
@@ -34,7 +39,7 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 #include "w_wad.h"
 #include "i_system.h"
 #include "i_sound.h"
-#include "i_video.h"
+#include "v_mode.h"
 #include "v_video.h"
 #include "hu_stuff.h"
 #include "st_stuff.h"
@@ -53,10 +58,12 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 //
 // DEFAULTS
 //
+// sf: this is more or less redundant now
+// i keep it in case anyone needs it
 
 static int config_help;         //jff 3/3/98
-int usemouse;
-int usejoystick;
+extern int usemouse;
+extern int usejoystick;
 int screenshot_pcx; //jff 3/30/98 // option to output screenshot as pcx or bmp
 extern int mousebfire;
 extern int mousebstrafe;
@@ -74,7 +81,10 @@ extern int tran_filter_pct;            // killough 2/21/98
 extern int showMessages;
 extern int screenSize;
 
-extern char *chat_macros[], *wad_files[], *deh_files[];  // killough 10/98
+extern char *chat_macros[];
+extern char *wadfile_1, *wadfile_2;
+extern char *dehfile_1, *dehfile_2;
+extern char *wad_directory;  // sf: wad directory
 
 extern int hud_msg_timer;   // killough 11/98: timer used for review messages
 extern int hud_msg_lines;   // number of message lines in window up to 16
@@ -139,7 +149,42 @@ default_t defaults[] = {
     "code used by Allegro to select music driver, -1 is autodetect"
   },
 
-#endif
+  { // jff 3/4/98 detect # voices
+    "detect_voices",
+    &detect_voices, NULL,
+    1, {0,1}, dt_number, ss_gen, wad_no,
+    "1 enables voice detection prior to calling install sound"
+  },
+
+  { // killough 10/98
+    "disk_icon",
+    &disk_icon, NULL,
+    1, {0,1}, dt_number, ss_gen, wad_no,
+    "1 to enable flashing icon during disk IO"
+  },
+#endif    /* #ifdef DJGPP */
+
+#ifdef XWIN
+
+  {
+    "grabMouse",
+    &grabMouse, NULL,
+    0, {0,1}, dt_number, ss_gen, wad_no,
+    "keep mouse inside window"
+  },
+
+#endif    /* #ifdef XWIN */
+
+#if defined(DJGPP) | defined(SVGA)
+
+  {
+    "use_vsync",
+    &use_vsync, NULL,
+    1, {0,1}, dt_number, ss_gen, wad_no,
+    "1 to enable wait for vsync to avoid display tearing"
+  },
+
+#endif /* #ifdef DJGPP or #ifdef SVGA */
 
   {
     "s_precache",
@@ -147,14 +192,7 @@ default_t defaults[] = {
     0, {0,1}, dt_number, ss_gen, wad_no,
     "precache sounds at startup"
   },
-#ifdef DJGPP
-  { // jff 3/4/98 detect # voices
-    "detect_voices",
-    &detect_voices, NULL,
-    1, {0,1}, dt_number, ss_gen, wad_no,
-    "1 enables voice detection prior to calling install sound"
-  },
-#endif
+
   {
     "v_mode",
     &v_mode, NULL,
@@ -168,28 +206,14 @@ default_t defaults[] = {
     0, {0,1}, dt_number, ss_gen, wad_no,
     "start up SMMU in text mode"
   },
-#ifdef DJGPP
-  {
-    "use_vsync",
-    &use_vsync, NULL,
-    1, {0,1}, dt_number, ss_gen, wad_no,
-    "1 to enable wait for vsync to avoid display tearing"
-  },
-#endif
+
   {
     "realtic_clock_rate",
     &realtic_clock_rate, NULL,
     100, {10,1000}, dt_number, ss_gen, wad_no,
     "Percentage of normal speed (35 fps) realtic clock runs at"
   },
-#ifdef DJGPP
-  { // killough 10/98
-    "disk_icon",
-    &disk_icon, NULL,
-    1, {0,1}, dt_number, ss_gen, wad_no,
-    "1 to enable flashing icon during disk IO"
-  },
-#endif
+
   { // killough 2/21/98
     "pitched_sounds",
     &pitched_sounds, NULL,
@@ -463,28 +487,28 @@ default_t defaults[] = {
 
   { // killough 10/98: preloaded files
     "wadfile_1",
-    (int *) &wad_files[0], NULL,
+    (int *) &wadfile_1, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "WAD file preloaded at program startup"
   },
 
   {
     "wadfile_2",
-    (int *) &wad_files[1], NULL,
+    (int *) &wadfile_2, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "WAD file preloaded at program startup"
   },
 
   {
     "dehfile_1",
-    (int *) &deh_files[0], NULL,
+    (int *) &dehfile_1, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "DEH/BEX file preloaded at program startup"
   },
 
   {
     "dehfile_2",
-    (int *) &deh_files[1], NULL,
+    (int *) &dehfile_2, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "DEH/BEX file preloaded at program startup"
   },
@@ -639,7 +663,12 @@ default_t defaults[] = {
   // to default.cfg. For the printable keys (i.e. alphas, numbers)
   // the Doom Code is the ascii code.
 
-  {
+  // sf: just have everything use doom codes, i'm guessing this is 
+  // left over from when boom users had to use the external scancode
+  // program to set their key bindings
+
+  /*
+    {
     "key_right",
     &key_right, NULL,
     KEYD_RIGHTARROW, {0,255}, dt_number, ss_keys, wad_no,
@@ -1120,7 +1149,7 @@ default_t defaults[] = {
     0, {0,255}, dt_number, ss_keys, wad_no,
     "key to centre the view"
   },
-
+  */
   {
     "automlook",
     &automlook, NULL,
@@ -1424,34 +1453,6 @@ default_t defaults[] = {
     "color used for the single player arrow"
   },
 
-  { // green
-    "mapcolor_ply1",
-    &mapcolor_plyr[0], NULL,
-    112, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the green player arrow"
-  },
-
-  { // lt gray
-    "mapcolor_ply2",
-    &mapcolor_plyr[1], NULL,
-    88, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the gray player arrow"
-  },
-
-  { // brown
-    "mapcolor_ply3",
-    &mapcolor_plyr[2], NULL,
-    64, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the brown player arrow"
-  },
-
-  { // red
-    "mapcolor_ply4",
-    &mapcolor_plyr[3], NULL,
-    176, {0,255}, dt_number, ss_auto, wad_yes,
-    "color used for the red player arrow"
-  },
-
   {  // purple                     // killough 8/8/98
     "mapcolor_frnd",
     &mapcolor_frnd, NULL,
@@ -1668,6 +1669,13 @@ default_t defaults[] = {
     "obituaries colour"
   },
 
+  {
+    "wad_directory",
+    (int *)&wad_directory, NULL,
+    (int) ".", {0}, dt_string, ss_none, wad_no,
+    "directory where wads are kept"
+  },
+  
   {NULL}         // last entry
 };
 
@@ -1799,10 +1807,10 @@ void M_SaveDefaults (void)
       //jff 4/10/98 kill super-hack on pointer value
       // killough 3/6/98:
       // use spaces instead of tabs for uniform justification
+      // sf: removed I_DoomCode2ScanCode
 
-      if (!dp->isstr ? fprintf(f, "%-25s %5i\n", dp->name, 
-			       strncmp(dp->name, "key_", 4) ? value :
-			       I_DoomCode2ScanCode(value)) == EOF :
+      if (!dp->isstr ?
+	  fprintf(f, "%-25s %5i\n", dp->name, value) == EOF :
 	  fprintf(f,"%-25s \"%s\"\n", dp->name, (char *) value) == EOF)
 	goto error;
     }
@@ -1810,7 +1818,7 @@ void M_SaveDefaults (void)
   if (fclose(f) == EOF)
     {
     error:
-      I_Error("Could not write defaults to %s: %s\n%s left unchanged\n",
+      printf("Could not write defaults to %s: %s\n%s left unchanged\n",
 	      tmpfile, errno ? strerror(errno): "(Unknown Error)",defaultfile);
       return;
     }
@@ -1818,7 +1826,7 @@ void M_SaveDefaults (void)
   remove(defaultfile);
 
   if (rename(tmpfile, defaultfile))
-    I_Error("Could not write defaults to %s: %s\n", defaultfile,
+    printf("Could not write defaults to %s: %s\n", defaultfile,
 	    errno ? strerror(errno): "(Unknown Error)");
 }
 
@@ -1880,8 +1888,9 @@ boolean M_ParseOption(const char *p, boolean wad)
       if (sscanf(strparm, "%i", &parm) != 1)
 	return 1;                       // Not A Number
 
-      if (!strncmp(name, "key_", 4))    // killough
-	parm = I_ScanCode2DoomCode(parm);
+      // sf: remove ScanCode2DoomCode
+      //      if (!strncmp(name, "key_", 4))    // killough
+      //	parm = I_ScanCode2DoomCode(parm);
 
       //jff 3/4/98 range check numeric parameters
       if ((dp->limit.min == UL || dp->limit.min <= parm) &&
@@ -2044,10 +2053,10 @@ boolean M_WriteFile(char const *name, void *source, int length)
   if (!(fp = fopen(name, "wb")))       // Try opening file
     return 0;                          // Could not open file for writing
 
-  I_BeginRead();                       // Disk icon on
+  V_BeginRead();                       // Disk icon on
   length = fwrite(source, 1, length, fp) == length;   // Write data
   fclose(fp);
-  I_EndRead();                         // Disk icon off
+  V_EndRead();                         // Disk icon off
 
   if (!length)                         // Remove partially written file
     remove(name);
@@ -2070,24 +2079,26 @@ int M_ReadFile(char const *name, byte **buffer)
     {
       size_t length;
 
-      I_BeginRead();
+      V_BeginRead();
       fseek(fp, 0, SEEK_END);
       length = ftell(fp);
       fseek(fp, 0, SEEK_SET);
       *buffer = Z_Malloc(length, PU_STATIC, 0);
+
       if (fread(*buffer, 1, length, fp) == length)
 	{
 	  fclose(fp);
-	  I_EndRead();
+	  V_EndRead();
 	  return length;
 	}
       fclose(fp);
     }
 
-  I_Error("Couldn't read file %s: %s", name, 
-	  errno ? strerror(errno) : "(Unknown Error)");
+  // sf: do not quit on file not found
+  //  I_Error("Couldn't read file %s: %s", name, 
+  //	  errno ? strerror(errno) : "(Unknown Error)");
 
-  return 0;
+  return -1;
 }
 
 //
@@ -2223,7 +2234,7 @@ typedef struct tagBITMAPINFOHEADER
 
 #define SafeWrite(data,size,number,st) do {   \
     if (fwrite(data,size,number,st) < (number)) \
-   return fclose(st), I_EndRead(), false; } while(0)
+   return fclose(st), V_EndRead(), false; } while(0)
 
 //
 // WriteBMPfile
@@ -2241,7 +2252,7 @@ boolean WriteBMPfile(char *filename, byte *data, int width,
   char zero=0;
   ubyte_t c;
 
-  I_BeginRead();              // killough 10/98
+  V_BeginRead();              // killough 10/98
 
   fhsiz = sizeof(BITMAPFILEHEADER);
   ihsiz = sizeof(BITMAPINFOHEADER);
@@ -2304,7 +2315,7 @@ boolean WriteBMPfile(char *filename, byte *data, int width,
 
       fclose(st);
     }
-  return I_EndRead(), true;       // killough 10/98
+  return V_EndRead(), true;       // killough 10/98
 }
 
 //
@@ -2341,7 +2352,7 @@ void M_ScreenShot (void)
 	  byte *pal = W_CacheLumpName ("PLAYPAL", PU_STATIC);
 	  byte *linear = screens[2];
 
-	  I_ReadScreen(linear);
+	  V_ReadScreen(linear);
 
 	  // save the pcx file
 	  //jff 3/30/98 write pcx or bmp depending on mode
@@ -2374,171 +2385,10 @@ void M_ScreenShot (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_misc.c,v $
-// Revision 1.60  1998/06/03  20:32:12  jim
-// Fixed mispelling of key_chat string
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.59  1998/05/21  12:12:28  jim
-// Removed conditional from net code
-//
-// Revision 1.58  1998/05/16  09:41:15  jim
-// formatted net files, installed temp switch for testing Stan/Lee's version
-//
-// Revision 1.57  1998/05/12  12:47:04  phares
-// Removed OVER_UNDER code
-//
-// Revision 1.56  1998/05/05  19:56:01  phares
-// Formatting and Doc changes
-//
-// Revision 1.55  1998/05/05  16:29:12  phares
-// Removed RECOIL and OPT_BOBBING defines
-//
-// Revision 1.54  1998/05/03  23:05:19  killough
-// Fix #includes, remove external decls duplicated elsewhere, fix LONG() conflict
-//
-// Revision 1.53  1998/04/23  13:07:27  jim
-// Add exit line to automap
-//
-// Revision 1.51  1998/04/22  13:46:12  phares
-// Added Setup screen Reset to Defaults
-//
-// Revision 1.50  1998/04/19  01:13:50  killough
-// Fix freeing memory before use in savegame code
-//
-// Revision 1.49  1998/04/17  10:35:50  killough
-// Add traditional_menu option for main menu
-//
-// Revision 1.48  1998/04/14  08:18:11  killough
-// replace obsolete adaptive_gametic with realtic_clock_rate
-//
-// Revision 1.47  1998/04/13  21:36:33  phares
-// Cemented ESC and F1 in place
-//
-// Revision 1.46  1998/04/13  12:30:02  phares
-// Resolved Z_Free error msg when no boom.cfg file
-//
-// Revision 1.45  1998/04/12  22:55:33  phares
-// Remaining 3 Setup screens
-//
-// Revision 1.44  1998/04/10  23:21:41  jim
-// fixed string/int differentiation by value
-//
-// Revision 1.43  1998/04/10  06:37:54  killough
-// Add adaptive gametic timer option
-//
-// Revision 1.42  1998/04/06  11:05:00  jim
-// Remove LEESFIXES, AMAP bdg->247
-//
-// Revision 1.41  1998/04/06  04:50:00  killough
-// Support demo_insurance=2
-//
-// Revision 1.40  1998/04/05  00:51:13  phares
-// Joystick support, Main Menu re-ordering
-//
-// Revision 1.39  1998/04/03  14:45:49  jim
-// Fixed automap disables at 0, mouse sens unbounded
-//
-// Revision 1.38  1998/03/31  10:44:31  killough
-// Add demo insurance option
-//
-// Revision 1.37  1998/03/31  00:39:44  jim
-// Screenshots in BMP format added
-//
-// Revision 1.36  1998/03/25  16:31:23  jim
-// Fixed bad default value for defaultskill
-//
-// Revision 1.34  1998/03/23  15:24:17  phares
-// Changed pushers to linedef control
-//
-// Revision 1.33  1998/03/20  00:29:47  phares
-// Changed friction to linedef control
-//
-// Revision 1.32  1998/03/11  17:48:16  phares
-// New cheats, clean help code, friction fix
-//
-// Revision 1.31  1998/03/10  07:06:30  jim
-// Added secrets on automap after found only option
-//
-// Revision 1.30  1998/03/09  18:29:12  phares
-// Created separately bound automap and menu keys
-//
-// Revision 1.29  1998/03/09  11:00:20  jim
-// allowed -1 in mouse bindings and map functions
-//
-// Revision 1.28  1998/03/09  07:35:18  killough
-// Rearrange order of cfg options, add capslock options
-//
-// Revision 1.27  1998/03/06  21:41:04  jim
-// fixed erroneous range for gamma in config
-//
-// Revision 1.26  1998/03/05  00:57:47  jim
-// Scattered HUD
-//
-// Revision 1.25  1998/03/04  11:55:42  jim
-// Add range checking, help strings to BOOM.CFG
-//
-// Revision 1.24  1998/03/02  15:34:15  jim
-// Added Rand's HELP screen as lump and loaded and displayed it
-//
-// Revision 1.23  1998/03/02  11:36:44  killough
-// clone defaults, add sts_traditional_keys
-//
-// Revision 1.22  1998/02/27  19:22:05  jim
-// Range checked hud/sound card variables
-//
-// Revision 1.21  1998/02/27  08:10:02  phares
-// Added optional player bobbing
-//
-// Revision 1.20  1998/02/26  22:58:39  jim
-// Added message review display to HUD
-//
-// Revision 1.19  1998/02/24  22:00:57  killough
-// turn translucency back on by default
-//
-// Revision 1.18  1998/02/24  08:46:05  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.17  1998/02/23  14:21:14  jim
-// Merged HUD stuff, fixed p_plats.c to support elevators again
-//
-// Revision 1.16  1998/02/23  04:40:48  killough
-// Lots of new options
-//
-// Revision 1.14  1998/02/20  21:57:00  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.13  1998/02/20  18:46:58  jim
-// cleanup of HUD control
-//
-// Revision 1.12  1998/02/19  16:54:33  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.11  1998/02/18  11:56:11  jim
-// Fixed issues with HUD and reduced screen size
-//
-// Revision 1.9  1998/02/15  03:21:20  phares
-// Jim's comment: Fixed bug in automap from mistaking framebuffer index for mark color
-//
-// Revision 1.8  1998/02/15  03:17:56  phares
-// User-defined keys
-//
-// Revision 1.6  1998/02/09  03:04:12  killough
-// Add weapon preferences, player corpse, vsync options
-//
-// Revision 1.5  1998/02/02  13:37:26  killough
-// Clone compatibility flag, for TNTCOMP to work
-//
-// Revision 1.4  1998/01/26  19:23:49  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/26  04:59:07  killough
-// Fix DOOM 1 screenshot acknowledgement
-//
-// Revision 1.2  1998/01/21  16:56:16  jim
-// Music fixed, defaults for cards added
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------
 

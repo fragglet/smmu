@@ -1,6 +1,23 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 
 #ifndef __C_RUNCMD_H__
 #define __C_RUNCMD_H__
@@ -23,13 +40,40 @@ typedef struct variable_s variable_t;
 //        }
 
 #define CONSOLE_COMMAND(name, flags)                    \
-        void Handler_ ## name();                        \
+        static void Handler_ ## name();                 \
         command_t Cmd_ ## name = { # name, ct_command,  \
                        flags, NULL, Handler_ ## name,   \
                        0 };                             \
-        void Handler_ ## name()
+        static void Handler_ ## name()
 
-		 
+
+// new all-in-one variable command macros
+// easier than messing around with two VARIABLE_ and CONSOLE_ macros
+
+#define CONSOLE_INT(name, variable, defaultvar, min, max, strings, flags) \
+   variable_t Var_ ## name = {&variable, defaultvar, vt_int,              \
+	                      min, max, strings};                         \
+   static void Handler_ ## name();                                        \
+   command_t Cmd_ ## name = { # name, ct_variable, flags, &Var_ ## name,  \
+   Handler_ ## name, 0};                                                  \
+   static void Handler_ ## name()
+
+#define CONSOLE_BOOLEAN(name, variable, defaultvar, strings, flags)       \
+   variable_t Var_ ## name = {&variable, defaultvar, vt_int,              \
+                              0, 1, strings};                             \
+   void Handler_ ## name();                                               \
+   command_t Cmd_ ## name = { #name, ct_variable, flags, &Var_ ## name,   \
+   Handler_ ## name, 0};                                                  \
+   void Handler_ ## name()
+  
+#define CONSOLE_STRING(name, variable, defaultvar, max, flags)            \
+   variable_t Var_ ## name = {&variable, defaultvar, vt_string,           \
+			      0, max};                                    \
+   void Handler_ ## name();                                               \
+   command_t Cmd_ ## name = { # name, ct_variable, flags, & Var_ ## name, \
+   Handler_ ## name, 0};                                                  \
+   void Handler_ ## name()
+
 // console variable. you must define the range of values etc. for
 //      the variable using the other macros below.
 //      You must also provide a handler function even
@@ -123,6 +167,7 @@ enum    // cmdtype values
   c_typed,        // typed at console
   c_menu,
   c_netcmd,
+  c_script,       // .cfg files etc.
   C_CMDTYPES
 };
 
@@ -146,6 +191,7 @@ enum    // command flag
   cf_hidden       =64,    // hidden in cmdlist
   cf_buffered     =128,   // buffer command: wait til all screen
                           // rendered before running command
+  cf_nosave       =256,   // do not save to .cfg file
 };
 
 enum    // variable type
@@ -236,6 +282,11 @@ void C_AddCommandList(command_t *list);
 void C_AddCommands();
 command_t *C_GetCmdForName(char *cmdname);
 
+/***** scripts ****/
+
+void C_RunScript(char *script);
+void C_RunScriptFromFile(char *filename);
+
 /***** define strings for variables *****/
 
 extern char *yesno[];
@@ -245,3 +296,12 @@ extern char *textcolours[];
 extern char *skills[];
 
 #endif
+
+//--------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//--------------------------------------------------------------------------

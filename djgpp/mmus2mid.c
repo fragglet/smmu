@@ -21,7 +21,7 @@
 //  Much of the code here is thanks to S. Bacquet's source for QMUS2MID.C
 //
 //-----------------------------------------------------------------------------
-static const char rcsid[] = "$Id: mmus2mid.c,v 1.10 1998/05/10 23:00:43 jim Exp $";
+static const char rcsid[] = "$Id$";
 
 #include <ctype.h>
 #include <stdio.h>
@@ -808,35 +808,9 @@ int main(int argc,char **argv)
 #endif
 //----------------------------------------------------------------------------
 //
-// $Log: mmus2mid.c,v $
-// Revision 1.10  1998/05/10  23:00:43  jim
-// formatted/documented mmus2mid
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/03/14  17:16:19  jim
-// Fixed track timing problem
-//
-// Revision 1.8  1998/03/05  16:59:55  jim
-// Fixed minor error in mus to midi conversion
-//
-// Revision 1.7  1998/02/08  15:15:47  jim
-// Added native midi support
-//
-// Revision 1.6  1998/01/26  19:23:54  phares
-// First rev with no ^Ms
-//
-// Revision 1.5  1998/01/23  20:26:20  jim
-// Fix bug causing leftover tracks to persist
-//
-// Revision 1.4  1998/01/21  17:41:13  rand
-// Added rcsid string back that Jim took out.
-//
-// Revision 1.3  1998/01/21  16:56:20  jim
-// Music fixed, defaults for cards added
-//
-// Revision 1.2  1998/01/19  23:36:15  rand
-// Added rcsid and Id: strings at top of file
-//
-// Revision 1.1.1.1  1998/01/19  14:03:10  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Do all the WAD I/O, get map description,
@@ -22,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "c_io.h"
 #include "c_runcmd.h"
@@ -59,7 +65,7 @@ rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 
 int      newlevel = false;
 int      doom1level = false;    // doom 1 level running under doom 2
-char     levelmapname[10];
+char     *levelmapname;
 
 int      numvertexes;
 vertex_t *vertexes;
@@ -957,16 +963,16 @@ char *levellumps[] =
 
 boolean P_CheckLevel(int lumpnum)
 {
-        int i, ln;
-
-        for(i=ML_THINGS; i<=ML_BLOCKMAP; i++)
-        {
-                ln = lumpnum+i;
-                if(ln > numlumps ||     // past the last lump
-                   strncmp(lumpinfo[ln]->name, levellumps[i], 8) )
-                        return false;
-        }
-        return true;    // all right
+  int i, ln;
+  
+  for(i=ML_THINGS; i<=ML_BLOCKMAP; i++)
+    {
+      ln = lumpnum+i;
+      if(ln > numlumps ||     // past the last lump
+	 strncmp(lumpinfo[ln]->name, levellumps[i], 8) )
+	return false;
+    }
+  return true;    // all right
 }
 
 
@@ -1005,21 +1011,17 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
     }
 
       // get the map name lump number
-  if((lumpnum = W_CheckNumForName(mapname)) == -1)
-  {
-    C_Printf("Map not found: '%s'\n", mapname);
-    C_SetConsole();
-    return;
-  }
-
-  if(!P_CheckLevel(lumpnum))     // not a level
+  if((lumpnum = W_CheckNumForName(mapname)) == -1
+    || !P_CheckLevel(lumpnum))  
     {
-      C_Printf("Not a level: '%s'\n", mapname);
+      C_Printf("level not found: '%s'\n", mapname);
       C_SetConsole();
       return;
     }
-
-  strncpy(levelmapname, mapname, 8);
+  
+  if(levelmapname) Z_Free(levelmapname);
+  levelmapname = Z_Strdup(mapname, PU_STATIC, 0);
+  
   leveltime = 0;
 
   DEBUGMSG("stop sounds\n");
@@ -1040,8 +1042,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   WI_StopCamera();      // reset the intermissions camera
 
   // when loading a hub level, display a 'loading' box
-  if(hub_changelevel)
-    V_SetLoading(4, "loading");
 
   DEBUGMSG("hu_newlevel\n");
   newlevel = lumpinfo[lumpnum]->handle != iwadhandle;
@@ -1072,8 +1072,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   P_LoadSideDefs  (lumpnum+ML_SIDEDEFS);             // killough 4/4/98
   P_LoadLineDefs  (lumpnum+ML_LINEDEFS);             //       |
 
-  V_LoadingIncrease();  // update
-
   P_LoadSideDefs2 (lumpnum+ML_SIDEDEFS);             //       |
   P_LoadLineDefs2 (lumpnum+ML_LINEDEFS);             // killough 4/4/98
 
@@ -1089,8 +1087,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   P_LoadSegs      (lumpnum+ML_SEGS);
 
   DEBUGMSG("loaded level\n");
-
-  V_LoadingIncrease();    // update
 
   rejectmatrix = W_CacheLumpNum(lumpnum+ML_REJECT,PU_LEVEL);
   P_GroupLines();
@@ -1127,8 +1123,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   // set up world state
   P_SpawnSpecials();
 
-  V_LoadingIncrease();      // update
-
   // preload graphics
   if (precache)
     R_PrecacheLevel();
@@ -1140,13 +1134,13 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   T_PreprocessScripts();        // preprocess FraggleScript scripts
 
-  V_LoadingIncrease();
-
   DEBUGMSG("P_SetupLevel: finished\n");
   if(doom1level && gamemode == commercial)
-          C_Printf("doom 1 level\n");
+    C_Printf("doom 1 level\n");
 
   camera = NULL;        // camera off
+
+  ResetNet();
 }
 
 //
@@ -1208,53 +1202,9 @@ void C_DumpThings()
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_setup.c,v $
-// Revision 1.16  1998/05/07  00:56:49  killough
-// Ignore translucency lumps that are not exactly 64K long
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.15  1998/05/03  23:04:01  killough
-// beautification
-//
-// Revision 1.14  1998/04/12  02:06:46  killough
-// Improve 242 colomap handling, add translucent walls
-//
-// Revision 1.13  1998/04/06  04:47:05  killough
-// Add support for overloading sidedefs for special uses
-//
-// Revision 1.12  1998/03/31  10:40:42  killough
-// Remove blockmap limit
-//
-// Revision 1.11  1998/03/28  18:02:51  killough
-// Fix boss spawner savegame crash bug
-//
-// Revision 1.10  1998/03/20  00:30:17  phares
-// Changed friction to linedef control
-//
-// Revision 1.9  1998/03/16  12:35:36  killough
-// Default floor light level is sector's
-//
-// Revision 1.8  1998/03/09  07:21:48  killough
-// Remove use of FP for point/line queries and add new sector fields
-//
-// Revision 1.7  1998/03/02  11:46:10  killough
-// Double blockmap limit, prepare for when it's unlimited
-//
-// Revision 1.6  1998/02/27  11:51:05  jim
-// Fixes for stairs
-//
-// Revision 1.5  1998/02/17  22:58:35  jim
-// Fixed bug of vanishinb secret sectors in automap
-//
-// Revision 1.4  1998/02/02  13:38:48  killough
-// Comment out obsolete reload hack
-//
-// Revision 1.3  1998/01/26  19:24:22  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/26  05:02:21  killough
-// Generalize and simplify level name generation
-//
-// Revision 1.1.1.1  1998/01/19  14:03:00  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

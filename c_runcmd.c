@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Command running functions
 //
 // Running typed commands, or network/linedef triggers. Sending commands over
@@ -9,8 +27,6 @@
 // By Simon Howard
 //
 //-----------------------------------------------------------------------------
-
-/* includes ************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,8 +44,6 @@
 #include "g_game.h"
 #include "z_zone.h"
 
-/* Prototypes **********************/
-
 static void C_EchoValue(command_t *command);
 static void C_SetVariable(command_t *command);
 static void C_RunAlias(alias_t *alias);
@@ -37,20 +51,23 @@ static int C_Sync(command_t *command);
 static void C_ArgvtoArgs();
 static boolean C_Strcmp(unsigned char *a, unsigned char *b);
 
-/***************************
-  PARSING/RUNNING COMMANDS
- ***************************/
+//===========================================================================
+//
+// Parsing/Running Commands
+//
+//===========================================================================
 
 int cmdtype;
-char c_argv[MAXTOKENS][MAXTOKENLENGTH];   // tokenised list of arguments
-int c_argc;                               // number of arguments
-char c_args[128];                         // raw list of arguments
-command_t *c_command;                     // ptr to command we're running
 
 static char cmdtokens[MAXTOKENS][MAXTOKENLENGTH];
 static int numtokens;
 
-        // break up the command into tokens
+command_t *c_command;
+char c_argv[MAXTOKENS][MAXTOKENLENGTH];   // tokenised list of arguments
+int c_argc;                               // number of arguments
+char c_args[128];                         // raw list of arguments
+
+// break up the command into tokens
 static void C_GetTokens(char *command)
 {
   char *rover;
@@ -94,6 +111,7 @@ static void C_GetTokens(char *command)
     }
 }
 
+//
 // C_RunIndivTextCmd.
 // called once a typed command line has been broken
 // into individual commands (multiple commands on one
@@ -131,8 +149,8 @@ static void C_RunIndivTextCmd(char *cmdname)
   C_RunCommand(command, cmdname+strlen(cmdtokens[0]));
 }
 
-        // check the flags of a command to see if it
-        // should be run or not
+// check the flags of a command to see if it
+// should be run or not
 
 static boolean C_CheckFlags(command_t *command)
 {
@@ -145,16 +163,21 @@ static boolean C_CheckFlags(command_t *command)
     errormsg = "not available in netgame";
   if((command->flags & cf_netonly) && !netgame && !demoplayback)
     errormsg = "only available in netgame";
-  if((command->flags & cf_server) && consoleplayer && !demoplayback
-     && cmdtype!=c_netcmd)
-    errormsg = "for server only";
+  if((command->flags & cf_server) && consoleplayer != controller &&
+     !demoplayback && cmdtype!=c_netcmd)
+    errormsg = "for controller only";
   if((command->flags & cf_level) && gamestate != GS_LEVEL)
     errormsg = "can be run in levels only";
   
   // net-sync critical variables are usually critical to
   // demo sync too
   if((command->flags & cf_netvar) && demoplayback)
-    errormsg = "not during demo playback";
+    {
+      if(cmdtype == c_menu)    // if called from menu, stop demo playback
+	G_StopDemo();
+      else
+	errormsg = "not during demo playback";
+    }
   
   if(errormsg)
     {
@@ -265,10 +288,14 @@ static void C_ArgvtoArgs()
 	}
     }
 
-  c_args[0] = 0;
+  c_args[0] = '\0';
   
   for(i=0 ; i<c_argc; i++)
-    sprintf(c_args, "%s%s ", c_args, c_argv[i]);
+    {
+      if(c_args[0])
+	strcat(c_args, " ");
+      strcat(c_args, c_argv[i]);
+    }
 }
 
 // return a string of all the argvs linked together, but with each
@@ -279,12 +306,35 @@ static char *C_QuotedArgvToArgs()
   int i;
   static char returnvar[1024];
 
+  // no cmd line, return nothing
+  
+  if(!c_argc)
+    return "";
+
+  // build command line
+  
   returnvar[0] = 0;
   
   for(i=0 ; i<c_argc; i++)
-    sprintf(returnvar, "%s\"%s\" ", returnvar, c_argv[i]);
-
-  return returnvar;
+    {
+      // enclose in spaces if it contains a ' '
+      if(strchr(c_argv[i], ' '))
+	{
+	  strcat(returnvar, " \"");
+	  strcat(returnvar, c_argv[i]);
+	  strcat(returnvar, "\"");
+	}
+      else
+	{
+	  strcat(returnvar, " ");
+	  strcat(returnvar, c_argv[i]);
+	}
+    }
+  
+  // we will always have a first character of a space character
+  // using above algorithm. ignore the first char
+  
+  return returnvar + 1;
 }
 
 // see if the command needs to be sent to other computers
@@ -297,8 +347,7 @@ static int C_Sync(command_t *command)
       // dont get stuck repeatedly sending the same command
       if(cmdtype != c_netcmd)
 	{                               // send to sync
-	  C_SendCmd(CN_BROADCAST, command->netcmd,
-		    "%s", C_QuotedArgvToArgs());
+	  C_SendCmd(command->netcmd, C_QuotedArgvToArgs());
 	  return true;
 	}
     }
@@ -310,29 +359,43 @@ static int C_Sync(command_t *command)
 
 void C_RunTextCmd(char *command)
 {
-  char *startofcmd;
-  char *scanner;
-  int quotemark=0;  // for " quote marks
+  boolean quotemark=0;  // for " quote marks
+  char *sub_command = NULL;
+  char *rover;
 
-  startofcmd = scanner = command;
-  
-  // break down the command into individual commands
-  
-  while(*scanner)
+  for(rover=command; *rover; rover++)
     {
-      // ignore ';'s inside quote marks
-      if(*scanner=='"') quotemark = !quotemark;
-      if(*scanner==';' && !quotemark)
-	{                      // end of command: run it
-	  *scanner = '\0';
-	  C_RunIndivTextCmd(startofcmd);
-	  *scanner = ';';
-	  startofcmd=scanner+1; // prepare for next command
+      if(*rover=='\"')    // quotemark
+	{
+	  quotemark = !quotemark;
+	  continue;
 	}
-      scanner++;
+      if(*rover==';' && !quotemark)  // command seperator and not in string 
+	{
+	  // found sub-command
+	  // use recursion to run the subcommands
+
+	  // left
+	  // copy sub command, alloc slightly more than needed
+	  sub_command = malloc(rover-command+3); 
+	  strncpy(sub_command, command, rover-command);
+	  sub_command[rover-command] = '\0';   // end string
+
+	  C_RunTextCmd(sub_command);
+
+	  // right
+	  C_RunTextCmd(rover+1);
+
+	  // leave to the other function calls (above) to run commands
+	  free(sub_command);
+	  return;
+	}
     }
   
-  C_RunIndivTextCmd(startofcmd); // dont forget the last one
+  // no sub-commands: just one
+  // so run it
+
+  C_RunIndivTextCmd(command);
 }
 
 // get the literal value of a variable (ie. "1" not "on")
@@ -341,7 +404,8 @@ char *C_VariableValue(variable_t *variable)
 {
   static char value[128];
   
-  if(!variable) return "";
+  if(!variable || !variable->variable)
+    return "no variable - bug!";
   
   switch(variable->type)
     {
@@ -351,7 +415,10 @@ char *C_VariableValue(variable_t *variable)
       break;
       
     case vt_string:
-      sprintf(value, "%s", *(char**)variable->variable);
+      if(*(char **)variable->variable)
+	strcpy(value, *(char**)variable->variable);
+      else
+	return "null";
       break;
 
     default:
@@ -368,8 +435,11 @@ char *C_VariableStringValue(variable_t *variable)
 {
   static char value[128];
 
-  if(!variable) return "";
-
+  if(!variable)
+    return "";
+  if(!variable->variable)
+    return "null";
+  
   // does the variable have alternate 'defines' ?
   strcpy(value, variable->defines ?
 
@@ -385,7 +455,7 @@ char *C_VariableStringValue(variable_t *variable)
 
 // echo a value eg. ' "alwaysmlook" is "1" '
 
-void C_EchoValue(command_t *command)
+static void C_EchoValue(command_t *command)
 {
   C_Printf("\"%s\" is \"%s\"\n", command->name,
 	   C_VariableStringValue(command->variable) );
@@ -444,7 +514,8 @@ static char* C_ValueForDefine(variable_t *variable, char *s)
 	  return returnstr;
 	}
       
-      if(!isnum(s)) return NULL;
+      if(!isnum(s))
+	return NULL;
     }
   
   return s;
@@ -502,6 +573,7 @@ static void C_SetVariable(command_t *command)
     errormsg = "value too big";
   if(size < variable->min)
     errormsg = "value too small";
+
   if(errormsg)
     {
       MN_ErrorMsg(errormsg);
@@ -510,7 +582,8 @@ static void C_SetVariable(command_t *command)
     }
                 
   // netgame sync: send command to other nodes
-  if(C_Sync(command)) return;
+  if(C_Sync(command))
+    return;
   
   // now set it
   // 5/8/99 set default value also
@@ -518,48 +591,52 @@ static void C_SetVariable(command_t *command)
   // the handler instead
   
   if(!(command->flags & cf_handlerset))
-    switch(variable->type)  // implicitly set the variable
-      {
-      case vt_int:
-	*(int*)variable->variable = atoi(c_argv[0]);
-	if(variable->v_default && cmdsrc==c_typed)  // default
-	  *(int*)variable->v_default = atoi(c_argv[0]);
-	break;
-	
-      case vt_string:
-	free(*(char**)variable->variable);
-	*(char**)variable->variable = strdup(c_argv[0]);
-	if(variable->v_default && cmdsrc==c_typed)  // default
-	  {
-	    free(*(char**)variable->v_default);
-	    *(char**)variable->v_default = strdup(c_argv[0]);
-	  }
-	break;
-        
-      default:
-	return;
-      }
+    {
+      switch(variable->type)  // implicitly set the variable
+	{
+	  case vt_int:
+	    *(int *)variable->variable = atoi(c_argv[0]);
+	    if(variable->v_default && cmdtype==c_typed)  // default
+	      *(int *)variable->v_default = atoi(c_argv[0]);
+	    break;
+	    
+	  case vt_string:
+	    free(*(char **)variable->variable);
+	    *(char **)variable->variable = strdup(c_argv[0]);
+	    if(variable->v_default && cmdtype==c_typed)  // default
+	      {
+		free(*(char **)variable->v_default);
+		*(char **)variable->v_default = strdup(c_argv[0]);
+	      }
+	    break;
+	    
+	  default:
+	    return;
+	}
+    }
   
   if(command->handler)          // run handler if there is one
     command->handler();
 }
 
-/**********************
-        TAB COMPLETION
- **********************/
+//===========================================================================
+//
+// Tab Completion
+//
+//===========================================================================
 
-char origkey[100];
-int nokey = 1;
-command_t *tabs[128];
-int numtabs = 0;
-int thistab = -1;
+static char origkey[100];
+static boolean gotkey;
+static command_t *tabs[128];
+static int numtabs = 0;
+static int thistab = -1;
 
 // given a key (eg. "r_sw"), will look through all
 // the commands in the hash chains and gather
 // all the commands which begin with this into a
 // list 'tabs'
 
-static void GetTabs(char *key)
+void GetTabs(char *key)
 {
   int i;
   int keylen;
@@ -568,7 +645,7 @@ static void GetTabs(char *key)
   while(*key==' ') key++;
 
   strcpy(origkey, key);
-  nokey = 0;
+  gotkey = true;
 
   if(!*key) return;
   
@@ -597,8 +674,8 @@ static void GetTabs(char *key)
 void C_InitTab()
 {
   numtabs = 0;
-  strcpy(origkey, "");
-  nokey = 1;
+  origkey[0] = '\0';
+  gotkey = false;
   thistab = -1;
 }
 
@@ -610,10 +687,8 @@ char *C_NextTab(char *key)
   static char returnstr[100];
 
   // get tabs if not done already
-  if(nokey)
-    {
+  if(!gotkey)
       GetTabs(key);
-    }
   
   // select next tab
   thistab = thistab == -1 ? 0 : thistab+1;  
@@ -636,7 +711,7 @@ char *C_PrevTab(char *key)
   static char returnstr[100];
 
   // get tabs if neccesary
-  if(nokey)
+  if(!gotkey)
     {
       GetTabs(key);
     }
@@ -655,9 +730,11 @@ char *C_PrevTab(char *key)
   return returnstr;
 }
 
-/************************
-                ALIASES
- ************************/
+//===========================================================================
+//
+// Aliases
+//
+//===========================================================================
 
 // fixed length array arrgh!
 alias_t aliases[128];
@@ -682,7 +759,8 @@ alias_t *C_GetAlias(char *name)
   return NULL;
 }
 
-        // create a new alias, or use one that already exists
+// create a new alias, or use one that already exists
+
 alias_t *C_NewAlias(unsigned char *aliasname, unsigned char *command)
 {
   alias_t *alias;
@@ -739,12 +817,10 @@ void C_RunAlias(alias_t *alias)
   C_RunTextCmd(alias->command);   // run the command
 }
 
-
-
-/*********************
-  COMMAND BUFFERING
- *********************/
-
+//===========================================================================
+//
+// Command Bufferring
+//
 // new ticcmds can be built at any time including during the
 // rendering process. The commands need to be buffered
 // and run by the tickers instead of directly from the
@@ -756,6 +832,8 @@ void C_RunAlias(alias_t *alias)
 // 15/11/99 cleaned up: now uses linked lists of bufferedcmd's
 //              rather than a static array: no limit on
 //              buffered commands and nicer code
+//
+//===========================================================================
 
 typedef struct bufferedcmd_s bufferedcmd;
 
@@ -809,6 +887,7 @@ void C_BufferCommand(int cmtype, command_t *command, char *options,
       
       free(newbuf->options);
       free(newbuf);
+
       return;
     }
 
@@ -907,11 +986,15 @@ boolean C_Strcmp(unsigned char *a, unsigned char *b)
   return false;       // no difference in them
 }
 
-/*************************
-          COMMAND HASHING
- *************************/
+//===========================================================================
+//
+// Command hashing
+//
+// Faster look up of console commands
+//
+//===========================================================================
 
-command_t *cmdroots[16];
+command_t *cmdroots[CMDCHAINS];
 
        // the hash key
 #define CmdHashKey(s)                                     \
@@ -967,5 +1050,74 @@ command_t *C_GetCmdForName(char *cmdname)
   return NULL;
 }
 
+//===========================================================================
+//
+// Command Scripts
+//
+// Scripts are lists of commands to run - stored in a file or a wad
+// lump or whatever.
+//
+//===========================================================================
 
+void C_RunScript(char *script)
+{
+  char buffer[128] = "";
+  char *rover;
 
+  if(!script)
+    return;
+  
+  for(rover = script; *rover; rover++)
+    {
+      if(*rover == '\n')      // end of line - run command
+	{
+	  //	  C_Puts(buffer);
+	  
+	  if(buffer[0] == '#' || buffer[0] == ';' ||
+	     (buffer[0] == '/' && buffer[1] == '/'))
+	    {
+	      // comment
+	    }
+	  else
+	    {
+	      cmdtype = c_script;
+	      C_RunTextCmd(buffer);
+	      C_RunBuffer(c_script);   // force to run now
+	    }
+	  
+	  // clear buffer for next line
+	  buffer[0] = '\0';
+	}
+      else if(isprint(*rover))
+	{
+	  // add to end of buffer
+
+	  buffer[strlen(buffer) + 1] = '\0';
+	  buffer[strlen(buffer)] = *rover;
+	}      
+    }
+  
+}
+
+void C_RunScriptFromFile(char *filename)
+{
+  char *filedata;
+
+  if(M_ReadFile(filename, &filedata) <= 0)
+    C_Printf("couldn't exec '%s'\n", filename);
+  else
+    {
+      C_Printf("exec'ing %s\n", filename);
+
+      C_RunScript(filedata);
+    }
+}
+
+//--------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
+//
+//--------------------------------------------------------------------------

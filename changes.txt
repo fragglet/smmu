@@ -1,4 +1,154 @@
 ============================================================================
+14-4-2000
+
+Ack, this hasnt been updated in far too long.  I was going to release a bug
+fix version in January but never got round to it. I started on the new
+networking code which is client-server based:
+
+
+* The networking code works using a server which is in sv_serv.c and a
+  client which is stored in cl_clien.c.  I have done my best to keep the
+  code for the two sections as seperate as possible - this way it is possible
+  to compile a seperate dedicated server program which does not need all
+  the code from the rest of the program to run.  I have already tried this
+  by compiling a seperate binary under linux and it works.
+
+* The networking is generalised and uses a system of 'netmodules'. There
+  is a netmodule for each connection method - eg. external driver
+  (ipxsetup/sersetup etc), tcp/ip (udp), modem etc. Each module has a
+  netmodule_t with function pointers for functions to do basic network
+  tasks - send packet, get new packet, init, shutdown etc. While the
+  client only uses one netmodule, the server can listen on and use multiple
+  netmodules - the result being that you can have a netgame with for example,
+  one player connected via modem, another by tcp/ip, another locally etc.
+  Clients communicate with a local server via a loopback netmodule.
+
+* I have already written the following netmodules:
+
+   - Loopback (net_loop.c) - for connection from client to local server
+   - Serial/Modem (djgpp/net_ser.c) - adapted from old serial/modem code
+   - TCP/IP (net_udp.c)
+       - Uses standard unix socket api. Can compile under linux and other
+         unix platforms and also under DJGPP with the libsocket library.
+         net_udp.c automatically adds new ip addresses to its node list
+         which makes it possible to 'finger' servers - ie. find out
+         information about them. See below.
+   - External driver (djgpp/net_ext.c)
+       - Uses original doom external driver interface.
+
+* cl_find.c added - this is used to 'search' for servers. Functions allow
+  you to search on a particular netmodule for servers - the list of
+  servers is presented in a menu where a server to be joined can be
+  selected. smmu servers respond to 'finger' packets and will reply with
+  the name of the server and other useful info.
+
+  cl_find.c also includes internet lookup code. This works by contacting
+  a central server which stores a list of computers which are running
+  smmu netgames over the internet. I have written an smmuserv daemon which
+  runs under linux and accepts connections from smmu clients. Clients can
+  register themselves with the server (add their ip address) and obtain
+  a list of ip's of smmu servers. These ip's can then be 'fingered' as
+  mentioned above, and a list of servers drawn up.
+
+* i_net.c removed as it is no longer relevant.
+
+* Added mn_files.c which, as well as adding a 'dir' command to the console,
+  provides a menu widget which allows selection of wad files, demo .lmps,
+  etc for loading. Added variable which holds directory in which wads are
+  kept.
+
+* Imported asm code for linux.
+
+* Added generalised video system, mainly for linux. All the low level
+  graphics functions - I_SetPalette, I_FinishUpdate etc, have been
+  moved to v_mode.c and changed from I_* to V_*. These interface with
+  a 'video driver' module which can be set at startup either automatically
+  or using a command line parameter. This makes it possible to compile
+  a linux binary with both X and svgalib support. I have included #defines
+  to allow compiling for only one specific library. This has helped to
+  clear up a lot of the mode setting code.
+
+* Fixed Linux X Window code which was crashing because of a global
+  variable in hu_stuff.c called 'socket'.
+
+* X Window code adapted for mode setting - can now use normal 320x200,
+  320x200 scaled by 2x, 3x, and 4x, 640x400 and 640x400 scaled 2x.
+
+* Added hires mode for svgalib module. This actually sets the 640x480 mode
+  rather than 640x400 as svgalib does not seem to like 640x400. I have also
+  added a similar mode for the allegro module in DOS as some people find
+  that 640x400 is slow.
+
+* Moved mode setting code - v_mode, v_modelist console cmds etc. into
+  v_mode.c and integrated them into the code there.
+
+* Fixed various little linux things - use ~/.smmurc for cfg file, etc.
+
+* Added new key bindings system. As was suggested by Killough in the
+  MBF days, I have made mouse/joystick buttons 'virtual keys'. The new
+  system uses a quake-style system of binding keys to individual functions.
+  The keys can be bound to an individual variable which is incremented
+  when the key is pressed, or to a console command, which is run when the
+  key is pressed. I am in the process of removing most of the old
+  'key_' variables. Some I plan to keep but to simply have internal -
+  I do not see much point in some key bindings such as the ones for
+  moving around the menu. I have added a new type of menuitem
+  'it_binding' which is used for key bindings. There is a menu widget
+  in g_bind.c (where all the key binding code is kept, incidentally)
+  which waits for a key to be pressed and then binds that key.
+
+* Changed the .cfg file system to use the console. I think that this is
+  a better system as it allows variables to be added without all the
+  problem of adding them to the list in m_misc.c.  I have kept the
+  old code in m_misc.c but it is unused (except for the OPTIONS lump?)
+  Added console command flag cf_nosave for variables which are not to
+  be saved to the .cfg file. The .cfg file also holds all the key
+  bindings. I will probably add a lump to smmu.wad containing the
+  default .cfg file to run if none is found.
+
+* Fixed a bug in c_runcmd.c where (char *) should have been (char **).
+  This was causing some problems with the 'name' console variable.
+
+* Changed headers to GPL after I checked with cph that Lee Killough has
+  made MBF GPL.
+
+============================================================================
+15-1-2000
+
+* Added enhanced music playing abilities. Now uses a hash-table to which
+  new musics are added when wads are loaded. This allows FraggleScript
+  to change the music from a new function.
+
+* Added new FraggleScript functions for doors and lifts, and other
+  simple stuff which was left out (stupidly)
+
+* Rewrote swantbls, much nicer code with in-built ability to add
+  swirly water flats.
+
+* Fixed some of the dos graphics code which was segfaulting. Changed
+  some of the mode setting code to use v_mode instead of relying on
+  the individual hires, pageflip etc variables
+
+* Changed demo playing. Demos are no longer loaded into the main wad
+  directory and played as lumps. This means that the playdemo console
+  command can be used to play demos from files without the need to
+  reload. -playdemo command line parameter no longer loads demo lmps
+  into the directory
+
+* Moved the code to fill the background with a flat to v_misc.c
+
+* Video menu changed: now an option 'set video mode' which leads to a
+  seperate menu where a new video mode can be selected.
+
+* Should be another release in a week or so. This will be a 'bug-fix'
+  release to fix bugs from the previous version.
+
+* Emailed jj at doomnation to ask about the possibility of an SMMU
+  forum. He is trying to set one up but ran into some
+  difficulties. The forum should be set up soon although I haven't seen any
+  sign of it yet.
+
+============================================================================
 19-12-1999
 
 * Have changed compatibility, weapon pref and chat macro commands in

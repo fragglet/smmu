@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      System interface for sound.
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <stdio.h>
 
@@ -33,71 +39,73 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 #include "../g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
 #include "../d_main.h"
 
+FILE *sndpipe;
+
 void I_CacheSound(sfxinfo_t *sound);
 
-int snd_card = 0, mus_card = 0, detect_voices;
+int snd_card = 1, mus_card = 0, detect_voices;
 
 //
 // This function loads the sound data from the WAD lump,
 //  for single sound.
 //
-static void *getsfx(char *sfxname, int *len)
-{
-  unsigned char *sfx, *paddedsfx;
-  int  i;
-  int  size;
-  int  paddedsize;
-  char name[20];
-  int  sfxlump;
+//  static void *getsfx(char *sfxname, int *len)
+//  {
+//    unsigned char *sfx, *paddedsfx;
+//    int  i;
+//    int  size;
+//    int  paddedsize = 0;
+//    char name[20];
+//    int  sfxlump;
 
-  // Get the sound data from the WAD, allocate lump
-  //  in zone memory.
-  sprintf(name, "ds%s", sfxname);
+//    // Get the sound data from the WAD, allocate lump
+//    //  in zone memory.
+//    sprintf(name, "ds%s", sfxname);
 
-  // Now, there is a severe problem with the
-  //  sound handling, in it is not (yet/anymore)
-  //  gamemode aware. That means, sounds from
-  //  DOOM II will be requested even with DOOM
-  //  shareware.
-  // The sound list is wired into sounds.c,
-  //  which sets the external variable.
-  // I do not do runtime patches to that
-  //  variable. Instead, we will use a
-  //  default sound for replacement.
+//    // Now, there is a severe problem with the
+//    //  sound handling, in it is not (yet/anymore)
+//    //  gamemode aware. That means, sounds from
+//    //  DOOM II will be requested even with DOOM
+//    //  shareware.
+//    // The sound list is wired into sounds.c,
+//    //  which sets the external variable.
+//    // I do not do runtime patches to that
+//    //  variable. Instead, we will use a
+//    //  default sound for replacement.
 
-  if ( W_CheckNumForName(name) == -1 )
-    sfxlump = W_GetNumForName("dspistol");
-  else
-    sfxlump = W_GetNumForName(name);
+//    if ( W_CheckNumForName(name) == -1 )
+//      sfxlump = W_GetNumForName("dspistol");
+//    else
+//      sfxlump = W_GetNumForName(name);
 
-  size = W_LumpLength(sfxlump);
+//    size = W_LumpLength(sfxlump);
 
-  sfx = W_CacheLumpNum(sfxlump, PU_STATIC);
+//    sfx = W_CacheLumpNum(sfxlump, PU_STATIC);
 
-  // Pads the sound effect out to the mixing buffer size.
-  // The original realloc would interfere with zone memory.
-  //  paddedsize = ((size-8 + (SAMPLECOUNT-1)) / SAMPLECOUNT) * SAMPLECOUNT;
+//    // Pads the sound effect out to the mixing buffer size.
+//    // The original realloc would interfere with zone memory.
+//    //  paddedsize = ((size-8 + (SAMPLECOUNT-1)) / SAMPLECOUNT) * SAMPLECOUNT;
 
-  // Allocate from zone memory.
-  paddedsfx = (unsigned char*) Z_Malloc(paddedsize+8, PU_STATIC, 0);
+//    // Allocate from zone memory.
+//    paddedsfx = (unsigned char*) Z_Malloc(paddedsize+8, PU_STATIC, 0);
 
-  // ddt: (unsigned char *) realloc(sfx, paddedsize+8);
-  // This should interfere with zone memory handling,
-  //  which does not kick in in the soundserver.
+//    // ddt: (unsigned char *) realloc(sfx, paddedsize+8);
+//    // This should interfere with zone memory handling,
+//    //  which does not kick in in the soundserver.
 
-  // Now copy and pad.
-  memcpy(paddedsfx, sfx, size);
-  for (i=size; i<paddedsize+8; i++)
-    paddedsfx[i] = 128;
+//    // Now copy and pad.
+//    memcpy(paddedsfx, sfx, size);
+//    for (i=size; i<paddedsize+8; i++)
+//      paddedsfx[i] = 128;
 
-  // Remove the cached lump.
-  Z_Free(sfx);
+//    // Remove the cached lump.
+//    Z_Free(sfx);
 
-  // Preserve padded length.
-  *len = paddedsize;
+//    // Preserve padded length.
+//    *len = paddedsize;
 
-  return NULL;
-}
+//    return NULL;
+//  }
 
 // SFX API
 // Note: this was called by S_Init.
@@ -312,47 +320,9 @@ void I_Sound_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_sound.c,v $
-// Revision 1.15  1998/05/03  22:32:33  killough
-// beautification, use new headers/decls
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.14  1998/03/09  07:11:29  killough
-// Lock sound sample data
-//
-// Revision 1.13  1998/03/05  00:58:46  jim
-// fixed autodetect not allowed in allegro detect routines
-//
-// Revision 1.12  1998/03/04  11:51:37  jim
-// Detect voices in sound init
-//
-// Revision 1.11  1998/03/02  11:30:09  killough
-// Make missing sound lumps non-fatal
-//
-// Revision 1.10  1998/02/23  04:26:44  killough
-// Add variable pitched sound support
-//
-// Revision 1.9  1998/02/09  02:59:51  killough
-// Add sound sample locks
-//
-// Revision 1.8  1998/02/08  15:15:51  jim
-// Added native midi support
-//
-// Revision 1.7  1998/01/26  19:23:27  phares
-// First rev with no ^Ms
-//
-// Revision 1.6  1998/01/23  02:43:07  jim
-// Fixed failure to not register I_ShutdownSound with atexit on install_sound error
-//
-// Revision 1.4  1998/01/23  00:29:12  killough
-// Fix SSG reload by using frequency stored in lump
-//
-// Revision 1.3  1998/01/22  05:55:12  killough
-// Removed dead past changes, changed destroy_sample to stop_sample
-//
-// Revision 1.2  1998/01/21  16:56:18  jim
-// Music fixed, defaults for cards added
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

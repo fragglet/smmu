@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Preparation of data for rendering,
@@ -21,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -389,17 +396,19 @@ static void R_GenerateLookup(int texnum, int *const errors)
     while (--x >= 0)
       {
 	if (!count[x].patches)     // killough 4/9/98
-	  if (devparm)
-	    {
-	      // killough 8/8/98
-              // sf: changed to use error_printf for graphical startup
-              error_printf("\nR_GenerateLookup:"
-                           " Column %d is without a patch in texture %.8s",
-                           x, texture->name);
-	      ++*errors;
-	    }
-	  else
-	    err = 1;               // killough 10/98
+	  {
+	    if (devparm)
+	      {
+		// killough 8/8/98
+		// sf: changed to use error_printf for graphical startup
+		error_printf("\nR_GenerateLookup:"
+			     " Column %d is without a patch in texture %.8s",
+			     x, texture->name);
+		++*errors;
+	      }
+	    else
+	      err = 1;               // killough 10/98
+	  }
 
         if (count[x].patches > 1)       // killough 4/9/98
           {
@@ -476,7 +485,7 @@ void R_InitTextures (void)
   int  numtextures1, numtextures2;
   int  *directory;
   int  errors = 0;
-        // sf: removed dumb texturewidth (?)
+  // sf: removed dumb texturewidth (?)
 
   // Load the patch names from pnames.lmp.
   name[8] = 0;
@@ -837,10 +846,12 @@ void R_InitTranMap(int progress)
                     V_LoadingIncrease();        //sf 
 
 		if (!(~i & 15))
-		  if (i & 32)       // killough 10/98: display flashing disk
-		    I_EndRead();
-		  else
-		    I_BeginRead();
+		  {
+		    if (i & 32)       // killough 10/98: display flashing disk
+		      V_EndRead();
+		    else
+		      V_BeginRead();
+		  }
 
                 for (j=0;j<256;j++,tp++)
                   {
@@ -1103,9 +1114,10 @@ void R_FreeData()
   Z_Free(main_tranmap);
 }
 
-/********************************
-        Doom I texture conversion
- *********************************/
+///////////////////////////////////////////////////////////////////////////
+//
+// Doom I texture conversion
+//
 
 // convert old doom I levels so they will
 // work under doom II
@@ -1124,58 +1136,60 @@ int numconvs = 0;
 
 static void R_LoadDoom1Parse(char *line)
 {
+  char *doom1, *doom2;
+  
   while(*line == ' ') line++;
   if(line[0] == ';') return;      // comment
   if(!*line || *line<32) return;      // empty line
   
-  if(!txtrconv[numconvs].doom1)
-    {
-      memset(txtrconv[numconvs].doom1 = malloc(9), 0, 9);
-      memset(txtrconv[numconvs].doom2 = malloc(9), 0, 9);
-    }
-  strncpy(txtrconv[numconvs].doom1, line, 8);
-  RemoveEndSpaces(txtrconv[numconvs].doom1);
-  strncpy(txtrconv[numconvs].doom2, line+9, 8);
-  RemoveEndSpaces(txtrconv[numconvs].doom2);
+  // limitless: alloc to size of orig. string
+  doom1 = malloc(strlen(line)); doom1[0] = '\0';
+  doom2 = malloc(strlen(line)); doom2[0] = '\0';
+
+  // read line
+  sscanf(line, "%s %s", doom1, doom2);
+  
+  txtrconv[numconvs].doom1 = strdup(doom1);
+  txtrconv[numconvs].doom2 = strdup(doom2);
+
+  free(doom1);
+  free(doom2);
   
   numconvs++;
 }
 
 static void R_LoadDoom1()
 {
-  char *lump;
-  char *startofline, *rover;
+  char *lump, *rover;
+  char readline[128] = "";
   int ll, lumpnum;
   
   if((lumpnum = W_CheckNumForName("TXTRCONV")) == -1)
     return;
   
-  lump = W_CacheLumpNum(lumpnum, PU_STATIC);
+  rover = lump = W_CacheLumpNum(lumpnum, PU_STATIC);
   
   ll = W_LumpLength(lumpnum);
   
-  startofline = rover = lump;
   numconvs = 0;
   
   while(rover < lump+ll)
     {
       if(*rover == '\n') // newline
 	{
-	  *rover = 0;
-	  R_LoadDoom1Parse(startofline);
-	  *rover = '\n';
-	  startofline = rover+1;
+	  R_LoadDoom1Parse(readline);
+	  readline[0] = '\0'; // clear readline
 	}
-      // replace control characters with spaces
-      if(*rover < ' ') *rover = ' ';
-      rover++;
+      // add if valid char
+      if(*rover >= ' ')
+	{
+	  readline[strlen(readline) + 1] = '\0';
+	  readline[strlen(readline)] = *rover;
+	}
+	rover++;
     }
-  R_LoadDoom1Parse(startofline);  // parse the last line
+  R_LoadDoom1Parse(readline);  // parse the last line
   
-  // _must_ be freed, not changetagged, as the
-  // lump has changed slightly and may not work
-  // if this has to be loaded again
-
   Z_Free(lump);   
 }
 
@@ -1212,85 +1226,23 @@ static void error_printf(char *s, ...)
   va_end(v);
 
   if(!error_file)
-  {
-     time_t nowtime = time(NULL);
-
-     error_filename = "smmu_err.txt";
-     error_file = fopen(error_filename, "w");
-     fprintf(error_file, "SMMU textures error file\n%s\n",
-        ctime(&nowtime));
-  }
-
+    {
+      time_t nowtime = time(NULL);
+      
+      error_filename = "smmu_err.txt";
+      error_file = fopen(error_filename, "w");
+      fprintf(error_file, "SMMU textures error file\n%s\n",
+	      ctime(&nowtime));
+    }
+  
   fprintf(error_file, tmp);
 }
 
 //-----------------------------------------------------------------------------
 //
-// $Log: r_data.c,v $
-// Revision 1.23  1998/05/23  08:05:57  killough
-// Reformatting
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.21  1998/05/07  00:52:03  killough
-// beautification
-//
-// Revision 1.20  1998/05/03  22:55:15  killough
-// fix #includes at top
-//
-// Revision 1.19  1998/05/01  18:23:06  killough
-// Make error messages look neater
-//
-// Revision 1.18  1998/04/28  22:56:07  killough
-// Improve error handling of bad textures
-//
-// Revision 1.17  1998/04/27  01:58:08  killough
-// Program beautification
-//
-// Revision 1.16  1998/04/17  10:38:58  killough
-// Tag lumps with namespace tags to resolve collisions
-//
-// Revision 1.15  1998/04/16  10:47:40  killough
-// Improve missing flats error message
-//
-// Revision 1.14  1998/04/14  08:12:31  killough
-// Fix seg fault
-//
-// Revision 1.13  1998/04/12  09:52:51  killough
-// Fix ?bad merge? causing seg fault
-//
-// Revision 1.12  1998/04/12  02:03:51  killough
-// rename tranmap main_tranmap, better colormap support
-//
-// Revision 1.11  1998/04/09  13:19:35  killough
-// Fix Medusa for transparent middles, and remove 64K composite texture size limit
-//
-// Revision 1.10  1998/04/06  04:39:58  killough
-// Support multiple colormaps and C_START/C_END
-//
-// Revision 1.9  1998/03/23  03:33:29  killough
-// Add support for an arbitrary number of colormaps, e.g. WATERMAP
-//
-// Revision 1.8  1998/03/09  07:26:03  killough
-// Add translucency map caching
-//
-// Revision 1.7  1998/03/02  11:54:26  killough
-// Don't initialize tranmap until needed
-//
-// Revision 1.6  1998/02/23  04:54:03  killough
-// Add automatic translucency filter generator
-//
-// Revision 1.5  1998/02/02  13:35:36  killough
-// Improve hashing algorithm
-//
-// Revision 1.4  1998/01/26  19:24:38  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/26  06:11:42  killough
-// Fix Medusa bug, tune hash function
-//
-// Revision 1.2  1998/01/22  05:55:56  killough
-// Improve hashing algorithm
-//
-// Revision 1.3  1997/01/29 20:10
-// ???
 //
 //-----------------------------------------------------------------------------

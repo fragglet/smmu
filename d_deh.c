@@ -1,7 +1,23 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $
+// $Id$
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // Dehacked file support
 // New for the TeamTNT "Boom" engine
@@ -11,7 +27,7 @@
 //--------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $";
+rcsid[] = "$Id$";
 
 // killough 5/2/98: fixed headers, removed rendunant external declarations:
 #include "doomdef.h"
@@ -41,36 +57,63 @@ typedef struct {
 #define feof(buf) dehfeof(buf)
 #define fgetc(buf) dehfgetc(buf)
 
+#define DEHFIX
+
+// sf: fix dehacked bug:
+// on dos machines text files are stored with 2 linefeed characters.
+// When reading this in lumps it can cause detection of strings with
+// multiple lines to mess up.
+// New code to read characters from lumps ignores unprintable characters
+// also slightly more readable -- killough the obfuscating menace
+// strikes again
+
+int dehfgetc(DEHFILE *fp)
+{
+  if(!fp->lump)
+    return (fgetc)((FILE *) fp->inp);
+
+  // skip past unprintable characters (except \n)
+  
+  while(fp->size > 0 && !isprint(*fp->inp) && *fp->inp != '\n')
+    fp->inp++, fp->size--;
+
+  // check for end of lump
+  if(fp->size <= 0) return EOF;
+  
+  fp->size--;
+  return *fp->inp++;
+}
+
 char *dehfgets(char *buf, size_t n, DEHFILE *fp)
 {
+  char *p = buf;
+  
   if (!fp->lump)                                     // If this is a real file,
     return (fgets)(buf, n, (FILE *) fp->inp);        // return regular fgets
+
   if (!n || !*fp->inp || fp->size<=0)                // If no more characters
     return NULL;
-  if (n==1)
-    fp->size--, *buf = *fp->inp++;
-  else
-    {                                                // copy buffer
-      char *p = buf;
-      while (n>1 && *fp->inp && fp->size &&
-             (n--, fp->size--, *p++ = *fp->inp++) != '\n')
-        ;
-      *p = 0;
-    }
-  return buf;                                        // Return buffer pointer
+
+  // copy string
+  
+  // only read n characters
+  for(;n > 0; n--)
+    if(fp->size <= 0 || !*fp->inp ||       // stop once end of lump
+       ((*p++ = dehfgetc(fp)) == '\n'))    // stop if newline read
+      {
+	*p = '\0';         // end string
+	break;
+      }
+
+  return buf;
 }
 
 int dehfeof(DEHFILE *fp)
 {
-  return !fp->lump ? (feof)((FILE *) fp->inp) : !*fp->inp || fp->size<=0;
+  return !fp->lump ?
+    (feof)((FILE *) fp->inp) :   // normal file feof
+    !*fp->inp || fp->size<=0;    // check if anything left to read from lump
 }
-
-int dehfgetc(DEHFILE *fp)
-{
-  return !fp->lump ? (fgetc)((FILE *) fp->inp) : fp->size > 0 ?
-    fp->size--, *fp->inp++ : EOF;
-}
-
 
 // variables used in other routines
 boolean deh_pars = FALSE; // in wi_stuff to allow pars in modified games
@@ -90,7 +133,7 @@ char *s_D_DEVSTR    = D_DEVSTR;
 char *s_D_CDROM     = D_CDROM;
 char *s_PRESSKEY    = PRESSKEY;
 char *s_PRESSYN     = PRESSYN;
-char *s_QUITMSG     = NULL;    // sf: optional quitmsg replacement
+char *s_QUITMSG     = "";    // sf: optional quitmsg replacement
 char *s_LOADNET     = LOADNET;   // PRESSKEY; // killough 4/4/98:
 char *s_QLOADNET    = QLOADNET;  // PRESSKEY;
 char *s_QSAVESPOT   = QSAVESPOT; // PRESSKEY;
@@ -1276,6 +1319,7 @@ extern void A_PlaySound();       // killough 11/98
 extern void A_RandomJump();      // killough 11/98
 extern void A_LineEffect();      // killough 11/98
 extern void A_Nailbomb();
+extern void A_RunScript();
 
 typedef struct {
   actionf_t cptr;  // actual pointer to the subroutine
@@ -1368,7 +1412,8 @@ deh_bexptr deh_bexptrs[] =
   {A_PlaySound,      "A_PlaySound"},      // killough 11/98
   {A_RandomJump,     "A_RandomJump"},     // killough 11/98
   {A_LineEffect,     "A_LineEffect"},     // killough 11/98
-  {A_Nailbomb,       "A_Nailbomb"},      //sf
+  {A_Nailbomb,       "A_Nailbomb"},       //sf
+  {A_RunScript,      "A_RunScript"},    // sf: scripting
 
   // This NULL entry must be the last in the list
   {NULL,             "A_NULL"},  // Ty 05/16/98
@@ -2710,38 +2755,9 @@ boolean deh_GetData(char *s, char *k, long *l, char **strval, FILE *fpout)
 
 //---------------------------------------------------------------------
 //
-// $Log: d_deh.c,v $
-// Revision 1.20  1998/06/01  22:30:38  thldrmn
-// fix .acv pointer for new GCC version
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.19  1998/05/17  09:39:48  thldrmn
-// Bug fix to avoid processing last line twice
-//
-// Revision 1.17  1998/05/04  21:36:21  thldrmn
-// commenting, reformatting and savegamename change
-//
-// Revision 1.16  1998/05/03  22:09:59  killough
-// use p_inter.h for extern declarations and fix a pointer cast
-//
-// Revision 1.15  1998/04/26  14:46:24  thldrmn
-// BEX code pointer additions
-//
-// Revision 1.14  1998/04/24  23:49:35  thldrmn
-// Strings continuation fix
-//
-// Revision 1.13  1998/04/19  01:18:58  killough
-// Change deh cheat code handling to use new cheat table
-//
-// Revision 1.12  1998/04/11  14:47:31  thldrmn
-// Added include, fixed pars
-//
-// Revision 1.11  1998/04/10  06:49:15  killough
-// Fix CVS stuff
-//
-// Revision 1.10  1998/04/09  09:17:00  thldrmn
-// Update to text handling
-//
-// Revision 1.00  1998/04/07  04:43:59  ty
-// First time with cvs revision info
 //
 //---------------------------------------------------------------------

@@ -1,6 +1,22 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // ser_port.c
 //
 // code to interface with the comm port.
@@ -15,7 +31,7 @@
 #include <go32.h>
 #include <dpmi.h>
 
-#include "ser_main.h"
+#include "ser_port.h"
 
 #include "../d_main.h"
 #include "../d_net.h"
@@ -25,25 +41,28 @@ void jump_start( void );
 
 static void isr_8250 (void);
 
-union REGS regs;
-struct SREGS sregs;
+static union REGS regs;
+//static struct SREGS sregs;
+
+static int irq;
+
+static int modem_status = -1;
+static int line_status = -1;
+
+// sf: use go32 protected mode irq
+static _go32_dpmi_seginfo oldirqvect;
+static _go32_dpmi_seginfo newirqvect;
+
+static int irqintnum;
+
+static boolean port_initted = false;
+
+int comport = 1;
 
 que_t inque, outque;
 
 int uart;                   // io address
 enum {UART_8250, UART_16550} uart_type;
-int irq;
-
-int modem_status = -1;
-int line_status = -1;
-
-// sf: use go32 protected mode irq
-_go32_dpmi_seginfo oldirqvect;
-_go32_dpmi_seginfo newirqvect;
-
-int irqintnum;
-
-int comport = 2;
 
 
 /*
@@ -54,7 +73,7 @@ int comport = 2;
 ==============
 */
 
-void GetUart (void)
+static void GetUart (void)
 {
   static int ISA_uarts[] = {0x3f8,0x2f8,0x3e8,0x2e8};
   static int ISA_IRQs[] = {4,3,4,3};
@@ -109,6 +128,9 @@ void InitPort (void)
   int mcr;
   int temp;
 
+  if(port_initted)
+    return;
+  
   //
   // Reset the output queue
   //
@@ -135,13 +157,13 @@ void InitPort (void)
   if ((temp & 0xf8) == 0xc0)
     {
       uart_type = UART_16550;
-      usermsg ("UART is a 16550\n\n");
+      usermsg ("UART is a 16550");
     }
   else
     {
       uart_type = UART_8250;
       OUTPUT(uart + FIFO_CONTROL_REGISTER, 0);
-      usermsg("UART is an 8250\n\n");
+      usermsg("UART is an 8250");
     }
   
   //
@@ -190,6 +212,8 @@ void InitPort (void)
 	  , INPUT(uart + MODEM_CONTROL_REGISTER) | MCR_DTR);
   
   asm("sti"); // re-enable
+
+  port_initted = true;
 }
 
 
@@ -203,6 +227,11 @@ void InitPort (void)
 
 void ShutdownPort ( void )
 {
+  if(!port_initted)
+    return;
+
+  usermsg("shutting down serial port");
+  
   OUTPUT(uart + INTERRUPT_ENABLE_REGISTER, 0);
   OUTPUT(uart + MODEM_CONTROL_REGISTER, 0);
   
@@ -222,9 +251,8 @@ void ShutdownPort ( void )
   regs.x.dx = comport - 1;
   int86 (0x14, &regs, &regs);
 
-  usermsg("shutting down serial port");
+  port_initted = false;
 }
-
 
 int read_byte( void )
 {
@@ -339,8 +367,11 @@ void jump_start( void )
     }
 }
 
-
-
-
-
-
+//----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
+//
+//
+//----------------------------------------------------------------------------

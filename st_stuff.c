@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Status bar code.
@@ -23,14 +29,13 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomdef.h"
 #include "doomstat.h"
 #include "c_runcmd.h"
 #include "d_main.h"
 #include "m_random.h"
-#include "i_video.h"
 #include "w_wad.h"
 #include "st_stuff.h"
 #include "st_lib.h"
@@ -40,6 +45,7 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 #include "s_sound.h"
 #include "sounds.h"
 #include "dstrings.h"
+#include "v_mode.h"
 
 //
 // STATUS BAR DATA
@@ -232,14 +238,14 @@ static patch_t *arms[6][2];
 static st_number_t w_ready;
 
 //jff 2/16/98 status color change levels
-int ammo_red;      // ammo percent less than which status is red
-int ammo_yellow;   // ammo percent less is yellow more green
-int health_red;    // health amount less than which status is red
-int health_yellow; // health amount less than which status is yellow
-int health_green;  // health amount above is blue, below is green
-int armor_red;     // armor amount less than which status is red
-int armor_yellow;  // armor amount less than which status is yellow
-int armor_green;   // armor amount above is blue, below is green
+int ammo_red = 25;       // ammo percent less than which status is red
+int ammo_yellow = 50;    // ammo percent less is yellow more green
+int health_red = 25;     // health amount less than which status is red
+int health_yellow = 50;  // health amount less than which status is yellow
+int health_green = 100;  // health amount above is blue, below is green
+int armor_red = 25;      // armor amount less than which status is red
+int armor_yellow = 50;   // armor amount less than which status is yellow
+int armor_green = 100;   // armor amount above is blue, below is green
 
  // in deathmatch only, summary of frags stats
 static st_number_t w_frags;
@@ -295,7 +301,7 @@ extern byte     *translationtables;
 
 void ST_Stop(void);
 
-void ST_refreshBackground(void)
+static void ST_refreshBackground(void)
 {
   if (st_statusbaron)
     {
@@ -343,7 +349,7 @@ boolean ST_Responder(event_t *ev)
   return false;
 }
 
-int ST_calcPainOffset(void)
+static int ST_calcPainOffset(void)
 {
   static int lastcalc;
   static int oldhealth = -1;
@@ -364,7 +370,7 @@ int ST_calcPainOffset(void)
 //  dead > evil grin > turned head > straight ahead
 //
 
-void ST_updateFaceWidget(void)
+static void ST_updateFaceWidget(void)
 {
   int         i;
   angle_t     badguyangle;
@@ -537,7 +543,7 @@ void ST_updateFaceWidget(void)
 
 int sts_traditional_keys; // killough 2/28/98: traditional status bar keys
 
-void ST_updateWidgets(void)
+static void ST_updateWidgets(void)
 {
   static int  largeammo = 1994; // means "n/a"
   int         i;
@@ -601,7 +607,7 @@ void ST_Ticker(void)
 
 static int st_palette = 0;
 
-void ST_doPaletteStuff(void)
+static void ST_doPaletteStuff(void)
 {
   int         palette;
   byte*       pal;
@@ -636,17 +642,18 @@ void ST_doPaletteStuff(void)
       else
         palette = 0;
 
-  if (camera) palette = 0;     //sf
+  if (camera)
+    palette = 0;     //sf
   
   if (palette != st_palette)
     {
       st_palette = palette;
       pal = W_CacheLumpNum(lu_palette, PU_CACHE)+palette*768;
-      I_SetPalette (pal);
+      V_SetPalette (pal);
     }
 }
 
-void ST_drawWidgets(boolean refresh)
+static void ST_drawWidgets(boolean refresh)
 {
   int i;
 
@@ -706,7 +713,7 @@ void ST_drawWidgets(boolean refresh)
 
 }
 
-void ST_doRefresh(void)
+static void ST_doRefresh(void)
 {
 
   st_firsttime = false;
@@ -719,7 +726,7 @@ void ST_doRefresh(void)
 
 }
 
-void ST_diffDraw(void)
+static void ST_diffDraw(void)
 {
   // update all widgets
   ST_drawWidgets(false);
@@ -732,9 +739,9 @@ void ST_Drawer(boolean fullscreen, boolean refresh)
 
   ST_doPaletteStuff();  // Do red-/gold-shifts from damage/items
 
-          // sf: draw nothing in fullscreen
-          // tiny bit faster and also removes the problem of status bar
-          // percent '%' signs being drawn in fullscreen
+  // sf: draw nothing in fullscreen
+  // tiny bit faster and also removes the problem of status bar
+  // percent '%' signs being drawn in fullscreen
   if(fullscreen && !automapactive) return;
 
   if (st_firsttime)
@@ -743,7 +750,7 @@ void ST_Drawer(boolean fullscreen, boolean refresh)
     ST_diffDraw();      // Otherwise, update as little as possible
 }
 
-void ST_loadGraphics(void)
+static void ST_loadGraphics(void)
 {
   int  i;
   char namebuf[9];
@@ -826,13 +833,13 @@ void ST_CacheFaces(patch_t **faces, char *facename)
   faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
 }
 
-void ST_loadData(void)
+static void ST_loadData(void)
 {
   lu_palette = W_GetNumForName ("PLAYPAL");
   ST_loadGraphics();
 }
 
-void ST_unloadGraphics(void)
+static void ST_unloadGraphics(void)
 {
   int i;
 
@@ -869,12 +876,18 @@ void ST_unloadGraphics(void)
   // Note: nobody ain't seen no unloading of stminus yet. Dude.
 }
 
-void ST_unloadData(void)
+static void ST_unloadData(void)
 {
   ST_unloadGraphics();
 }
 
-void ST_initData(void)
+void ST_reloadData(void)
+{
+  ST_unloadData();
+  ST_loadData();
+}
+
+static void ST_initData(void)
 {
   int i;
 
@@ -899,7 +912,7 @@ void ST_initData(void)
   STlib_init();
 }
 
-void ST_createWidgets(void)
+static void ST_createWidgets(void)
 {
   int i;
 
@@ -1071,7 +1084,7 @@ void ST_Stop(void)
 {
   if (st_stopped)
     return;
-  I_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
+  V_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
   st_stopped = true;
 }
 
@@ -1082,35 +1095,23 @@ void ST_Init(void)
   screens[4] = Z_Malloc(ST_WIDTH*ST_HEIGHT*4, PU_STATIC, 0);
 }
 
-/***********************
-        CONSOLE COMMANDS
- ***********************/
+//////////////////////////////////////////////////////////////////////////
+//
+// Console variables
+//
 
-VARIABLE_INT(ammo_red, NULL,               0, 100, NULL);
-VARIABLE_INT(ammo_yellow, NULL,            0, 100, NULL);
-VARIABLE_INT(health_red, NULL,             0, 200, NULL);
-VARIABLE_INT(health_yellow, NULL,          0, 200, NULL);
-VARIABLE_INT(health_green, NULL,           0, 200, NULL);
-VARIABLE_INT(armor_red, NULL,              0, 200, NULL);
-VARIABLE_INT(armor_yellow, NULL,           0, 200, NULL);
-VARIABLE_INT(armor_green, NULL,            0, 200, NULL);
+CONSOLE_INT(ammo_red, ammo_red, NULL,               0, 100, NULL, 0) {}
+CONSOLE_INT(ammo_yellow, ammo_yellow, NULL,         0, 100, NULL, 0) {}
+CONSOLE_INT(health_red, health_red, NULL,           0, 200, NULL, 0) {}
+CONSOLE_INT(health_yellow, health_yellow, NULL,     0, 200, NULL, 0) {}
+CONSOLE_INT(health_green, health_green, NULL,       0, 200, NULL, 0) {}
+CONSOLE_INT(armor_red, armor_red, NULL,             0, 200, NULL, 0) {}
+CONSOLE_INT(armor_yellow, armor_yellow, NULL,       0, 200, NULL, 0) {}
+CONSOLE_INT(armor_green, armor_green, NULL,         0, 200, NULL, 0) {}
 
-VARIABLE_BOOLEAN(sts_pct_always_gray,      NULL,   yesno);
-VARIABLE_BOOLEAN(sts_always_red,           NULL,   yesno);
-VARIABLE_BOOLEAN(sts_traditional_keys,     NULL,   yesno);
-
-CONSOLE_VARIABLE(ammo_red, ammo_red, 0) { }
-CONSOLE_VARIABLE(ammo_yellow, ammo_yellow, 0) { }
-CONSOLE_VARIABLE(health_red, health_red, 0) { }
-CONSOLE_VARIABLE(health_yellow, health_yellow, 0) { }
-CONSOLE_VARIABLE(health_green, health_green, 0) { }
-CONSOLE_VARIABLE(armor_red, armor_red, 0) { }
-CONSOLE_VARIABLE(armor_yellow, armor_yellow, 0) { }
-CONSOLE_VARIABLE(armor_green, armor_green, 0) { }
-
-CONSOLE_VARIABLE(st_graypct, sts_pct_always_gray, 0) {}
-CONSOLE_VARIABLE(st_rednum, sts_always_red, 0) {}
-CONSOLE_VARIABLE(st_singlekey, sts_traditional_keys, 0) {}
+CONSOLE_BOOLEAN(st_graypct, sts_pct_always_gray, NULL,      yesno, 0) {}
+CONSOLE_BOOLEAN(st_rednum, sts_always_red, NULL,            yesno, 0) {}
+CONSOLE_BOOLEAN(st_singlekey, sts_traditional_keys, NULL,   yesno, 0) {}
 
 void ST_AddCommands()
 {
@@ -1132,143 +1133,9 @@ void ST_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: st_stuff.c,v $
-// Revision 1.46  1998/05/06  16:05:40  jim
-// formatting and documenting
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.45  1998/05/03  22:50:58  killough
-// beautification, move external declarations, remove cheats
-//
-// Revision 1.44  1998/04/27  17:30:39  jim
-// Fix DM demo/newgame status, remove IDK (again)
-//
-// Revision 1.43  1998/04/27  02:30:12  killough
-// fuck you
-//
-// Revision 1.42  1998/04/24  23:52:31  thldrmn
-// Removed idk cheat
-//
-// Revision 1.41  1998/04/24  11:39:23  killough
-// Fix cheats while demo is played back
-//
-// Revision 1.40  1998/04/19  01:10:19  killough
-// Generalize cheat engine to add deh support
-//
-// Revision 1.39  1998/04/16  06:26:06  killough
-// Prevent cheats from working inside menu
-//
-// Revision 1.38  1998/04/12  10:58:24  jim
-// IDMUSxy for DOOM 1 fix
-//
-// Revision 1.37  1998/04/12  10:23:52  jim
-// IDMUS00 ok in DOOM 1
-//
-// Revision 1.36  1998/04/12  02:00:39  killough
-// Change tranmap to main_tranmap
-//
-// Revision 1.35  1998/04/12  01:08:51  jim
-// Fixed IDMUS00 crash
-//
-// Revision 1.34  1998/04/11  14:48:11  thldrmn
-// Replaced IDK with TNTKA cheat
-//
-// Revision 1.33  1998/04/10  06:36:45  killough
-// Fix -fast parameter bugs
-//
-// Revision 1.32  1998/03/31  10:37:17  killough
-// comment clarification
-//
-// Revision 1.31  1998/03/28  18:09:19  killough
-// Fix deh-cheat self-annihilation bug, make iddt closer to Doom
-//
-// Revision 1.30  1998/03/28  05:33:02  jim
-// Text enabling changes for DEH
-//
-// Revision 1.29  1998/03/23  15:24:54  phares
-// Changed pushers to linedef control
-//
-// Revision 1.28  1998/03/23  06:43:26  jim
-// linedefs reference initial version
-//
-// Revision 1.27  1998/03/23  03:40:46  killough
-// Fix idclip bug, make monster kills message smart
-//
-// Revision 1.26  1998/03/20  00:30:37  phares
-// Changed friction to linedef control
-//
-// Revision 1.25  1998/03/17  20:44:32  jim
-// fixed idmus non-restore, space bug
-//
-// Revision 1.24  1998/03/12  14:35:01  phares
-// New cheat codes
-//
-// Revision 1.23  1998/03/10  07:14:38  jim
-// Initial DEH support added, minus text
-//
-// Revision 1.22  1998/03/09  07:31:48  killough
-// Fix spy mode to display player correctly, add TNTFAST
-//
-// Revision 1.21  1998/03/06  05:31:02  killough
-// PEst control, from the TNT'EM man
-//
-// Revision 1.20  1998/03/02  15:35:03  jim
-// Enabled Lee's status changes, added new types to common.cfg
-//
-// Revision 1.19  1998/03/02  12:09:18  killough
-// blue status bar color, monsters_remember, traditional_keys
-//
-// Revision 1.18  1998/02/27  11:00:58  phares
-// Can't own weapons that don't exist
-//
-// Revision 1.17  1998/02/26  22:57:45  jim
-// Added message review display to HUD
-//
-// Revision 1.16  1998/02/24  08:46:45  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.15  1998/02/24  04:14:19  jim
-// Added double keys to status
-//
-// Revision 1.14  1998/02/23  04:57:29  killough
-// Fix TNTEM cheat again, add new cheats
-//
-// Revision 1.13  1998/02/20  21:57:07  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.12  1998/02/19  23:15:52  killough
-// Add TNTAMMO in addition to TNTAMO
-//
-// Revision 1.11  1998/02/19  16:55:22  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.10  1998/02/18  00:59:20  jim
-// Addition of HUD
-//
-// Revision 1.9  1998/02/17  06:15:48  killough
-// Add TNTKEYxx, TNTAMOx, TNTWEAPx cheats, and cheat engine support for them.
-//
-// Revision 1.8  1998/02/15  02:48:01  phares
-// User-defined keys
-//
-// Revision 1.7  1998/02/09  03:19:04  killough
-// Rewrite cheat code engine, add IDK and TNTHOM
-//
-// Revision 1.6  1998/02/02  22:19:01  jim
-// Added TNTEM cheat to kill every monster alive
-//
-// Revision 1.5  1998/01/30  18:48:10  phares
-// Changed textspeed and textwait to functions
-//
-// Revision 1.4  1998/01/30  16:09:03  phares
-// Faster end-mission text display
-//
-// Revision 1.3  1998/01/28  12:23:05  phares
-// TNTCOMP cheat code added
-//
-// Revision 1.2  1998/01/26  19:24:58  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:03  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  DOOM main program (D_DoomMain) and game loop, plus functions to
@@ -23,7 +29,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -34,34 +40,36 @@ static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough E
 
 #include "doomdef.h"
 #include "doomstat.h"
-#include "dstrings.h"
-#include "sounds.h"
 #include "z_zone.h"
+
+#include "am_map.h"
 #include "c_io.h"
 #include "c_net.h"
-#include "w_wad.h"
-#include "s_sound.h"
-#include "v_video.h"
+#include "dstrings.h"
+#include "d_deh.h"  // Ty 04/08/98 - Externalizations
+#include "d_main.h"
 #include "f_finale.h"
 #include "f_wipe.h"
+#include "g_bind.h"
+#include "g_game.h"
+#include "hu_stuff.h"
+#include "i_system.h"
+#include "i_sound.h"
 #include "m_argv.h"
 #include "m_misc.h"
 #include "mn_engin.h"
-#include "i_system.h"
-#include "i_sound.h"
-#include "i_video.h"
-#include "g_game.h"
-#include "hu_stuff.h"
-#include "wi_stuff.h"
-#include "st_stuff.h"
-#include "am_map.h"
-#include "p_setup.h"
 #include "p_chase.h"
+#include "p_setup.h"
 #include "r_draw.h"
 #include "r_main.h"
-#include "d_main.h"
-#include "d_deh.h"  // Ty 04/08/98 - Externalizations
+#include "sounds.h"
+#include "s_sound.h"
+#include "st_stuff.h"
 #include "t_script.h"    // for FraggleScript init
+#include "v_mode.h"
+#include "v_video.h"
+#include "w_wad.h"
+#include "wi_stuff.h"
 
 // DEHacked support - Ty 03/09/97
 // killough 10/98:
@@ -84,11 +92,10 @@ static char *D_dehout(void)
 
 char **wadfiles;
 
-// killough 10/98: preloaded files
-#define MAXLOADFILES 2
-char *wad_files[MAXLOADFILES], *deh_files[MAXLOADFILES];
+extern char *wadfile_1, *wadfile_2;
+extern char *dehfile_1, *dehfile_2;
 
-int textmode_startup = 0;  // sf: textmode_startup for old-fashioned people
+int textmode_startup = 1; 
 int use_startmap = -1;     // default to -1 for asking in menu
 boolean devparm;           // started game with -devparm
 
@@ -145,7 +152,7 @@ const char *const standard_iwads[]=
 };
 static const int nstandard_iwads = sizeof standard_iwads/sizeof*standard_iwads;
 
-void D_CheckNetGame (void);
+void D_InitNetGame ();
 void D_ProcessEvents (void);
 void G_BuildTiccmd (ticcmd_t* cmd);
 void D_DoAdvanceDemo (void);
@@ -213,9 +220,12 @@ void D_Display (void)
       R_FillBackScreen();       // redraw backscreen
     }
 
-        // save the current screen if about to wipe
-        // no melting consoles
-  if (gamestate != wipegamestate && wipegamestate != GS_CONSOLE)
+  // save the current screen if about to wipe
+  // no melting consoles
+  
+  if (gamestate != wipegamestate &&
+      wipegamestate != GS_CONSOLE &&
+      gamestate != GS_SERVERWAIT)
     {
       Wipe_StartScreen();
     }
@@ -225,35 +235,42 @@ void D_Display (void)
 
   switch (gamestate)                // do buffered drawing
     {
-    case GS_LEVEL:
-          // see if the border needs to be initially drawn
-      if(oldgamestate != GS_LEVEL)
+      case GS_LEVEL:
+	// see if the border needs to be initially drawn
+	if(oldgamestate != GS_LEVEL)
           R_FillBackScreen ();    // draw the pattern into the back screen
-      HU_Erase();
-
-      if (automapactive)
+	HU_Erase();
+	
+	if (automapactive)
           AM_Drawer();
-      else
-      {
-          // see if the border needs to be updated to the screen
-          if(redrawborder) R_DrawViewBorder ();    // redraw border
-          R_RenderPlayerView (&players[displayplayer], camera);
-      }
+	else
+	  {
+	    // see if the border needs to be updated to the screen
+	    if(redrawborder) R_DrawViewBorder ();    // redraw border
+	    R_RenderPlayerView (&players[displayplayer], camera);
+	  }
+	
+	ST_Drawer(scaledviewheight == 200, redrawsbar );    // killough 11/98
+	HU_Drawer ();
+	break;
+      case GS_INTERMISSION:
+	WI_Drawer();
+	break;
+      case GS_FINALE:
+	F_Drawer();
+	break;
+      case GS_DEMOSCREEN:
+	D_PageDrawer();
+	break;
+      case GS_CONSOLE:
+	break;
+      case GS_SERVERWAIT:
+	CL_WaitDrawer();
+	break;
 
-      ST_Drawer(scaledviewheight == 200, redrawsbar );    // killough 11/98
-      HU_Drawer ();
-      break;
-    case GS_INTERMISSION:
-      WI_Drawer();
-      break;
-    case GS_FINALE:
-      F_Drawer();
-      break;
-    case GS_DEMOSCREEN:
-      D_PageDrawer();
-      break;
-    case GS_CONSOLE:
-      break;
+      default:
+	break;
+	
     }
 
   redrawsbar = false; // reset this now
@@ -261,7 +278,7 @@ void D_Display (void)
 
   // clean up border stuff
   if (gamestate != oldgamestate && gamestate != GS_LEVEL)
-    I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+    V_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 
   oldgamestate = wipegamestate = gamestate;
 
@@ -276,21 +293,27 @@ void D_Display (void)
     }
 
   if (inwipe)
-      Wipe_Drawer();
+    Wipe_Drawer();
 
   C_Drawer();
   // menus go directly to the screen
   MN_Drawer();         // menu is drawn even on top of everything
   NetUpdate();         // send out any new accumulation
 
-    //sf : now system independent
+  {
+    char tempstr[128];
+    sprintf(tempstr, FC_GRAY "%i", gametic);
+    V_WriteText(tempstr, SCREENWIDTH - V_StringWidth(tempstr), 0);
+  }
+  
+  // sf: now system independent
   if(v_ticker)
     V_FPSDrawer();
 
-        // sf: wipe changed: runs alongside the rest of the game rather
-        //     than in its own loop
+  // sf: wipe changed: runs alongside the rest of the game rather
+  //     than in its own loop
 
-  I_FinishUpdate ();              // page flip or blit buffer
+  V_FinishUpdate ();              // page flip or blit buffer
 }
 
 //
@@ -576,6 +599,8 @@ char *D_DoomExeDir(void)
       strcpy(base,*myargv);
       while (p > base && *p!='/' && *p!='\\')
 	*p--=0;
+      if(p <= base)           // sf: include ./ if no dir found
+	strcpy(base, "./");
     }
   return base;
 }
@@ -775,13 +800,25 @@ char *FindIWADFile(void)
 	  AddDefaultExtension(strcat(strcpy(customiwad, "/"), iwad), ".wad");
     }
 
-  for (j=0; j<2; j++)
+  for (j=0; j<3; j++)
     {
-      strcpy(iwad, j ? D_DoomExeDir() : ".");
+      // sf: peacefully co-exist with lxdoom
+      if(j == 0)
+	strcpy(iwad, D_DoomExeDir());
+      else if(j == 1)
+	strcpy(iwad, ".");
+      else
+	{
+#ifdef LINUX
+	  strcpy(iwad, "/usr/local/games");
+#else
+	  break;
+#endif
+	}
+
       NormalizeSlashes(iwad);
 
-      if(devparm)       // sf: only show 'looking in' for devparm
-              printf("Looking in %s\n",iwad);   // killough 8/8/98
+      printf("Looking in %s\n",iwad);   // killough 8/8/98
       if (*customiwad)
 	{
 	  strcat(iwad,customiwad);
@@ -802,44 +839,46 @@ char *FindIWADFile(void)
   for (i=0; i<sizeof envvars/sizeof *envvars;i++)
     if ((p = getenv(envvars[i])))
       {
+	printf("looking in %s\n", iwad);
 	NormalizeSlashes(strcpy(iwad,p));
 	if (WadFileStatus(iwad,&isdir))
-	  if (!isdir)
-	    {
-	      if (!*customiwad)
-		return printf("Looking for %s\n",iwad), iwad; // killough 8/8/98
-	      else
-		if ((p = strrchr(iwad,'/')))
-		  {
-		    *p=0;
-		    strcat(iwad,customiwad);
-		    printf("Looking for %s\n",iwad);  // killough 8/8/98
-		    if (WadFileStatus(iwad,&isdir) && !isdir)
-		      return iwad;
-		  }
-	    }
-	  else
-	    {
-              if(devparm)       // sf: devparm only
-                      printf("Looking in %s\n",iwad);  // killough 8/8/98
-	      if (*customiwad)
+	  {
+	    if (!isdir)
+	      {
+		if (!*customiwad)
+		  return printf("Looking for %s\n",iwad), iwad; // killough 8/8/98
+		else
+		  if ((p = strrchr(iwad,'/')))
+		    {
+		      *p=0;
+		      strcat(iwad,customiwad);
+		      printf("Looking for %s\n",iwad);  // killough 8/8/98
+		      if (WadFileStatus(iwad,&isdir) && !isdir)
+			return iwad;
+		    }
+	      }
+	  }
+	else
+	  {
+	    printf("Looking in %s\n",iwad);  // killough 8/8/98
+	    if (*customiwad)
+	      {
+		if (WadFileStatus(strcat(iwad,customiwad),&isdir) && !isdir)
+		  return iwad;
+	      }
+	    else
+	      for (i=0;i<nstandard_iwads;i++)
 		{
-		  if (WadFileStatus(strcat(iwad,customiwad),&isdir) && !isdir)
+		  int n = strlen(iwad);
+		  strcat(iwad,standard_iwads[i]);
+		  if (WadFileStatus(iwad,&isdir) && !isdir)
 		    return iwad;
+		  iwad[n] = 0; // reset iwad length to former
 		}
-	      else
-		for (i=0;i<nstandard_iwads;i++)
-		  {
-		    int n = strlen(iwad);
-		    strcat(iwad,standard_iwads[i]);
-		    if (WadFileStatus(iwad,&isdir) && !isdir)
-		      return iwad;
-		    iwad[n] = 0; // reset iwad length to former
-		  }
-	    }
+	  }
       }
-
-  *iwad = 0;
+  
+  *iwad = '\0';
   return iwad;
 }
 
@@ -874,8 +913,15 @@ void IdentifyVersion (void)
 
   // get config file from same directory as executable
   // killough 10/98
-  sprintf(basedefault,"%s/%s.cfg", D_DoomExeDir(), D_DoomExeName());
+  // sf: in linux get cfg file from users dir
 
+#ifdef DJGPP
+  sprintf(basedefault,"%s/%s.cfg", D_DoomExeDir(), D_DoomExeName());
+#else
+  sprintf(basedefault,"%s/.%src",
+	  getenv("HOME") ? getenv("HOME") : ".",
+	  D_DoomExeName());
+#endif
   // set save path to -save parm or current dir
 
   strcpy(basesavegame,".");       //jff 3/27/98 default to current dir
@@ -1082,63 +1128,6 @@ static void D_ProcessDehCommandLine(void)
   // ty 03/09/98 end of do dehacked stuff
 }
 
-// killough 10/98: support preloaded wads
-
-static void D_ProcessWadPreincludes(void)
-{
-  if (!M_CheckParm ("-noload"))
-    {
-      int i;
-      char *s;
-      for (i=0; i<MAXLOADFILES; i++)
-	if ((s=wad_files[i]))
-	  {
-	    while (isspace(*s))
-	      s++;
-	    if (*s)
-	      {
-		char file[PATH_MAX+1];
-		AddDefaultExtension(strcpy(file, s), ".wad");
-		if (!access(file, R_OK))
-		  D_AddFile(file);
-		else
-		  printf("\nWarning: could not open %s\n", file);
-	      }
-	  }
-    }
-}
-
-// killough 10/98: support preloaded deh/bex files
-
-static void D_ProcessDehPreincludes(void)
-{
-  if (!M_CheckParm ("-noload"))
-    {
-      int i;
-      char *s;
-      for (i=0; i<MAXLOADFILES; i++)
-	if ((s=deh_files[i]))
-	  {
-	    while (isspace(*s))
-	      s++;
-	    if (*s)
-	      {
-		char file[PATH_MAX+1];
-		AddDefaultExtension(strcpy(file, s), ".bex");
-		if (!access(file, R_OK))
-		  ProcessDehFile(file, D_dehout(), 0);
-		else
-		  {
-		    AddDefaultExtension(strcpy(file, s), ".deh");
-		    if (!access(file, R_OK))
-		      ProcessDehFile(file, D_dehout(), 0);
-		    else
-		      printf("\nWarning: could not open %s .deh or .bex\n", s);
-		  }
-	      }
-	  }
-    }
-}
 
 // killough 10/98: support .deh from wads
 //
@@ -1162,34 +1151,32 @@ static void D_ProcessDehInWad(int i)
 	ProcessDehFile(NULL, D_dehout(), i);
     }
 }
-        //sf:
+
+//sf:
 void startupmsg(char *func, char *desc)
 {
-  // add colours in console mode
-  usermsg(in_textmode ? "%s: %s" : FC_GRAY "%s: " FC_RED "%s",
-	  func, desc);
-}
+  char temp[500];
 
-        // sf: this is really part of D_DoomMain but I made it into
-        // a seperate function
-        // this stuff needs to be kept together
+  sprintf(temp, FC_GRAY "%s" FC_RED ": %s\n", func, desc);
+  
+  C_Printf(temp); // write to console
 
-void D_SetGraphicsMode()
-{
-   DEBUGMSG("** set graphics mode\n");
-
-             // set graphics mode
-   I_InitGraphics();
-
-   DEBUGMSG("done\n");
-          // set up the console to display startup messages
-   gamestate = GS_CONSOLE; 
-   current_height = SCREENHEIGHT;
-   c_showprompt = false;
-
-   C_Puts(game_name);    // display description of gamemode
-   D_ListWads();         // list wads to the console
-   C_Printf("\n");       // leave a gap
+  if(in_graphics_mode)
+    {
+#if 0
+      // enable this for quake-style startup
+      C_Update();
+      
+#else
+      extern void C_DrawBackdrop(); // c_io.c
+      
+      C_DrawBackdrop();
+      V_WriteText(temp,
+		  (SCREENWIDTH - V_StringWidth(temp)) / 2,
+		  170);
+      V_FinishUpdate();
+#endif
+    }
 }
 
 //
@@ -1201,7 +1188,7 @@ void D_DoomMain(void)
   int p, slot;
   char file[PATH_MAX+1];      // killough 3/22/98
 
-  setbuf(stdout,NULL);
+  setbuf(stdout, NULL);
 
   FindResponseFile();         // Append response file arguments to command-line
 
@@ -1218,10 +1205,10 @@ void D_DoomMain(void)
   // killough 10/98: process all command-line DEH's first
   D_ProcessDehCommandLine();
 
-        // sf: removed beta
+  // sf: removed beta
 
   // jff 1/24/98 set both working and command line value of play parms
-        // sf: make bitwise for console
+  // sf: make boolean for console
   nomonsters = clnomonsters = !!M_CheckParm ("-nomonsters");
   respawnparm = clrespawnparm = !!M_CheckParm ("-respawn");
   fastparm = clfastparm = !!M_CheckParm ("-fast");
@@ -1238,55 +1225,55 @@ void D_DoomMain(void)
 
   switch ( gamemode )
     {
-    case retail:
-      sprintf (title,"The Ultimate DOOM Startup");
-      break;
-    case shareware:
-      sprintf (title,"DOOM Shareware Startup");
-      break;
-
-    case registered:
-      sprintf (title,"DOOM Registered Startup");
-      break;
-
-    case commercial:
-      switch (gamemission)      // joel 10/16/98 Final DOOM fix
-	{
-	case pack_plut:
-	  sprintf (title,"DOOM 2: Plutonia Experiment");
-	  break;
-
-	case pack_tnt:
-	  sprintf (title, "DOOM 2: TNT - Evilution");
-	  break;
-
-	case doom2:
-	default:
-	  sprintf (title,"DOOM 2: Hell on Earth");
-	  break;
-	}
-      break;
-      // joel 10/16/98 end Final DOOM fix
-
-    default:
-      sprintf (title, "Public DOOM");
-      break;
+      case retail:
+	sprintf (title,"The Ultimate DOOM Startup");
+	break;
+      case shareware:
+	sprintf (title,"DOOM Shareware Startup");
+	break;
+	
+      case registered:
+	sprintf (title,"DOOM Registered Startup");
+	break;
+	
+      case commercial:
+	switch (gamemission)      // joel 10/16/98 Final DOOM fix
+	  {
+	    case pack_plut:
+	      sprintf (title,"DOOM 2: Plutonia Experiment");
+	      break;
+	      
+	    case pack_tnt:
+	      sprintf (title, "DOOM 2: TNT - Evilution");
+	      break;
+	      
+	    case doom2:
+	    default:
+	      sprintf (title,"DOOM 2: Hell on Earth");
+	      break;
+	  }
+	break;
+	// joel 10/16/98 end Final DOOM fix
+	
+      default:
+	sprintf (title, "Public DOOM");
+	break;
     }
-    printf("%s\n", title);
-    printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
+  printf("%s\n", title);
+  printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
 #endif /* GAMEBAR */
-
+  
   if (devparm)
-  {
-    printf(D_DEVSTR);
-    v_ticker = true;  // turn on the fps ticker
-  }
-
+    {
+      printf(D_DEVSTR);
+      v_ticker = 2;  // turn on the fps ticker
+    }
+  
   if (M_CheckParm("-cdrom"))
     {
       printf(D_CDROM);
       mkdir("c:/doomdata",0);
-
+      
       // killough 10/98:
       sprintf(basedefault, "c:/doomdata/%s.cfg", D_DoomExeName());
     }
@@ -1315,12 +1302,13 @@ void D_DoomMain(void)
     char filestr[128];
     // get smmu.wad from the same directory as smmu.exe
     // 25/10/99: use same name as exe
+
     sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
     D_AddFile(filestr);
   }
 
   modifiedgame = false;         // reset, ignoring smmu.wad etc.
-
+  
   // add any files specified on the command line with -file wadfile
   // to the wad list
 
@@ -1334,26 +1322,32 @@ void D_DoomMain(void)
 
       boolean file = modifiedgame = true;            // homebrew levels
       while (++p < myargc)
-	if (*myargv[p] == '-')
-	  file = !strcasecmp(myargv[p],"-file");
-	else
-	  if (file)
-	    D_AddFile(myargv[p]);
+	{
+	  if (*myargv[p] == '-')
+	    file = !strcasecmp(myargv[p],"-file");
+	  else
+	    {
+	      if (file)
+		D_AddFile(myargv[p]);
+	    }
+	}
     }
 
   if (!(p = M_CheckParm("-playdemo")) || p >= myargc-1)    // killough
-    if ((p = M_CheckParm ("-fastdemo")) && p < myargc-1)   // killough
-      fastdemo = true;             // run at fastest speed possible
-    else
-      p = M_CheckParm ("-timedemo");
+    {
+      if ((p = M_CheckParm ("-fastdemo")) && p < myargc-1)   // killough
+	fastdemo = true;             // run at fastest speed possible
+      else
+	p = M_CheckParm ("-timedemo");
+    }
 
   if (p && p < myargc-1)
-  {
+    {
       strcpy(file,myargv[p+1]);
       AddDefaultExtension(file,".lmp");     // killough
-      D_AddFile(file);
+      //      D_AddFile(file); // sf: no longer need to addfile
       usermsg("Playing demo %s\n",file);
-  }
+    }
 
   // get skill / episode / map from parms
 
@@ -1375,7 +1369,7 @@ void D_DoomMain(void)
       autostart = true;
     }
 
-        // sf: moved back timer code
+  // sf: moved back timer code
   if ((p = M_CheckParm ("-timer")) && p < myargc-1 && deathmatch)
     {
       int time = atoi(myargv[p+1]);
@@ -1384,8 +1378,9 @@ void D_DoomMain(void)
       usermsg("Levels will end after %d minute%s.\n", time, time>1 ? "s" : "");
       levelTimeLimit = time;
     }
-        // sf: moved from p_spec.c
 
+  // sf: moved from p_spec.c
+  
   // See if -frags has been used
 
   p = M_CheckParm("-frags");
@@ -1400,27 +1395,29 @@ void D_DoomMain(void)
     }
 
   if ((p = M_CheckParm ("-avg")) && p < myargc-1 && deathmatch)
-  {
-    extern int levelTimeLimit;
-
-    levelTimeLimit = 20 * 60 * TICRATE;
-    puts("Austin Virtual Gaming: Levels will end after 20 minutes");
-  }
-
+    {
+      extern int levelTimeLimit;
+      
+      levelTimeLimit = 20 * 60 * TICRATE;
+      puts("Austin Virtual Gaming: Levels will end after 20 minutes");
+    }
+  
   if (((p = M_CheckParm ("-warp")) ||      // killough 5/2/98
        (p = M_CheckParm ("-wart"))) && p < myargc-1)
-    if (gamemode == commercial)
-      {
-	startmap = atoi(myargv[p+1]);
-	autostart = true;
-      }
-    else    // 1/25/98 killough: fix -warp xxx from crashing Doom 1 / UD
-      if (p < myargc-2)
+    {
+      if (gamemode == commercial)
 	{
-	  startepisode = atoi(myargv[++p]);
 	  startmap = atoi(myargv[p+1]);
 	  autostart = true;
 	}
+      else    // 1/25/98 killough: fix -warp xxx from crashing Doom 1 / UD
+	if (p < myargc-2)
+	  {
+	    startepisode = atoi(myargv[++p]);
+	    startmap = atoi(myargv[p+1]);
+	    autostart = true;
+	  }
+    }
 
   //jff 1/22/98 add command line parms to disable sound and music
   {
@@ -1441,30 +1438,28 @@ void D_DoomMain(void)
       usermsg("debug output to: %s\n",filename);
       debugfile = fopen(filename,"w");
     }
- 
-  startupmsg("M_LoadDefaults", "Load system defaults.");
-  M_LoadDefaults();              // load before initing other systems
+
+  if (M_CheckParm ("-debugstd"))
+    {
+      usermsg("debug output to stderr\n");
+      debugfile = stdout;
+    }
 
   bodyquesize = default_bodyquesize; // killough 10/98
 
-  G_ReloadDefaults();    // killough 3/4/98: set defaults just loaded.
+  //  G_ReloadDefaults();    // killough 3/4/98: set defaults just loaded.
   // jff 3/24/98 this sets startskill if it was -1
 
+  startupmsg("C_Init","Init console.");
+  C_Init();
+  
   // 1/18/98 killough: Z_Init call moved to i_main.c
 
-  // init subsystems
-  startupmsg("V_Init", "allocate screens.");    // killough 11/98: moved down to here
-  V_Init();
-
-  D_ProcessWadPreincludes(); // killough 10/98: add preincluded wads at the end
-
-//  D_AddFile(NULL);           // killough 11/98
-
+  // sf: removed V_Init: now done by V_SetMode
+  
   startupmsg("W_Init","Init WADfiles.");
   W_InitMultipleFiles(wadfiles);
   usermsg("");  // gap
-
-  D_ProcessDehPreincludes(); // killough 10/98: process preincluded .deh files
 
   // Check for -file in shareware
   if (modifiedgame)
@@ -1502,34 +1497,33 @@ void D_DoomMain(void)
   if (*startup5) puts(startup5);
   // End new startup strings
 
-  startupmsg("C_Init","Init console.");
-  C_Init();
-
   startupmsg("V_InitMisc","Init miscellaneous video patches");
   V_InitMisc();
-
+  
   startupmsg("I_Init","Setting up machine state.");
   I_Init();
 
-  /************************************************************************/
-  
-  // devparm override of early set graphics mode
+  startupmsg("D_CheckNetGame","Check netgame status.");
+  D_InitNetGame();
+
+  startupmsg("G_LoadDefaults", "Load system defaults.");
+  G_LoadDefaults(basedefault); 
 
   if(!textmode_startup && !devparm)
     {
-      startupmsg("D_SetGraphicsMode", "Set graphics mode");
-      D_SetGraphicsMode();
+      startupmsg("V_InitGraphics", "Init Graphics");
+      V_InitGraphics();
     }
-  
+
   startupmsg("R_Init","Init DOOM refresh daemon");
   R_Init();
-
+  
   startupmsg("P_Init","Init Playloop state.");
   P_Init();
 
   startupmsg("HU_Init","Setting up heads up display.");
   HU_Init();
-
+ 
   startupmsg("ST_Init","Init status bar.");
   ST_Init();
 
@@ -1541,34 +1535,34 @@ void D_DoomMain(void)
 
   startupmsg("S_Init","Setting up sound.");
   S_Init(snd_SfxVolume /* *8 */, snd_MusicVolume /* *8*/ );
-
-  startupmsg("D_CheckNetGame","Check netgame status.");
-  D_CheckNetGame();
-
-  if(devparm)   // we wait if in devparm so the user can see the messages
-    {
-      printf("devparm: press a key..\n");
-      getchar();
-    }
   
- /****************** Must be in graphics mode by now! *********************/
+  //-------------------------------------------------------------------------
+  //
+  // Must be in Graphics mode by now!
+  //
+    
+  // check we are
 
-        // check
-  if(in_textmode)  D_SetGraphicsMode();
+  if(!in_graphics_mode)
+    {
+      startupmsg("V_InitGraphics", "Init Graphics");
+      V_InitGraphics();
+    }
 
   C_Printf("\n");
   C_Seperator();
-  C_Printf(	
-	   "\n"
+  C_Printf("\n"
 	   FC_GRAY "SMMU" FC_RED " by Simon Howard 'Fraggle'\n"
 	   "http://fraggle.tsx.org/ \n"
 	   "version %i.%02i '%s' \n\n",
 	   VERSION/100, VERSION%100, version_name);
-  
-  if(!textmode_startup && !devparm)
-    C_Update();
 
-  idmusnum = -1; //jff 3/17/98 insure idmus number is blank
+  C_Printf("Distributed under GNU General Public License\n"
+	   "See the file 'COPYING' for more info\n\n");
+
+  ResetNet();
+  
+  idmusnum = -1; //jff 3/17/98 ensure idmus number is blank
 
   // check for a driver that wants intermission stats
   if ((p = M_CheckParm ("-statcopy")) && p<myargc-1)
@@ -1584,7 +1578,8 @@ void D_DoomMain(void)
     }
 
         // sf: -blockmap option as a variable now
-  if(M_CheckParm("-blockmap")) r_blockmap = true;
+  if(M_CheckParm("-blockmap"))
+    r_blockmap = true;
 
   // start the apropriate game based on parms
 
@@ -1639,6 +1634,7 @@ void D_DoomMain(void)
     {
       if (demorecording)
 	  G_BeginRecording();
+
       if(netgame)
 	{
           C_SendNetData();
@@ -1649,15 +1645,19 @@ void D_DoomMain(void)
 	}
       else
 	{
-          D_StartTitle();                 // start up intro loop
+	  //          D_StartTitle();                 // start up intro loop
 	}
     }
 
   // this fixes a strange bug, don't know why but it works
-  if(!textmode_startup && !devparm)
-    for(p=0; p<10; p++)
-          C_Update();
+  //  if(!textmode_startup && !devparm)
+  //    for(p=0; p<10; p++)
+  //      C_Update();
 
+  // run autoexec script
+  
+  C_RunScriptFromFile("smmuauto.cfg");
+  
   DEBUGMSG("start main loop\n");
 
   oldgamestate = wipegamestate = gamestate;
@@ -1665,7 +1665,7 @@ void D_DoomMain(void)
   while(1)
     {
       // frame syncronous IO operations
-      I_StartFrame ();
+      V_StartFrame ();
 
       DEBUGMSG("tics\n");
       TryRunTics (); // will run at least one tic
@@ -1698,12 +1698,19 @@ void D_ReInitWadfiles()
   R_FreeData();
   R_Init();
   P_Init();
+  ST_reloadData();
+  MN_ReloadGraphics();
+  P_ClearThingHash();
 }
+
+boolean wad_level;  // set true if most recently loaded wad contains a level
 
 void D_NewWadLumps(int handle)
 {
   int i;
   char wad_firstlevel[9] = "";
+
+  wad_level = false;
   
   for(i=0; i<numlumps; i++)
     {
@@ -1712,13 +1719,15 @@ void D_NewWadLumps(int handle)
       if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
 	{
 	  char *name = lumpinfo[i-1]->name; // previous lump
+
+	  wad_level = true;      // contains a level
 	  
 	  // 'ExMy'
 	  if(isExMy(name) && isExMy(wad_firstlevel))
 	    {
 	      if(name[1] < wad_firstlevel[1] ||       // earlier episode?
 		 // earlier level in the same episode?
-                 (name[1] == wad_firstlevel[1] && name[3] < wad_firstlevel[3]) )
+                 (name[1] == wad_firstlevel[1] && name[3] < wad_firstlevel[3]))
 		strncpy(wad_firstlevel, name, 8);
 	    }
 	  if(isMAPxy(name) && isMAPxy(wad_firstlevel))
@@ -1743,11 +1752,20 @@ void D_NewWadLumps(int handle)
 	{
 	  S_UpdateSound(i);
 	}
-                // skins
+      
+      // new music
+      if(!strncmp(lumpinfo[i]->name, "D_", 2))
+	{
+	  S_UpdateMusic(i);
+	}
+
+      // skins
       if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
 	{
 	  P_ParseSkin(i);
 	}
+
+      // mbf dehacked lump
       if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
 	{
 	  D_ProcessDehInWad(i);
@@ -1765,21 +1783,22 @@ void usermsg(char *s, ...)
   va_start(v,s);
   vsprintf(msg,s,v);                  // print message in buffer
   va_end(v);
-
-  if(in_textmode)
-  {
-     puts(msg);
-  }
+  
+  if(in_graphics_mode)
+    {
+      C_Puts(msg);
+      C_Update();
+    }
   else
-  {
-     C_Puts(msg);
-     C_Update();
-  }
+    {
+      puts(msg);
+    }
 }
 
-        // add a new .wad file
-        // returns 1 if successfully loaded
-int D_AddNewFile(char *s)
+// add a new .wad file
+// returns true if successfully loaded
+
+boolean D_AddNewFile(char *s)
 {
   c_showprompt = false;
   if(W_AddNewFile(c_argv[0])) return false;
@@ -1792,122 +1811,9 @@ int D_AddNewFile(char *s)
 
 //----------------------------------------------------------------------------
 //
-// $Log: d_main.c,v $
-// Revision 1.47  1998/05/16  09:16:51  killough
-// Make loadgame checksum friendlier
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.46  1998/05/12  10:32:42  jim
-// remove LEESFIXES from d_main
-//
-// Revision 1.45  1998/05/06  15:15:46  jim
-// Documented IWAD routines
-//
-// Revision 1.44  1998/05/03  22:26:31  killough
-// beautification, declarations, headers
-//
-// Revision 1.43  1998/04/24  08:08:13  jim
-// Make text translate tables lumps
-//
-// Revision 1.42  1998/04/21  23:46:01  jim
-// Predefined lump dumper option
-//
-// Revision 1.39  1998/04/20  11:06:42  jim
-// Fixed print of IWAD found
-//
-// Revision 1.37  1998/04/19  01:12:19  killough
-// Fix registered check to work with new lump namespaces
-//
-// Revision 1.36  1998/04/16  18:12:50  jim
-// Fixed leak
-//
-// Revision 1.35  1998/04/14  08:14:18  killough
-// Remove obsolete adaptive_gametics code
-//
-// Revision 1.34  1998/04/12  22:54:41  phares
-// Remaining 3 Setup screens
-//
-// Revision 1.33  1998/04/11  14:49:15  thldrmn
-// Allow multiple deh/bex files
-//
-// Revision 1.32  1998/04/10  06:31:50  killough
-// Add adaptive gametic timer
-//
-// Revision 1.31  1998/04/09  09:18:17  thldrmn
-// Added generic startup strings for BEX use
-//
-// Revision 1.30  1998/04/06  04:52:29  killough
-// Allow demo_insurance=2, fix fps regression wrt redrawsbar
-//
-// Revision 1.29  1998/03/31  01:08:11  phares
-// Initial Setup screens and Extended HELP screens
-//
-// Revision 1.28  1998/03/28  15:49:37  jim
-// Fixed merge glitches in d_main.c and g_game.c
-//
-// Revision 1.27  1998/03/27  21:26:16  jim
-// Default save dir offically . now
-//
-// Revision 1.26  1998/03/25  18:14:21  jim
-// Fixed duplicate IWAD search in .
-//
-// Revision 1.25  1998/03/24  16:16:00  jim
-// Fixed looking for wads message
-//
-// Revision 1.23  1998/03/24  03:16:51  jim
-// added -iwad and -save parms to command line
-//
-// Revision 1.22  1998/03/23  03:07:44  killough
-// Use G_SaveGameName, fix some remaining default.cfg's
-//
-// Revision 1.21  1998/03/18  23:13:54  jim
-// Deh text additions
-//
-// Revision 1.19  1998/03/16  12:27:44  killough
-// Remember savegame slot when loading
-//
-// Revision 1.18  1998/03/10  07:14:58  jim
-// Initial DEH support added, minus text
-//
-// Revision 1.17  1998/03/09  07:07:45  killough
-// print newline after wad files
-//
-// Revision 1.16  1998/03/04  08:12:05  killough
-// Correctly set defaults before recording demos
-//
-// Revision 1.15  1998/03/02  11:24:25  killough
-// make -nodraw -noblit work generally, fix ENDOOM
-//
-// Revision 1.14  1998/02/23  04:13:55  killough
-// My own fix for m_misc.c warning, plus lots more (Rand's can wait)
-//
-// Revision 1.11  1998/02/20  21:56:41  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.10  1998/02/20  00:09:00  killough
-// change iwad search path order
-//
-// Revision 1.9  1998/02/17  06:09:35  killough
-// Cache D_DoomExeDir and support basesavegame
-//
-// Revision 1.8  1998/02/02  13:20:03  killough
-// Ultimate Doom, -fastdemo -nodraw -noblit support, default_compatibility
-//
-// Revision 1.7  1998/01/30  18:48:15  phares
-// Changed textspeed and textwait to functions
-//
-// Revision 1.6  1998/01/30  16:08:59  phares
-// Faster end-mission text display
-//
-// Revision 1.5  1998/01/26  19:23:04  phares
-// First rev with no ^Ms
-//
-// Revision 1.4  1998/01/26  05:40:12  killough
-// Fix Doom 1 crashes on -warp with too few args
-//
-// Revision 1.3  1998/01/24  21:03:04  jim
-// Fixed disappearence of nomonsters, respawn, or fast mode after demo play or IDCLEV
-//
-// Revision 1.1.1.1  1998/01/19  14:02:53  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

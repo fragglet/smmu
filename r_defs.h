@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: r_defs.h,v 1.18 1998/04/27 02:12:59 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Refresh/rendering module, shared data struct definitions.
@@ -421,60 +428,9 @@ typedef struct visplane
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_defs.h,v $
-// Revision 1.18  1998/04/27  02:12:59  killough
-// Program beautification
-//
-// Revision 1.17  1998/04/17  10:36:44  killough
-// Improve linedef tag searches (see p_spec.c)
-//
-// Revision 1.16  1998/04/12  02:08:31  killough
-// Add ceiling light property, translucent walls
-//
-// Revision 1.15  1998/04/07  06:52:40  killough
-// Simplify sector_thinglist traversal to use simpler markers
-//
-// Revision 1.14  1998/04/06  04:42:42  killough
-// Add dynamic colormaps, thinglist_validcount
-//
-// Revision 1.13  1998/03/28  18:03:26  killough
-// Add support for underwater sprite clipping
-//
-// Revision 1.12  1998/03/23  03:34:11  killough
-// Add support for an arbitrary number of colormaps
-//
-// Revision 1.11  1998/03/20  00:30:33  phares
-// Changed friction to linedef control
-//
-// Revision 1.10  1998/03/16  12:41:54  killough
-// Add support for floor lightlevel from other sector
-//
-// Revision 1.9  1998/03/09  07:33:44  killough
-// Add scroll effect fields, remove FP for point/line queries
-//
-// Revision 1.8  1998/03/02  11:49:58  killough
-// Support for flats scrolling
-//
-// Revision 1.7  1998/02/27  11:50:49  jim
-// Fixes for stairs
-//
-// Revision 1.6  1998/02/23  00:42:24  jim
-// Implemented elevators
-//
-// Revision 1.5  1998/02/17  22:58:30  jim
-// Fixed bug of vanishinb secret sectors in automap
-//
-// Revision 1.4  1998/02/09  03:21:20  killough
-// Allocate MAX screen height/width in arrays
-//
-// Revision 1.3  1998/02/02  14:19:49  killough
-// Improve searching of matching sector tags
-//
-// Revision 1.2  1998/01/26  19:27:36  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,18 +1,26 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: g_game.h,v 1.10 1998/05/16 09:17:02 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//-----------------------------------------------------------------------------
+//
 //
 //-----------------------------------------------------------------------------
 
@@ -56,7 +64,6 @@ void G_WorldDone(void);
 void G_Ticker(void);
 void G_ScreenShot(void);
 void G_ReloadDefaults(void);     // killough 3/1/98: loads game defaults
-void G_SaveCurrentLevel(char *filename, char *description); // sf
 void G_SaveGameName(char *,int); // killough 3/22/98: sets savegame filename
 void G_SetFastParms(int);        // killough 4/10/98: sets -fast parameters
 void G_DoNewGame(void);
@@ -68,6 +75,10 @@ void G_InitNewNum(skill_t skill, int episode, int map);
 void G_InitNew(skill_t skill, char*);
 void G_DoVictory(void);
 unsigned long long G_Signature(void);      // killough 12/98
+
+// sf: for hubs, split into seperate functions
+void G_SaveCurrentLevel(char *filename, char *description);
+void G_LoadSavedLevel(char *filename);
 
 // killough 1/18/98: Doom-style printf;   killough 4/25/98: add gcc attributes
 void doom_printf(const char *, ...) __attribute__((format(printf,1,2)));
@@ -176,37 +187,11 @@ extern boolean hub_changelevel;
 
 #endif
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 //
-// $Log: g_game.h,v $
-// Revision 1.10  1998/05/16  09:17:02  killough
-// Make loadgame checksum friendlier
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/05/06  15:15:59  jim
-// Documented IWAD routines
 //
-// Revision 1.8  1998/05/03  22:15:50  killough
-// Add all external declarations in g_game.c
-//
-// Revision 1.7  1998/04/27  02:00:53  killough
-// Add gcc __attribute__ to check doom_printf() format string
-//
-// Revision 1.6  1998/04/10  06:34:35  killough
-// Fix -fast parameter bugs
-//
-// Revision 1.5  1998/03/23  03:15:02  killough
-// Add G_SaveGameName()
-//
-// Revision 1.4  1998/03/16  12:29:53  killough
-// Remember savegame slot when loading
-//
-// Revision 1.3  1998/03/02  11:28:46  killough
-// Add G_ReloadDefaults() prototype
-//
-// Revision 1.2  1998/01/26  19:26:51  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:55  rand
-// Lee's Jan 19 sources
-//
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------

@@ -1,20 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $
-//
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Game completion, final screen animation.
@@ -23,7 +28,7 @@
 
 
 static const char
-rcsid[] = "$Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "d_event.h"
@@ -82,7 +87,7 @@ void F_StartFinale (void)
     case registered:
     case retail:
     {
-      S_ChangeMusic(mus_victor, true);
+      S_ChangeMusicNum(mus_victor, true);
       
       switch (gameepisode)
       {
@@ -112,7 +117,7 @@ void F_StartFinale (void)
     // DOOM II and missions packs with E1, M34
     case commercial:
     {
-      S_ChangeMusic(mus_read_m, true);
+      S_ChangeMusicNum(mus_read_m, true);
 
       // Ty 08/27/98 - added the gamemission logic
 
@@ -159,7 +164,7 @@ void F_StartFinale (void)
 
     // Indeterminate.
     default:  // Ty 03/30/98 - not externalized
-         S_ChangeMusic(mus_read_m, true);
+         S_ChangeMusicNum(mus_read_m, true);
          finaleflat = "F_SKY1"; // Not used anywhere else.
          finaletext = s_C1TEXT;  // FIXME - other text, music?
          break;
@@ -229,25 +234,27 @@ void F_Ticker(void)
     {
       float speed = demo_compatibility ? TEXTSPEED : Get_TextSpeed();
       if (finalecount > strlen(finaletext)*speed +  // phares
-          (midstage ? NEWTEXTWAIT : TEXTWAIT) ||  // killough 2/28/98:
-          (midstage && acceleratestage))       // changed to allow acceleration
-        if (gamemode != commercial)       // Doom 1 / Ultimate Doom episode end
-          {                               // with enough time, it's automatic
-            finalecount = 0;
-            finalestage = 1;
-            wipegamestate = -1;         // force a wipe
-            if (gameepisode == 3)
-              S_StartMusic(mus_bunny);
-          }
-        else   // you must press a button to continue in Doom 2
-          if (!demo_compatibility && midstage)
-            {
-            next_level:
-              if (gamemap == 30)
-                F_StartCast();              // cast of Doom 2 characters
-              else
-                gameaction = ga_worlddone;  // next level, e.g. MAP07
-            }
+	  (midstage ? NEWTEXTWAIT : TEXTWAIT) ||  // killough 2/28/98:
+	  (midstage && acceleratestage))       // changed to allow acceleration
+	{
+	  if (gamemode != commercial)    // Doom 1 / Ultimate Doom episode end
+	    {                            // with enough time, it's automatic
+	      finalecount = 0;
+	      finalestage = 1;
+	      wipegamestate = -1;         // force a wipe
+	      if (gameepisode == 3)
+		S_StartMusic(mus_bunny);
+	    }
+	  else   // you must press a button to continue in Doom 2
+	    if (!demo_compatibility && midstage)
+	      {
+	      next_level:
+		if (gamemap == 30)
+		  F_StartCast();              // cast of Doom 2 characters
+		else
+		  gameaction = ga_worlddone;  // next level, e.g. MAP07
+	      }
+	}
     }
 }
 
@@ -282,15 +289,16 @@ void F_TextWrite (void)
   // killough 11/98: the background-filling code was already in m_menu.c
 
   lumpnum = W_CheckNumForName (finaleflat);
-  if(lumpnum == -1) // flat
-          MN_DrawBackground(finaleflat, screens[0]);
-  else
-  {                     // normal picture
-        patch_t *pic;
 
-        pic = W_CacheLumpNum(lumpnum, PU_CACHE);
-        V_DrawPatch(0, 0, 0, pic);
-  }
+  if(lumpnum == -1) // flat
+    V_DrawBackground(finaleflat, screens[0]);
+  else
+    {                     // normal picture
+      patch_t *pic;
+      
+      pic = W_CacheLumpNum(lumpnum, PU_CACHE);
+      V_DrawPatch(0, 0, 0, pic);
+    }
 
   // draw some of the text onto the screen
   cx = 10;
@@ -387,7 +395,7 @@ void F_StartCast (void)
   castframes = 0;
   castonmelee = 0;
   castattacking = false;
-  S_ChangeMusic(mus_evil, true);
+  S_ChangeMusicNum(mus_evil, true);
 }
 
 
@@ -748,54 +756,9 @@ void F_Drawer (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: f_finale.c,v $
-// Revision 1.16  1998/05/10  23:39:25  killough
-// Restore v1.9 demo sync on text intermission screens
-//
-// Revision 1.15  1998/05/04  21:34:30  thldrmn
-// commenting and reformatting
-//
-// Revision 1.14  1998/05/03  23:25:05  killough
-// Fix #includes at the top, nothing else
-//
-// Revision 1.13  1998/04/19  01:17:18  killough
-// Tidy up last fix's code
-//
-// Revision 1.12  1998/04/17  15:14:10  killough
-// Fix showstopper flat bug
-//
-// Revision 1.11  1998/03/31  16:19:25  killough
-// Fix minor merge glitch
-//
-// Revision 1.10  1998/03/31  11:41:21  jim
-// Fix merge glitch in f_finale.c
-//
-// Revision 1.9  1998/03/31  00:37:56  jim
-// Ty's finale.c fixes
-//
-// Revision 1.8  1998/03/28  17:51:33  killough
-// Allow use/fire to accelerate teletype messages
-//
-// Revision 1.7  1998/02/05  12:15:06  phares
-// cleaned up comments
-//
-// Revision 1.6  1998/02/02  13:43:30  killough
-// Relax endgame message speed to demo_compatibility
-//
-// Revision 1.5  1998/01/31  01:47:39  phares
-// Removed textspeed and textwait externs
-//
-// Revision 1.4  1998/01/30  18:48:18  phares
-// Changed textspeed and textwait to functions
-//
-// Revision 1.3  1998/01/30  16:08:56  phares
-// Faster end-mission text display
-//
-// Revision 1.2  1998/01/26  19:23:14  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:54  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_system.h,v 1.7 1998/05/03 22:33:43 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      System specific interface stuff.
@@ -46,7 +53,7 @@ extern int GetTime_Scale;
 // Can call D_PostEvent.
 //
 
-void I_StartFrame (void);
+void V_StartFrame (void);
 
 //
 // Called by D_DoomLoop,
@@ -54,7 +61,7 @@ void I_StartFrame (void);
 // Quick syncronous operations are performed here.
 // Can call D_PostEvent.
 
-void I_StartTic(void);
+void V_StartTic(void);
 
 // Asynchronous interrupt functions should maintain private queues
 // that are read by the synchronous functions
@@ -84,8 +91,10 @@ extern int mousepresent;                // killough
 
 #ifdef DJGPP
 
-  extern int leds_always_off;   // killough 10/98
-  void I_ResetLEDs(void);       // killough 10/98
+extern int leds_always_off;   // killough 10/98
+void I_ResetLEDs(void);       // killough 10/98
+
+boolean I_DetectWin95();      // sf
 
 #endif
 
@@ -101,31 +110,15 @@ extern struct keyboard_queue_s {
 
 int I_CheckAbort();
 
+void I_Sleep(int time);
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_system.h,v $
-// Revision 1.7  1998/05/03  22:33:43  killough
-// beautification, remove unnecessary #includes
-//
-// Revision 1.6  1998/04/27  01:52:47  killough
-// Add __attribute__ to I_Error for gcc checking
-//
-// Revision 1.5  1998/04/10  06:34:07  killough
-// Add adaptive gametic timer
-//
-// Revision 1.4  1998/03/23  03:17:19  killough
-// Add keyboard FIFO queue and make I_Error arg const
-//
-// Revision 1.3  1998/02/23  04:28:30  killough
-// Add ENDOOM support
-//
-// Revision 1.2  1998/01/26  19:26:59  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:10  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

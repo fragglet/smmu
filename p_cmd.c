@@ -1,13 +1,29 @@
 // Emacs style mode select -*- C++ -*-
 //---------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Game console variables 
 //
 // By Simon Howard
 //
 //---------------------------------------------------------------------------
-
-/* includes ************************/
 
 #include <stdio.h>
 
@@ -26,9 +42,10 @@
 #include "p_spec.h"
 #include "r_draw.h"
 
-/***************************************************************************
-                'defines': string values for variables
-***************************************************************************/
+///////////////////////////////////////////////////////////////////////////
+//
+// 'Defines' -- string aliases for variables
+//
 
 char *yesno[]={"no","yes"};
 char *onoff[]={"off","on"};
@@ -53,18 +70,11 @@ char *skills[]=
 {"im too young to die", "hey not too rough", "hurt me plenty",
  "ultra violence", "nightmare"};
 char *bfgtypestr[3]= {"bfg9000", "classic", "bfg11k"};
-char *dmstr[] = {"co-op", "deathmatch", "altdeath", "trideath"};
 
-/*************************************************************************
-        Constants
- *************************************************************************/
-
-CONST_STRING(info_creator);
-CONSOLE_CONST(creator, info_creator);
-
-/*************************************************************************
-                Game variables
- *************************************************************************/
+////////////////////////////////////////////////////////////////////////////
+//
+// Game variables
+//
 
 // player colour
 
@@ -85,8 +95,10 @@ CONSOLE_NETVAR(colour, default_colour, cf_handlerset, netcmd_colour)
 
 // deathmatch
 
+char *dmstr[] = {"co-op", "deathmatch", "altdeath", "trideath"};
+
 VARIABLE_INT(deathmatch, NULL,                  0, 3, dmstr);
-CONSOLE_NETVAR(deathmatch, deathmatch, cf_server, netcmd_deathmatch) {}
+CONSOLE_NETVAR(deathmatch, deathmatch, cf_server|cf_nosave, netcmd_deathmatch) {}
 
 // skill level
 
@@ -101,7 +113,7 @@ CONSOLE_NETVAR(skill, gameskill, cf_server, netcmd_skill)
 // allow mlook
 
 VARIABLE_BOOLEAN(allowmlook,NULL,                   onoff);
-CONSOLE_NETVAR(allowmlook, allowmlook, cf_server, netcmd_allowmlook) {}
+CONSOLE_NETVAR(allowmlook, allowmlook, cf_server|cf_nosave, netcmd_allowmlook) {}
 
 // bfg type
 
@@ -121,18 +133,18 @@ CONSOLE_NETVAR(recoil, weapon_recoil, cf_server, netcmd_recoil) {}
 // allow pushers
 
 VARIABLE_BOOLEAN(allow_pushers, &default_allow_pushers, onoff);
-CONSOLE_NETVAR(pushers, allow_pushers, cf_server, netcmd_pushers) {}
+CONSOLE_NETVAR(pushers, allow_pushers, cf_server|cf_nosave, netcmd_pushers) {}
 
 // varying friction
 
 VARIABLE_BOOLEAN(variable_friction, &default_variable_friction, onoff);
-CONSOLE_NETVAR(varfriction, variable_friction, cf_server, netcmd_varfriction){}
+CONSOLE_NETVAR(varfriction, variable_friction, cf_server|cf_nosave, netcmd_varfriction){}
 
 // enable nukage
 
 extern int enable_nuke;         // p_spec.c
 VARIABLE_BOOLEAN(enable_nuke, NULL, onoff);
-CONSOLE_NETVAR(nukage, enable_nuke, cf_server, netcmd_nukage) {}
+CONSOLE_NETVAR(nukage, enable_nuke, cf_server|cf_nosave, netcmd_nukage) {}
 
 // weapon changing speed
 
@@ -148,18 +160,21 @@ CONSOLE_NETVAR(bfglook, bfglook, cf_server, netcmd_bfglook) {}
 // 'auto exit' variables
 
 VARIABLE_INT(levelTimeLimit,    NULL,           0, 100,         NULL);
-CONSOLE_NETVAR(timelimit, levelTimeLimit, cf_server, netcmd_timelimit) {}
+CONSOLE_NETVAR(timelimit, levelTimeLimit, cf_server|cf_nosave, netcmd_timelimit) {}
 
 VARIABLE_INT(levelFragLimit,    NULL,           0, 100,         NULL);
-CONSOLE_NETVAR(fraglimit, levelFragLimit, cf_server, netcmd_fraglimit) {}
+CONSOLE_NETVAR(fraglimit, levelFragLimit, cf_server|cf_nosave, netcmd_fraglimit) {}
 
 
-  /************** monster variables ***********/
+////////////////////////////////////////////////////////////
+//
+// Monster variables
+//
 
 // fast monsters
 
 VARIABLE_BOOLEAN(fastparm, NULL,                    onoff);
-CONSOLE_NETVAR(fast, fastparm, cf_server, netcmd_fast)
+CONSOLE_NETVAR(fast, fastparm, cf_server|cf_nosave, netcmd_fast)
 {
   G_SetFastParms(fastparm); // killough 4/10/98: set -fast parameter correctly
 }
@@ -167,12 +182,12 @@ CONSOLE_NETVAR(fast, fastparm, cf_server, netcmd_fast)
 // no monsters
 
 VARIABLE_BOOLEAN(nomonsters, NULL,                  onoff);
-CONSOLE_NETVAR(nomonsters, nomonsters, cf_server, netcmd_nomonsters) { }
+CONSOLE_NETVAR(nomonsters, nomonsters, cf_server|cf_nosave, netcmd_nomonsters) { }
 
 // respawning monsters
 
 VARIABLE_BOOLEAN(respawnparm, NULL,                 onoff);
-CONSOLE_NETVAR(respawn, respawnparm, cf_server, netcmd_respawn) {}
+CONSOLE_NETVAR(respawn, respawnparm, cf_server|cf_nosave, netcmd_respawn) {}
 
 // monsters remember
 
@@ -214,13 +229,12 @@ CONSOLE_NETVAR(mon_helpfriends, help_friends, cf_server, netcmd_monhelpfriends) 
 VARIABLE_INT(distfriend, &default_distfriend,   0, 1024, NULL);
 CONSOLE_NETVAR(mon_distfriend, distfriend, cf_server, netcmd_mondistfriend) {}
 
-void P_Chase_AddCommands();
-void P_Skin_AddCommands();
+void P_Chase_AddCommands();            // p_chase.c
+void P_Skin_AddCommands();             // p_skin.c
+void P_Info_AddCommands();             // p_info.c
 
 void P_AddCommands()
 {
-  C_AddCommand(creator);
-  
   C_AddCommand(colour);
   C_AddCommand(deathmatch);
   C_AddCommand(skill);
@@ -251,4 +265,14 @@ void P_AddCommands()
   
   P_Chase_AddCommands();
   P_Skin_AddCommands();
+  P_Info_AddCommands();
 }
+
+//----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//----------------------------------------------------------------------------

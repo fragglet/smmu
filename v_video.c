@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Gamma correction LUT stuff.
@@ -24,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "c_io.h"
 #include "doomdef.h"
@@ -33,8 +39,8 @@ rcsid[] = "$Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $";
 #include "m_bbox.h"
 #include "r_draw.h"
 #include "w_wad.h"   /* needed for color translation lump lookup */
+#include "v_mode.h"
 #include "v_video.h"
-#include "i_video.h"
 
 // Each screen is [SCREENWIDTH*SCREENHEIGHT];
 byte *screens[5];
@@ -699,8 +705,8 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
     }
 }
 
-      // sf: translucent patch drawing routine
-      // based on drawpatchtranslated to allow translated translucent
+// sf: translucent patch drawing routine
+// based on drawpatchtranslated to allow translated translucent
 
 void V_DrawPatchTL(int x, int y, int scrn, patch_t *patch,
                            unsigned char *outr)
@@ -1026,39 +1032,11 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest)
 }
 
 
-
 //----------------------------------------------------------------------------
 //
-// $Log: v_video.c,v $
-// Revision 1.10  1998/05/06  11:12:48  jim
-// Formattted v_video.*
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/05/03  22:53:16  killough
-// beautification, simplify translation lookup
-//
-// Revision 1.8  1998/04/24  08:09:39  jim
-// Make text translate tables lumps
-//
-// Revision 1.7  1998/03/02  11:41:58  killough
-// Add cr_blue_status for blue statusbar numbers
-//
-// Revision 1.6  1998/02/24  01:40:12  jim
-// Tuned HUD font
-//
-// Revision 1.5  1998/02/23  04:58:17  killough
-// Fix performance problems
-//
-// Revision 1.4  1998/02/19  16:55:00  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.3  1998/02/17  23:00:36  jim
-// Added color translation machinery and data
-//
-// Revision 1.2  1998/01/26  19:25:08  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:05  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------
-

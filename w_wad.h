@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: w_wad.h,v 1.10 1998/05/06 11:32:05 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      WAD I/O functions.
@@ -102,7 +109,7 @@ void ExtractFileBase(const char *, char *);       // killough
 unsigned W_LumpNameHash(const char *s);           // killough 1/31/98
 void W_InitLumpHash(void);
 
-void I_BeginRead(void), I_EndRead(void); // killough 10/98
+void V_BeginRead(void), V_EndRead(void); // killough 10/98
 
 // Function to write all predefined lumps to a PWAD if requested
 extern void WritePredefinedLumpWad(const char *filename); // jff 5/6/98
@@ -112,36 +119,9 @@ extern int iwadhandle;
 
 //----------------------------------------------------------------------------
 //
-// $Log: w_wad.h,v $
-// Revision 1.10  1998/05/06  11:32:05  jim
-// Moved predefined lump writer info->w_wad
-//
-// Revision 1.9  1998/05/03  22:43:45  killough
-// remove unnecessary #includes
-//
-// Revision 1.8  1998/05/01  14:55:54  killough
-// beautification
-//
-// Revision 1.7  1998/04/27  02:05:30  killough
-// Program beautification
-//
-// Revision 1.6  1998/04/19  01:14:36  killough
-// Reinstate separate namespaces
-//
-// Revision 1.5  1998/04/17  16:52:21  killough
-// back out namespace changes temporarily
-//
-// Revision 1.4  1998/04/17  10:33:50  killough
-// Macroize W_CheckNumForName(), add namespace parameter to functional version
-//
-// Revision 1.3  1998/02/02  13:35:13  killough
-// Improve lump hashing, add predefine lumps
-//
-// Revision 1.2  1998/01/26  19:28:01  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:07  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_things.c,v 1.22 1998/05/03 22:46:41 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Refresh of things, i.e. objects represented by sprites.
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: r_things.c,v 1.22 1998/05/03 22:46:41 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "c_io.h"
 #include "doomstat.h"
@@ -156,7 +162,7 @@ void R_InitSpriteDefs(char **namelist)
     return;
 
   // count the number of sprite names
-  for (i=0; namelist[i]; i++) ;
+  for (i=0; namelist[i]; i++);
 
   numsprites = i;
 
@@ -185,7 +191,7 @@ void R_InitSpriteDefs(char **namelist)
       const char *spritename = namelist[i];
       int j = hash[R_SpriteNameHash(spritename) % numentries].index;
 
-//      printf("\n%s: ",spritename); //debug
+      //      printf("\n%s: ",spritename); //debug
 
       if (j >= 0)
         {
@@ -367,12 +373,12 @@ void R_DrawVisSprite(vissprite_t *vis, int x1, int x2)
   // killough 4/11/98: rearrange and handle translucent sprites
   // mixed with translucent/non-translucent 2s normals
 
-        // sf: shadow draw now done by mobj flags, not a null colormap
+  // sf: shadow draw now done by mobj flags, not a null colormap
 
   if (vis->mobjflags & MF_SHADOW)   // shadow draw
-  {
-    colfunc = R_DrawFuzzColumn;    // killough 3/14/98
-  }
+    {
+      colfunc = R_DrawFuzzColumn;    // killough 3/14/98
+    }
   else
     if (vis->colour)
       {
@@ -443,6 +449,13 @@ void R_ProjectSprite (mobj_t* thing)
   if (tz < MINZ)
     return;
 
+  // sf: dont draw the object we are viewing through
+  // client movement prediction - we can be viewing from player position
+  // but outside the body as well
+
+  if(thing == viewobj)
+    return;
+  
   xscale = FixedDiv(projection, tz);
 
   gxt = -FixedMul(tr_x,viewsin);
@@ -455,11 +468,11 @@ void R_ProjectSprite (mobj_t* thing)
 
     // decide which patch to use for sprite relative to player
   if ((unsigned) thing->sprite >= numsprites)
-  {
-    C_Printf ("R_ProjectSprite: invalid sprite number %i\n", thing->sprite);
-    C_SetConsole();
-    return;
-  }
+    {
+      C_Printf ("R_ProjectSprite: invalid sprite number %i\n", thing->sprite);
+      C_SetConsole();
+      return;
+    }
 
   sprdef = &sprites[thing->sprite];
 
@@ -514,9 +527,13 @@ void R_ProjectSprite (mobj_t* thing)
 
   heightsec = thing->subsector->sector->heightsec;
 
-  if (heightsec != -1)   // only clip things which are in special sectors
+  // only clip things which are in special sectors
+  // sf: fix this for viewpoints not from viewplayer->mo
+  // use viewsector instead of viewplayer->mo->subsector->sector
+  
+  if (heightsec != -1)
     {
-      int phs = viewplayer->mo->subsector->sector->heightsec;
+      int phs = viewsector->heightsec;
       if (phs != -1 && viewz < sectors[phs].floorheight ?
           thing->z >= sectors[heightsec].floorheight :
           gzt < sectors[heightsec].floorheight)
@@ -705,11 +722,11 @@ void R_DrawPSprite (pspdef_t *psp)
 
   if (viewplayer->powers[pw_invisibility] > 4*32
    || viewplayer->powers[pw_invisibility] & 8)
-  {
-           // sf: shadow draw now detected by flags
-     vis->mobjflags |= MF_SHADOW;                    // shadow draw
-     vis->colormap = colormaps[0];
-  }
+    {
+      // sf: shadow draw now detected by flags
+      vis->mobjflags |= MF_SHADOW;                    // shadow draw
+      vis->colormap = colormaps[0];
+    }
   else if (fixedcolormap)
     vis->colormap = fixedcolormap;           // fixed color
   else if (psp->state->frame & FF_FULLBRIGHT)
@@ -720,18 +737,20 @@ void R_DrawPSprite (pspdef_t *psp)
   if(psp->trans) // translucent gunflash
     vis->mobjflags |= MF_TRANSLUCENT;
 
+  // sf: bfg in fixed position, y-shearing support
+  
   if(viewplayer->readyweapon == wp_bfg && bfglook==2)
-  {
-    R_DrawVisSprite (vis, vis->x1, vis->x2);
-  }
+    {
+      R_DrawVisSprite (vis, vis->x1, vis->x2);
+    }
   else
-  {
-    centery = viewheight/2 ;
-    centeryfrac = centery << FRACBITS;
-    R_DrawVisSprite (vis, vis->x1, vis->x2);
-    centery = (viewheight/2) + updownangle;
-    centeryfrac = centery<<FRACBITS;
-  }
+    {
+      centery = viewheight/2 ;
+      centeryfrac = centery << FRACBITS;
+      R_DrawVisSprite (vis, vis->x1, vis->x2);
+      centery = (viewheight/2) + updownangle;
+      centeryfrac = centery<<FRACBITS;
+    }
 }
 
 //
@@ -952,35 +971,40 @@ void R_DrawSprite (vissprite_t* spr)
   if (spr->heightsec != -1)  // only things in specially marked sectors
     {
       fixed_t h,mh;
-      int phs = viewplayer->mo->subsector->sector->heightsec;
+      // sf: use viewsector, not viewplayer->mo->subsector->sector
+      int phs = viewsector->heightsec;
       if ((mh = sectors[spr->heightsec].floorheight) > spr->gz &&
           (h = centeryfrac - FixedMul(mh-=viewz, spr->scale)) >= 0 &&
           (h >>= FRACBITS) < viewheight)
-        if (mh <= 0 || (phs != -1 && viewz > sectors[phs].floorheight))
-          {                          // clip bottom
-            for (x=spr->x1 ; x<=spr->x2 ; x++)
-              if (clipbot[x] == -2 || h < clipbot[x])
-                clipbot[x] = h;
-          }
-        else                        // clip top
-          if (phs != -1 && viewz <= sectors[phs].floorheight) // killough 11/98
-            for (x=spr->x1 ; x<=spr->x2 ; x++)
-              if (cliptop[x] == -2 || h > cliptop[x])
-                cliptop[x] = h;
+	{
+	  if (mh <= 0 || (phs != -1 && viewz > sectors[phs].floorheight))
+	    {                          // clip bottom
+	      for (x=spr->x1 ; x<=spr->x2 ; x++)
+		if (clipbot[x] == -2 || h < clipbot[x])
+		  clipbot[x] = h;
+	    }
+	  else                        // clip top killough 11/98
+	    if (phs != -1 && viewz <= sectors[phs].floorheight)
+	      for (x=spr->x1 ; x<=spr->x2 ; x++)
+		if (cliptop[x] == -2 || h > cliptop[x])
+		  cliptop[x] = h;
+	}
 
       if ((mh = sectors[spr->heightsec].ceilingheight) < spr->gzt &&
           (h = centeryfrac - FixedMul(mh-viewz, spr->scale)) >= 0 &&
           (h >>= FRACBITS) < viewheight)
-        if (phs != -1 && viewz >= sectors[phs].ceilingheight)
-          {                         // clip bottom
-            for (x=spr->x1 ; x<=spr->x2 ; x++)
-              if (clipbot[x] == -2 || h < clipbot[x])
-                clipbot[x] = h;
-          }
-        else                       // clip top
-          for (x=spr->x1 ; x<=spr->x2 ; x++)
-            if (cliptop[x] == -2 || h > cliptop[x])
-              cliptop[x] = h;
+	{
+	  if (phs != -1 && viewz >= sectors[phs].ceilingheight)
+	    {                         // clip bottom
+	      for (x=spr->x1 ; x<=spr->x2 ; x++)
+		if (clipbot[x] == -2 || h < clipbot[x])
+		  clipbot[x] = h;
+	    }
+	  else                       // clip top
+	    for (x=spr->x1 ; x<=spr->x2 ; x++)
+	      if (cliptop[x] == -2 || h > cliptop[x])
+		cliptop[x] = h;
+	}
     }
   // killough 3/27/98: end special clipping for deep water / fake ceilings
 
@@ -1037,71 +1061,9 @@ void R_DrawMasked(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_things.c,v $
-// Revision 1.22  1998/05/03  22:46:41  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.21  1998/05/01  15:26:50  killough
-// beautification
-//
-// Revision 1.20  1998/04/27  02:04:43  killough
-// Fix incorrect I_Error format string
-//
-// Revision 1.19  1998/04/24  11:03:26  jim
-// Fixed bug in sprites in PWAD
-//
-// Revision 1.18  1998/04/13  09:45:30  killough
-// Fix sprite clipping under fake ceilings
-//
-// Revision 1.17  1998/04/12  02:02:19  killough
-// Fix underwater sprite clipping, add wall translucency
-//
-// Revision 1.16  1998/04/09  13:18:48  killough
-// minor optimization, plus fix ghost sprites due to huge z-height diffs
-//
-// Revision 1.15  1998/03/31  19:15:27  killough
-// Fix underwater sprite clipping bug
-//
-// Revision 1.14  1998/03/28  18:15:29  killough
-// Add true deep water / fake ceiling sprite clipping
-//
-// Revision 1.13  1998/03/23  03:41:43  killough
-// Use 'fullcolormap' for fully-bright colormap
-//
-// Revision 1.12  1998/03/16  12:42:37  killough
-// Optimize away some function pointers
-//
-// Revision 1.11  1998/03/09  07:28:16  killough
-// Add primitive underwater support
-//
-// Revision 1.10  1998/03/02  11:48:59  killough
-// Add failsafe against texture mapping overflow crashes
-//
-// Revision 1.9  1998/02/23  04:55:52  killough
-// Remove some comments
-//
-// Revision 1.8  1998/02/20  22:53:22  phares
-// Moved TRANMAP initialization to w_wad.c
-//
-// Revision 1.7  1998/02/20  21:56:37  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.6  1998/02/09  03:23:01  killough
-// Change array decl to use MAX screen width/height
-//
-// Revision 1.5  1998/02/02  13:32:49  killough
-// Performance tuning, program beautification
-//
-// Revision 1.4  1998/01/26  19:24:50  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/26  06:13:58  killough
-// Performance tuning
-//
-// Revision 1.2  1998/01/23  20:28:14  jim
-// Basic sprite/flat functionality in PWAD added
-//
-// Revision 1.1.1.1  1998/01/19  14:03:06  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

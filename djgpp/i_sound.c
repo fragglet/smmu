@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      System interface for sound.
@@ -21,13 +27,14 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <allegro.h>
 
 #include "mmus2mid.h"   //jff 1/16/98 declarations for MUS->MIDI converter
 
+#include "../c_io.h"
 #include "../c_runcmd.h"
 #include "../doomstat.h"
 #include "../i_sound.h"
@@ -44,15 +51,18 @@ void I_CacheSound(sfxinfo_t *sound);
 // Factor volume is increased before sending to allegro
 #define VOLSCALE                16
 
-        // sf: adjust temp when changing gamespeed
+// sf: adjust temp when changing gamespeed
 extern int realtic_clock_rate;
 
-int snd_card;   // default.cfg variables for digi and midi drives
-int mus_card;   // jff 1/18/98
+int snd_card = -1;   // default.cfg variables for digi and midi drives
+int mus_card = -1;   // jff 1/18/98
 
-        // sf: default_snd_card and default_mus_card removed (purpose?)
+// sf: default_snd_card and default_mus_card removed (purpose?)
 
-int detect_voices; //jff 3/4/98 enables voice detection prior to install_sound
+//jff 3/4/98 enables voice detection prior to install_sound
+
+int detect_voices = 1;
+
 //jff 1/22/98 make these visible here to disable sound/music on install err
 
 static SAMPLE *raw2SAMPLE(unsigned char *rawdata, int len)
@@ -202,7 +212,7 @@ static SAMPLE channel[NUM_CHANNELS];
 int I_StartSound(sfxinfo_t *sound, int vol, int sep, int pitch, int pri)
 {
   static int handle;
-
+  
   // move up one slot, with wraparound
   if (++handle >= NUM_CHANNELS)
     handle = 0;
@@ -281,39 +291,43 @@ void I_ShutdownSound(void)
 }
 
 // sf: dynamic sound resource loading
+
 void I_CacheSound(sfxinfo_t *sound)
 {
-    if(sound->data) return;     // already cached
-
-                // sf: changed
-    if(sound->link) I_CacheSound(sound->link);
-    else
+  if(sound->data)
+    return;     // already cached
+  
+  // sf: changed
+  if(sound->link)
+    I_CacheSound(sound->link);
+  else
     sound->data = getsfx(sound->name, &sound->length);
 }
 
 void I_InitSound(void)
 {
   // Secure and configure sound device first.
-
+  
   if (detect_voices && snd_card>=0 && mus_card>=0)
     {
       int mv;                          //jff 3/3/98 try it according to Allegro
       int dv = detect_digi_driver(snd_card); // detect the digital sound driver
-      if (dv==0)
-        snd_card=0;
+      if (dv == 0)
+        snd_card = 0;
       mv = detect_midi_driver(mus_card);     // detect the midi driver
-      if (mv==-1)
-        dv=mv=dv/2;          //note stealing driver, uses digital voices
-      if (mv==0xffff)
-        mv=-1;               //extern MPU-401 - unknown use default voices
+      if (mv == -1)
+        dv = mv = dv/2;          //note stealing driver, uses digital voices
+      if (mv == 0xffff)
+        mv = -1;               //extern MPU-401 - unknown use default voices
       reserve_voices(dv,mv); // reserve the number of voices detected
     }                                  //jff 3/3/98 end of sound init changes
 
 
-  if (install_sound(snd_card, mus_card, "none")==-1) //jff 1/18/98 autodect MIDI
+  //jff 1/18/98 autodect MIDI
+  
+  if (install_sound(snd_card, mus_card, "none") == -1)
     {
-      usermsg("\tSound init error. Assuming no sound");
-      usermsg("\t%s",allegro_error); // killough 8/8/98
+      C_Printf("\tSound init error: %s", allegro_error); // killough 8/8/98
       //jff 1/22/98 on error, disable sound this invocation
       //in future - nice to detect if either sound or music might be ok
       nosfxparm = true;
@@ -322,14 +336,14 @@ void I_InitSound(void)
     }
   else //jff 1/22/98 don't register I_ShutdownSound if errored
     {
-      usermsg("\tConfigured audio device");  // killough 8/8/98
-      LOCK_VARIABLE(channel);  // killough 2/7/98: prevent VM swapping of sfx
+      // killough 2/7/98: prevent VM swapping of sfx
+      LOCK_VARIABLE(channel); 
       atexit(I_ShutdownSound); // killough
     }
 
   // Finished initialization.
-
 }
+
 
 ///
 // MUSIC API.
@@ -441,69 +455,28 @@ int I_QrySongPlaying(int handle)
 char *sndcardstr[] =
    {"autodetect","none", "SB", "SB 1.0", "SB 1.5",
      "SB 2.0", "SB Pro", "SB16", "GUS"};
+CONSOLE_INT(snd_card, snd_card, NULL,            -1, 7, sndcardstr, 0) {}
+
 char *muscardstr[] =
    {"autodetect","none", "adlib", "OPL2", "2xOPL2",
    "OPL3", "SB MIDI", "MPU-401", "GUS","DIGMID", "AWE32"};
+CONSOLE_INT(mus_card, mus_card, NULL,            -1, 9, muscardstr, 0) {}
 
-VARIABLE_INT(snd_card, NULL,            -1, 7, sndcardstr);
-VARIABLE_INT(mus_card, NULL,            -1, 9, muscardstr);
-VARIABLE_INT(detect_voices, NULL,       0, 1, yesno);
-
-CONSOLE_VARIABLE(snd_card, snd_card, 0) {}
-CONSOLE_VARIABLE(mus_card, mus_card, 0) {}
-CONSOLE_VARIABLE(detect_voices, detect_voices, 0) {}
+CONSOLE_INT(detect_voices, detect_voices, NULL,  0, 1, yesno, 0) {}
 
 void I_Sound_AddCommands()
 {
-    C_AddCommand(snd_card);
-    C_AddCommand(mus_card);
-    C_AddCommand(detect_voices);
+  C_AddCommand(snd_card);
+  C_AddCommand(mus_card);
+  C_AddCommand(detect_voices);
 }
 
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_sound.c,v $
-// Revision 1.15  1998/05/03  22:32:33  killough
-// beautification, use new headers/decls
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
 //
-// Revision 1.14  1998/03/09  07:11:29  killough
-// Lock sound sample data
-//
-// Revision 1.13  1998/03/05  00:58:46  jim
-// fixed autodetect not allowed in allegro detect routines
-//
-// Revision 1.12  1998/03/04  11:51:37  jim
-// Detect voices in sound init
-//
-// Revision 1.11  1998/03/02  11:30:09  killough
-// Make missing sound lumps non-fatal
-//
-// Revision 1.10  1998/02/23  04:26:44  killough
-// Add variable pitched sound support
-//
-// Revision 1.9  1998/02/09  02:59:51  killough
-// Add sound sample locks
-//
-// Revision 1.8  1998/02/08  15:15:51  jim
-// Added native midi support
-//
-// Revision 1.7  1998/01/26  19:23:27  phares
-// First rev with no ^Ms
-//
-// Revision 1.6  1998/01/23  02:43:07  jim
-// Fixed failure to not register I_ShutdownSound with atexit on install_sound error
-//
-// Revision 1.4  1998/01/23  00:29:12  killough
-// Fix SSG reload by using frequency stored in lump
-//
-// Revision 1.3  1998/01/22  05:55:12  killough
-// Removed dead past changes, changed destroy_sample to stop_sample
-//
-// Revision 1.2  1998/01/21  16:56:18  jim
-// Music fixed, defaults for cards added
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

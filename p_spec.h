@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_spec.h,v 1.30 1998/05/04 02:22:23 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:  definitions, declarations and prototypes for specials
 //
@@ -911,6 +918,10 @@ int EV_DoDoor(line_t *line, vldoor_e type);
 
 int EV_DoLockedDoor(line_t *line, vldoor_e type, mobj_t *thing);
 
+void EV_OpenDoor(int sectag, int speed, int wait_time);
+
+void EV_CloseDoor(int sectag, int speed);
+
 // p_lights
 
 int EV_StartLightStrobing(line_t *line);
@@ -1021,86 +1032,9 @@ mobj_t *P_GetPushThing(int);                                // phares 3/23/98
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_spec.h,v $
-// Revision 1.30  1998/05/04  02:22:23  jim
-// formatted p_specs, moved a coupla routines to p_floor
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.28  1998/04/17  10:25:04  killough
-// Add P_FindLineFromLineTag()
-//
-// Revision 1.27  1998/04/14  18:49:50  jim
-// Added monster only and reverse teleports
-//
-// Revision 1.26  1998/04/12  02:05:54  killough
-// Add ceiling light setting, start ceiling carriers
-//
-// Revision 1.25  1998/04/05  13:54:03  jim
-// fixed switch change on second activation
-//
-// Revision 1.24  1998/03/31  16:52:09  jim
-// Fixed uninited type field in stair builders
-//
-// Revision 1.23  1998/03/23  18:38:39  jim
-// Switch and animation tables now lumps
-//
-// Revision 1.22  1998/03/23  15:24:47  phares
-// Changed pushers to linedef control
-//
-// Revision 1.21  1998/03/20  14:24:48  jim
-// Gen ceiling target now shortest UPPER texture
-//
-// Revision 1.20  1998/03/20  00:30:27  phares
-// Changed friction to linedef control
-//
-// Revision 1.19  1998/03/19  16:49:00  jim
-// change sector bits to combine ice and sludge
-//
-// Revision 1.18  1998/03/16  12:39:08  killough
-// Add accelerative scrollers
-//
-// Revision 1.17  1998/03/15  14:39:39  jim
-// added pure texture change linedefs & generalized sector types
-//
-// Revision 1.16  1998/03/14  17:18:56  jim
-// Added instant toggle floor type
-//
-// Revision 1.15  1998/03/09  07:24:40  killough
-// Add scroll_t for generalized scrollers
-//
-// Revision 1.14  1998/03/02  12:11:35  killough
-// Add scroll_effect_offset declaration
-//
-// Revision 1.13  1998/02/27  19:20:42  jim
-// Fixed 0 tag trigger activation
-//
-// Revision 1.12  1998/02/23  23:47:15  jim
-// Compatibility flagged multiple thinker support
-//
-// Revision 1.11  1998/02/23  00:42:12  jim
-// Implemented elevators
-//
-// Revision 1.9  1998/02/17  06:20:32  killough
-// Add prototypes, redefine MAXBUTTONS
-//
-// Revision 1.8  1998/02/13  03:28:17  jim
-// Fixed W1,G1 linedefs clearing untriggered special, cosmetic changes
-//
-// Revision 1.7  1998/02/09  03:09:37  killough
-// Remove limit on switches
-//
-// Revision 1.6  1998/02/08  05:35:48  jim
-// Added generalized linedef types
-//
-// Revision 1.4  1998/02/02  13:43:55  killough
-// Add silent teleporter
-//
-// Revision 1.3  1998/01/30  14:44:03  jim
-// Added gun exits, right scrolling walls and ceiling mover specials
-//
-// Revision 1.2  1998/01/26  19:27:29  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:01  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

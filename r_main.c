@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Rendering main loop and setup functions,
@@ -22,12 +28,12 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include "doomstat.h"
-#include "i_video.h"
 #include "c_runcmd.h"
 #include "g_game.h"
+#include "hu_over.h"
 #include "mn_engin.h" 
 #include "r_main.h"
 #include "r_things.h"
@@ -38,11 +44,14 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "m_bbox.h"
 #include "r_sky.h"
 #include "s_sound.h"
+#include "v_mode.h"
 #include "v_video.h"
 #include "w_wad.h"
 
 // Fineangles in the SCREENWIDTH wide window.
-int fov=2048;   //sf: made an int from a #define
+
+#define BASE_FOV 2048
+
 
 // killough: viewangleoffset is a legacy from the pre-v1.2 days, when Doom
 // had Left/Mid/Right viewing. +/-ANG90 offsets were placed here on each
@@ -59,10 +68,13 @@ fixed_t  viewx, viewy, viewz;
 angle_t  viewangle;
 fixed_t  viewcos, viewsin;
 player_t *viewplayer;
+sector_t *viewsector;              // sf: sector the viewpoint is in
 extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
+mobj_t   *viewobj;
 camera_t *viewcamera;
-int zoom = 1;   // sf: fov/zooming
+fixed_t  zoomscale = FRACUNIT;     // sf: changed to fixed_t for %age zoom
+int fov = 90;   // sf: fov/zooming
 
 extern int screenSize;
 
@@ -234,7 +246,8 @@ static void R_InitTextureMapping (void)
 {
   register int i,x;
   fixed_t focallength;
-    
+  fixed_t tanlimit;
+  
   // Use tangent table to generate viewangletox:
   //  viewangletox will give the next greatest x
   //  after the view angle.
@@ -242,27 +255,37 @@ static void R_InitTextureMapping (void)
   // Calc focallength
   //  so fov angles covers SCREENWIDTH.
 
-                        // sf: zooming
-  focallength = FixedDiv(centerxfrac*zoom, finetangent[FINEANGLES/4+fov/2]);
-        
+  // sf: zooming
+  focallength = FixedDiv(centerxfrac, finetangent[FINEANGLES/4+BASE_FOV/2]);
+  focallength = FixedMul(centerxfrac, zoomscale);
+
+  // sf: for zooming
+  // when zooming out very far the boundaries for the
+  // tangent need to change
+  // otherwise the floors and walls get distorted
+
+  tanlimit = FixedDiv(FRACUNIT * 2, zoomscale);
+  
   for (i=0 ; i<FINEANGLES/2 ; i++)
     {
       int t;
-      if (finetangent[i] > FRACUNIT*2)
-        t = -1;
+      if (finetangent[i] > tanlimit)
+	t = -1;
       else
-        if (finetangent[i] < -FRACUNIT*2)
-          t = viewwidth+1;
-      else
-        {
-          t = FixedMul(finetangent[i], focallength);
-          t = (centerxfrac - t + FRACUNIT-1) >> FRACBITS;
-          if (t < -1)
-            t = -1;
-          else
-            if (t > viewwidth+1)
-              t = viewwidth+1;
-        }
+	{
+	  if (finetangent[i] < -tanlimit)
+	    t = viewwidth+1;
+	  else
+	    {
+	      t = FixedMul(finetangent[i], focallength);
+	      t = (centerxfrac - t + FRACUNIT-1) >> FRACBITS;
+	      if (t < -1)
+		t = -1;
+	      else
+		if (t > viewwidth+1)
+		  t = viewwidth+1;
+	    }
+	}
       viewangletox[i] = t;
     }
     
@@ -299,11 +322,15 @@ static void R_InitTextureMapping (void)
 void R_InitLightTables (void)
 {
   int i;
+  int scrwid = FixedMul(SCREENWIDTH, zoomscale);
     
-  // killough 4/4/98: dynamic colormaps
-  c_zlight = malloc(sizeof(*c_zlight) * numcolormaps);
-  c_scalelight = malloc(sizeof(*c_scalelight) * numcolormaps);
-
+  if(!c_zlight)
+    {
+      // killough 4/4/98: dynamic colormaps
+      c_zlight = malloc(sizeof(*c_zlight) * numcolormaps);
+      c_scalelight = malloc(sizeof(*c_scalelight) * numcolormaps);
+    }
+  
   // Calculate the light levels to use
   //  for each level / distance combination.
   for (i=0; i< LIGHTLEVELS; i++)
@@ -311,7 +338,8 @@ void R_InitLightTables (void)
       int j, startmap = ((LIGHTLEVELS-1-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
       for (j=0; j<MAXLIGHTZ; j++)
         {
-          int scale = FixedDiv ((SCREENWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
+	  // sf: changed to scrwid for correct lighting when zooming
+          int scale = FixedDiv ((scrwid/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
           int t, level = startmap - (scale >>= LIGHTSCALESHIFT)/DISTMAP;
 
           if (level < 0)
@@ -372,31 +400,36 @@ void R_ExecuteSetViewSize (void)
   centery = viewheight/2;
   centerxfrac = centerx<<FRACBITS;
   centeryfrac = centery<<FRACBITS;
-  projection = centerxfrac * zoom;      // sf: zooming
+  projection = FixedMul(centerxfrac, zoomscale);      // sf: zooming
 
   R_InitBuffer(scaledviewwidth, scaledviewheight);       // killough 11/98
         
   R_InitTextureMapping();
     
   // psprite scales
-                                // sf: zooming added
-  pspritescale = FixedDiv(zoom*viewwidth, SCREENWIDTH);       // killough 11/98
-  pspriteiscale = FixedDiv(SCREENWIDTH, zoom*viewwidth);       // killough 11/98
-    
+  pspritescale = FixedDiv(viewwidth, SCREENWIDTH);     // killough 11/98
+  pspriteiscale = FixedDiv(SCREENWIDTH, viewwidth);    // killough 11/98
+
+  // sf: zooming added
+
+  pspritescale = FixedMul(pspritescale, zoomscale);
+  pspriteiscale = FixedDiv(pspriteiscale, zoomscale);
+  
   // thing clipping
   for (i=0 ; i<viewwidth ; i++)
-  {
-    screenheightarray[i] = viewheight;
-  }
+    {
+      screenheightarray[i] = viewheight;
+    }
 
   // planes
   for (i=0 ; i<viewheight*2 ; i++)
     {
       fixed_t dy = abs(((i-viewheight)<<FRACBITS)+FRACUNIT/2);
                 // sf: zooming
-      origyslope[i] = FixedDiv(viewwidth*zoom*(FRACUNIT/2), dy);
+      origyslope[i] = FixedDiv(FixedMul(zoomscale,(viewwidth*(FRACUNIT/2))),
+			       dy);
     }
-   yslope = origyslope + (viewheight/2);
+  yslope = origyslope + (viewheight/2);
         
   for (i=0 ; i<viewwidth ; i++)
     {
@@ -465,47 +498,70 @@ long updownangle = 0;
 void R_SetupFrame (player_t *player, camera_t *camera)
 {               
   mobj_t *mobj;
-  static int oldzoom;
+  static int oldfov;
 
   // check for change to zoom
-  if(zoom != oldzoom)
-  {
-        R_ExecuteSetViewSize(); // reset view
-        oldzoom = zoom;
-  }
+  if(fov != oldfov)
+    {
+      // find fov/2 and convert to angle_t
+      angle_t fov_angle = fov * (ANG90/180);
+      // find array entry for tan of angle
+      fixed_t tan_angle = (fov_angle >> ANGLETOFINESHIFT) + FINEANGLES/4;
+      
+      // get zoomscale
+      // zoomscale = 1/tan(fov/2)
+      zoomscale =
+	FixedDiv(FRACUNIT, finetangent[tan_angle]);
+
+      R_ExecuteSetViewSize(); // reset view
+      R_InitLightTables(); // rebuild light tables
+      oldfov = fov;
+    }
 
   viewplayer = player;
   mobj = player->mo;
 
-  viewcamera = camera;
-  if(!camera)
-  {
-          viewx = mobj->x;
-          viewy = mobj->y;
-          viewz = player->viewz;
-          viewangle = mobj->angle;// + viewangleoffset;
-                 // y shearing
-          updownangle = player->updownangle;
-  }
+  // cameras
+  
+  if(camera)
+    {
+      viewx = camera->x;
+      viewy = camera->y;
+      viewz = camera->z;
+      viewangle = camera->angle;
+      viewcamera = camera;  viewobj = NULL;
+      updownangle = camera->updownangle;
+      extralight = 0;
+    }
   else
-  {
-          viewx = camera->x;
-          viewy = camera->y;
-          viewz = camera->z;
-          viewangle = camera->angle;
-          updownangle = camera->updownangle;
-  }
-
-  extralight = player->extralight;
+    {
+      viewx = mobj->x + 3*mobj->momx;
+      viewy = mobj->y + 3*mobj->momy;
+      viewz = player->viewz;
+      viewangle = mobj->angle;// + viewangleoffset;
+      viewobj = mobj; viewcamera = NULL;
+      // y shearing
+      updownangle = player->updownangle;
+      extralight = player->extralight;
+    }
+  
   viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
   viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
 
-        // y shearing
-  updownangle *= zoom;          // sf: zooming
-                // check for limits
+  viewsector = R_PointInSubsector(viewx,viewy)->sector;
+  
+  //---------------------------------------------------------
+  // y-shearing
+
+  // sf: zooming
+  
+  updownangle = FixedMul(updownangle, zoomscale);
+
+  // check for limits
   updownangle = updownangle >  50 ?  50 :
                 updownangle < -50 ? -50 : updownangle;
-        // scale to screen size
+
+  // scale to screen size
   updownangle = (updownangle * viewheight) / 100;
 
   centery = (viewheight/2) + updownangle;
@@ -522,9 +578,9 @@ void R_SetupFrame (player_t *player, camera_t *camera)
 
 typedef enum
 {
-        area_normal,
-        area_below,
-        area_above
+  area_normal,
+  area_below,
+  area_above
 } area_t;
 
 void R_SectorColormap(sector_t *s)
@@ -534,28 +590,26 @@ void R_SectorColormap(sector_t *s)
 
   if(s->heightsec == -1) cm = 0;
   else
-  {
-     sector_t *viewsector;
-     area_t viewarea;
-     viewsector = R_PointInSubsector(viewx,viewy)->sector;
-
-             // find which area the viewpoint (player) is in
-     viewarea =
+    {
+      area_t viewarea;
+      
+      // find which area the viewpoint (player) is in
+      viewarea =
         viewsector->heightsec == -1 ? area_normal :
         viewz < sectors[viewsector->heightsec].floorheight ? area_below :
         viewz > sectors[viewsector->heightsec].ceilingheight ? area_above :
         area_normal;
 
-     s = s->heightsec + sectors;
-
-     cm = viewarea==area_normal ? s->midmap :
-           viewarea==area_above ? s->topmap : s->bottommap;
-  }
-
+      s = s->heightsec + sectors;
+      
+      cm = viewarea==area_normal ? s->midmap :
+	viewarea==area_above ? s->topmap : s->bottommap;
+    }
+  
   fullcolormap = colormaps[cm];
   zlight = c_zlight[cm];
   scalelight = c_scalelight[cm];
-
+  
   if (viewplayer->fixedcolormap)
     {
       int i;
@@ -577,11 +631,15 @@ void R_SectorColormap(sector_t *s)
 
 angle_t R_WadToAngle(int wadangle)
 {
-  if(demo_version < 302)            // maintain compatibility
+  // maintain compatibility
+  
+  if(demo_version < 302)
     return (wadangle / 45) * ANG45;
 
-  return wadangle * (ANG45 / 45);     // allows wads to specify angles to
-                                      // the nearest degree, not nearest 45
+  // allows wads to specify angles to
+  // the nearest degree, not nearest 45  
+
+  return wadangle * (ANG45 / 45);
 }
 
 static int render_ticker = 0;
@@ -601,7 +659,7 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
   R_ClearSprites ();
     
   if (autodetect_hom)
-        R_HOMdrawer();
+    R_HOMdrawer();
 
   // check for new console commands.
   NetUpdate ();
@@ -625,7 +683,7 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
   render_ticker++;
 }
 
-        // sf: rewritten
+// sf: rewritten
 
 void R_HOMdrawer()
 {
@@ -636,10 +694,10 @@ void R_HOMdrawer()
   dest = screens[0] + viewwindowy*(SCREENWIDTH<<hires) + viewwindowx;
 
   for(y=viewwindowy; y<viewwindowy+viewheight; y++)
-  {
-     memset(dest, colour, viewwidth);
-     dest += SCREENWIDTH<<hires;
-  }
+    {
+      memset(dest, colour, viewwidth);
+      dest += SCREENWIDTH<<hires;
+    }
 
 //      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8);
 }
@@ -658,7 +716,7 @@ char *handedstr[]       = {"right", "left"};
 
 VARIABLE_BOOLEAN(lefthanded, NULL,                  handedstr);
 VARIABLE_BOOLEAN(r_blockmap, NULL,                  onoff);
-VARIABLE_INT(flatskip, NULL,                    0, 100, NULL);
+VARIABLE_INT(flatskip, NULL,                        0, 100, NULL);
 VARIABLE_BOOLEAN(flashing_hom, NULL,                onoff);
 VARIABLE_BOOLEAN(visplane_view, NULL,               onoff);
 VARIABLE_BOOLEAN(r_precache, NULL,                  onoff);
@@ -666,31 +724,30 @@ VARIABLE_BOOLEAN(showpsprites, NULL,                yesno);
 VARIABLE_BOOLEAN(stretchsky, NULL,                  onoff);
 VARIABLE_BOOLEAN(r_swirl, NULL,                     onoff);
 VARIABLE_BOOLEAN(general_translucency, NULL,        onoff);
-VARIABLE_INT(tran_filter_pct, NULL,             0, 100, NULL);
-VARIABLE_BOOLEAN(autodetect_hom, NULL,              yesno);
-VARIABLE_INT(screenSize, NULL,                  0, 8, NULL);
-VARIABLE_INT(zoom, NULL,                        0, 8192, NULL);
-VARIABLE_INT(usegamma, NULL,                    0, 4, NULL);
+VARIABLE_INT(tran_filter_pct, NULL,                 0, 100, NULL);
+VARIABLE_BOOLEAN(autodetect_hom, NULL,              onoff);
+VARIABLE_INT(screenSize, NULL,                      0, 8, NULL);
+VARIABLE_INT(fov, NULL,                             1, 179, NULL);
+VARIABLE_INT(usegamma, NULL,                        0, 4, NULL);
 
 CONSOLE_VARIABLE(gamma, usegamma, 0)
 {
-        // change to new gamma val
-    I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+  // change to new gamma val
+  V_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 }
 CONSOLE_VARIABLE(lefthanded, lefthanded, 0) {}
-CONSOLE_VARIABLE(r_blockmap, r_blockmap, 0) {}
-// CONSOLE_VARIABLE(r_flatskip, flatskip, 0) {}
+CONSOLE_VARIABLE(r_blockmap, r_blockmap, cf_nosave) {}
 CONSOLE_VARIABLE(r_homflash, flashing_hom, 0) {}
-CONSOLE_VARIABLE(r_planeview, visplane_view, 0) {}
-CONSOLE_VARIABLE(r_zoom, zoom, 0) {}
-CONSOLE_VARIABLE(r_precache, r_precache, 0) {}
-CONSOLE_VARIABLE(r_showgun, showpsprites, 0) {}
-CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0)
+CONSOLE_VARIABLE(r_planeview, visplane_view, cf_nosave) {}
+CONSOLE_VARIABLE(r_fov, fov, cf_nosave) {}
+CONSOLE_VARIABLE(r_precache, r_precache, cf_nosave) {}
+CONSOLE_VARIABLE(r_showgun, showpsprites, cf_nosave) {}
+CONSOLE_VARIABLE(r_showhom, autodetect_hom, cf_nosave)
 {
-        doom_printf("hom detection %s", autodetect_hom ? "on" : "off");
+  doom_printf("hom detection %s", autodetect_hom ? "on" : "off");
 }
 CONSOLE_VARIABLE(r_stretchsky, stretchsky, 0) {}
-CONSOLE_VARIABLE(r_swirl, r_swirl, 0) {}
+CONSOLE_VARIABLE(r_swirl, r_swirl, cf_nosave) {}
 CONSOLE_VARIABLE(r_trans, general_translucency, 0)
 {
   R_ResetTrans();
@@ -705,10 +762,10 @@ CONSOLE_VARIABLE(screensize, screenSize, cf_buffered)
   S_StartSound(NULL,sfx_stnmov);
 
   if(gamestate == GS_LEVEL) // not in intercam
-  {
-     hide_menu = 20;             // hide the menu for a few tics
-     R_SetViewSize (screenSize+3);
-  }
+    {
+      hide_menu = 20;             // hide the menu for a few tics
+      R_SetViewSize (screenSize+3);
+    }
 
   if(screenSize == 8)        // fullscreen
     HU_ToggleHUD();
@@ -722,65 +779,29 @@ CONSOLE_COMMAND(p_dumphubs, 0)
 
 void R_AddCommands()
 {
-   C_AddCommand(lefthanded);
-   C_AddCommand(r_blockmap);
-   C_AddCommand(r_homflash);
-   C_AddCommand(r_planeview);
-   C_AddCommand(r_zoom);
-   C_AddCommand(r_precache);
-   C_AddCommand(r_showgun);
-   C_AddCommand(r_showhom);
-   C_AddCommand(r_stretchsky);
-   C_AddCommand(r_swirl);
-   C_AddCommand(r_trans);
-   C_AddCommand(r_tranpct);
-   C_AddCommand(screensize);
-   C_AddCommand(gamma);
-
-   C_AddCommand(p_dumphubs);
+  C_AddCommand(lefthanded);
+  C_AddCommand(r_blockmap);
+  C_AddCommand(r_homflash);
+  C_AddCommand(r_planeview);
+  C_AddCommand(r_fov);
+  C_AddCommand(r_precache);
+  C_AddCommand(r_showgun);
+  C_AddCommand(r_showhom);
+  C_AddCommand(r_stretchsky);
+  C_AddCommand(r_swirl);
+  C_AddCommand(r_trans);
+  C_AddCommand(r_tranpct);
+  C_AddCommand(screensize);
+  C_AddCommand(gamma);
+  
+  C_AddCommand(p_dumphubs);
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_main.c,v $
-// Revision 1.13  1998/05/07  00:47:52  killough
-// beautification
-//
-// Revision 1.12  1998/05/03  23:00:14  killough
-// beautification, fix #includes and declarations
-//
-// Revision 1.11  1998/04/07  15:24:15  killough
-// Remove obsolete HOM detector
-//
-// Revision 1.10  1998/04/06  04:47:46  killough
-// Support dynamic colormaps
-//
-// Revision 1.9  1998/03/23  03:37:14  killough
-// Add support for arbitrary number of colormaps
-//
-// Revision 1.8  1998/03/16  12:44:12  killough
-// Optimize away some function pointers
-//
-// Revision 1.7  1998/03/09  07:27:19  killough
-// Avoid using FP for point/line queries
-//
-// Revision 1.6  1998/02/17  06:22:45  killough
-// Comment out audible HOM alarm for now
-//
-// Revision 1.5  1998/02/10  06:48:17  killough
-// Add flashing red HOM indicator for TNTHOM cheat
-//
-// Revision 1.4  1998/02/09  03:22:17  killough
-// Make TNTHOM control HOM detector, change array decl to MAX_*
-//
-// Revision 1.3  1998/02/02  13:29:41  killough
-// comment out dead code, add HOM detector
-//
-// Revision 1.2  1998/01/26  19:24:42  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:02  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,6 +1,22 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Misc Video stuff.
 //
 // Font. Loading box. FPS ticker, etc
@@ -12,56 +28,17 @@
 #include "c_runcmd.h"
 #include "doomdef.h"
 #include "doomstat.h"
-#include "i_video.h"
 #include "v_video.h"
 #include "v_misc.h"
+#include "v_mode.h"
 #include "w_wad.h"
 
 extern int gamma_correct;
 
-/******************************
-   CONSOLE VIDEO MODE COMMANDS
- ******************************/
-// non platform-specific stuff is here in v_misc.c
-// platform-specific stuff is in i_video.c
-// videomode_t is platform specific although it must
-// contain a member of type char* called description:
-// see i_video.c for more info
-
-int v_mode = 0;
-int prevmode = 0;
-
-int NumModes()
-{
-  int count=0;
-
-  while(videomodes[count].description)
-    count++;
-
-  return count;
-}
-
-// v_resetmode is called after changing vid mode
-
-void V_ResetMode()
-{
-  // check for invalid mode
-
-  if(v_mode >= NumModes() || v_mode < 0)
-    {
-      C_Printf("invalid mode %i", v_mode);
-      v_mode = prevmode;
-      return;
-    }
-  
-  prevmode = v_mode;
-  
-  I_SetMode(v_mode);
-}
-
-/******************
-         FONT STUFF
- ******************/
+//---------------------------------------------------------------------------
+//
+// Font
+//
 
 patch_t* v_font[V_FONTSIZE];
 patch_t *bgp[9];        // background for boxes
@@ -90,6 +67,7 @@ void V_WriteText(unsigned char *s, int x, int y)
   unsigned char* ch;
   char *colour = cr_red;
   unsigned int c;
+  boolean translucent = false;
   int   cx;
   int   cy;
   patch_t *patch;
@@ -104,10 +82,21 @@ void V_WriteText(unsigned char *s, int x, int y)
       if (!c)
 	break;
       if (c >= 128)     // new colour
-      {
-           colour = colrngs[c - 128];
-           continue;
-      }
+	{
+	  if(c == *(unsigned char *)FC_TRANS) // translucent toggle
+	    translucent = !translucent;
+	  else
+	    {
+	      int colnum = c - 128;
+	      
+	      if(colnum < 0 || colnum >= CR_LIMIT)
+		I_Error("V_WriteText: invalid colour %i\n", colnum);
+	      else
+		colour = colrngs[colnum];
+	    }
+	      
+	  continue;
+	}
       if (c == '\t')
         {
           cx = (cx/40)+1;
@@ -134,7 +123,10 @@ void V_WriteText(unsigned char *s, int x, int y)
       if (cx+w > SCREENWIDTH)
 	break;
 
-      V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
+      if(translucent)
+	V_DrawPatchTL(cx, cy, 0, patch, colour);
+      else
+	V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
 
       cx+=w;
     }
@@ -207,9 +199,12 @@ int V_StringWidth(unsigned char *s)
 }
 
 
-/*********************
-           BOX DRAWING
- *********************/
+//---------------------------------------------------------------------------
+//
+// Box Drawing
+//
+// Originally from the Boom heads up code
+//
 
 #define FG 0
 
@@ -254,11 +249,10 @@ void V_InitBox()
   bgp[8] = (patch_t *) W_CacheLumpName("BOXLR", PU_STATIC);
 }
 
-
-
-/***********************
-        'LOADING' PIC
- ***********************/
+//---------------------------------------------------------------------------
+//
+// "Loading" Box
+//
 
 static int loading_amount = 0;
 static int loading_total = -1;
@@ -269,40 +263,59 @@ void V_DrawLoading()
   int x, y;
   char *dest;
   int linelen;
+  int wid, height;
 
   if(!loading_message) return;
-  
-  V_DrawBox((SCREENWIDTH/2)-50, (SCREENHEIGHT/2)-30, 100, 40);
-  
-  V_WriteText(loading_message, (SCREENWIDTH/2)-30, (SCREENHEIGHT/2)-20);
-  
-  x = ((SCREENWIDTH/2)-45);
-  y = (SCREENHEIGHT/2);
-  dest = screens[0] + ((y<<hires)*(SCREENWIDTH<<hires)) + (x<<hires);
-  linelen = (90*loading_amount) / loading_total;
 
-  // white line
-  memset(dest, 4, linelen<<hires);
-  // black line (unfilled)
-  memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
+  wid = V_StringWidth(loading_message) + 20;
+  if(wid < 100)
+    wid = 100;
 
-  if(hires)
+  height = V_StringHeight(loading_message) + 30;
+  
+  V_DrawBox((SCREENWIDTH-wid) / 2, (SCREENHEIGHT-height)/2, wid, height);
+
+  // don't draw progress meter if loading_total is 0
+  
+  if(loading_total)
     {
-      dest += SCREENWIDTH<<hires;
+      V_WriteText(loading_message,
+		  (SCREENWIDTH - V_StringWidth(loading_message)) / 2,
+		  (SCREENHEIGHT - V_StringHeight(loading_message)) / 2 - 4);
+      
+      x = (SCREENWIDTH / 2) - 45;
+      y = (SCREENHEIGHT / 2) + 12;
+      dest = screens[0] + ((y<<hires)*(SCREENWIDTH<<hires)) + (x<<hires);
+      linelen = (90*loading_amount) / loading_total;
+      
+      // white line
       memset(dest, 4, linelen<<hires);
+      // black line (unfilled)
       memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
+      
+      if(hires)
+	{
+	  dest += SCREENWIDTH<<hires;
+	  memset(dest, 4, linelen<<hires);
+	  memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
+	}
     }
-  
-  I_FinishUpdate();
+  else
+    V_WriteText(loading_message,
+		(SCREENWIDTH - V_StringWidth(loading_message)) / 2,
+		(SCREENHEIGHT - V_StringHeight(loading_message)) / 2);
+
+    
+  V_FinishUpdate();
 }
 
 void V_SetLoading(int total, char *mess)
 {
-  loading_total = total ? total : 1;
+  loading_total = total;
   loading_amount = 0;
   loading_message = mess;
 
-  if(in_textmode)
+  if(!in_graphics_mode)
     {
       int i;
       printf(" %s ", mess);
@@ -318,7 +331,7 @@ void V_SetLoading(int total, char *mess)
 void V_LoadingIncrease()
 {
   loading_amount++;
-  if(in_textmode)
+  if(!in_graphics_mode)
     {
       putchar('.');
       if(loading_amount == loading_total) putchar('\n');
@@ -332,13 +345,14 @@ void V_LoadingIncrease()
 void V_LoadingSetTo(int amount)
 {
   loading_amount = amount;
-  if(!in_textmode) V_DrawLoading();
+  if(in_graphics_mode)
+    V_DrawLoading();
 }
 
-/************************
-   FPS Ticker
-*************************/
-
+//---------------------------------------------------------------------------
+//
+// Framerate Ticker
+//
 // show dots at the bottom of the screen which represent
 // an approximation to the current fps of doom.
 // moved from i_video.c to make it a bit more
@@ -432,7 +446,7 @@ void V_ClassicFPSDrawer()
     }
 }
 
-
+//---------------------------------------------------------------------------
 //
 // V_Init
 //
@@ -441,16 +455,18 @@ void V_ClassicFPSDrawer()
 //
 // killough 11/98: rewritten to support hires
 
-
 void V_Init(void)
 {
   int size = hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
   static byte *s;
 
+  if(s)
+    {
+      free(s);
 #ifdef DJGPP
-  if (s)
-    free(s), destroy_bitmap(screens0_bitmap);
+      destroy_bitmap(screens0_bitmap);
 #endif
+    }
 
   screens[3] = (screens[2] = (screens[1] = s = calloc(size,3)) + size) + size;
 
@@ -464,6 +480,80 @@ void V_Init(void)
 
 }
 
+//---------------------------------------------------------------------------
+//
+// V_DrawBackground tiles a 64x64 patch over the entire screen, providing the
+// background for the Help and Setup screens.
+//
+// killough 11/98: rewritten to support hires
+
+static void V_TileFlat(byte *back_src, byte *back_dest)
+{
+  int x, y;
+  byte *src = back_src;          // copy of back_src
+  
+  V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+  
+  if (hires)       // killough 11/98: hires support
+#if 0   
+    // this tiles it in hires:
+    for (y = 0 ; y < SCREENHEIGHT*2 ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH*2/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}
+#endif
+  
+  // while this pixel-doubles it
+  for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src,
+	 back_dest += SCREENWIDTH*2)
+    for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+      {
+	int i = 63;
+	do
+	  back_dest[i*2] = back_dest[i*2+SCREENWIDTH*2] =
+	    back_dest[i*2+1] = back_dest[i*2+SCREENWIDTH*2+1] = src[i];
+	while (--i>=0);
+	back_dest += 128;
+      }
+  else
+    for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}  
+}
+
+void V_DrawBackground(char* patchname, byte *back_dest)
+{
+  byte *src;
+  
+  src =  W_CacheLumpNum(firstflat+R_FlatNumForName(patchname),PU_CACHE);
+
+  V_TileFlat(src, back_dest);
+}
+
+// sf:
+
+char *R_DistortedFlat(int);
+
+void V_DrawDistortedBackground(char* patchname, byte *back_dest)
+{
+  byte *src;
+
+  V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+  src = R_DistortedFlat(R_FlatNumForName(patchname));
+
+  V_TileFlat(src, back_dest);
+}
+
+//---------------------------------------------------------------------------
+//
+// Init
+//
 
 void V_InitMisc()
 {
@@ -471,39 +561,29 @@ void V_InitMisc()
   V_InitBox();
 }
 
-/*************************
-          CONSOLE COMMANDS
- *************************/
-
-VARIABLE_INT(v_mode, NULL,              0, 10, NULL);
+//==========================================================================
+//
+// Console Commands
+//
+//==========================================================================
 
 char *str_ticker[]={"off", "chart", "classic"};
-VARIABLE_INT(v_ticker, NULL,            0, 2, str_ticker);
+CONSOLE_INT(v_ticker, v_ticker, NULL, 0, 2, str_ticker, cf_nosave) {}
 
-CONSOLE_VARIABLE(v_mode, v_mode, cf_buffered)
-{
-  V_ResetMode();
-}
-
-CONSOLE_COMMAND(v_modelist, 0)
-{
-  videomode_t* videomode = videomodes;
-  
-  C_Printf(FC_GRAY "video modes:\n" FC_RED);
-  
-  while(videomode->description)
-    {
-      C_Printf("%i: %s\n",(int)(videomode-videomodes),
-	       videomode->description);
-      videomode++;
-    }
-}
-
-CONSOLE_VARIABLE(v_ticker, v_ticker, 0) {}
+extern void V_Mode_AddCommands();      // v_mode.c
 
 void V_AddCommands()
 {
-  C_AddCommand(v_mode);
-  C_AddCommand(v_modelist);
   C_AddCommand(v_ticker);
+
+  V_Mode_AddCommands();
 }
+
+//----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//----------------------------------------------------------------------------

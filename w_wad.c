@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: w_wad.c,v 1.20 1998/05/06 11:32:00 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Handles WAD file header, directory, lump I/O.
@@ -20,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: w_wad.c,v 1.20 1998/05/06 11:32:00 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include <unistd.h>
@@ -165,17 +172,18 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
       // killough 11/98: allow .lmp extension if none existed before
       NormalizeSlashes(AddDefaultExtension(strcpy(filename, name), ".lmp"));
       if ((handle = open(filename,O_RDONLY | O_BINARY)) == -1)
-      {
-        if(in_textmode)
-          I_Error("Error: couldn't open %s\n",name);  // killough
-        else
-        {
-          C_Printf("couldn't open %s\n",name);
-          return true;  // error
-        }
-      }
+	{
+	  if(!in_graphics_mode)
+	    I_Error("Error: couldn't open %s\n",name);  // killough
+	  else
+	    {
+	      C_Printf("couldn't open %s\n",name);
+	      return true;  // error
+	    }
+	}
     }
-  if(in_textmode)
+  
+  if(!in_graphics_mode)
     printf(" adding %s\n",filename);   // killough 8/8/98
   startlump = numlumps;
 
@@ -205,38 +213,39 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
       numlumps += header.numlumps;
     }
 
-    free(filename);           // killough 11/98
+  free(filename);           // killough 11/98
+  
+  // Fill in lumpinfo
+  //sf :ptr to ptr
+  lumpinfo = realloc(lumpinfo, (numlumps+2)*sizeof(lumpinfo_t*));
 
-    // Fill in lumpinfo
-                                        //sf :ptr to ptr
-    lumpinfo = realloc(lumpinfo, (numlumps+2)*sizeof(lumpinfo_t*));
-                // space for new lumps
-    newlumps = malloc((numlumps-startlump) * sizeof(lumpinfo_t));
-    lump_p = newlumps;
-        //&lumpinfo[startlump];
-
-    if (!strncmp(header.identification,"IWAD",4))
+  // space for new lumps
+  newlumps = malloc((numlumps-startlump) * sizeof(lumpinfo_t));
+  lump_p = newlumps;
+  //&lumpinfo[startlump];
+  
+  if (!strncmp(header.identification,"IWAD",4))
     {                 // the iwad
-          iwadhandle = handle;
+      iwadhandle = handle;
     }
+  
+  for (i=startlump ; i<numlumps ; i++,lump_p++, fileinfo++)
+    {
+      lumpinfo[i] = lump_p;
+      lump_p->handle = handle;                    //  killough 4/25/98
+      lump_p->position = LONG(fileinfo->filepos);
+      lump_p->size = LONG(fileinfo->size);
+      // sf:cache
+      lump_p->data = lump_p->cache = NULL;         // killough 1/31/98
+      lump_p->namespace = ns_global;              // killough 4/17/98
+      strncpy (lump_p->name, fileinfo->name, 8);
+    }
+  
+  free(fileinfo2free);      // killough
+  
+  D_NewWadLumps(handle);
 
-    for (i=startlump ; i<numlumps ; i++,lump_p++, fileinfo++)
-      {
-        lumpinfo[i] = lump_p;
-        lump_p->handle = handle;                    //  killough 4/25/98
-        lump_p->position = LONG(fileinfo->filepos);
-        lump_p->size = LONG(fileinfo->size);
-                                // sf:cache
-        lump_p->data = lump_p->cache = NULL;         // killough 1/31/98
-        lump_p->namespace = ns_global;              // killough 4/17/98
-        strncpy (lump_p->name, fileinfo->name, 8);
-      }
-
-    free(fileinfo2free);      // killough
-
-    D_NewWadLumps(handle);
-
-    return false;       // no error
+  return false;       // no error
 }
 
 // jff 1/23/98 Create routines to reorder the master directory
@@ -261,48 +270,52 @@ static void W_CoalesceMarkedResource(const char *start_marker,
   size_t i, num_marked = 0, num_unmarked = 0;
   int is_marked = 0, mark_end = 0;
   lumpinfo_t *lump = lumpinfo[0];
-
+  
   for (i=0; i<numlumps; i++)
-  {
-    lump = lumpinfo[i];
-
-    if (IsMarker(start_marker, lump->name))       // start marker found
-      { // If this is the first start marker, add start marker to marked lumps
-        if (!num_marked)
-          {
-            marked[0] = lump;
-            marked[0]->namespace = ns_global;        // killough 4/17/98
-            num_marked = 1;
-          }
-        is_marked = 1;                            // start marking lumps
-      }
-    else
-      if (IsMarker(end_marker, lump->name))       // end marker found
-        {
-          mark_end = 1;                           // add end marker below
-          is_marked = 0;                          // stop marking lumps
-        }
-      else                  // sf: namespace already set
-        if (is_marked || lump->namespace==namespace)// if we are marking lumps,
-          {                                       // move lump to marked list
-
-                // sf 26/10/99:
-                // ignore sprite lumps greater than 8 (the smallest possible)
-                // in size -- this was used by some dmadds wads
-                // as an 'empty' graphics resource
-            if(namespace != ns_sprites || lump->size > 8)
-            {
-               marked[num_marked] = lump;
-               marked[num_marked]->namespace = namespace;  // killough 4/17/98
-               num_marked++;
-            }
-         }
-        else
-        {
-          lumpinfo[num_unmarked] = lump;       // else move down THIS list
-          num_unmarked++;
-        }
-  }
+    {
+      lump = lumpinfo[i];
+      
+      // If this is the first start marker, add start marker to marked lumps
+      if (IsMarker(start_marker, lump->name))       // start marker found
+	{
+	  if (!num_marked)
+	    {
+	      marked[0] = lump;
+	      marked[0]->namespace = ns_global;        // killough 4/17/98
+	      num_marked = 1;
+	    }
+	  is_marked = 1;                            // start marking lumps
+	}
+      else
+	if (IsMarker(end_marker, lump->name))       // end marker found
+	  {
+	    mark_end = 1;                           // add end marker below
+	    is_marked = 0;                          // stop marking lumps
+	  }
+	else                 
+	  // if we are marking lumps,
+	  // move lump to marked list
+	  // sf: check for namespace already set
+	  if (is_marked || lump->namespace==namespace)
+	    {                                       
+	      // sf 26/10/99:
+	      // ignore sprite lumps greater than 8 (the smallest possible)
+	      // in size -- this was used by some dmadds wads
+	      // as an 'empty' graphics resource
+	      if(namespace != ns_sprites || lump->size > 8)
+		{
+		  marked[num_marked] = lump;
+		  marked[num_marked]->namespace = namespace;
+		  num_marked++;
+		}
+	    }
+	  else
+	    {
+	      lumpinfo[num_unmarked] = lump;       // else move down THIS list
+	      num_unmarked++;
+	    }
+    }
+  
   // Append marked list to end of unmarked list
   memcpy(lumpinfo + num_unmarked, marked, num_marked * sizeof(lumpinfo_t *));
 
@@ -364,7 +377,12 @@ int (W_CheckNumForName)(register const char *name, register int namespace)
   // Hash function maps the name to one of possibly numlump chains.
   // It has been tuned so that the average chain length never exceeds 2.
 
-  register int i = lumpinfo[W_LumpNameHash(name) % (unsigned) numlumps]->index;
+  register int i;
+
+  if(!lumpinfo)       // sf: lumps not loaded yet
+    return -1;
+
+  i = lumpinfo[W_LumpNameHash(name) % (unsigned) numlumps]->index;
 
   // We search along the chain until end, looking for case-insensitive
   // matches which also match a namespace tag. Separate hash tables are
@@ -483,9 +501,9 @@ void W_InitMultipleFiles(char *const *filenames)
 
 int W_AddNewFile(char *filename)
 {
-        if(W_AddFile(filename)) return true;
-        W_InitResources();              // reinit lump lookups etc
-        return false;
+  if(W_AddFile(filename)) return true;
+  W_InitResources();              // reinit lump lookups etc
+  return false;
 }
 
 //
@@ -522,12 +540,12 @@ void W_ReadLump(int lump, void *dest)
 
       // killough 1/31/98: Reload hack (-wart) removed
       // killough 10/98: Add flashing disk indicator
-      I_BeginRead();
+      V_BeginRead();
       lseek(l->handle, l->position, SEEK_SET);
       c = read(l->handle, dest, l->size);
       if (c < l->size)
         I_Error("W_ReadLump: only read %i of %i on lump %i", c, l->size, lump);
-      I_EndRead();
+      V_EndRead();
     }
 }
 
@@ -538,19 +556,22 @@ void W_ReadLump(int lump, void *dest)
 
 void *W_CacheLumpNum(int lump, int tag)
 {
+  if(!lumpinfo)
+    return NULL;
+  
 #ifdef RANGECHECK
   if ((unsigned)lump >= numlumps)
     I_Error ("W_CacheLumpNum: %i >= numlumps",lump);
 #endif
 
   if (!lumpinfo[lump]->cache)      // read the lump in
-  {
-    W_ReadLump(lump, Z_Malloc(W_LumpLength(lump), tag, &lumpinfo[lump]->cache));
-  }
+    {
+      W_ReadLump(lump, Z_Malloc(W_LumpLength(lump), tag, &lumpinfo[lump]->cache));
+    }
   else
-  {
-    Z_ChangeTag(lumpinfo[lump]->cache, tag);
-  }
+    {
+      Z_ChangeTag(lumpinfo[lump]->cache, tag);
+    }
 
   return lumpinfo[lump]->cache;
 }
@@ -559,76 +580,29 @@ void *W_CacheLumpNum(int lump, int tag)
 
 // Predefined lumps removed -- sf
 
-        // sf: lump checksum
+// sf: lump checksum
 
 long W_LumpCheckSum(int lumpnum)
 {
-        int i, lumplength;
-        char *lump;
-        long checksum = 0;
-
-        lump = W_CacheLumpNum(lumpnum, PU_CACHE);
-        lumplength = W_LumpLength(lumpnum);
-
-        for(i=0; i<lumplength; i++)
-                checksum+= lump[i]*i;
-
-        return checksum;
+  int i, lumplength;
+  char *lump;
+  long checksum = 0;
+  
+  lump = W_CacheLumpNum(lumpnum, PU_CACHE);
+  lumplength = W_LumpLength(lumpnum);
+  
+  for(i=0; i<lumplength; i++)
+    checksum+= lump[i]*i;
+  
+  return checksum;
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log: w_wad.c,v $
-// Revision 1.20  1998/05/06  11:32:00  jim
-// Moved predefined lump writer info->w_wad
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.19  1998/05/03  22:43:09  killough
-// beautification, header #includes
-//
-// Revision 1.18  1998/05/01  14:53:59  killough
-// beautification
-//
-// Revision 1.17  1998/04/27  02:06:41  killough
-// Program beautification
-//
-// Revision 1.16  1998/04/17  10:34:53  killough
-// Tag lumps with namespace tags to resolve collisions
-//
-// Revision 1.15  1998/04/06  04:43:59  killough
-// Add C_START/C_END support, remove non-standard C code
-//
-// Revision 1.14  1998/03/23  03:42:59  killough
-// Fix drive-letter bug and force marker lumps to 0-size
-//
-// Revision 1.12  1998/02/23  04:59:18  killough
-// Move TRANMAP init code to r_data.c
-//
-// Revision 1.11  1998/02/20  23:32:30  phares
-// Added external tranmap
-//
-// Revision 1.10  1998/02/20  22:53:25  phares
-// Moved TRANMAP initialization to w_wad.c
-//
-// Revision 1.9  1998/02/17  06:25:07  killough
-// Make numlumps static add #ifdef RANGECHECK for perf
-//
-// Revision 1.8  1998/02/09  03:20:16  killough
-// Fix garbage printed in lump error message
-//
-// Revision 1.7  1998/02/02  13:21:04  killough
-// improve hashing, add predef lumps, fix err handling
-//
-// Revision 1.6  1998/01/26  19:25:10  phares
-// First rev with no ^Ms
-//
-// Revision 1.5  1998/01/26  06:30:50  killough
-// Rewrite merge routine to use simpler, robust algorithm
-//
-// Revision 1.3  1998/01/23  20:28:11  jim
-// Basic sprite/flat functionality in PWAD added
-//
-// Revision 1.2  1998/01/22  05:55:58  killough
-// Improve hashing algorithm
 //
 //----------------------------------------------------------------------------
 

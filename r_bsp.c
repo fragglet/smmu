@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_bsp.c,v 1.17 1998/05/03 22:47:33 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      BSP traversal, handling of LineSegs for rendering.
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: r_bsp.c,v 1.17 1998/05/03 22:47:33 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_bbox.h"
@@ -46,7 +52,7 @@ drawseg_t *drawsegs;
 unsigned  maxdrawsegs;
 // drawseg_t drawsegs[MAXDRAWSEGS];       // old code -- killough
 
-//#define TRANWATER
+// #define TRANWATER
 
 //
 // R_ClearDrawSegs
@@ -110,10 +116,14 @@ static void R_ClipSolidWallSegment(int first, int last)
   while (start->last < first-1)
     start++;
 
+  // so, now start->last > first
+  
   if (first < start->first)
     {
       if (last < start->first-1)
-        { // Post is entirely visible (above start), so insert a new clippost.
+        {
+	  // seperate -- they do not collide
+	  // Post is entirely visible (above start), so insert a new clippost.
           R_StoreWallRange (first, last);
 
           // 1/11/98 killough: performance tuning using fast memmove
@@ -123,6 +133,11 @@ static void R_ClipSolidWallSegment(int first, int last)
           return;
         }
 
+      // part of the right hand part of the new post collides with
+      // the left part of the old post
+
+      // merge it into one
+      
       // There is a fragment above *start.
       R_StoreWallRange (first, start->first - 1);
 
@@ -131,9 +146,12 @@ static void R_ClipSolidWallSegment(int first, int last)
     }
 
   // Bottom contained in start?
+  // totally contained within the original
   if (last <= start->last)
     return;
 
+  // must be on the right hand side
+  
   next = start;
   while (last >= (next+1)->first-1)
     {      // There is a fragment between two posts.
@@ -145,7 +163,7 @@ static void R_ClipSolidWallSegment(int first, int last)
           goto crunch;
         }
     }
-
+  
   // There is a fragment after *next.
   R_StoreWallRange(next->last+1, last);
 
@@ -224,6 +242,8 @@ void R_ClearClipSegs (void)
   solidsegs[0].last = -1;
   solidsegs[1].first = viewwidth;
   solidsegs[1].last = 0x7fff; // ffff;      new short limit --  killough
+
+  //  doom_printf("%i", newend-solidsegs);
   newend = solidsegs+2;
 }
 
@@ -278,10 +298,10 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
       sec->lightlevel : sectors[sec->ceilinglightsec].lightlevel;
 
 
-  if (sec->heightsec != -1)
+  if(sec->heightsec != -1)
     {
       const sector_t *s = &sectors[sec->heightsec];
-      int heightsec = viewplayer->mo->subsector->sector->heightsec;
+      int heightsec = viewsector->heightsec;
       int underwater = heightsec!=-1 && viewz<=sectors[heightsec].floorheight;
 
       // Replace sector being drawn, with a copy to be hacked
@@ -300,19 +320,21 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
           tempsec->floor_yoffs = s->floor_yoffs;
 
           if (underwater)
-            if (s->ceilingpic == skyflatnum)
-              {
-                tempsec->floorheight   = tempsec->ceilingheight+1;
-                tempsec->ceilingpic    = tempsec->floorpic;
-                tempsec->ceiling_xoffs = tempsec->floor_xoffs;
-                tempsec->ceiling_yoffs = tempsec->floor_yoffs;
-              }
-            else
-              {
-                tempsec->ceilingpic    = s->ceilingpic;
-                tempsec->ceiling_xoffs = s->ceiling_xoffs;
-                tempsec->ceiling_yoffs = s->ceiling_yoffs;
-              }
+	    {
+	      if (s->ceilingpic == skyflatnum)
+		{
+		  tempsec->floorheight   = tempsec->ceilingheight+1;
+		  tempsec->ceilingpic    = tempsec->floorpic;
+		  tempsec->ceiling_xoffs = tempsec->floor_xoffs;
+		  tempsec->ceiling_yoffs = tempsec->floor_yoffs;
+		}
+	      else
+		{
+		  tempsec->ceilingpic    = s->ceilingpic;
+		  tempsec->ceiling_xoffs = s->ceiling_xoffs;
+		  tempsec->ceiling_yoffs = s->ceiling_yoffs;
+		}
+	    }
 
           tempsec->lightlevel  = s->lightlevel;
 
@@ -652,26 +674,27 @@ static void R_Subsector(int num)
 #ifdef TRANWATER
                         // sf: translucent floor attempt
   if(frontsector->heightsec != -1)
-  {
-        sector_t *pSec;
-
-        pSec = sectors+frontsector->heightsec;
-
-        floorplane2 =
-                R_FindPlane(pSec->floorheight, frontsector->floorpic,
-                            pSec->lightlevel, 0, 0 );
-        if(!floorplane2->trans)
+    {
+      sector_t *pSec;
+      
+      pSec = sectors+frontsector->heightsec;
+      
+      floorplane2 =
+	R_FindPlane(pSec->floorheight, frontsector->floorpic,
+		    pSec->lightlevel, 0, 0 );
+      if(!floorplane2->trans)
         {
-                int i;
-                floorplane2->trans=1;
-                for(i=0;i<viewwidth;i++)
-                        floorplane2->top[i]=viewwidth;
+	  int i;
+	  floorplane2->trans=1;
+	  for(i=0;i<viewwidth;i++)
+	    floorplane2->top[i]=viewwidth;
         }
-  }
+    }
   else
+#else
+    floorplane2 = NULL;
 #endif
-        floorplane2 = NULL;
-
+  
   // killough 9/18/98: Fix underwater slowdown, by passing real sector 
   // instead of fake one. Improve sprite lighting by basing sprite
   // lightlevels on floor & ceiling lightlevels in the surrounding area.
@@ -723,56 +746,9 @@ void R_RenderBSPNode(int bspnum)
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_bsp.c,v $
-// Revision 1.17  1998/05/03  22:47:33  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.16  1998/04/23  12:19:50  killough
-// Testing untabify feature
-//
-// Revision 1.15  1998/04/17  10:22:22  killough
-// Fix 213, 261 (floor/ceiling lighting)
-//
-// Revision 1.14  1998/04/14  08:15:55  killough
-// Fix light levels on 2s textures
-//
-// Revision 1.13  1998/04/13  09:44:40  killough
-// Fix head-over ceiling effects
-//
-// Revision 1.12  1998/04/12  01:57:18  killough
-// Fix deep water effects
-//
-// Revision 1.11  1998/04/07  06:41:14  killough
-// Fix disappearing things, AASHITTY sky wall HOM, remove obsolete HOM detector
-//
-// Revision 1.10  1998/04/06  04:37:48  killough
-// Make deep water / fake ceiling handling more consistent
-//
-// Revision 1.9  1998/03/28  18:14:27  killough
-// Improve underwater support
-//
-// Revision 1.8  1998/03/16  12:40:11  killough
-// Fix underwater effects, floor light levels from other sectors
-//
-// Revision 1.7  1998/03/09  07:22:41  killough
-// Add primitive underwater support
-//
-// Revision 1.6  1998/03/02  11:50:53  killough
-// Add support for scrolling flats
-//
-// Revision 1.5  1998/02/17  06:21:57  killough
-// Change commented-out code to #if'ed out code
-//
-// Revision 1.4  1998/02/09  03:14:55  killough
-// Make HOM detector under control of TNTHOM cheat
-//
-// Revision 1.3  1998/02/02  13:31:23  killough
-// Performance tuning, add HOM detector
-//
-// Revision 1.2  1998/01/26  19:24:36  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:02  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Heads up 'overlay' for fullscreen
 //
 // Rewritten and put in a seperate module(seems sensible)
@@ -8,8 +26,6 @@
 // By Simon Howard
 //
 //----------------------------------------------------------------------------
-
-/* includes ************************/
 
 #include <stdio.h>
 
@@ -30,27 +46,32 @@
 #include "v_video.h"
 #include "w_wad.h"
 
-/* defines *******************/
 
-   // internal for other defines:
+// internal for other defines:
+
 #define _wc_pammo(w)    ( weaponinfo[w].ammo == am_noammo ? 0 : \
                           players[displayplayer].ammo[weaponinfo[w].ammo])
 #define _wc_mammo(w)    ( weaponinfo[w].ammo == am_noammo ? 0 : \
                           players[displayplayer].maxammo[weaponinfo[w].ammo])
 
-   // the colour a weapon should be according to the ammo left
+
 #define weapcolour(w)   ( !_wc_mammo(w) ? *FC_GRAY :    \
         _wc_pammo(w) < ( (_wc_mammo(w) * ammo_red) / 100) ? *FC_RED :    \
         _wc_pammo(w) < ( (_wc_mammo(w) * ammo_yellow) / 100) ? *FC_GOLD : \
                           *FC_GREEN );
-   // the amount of ammo the displayplayer has left 
+
+// the amount of ammo the displayplayer has left 
+
 #define playerammo      \
         _wc_pammo(players[displayplayer].readyweapon)
-   // the maximum amount the player could have for current weapon
+
+// the maximum amount the player could have for current weapon
+
 #define playermaxammo   \
         _wc_mammo(players[displayplayer].readyweapon)
 
-    // set up an overlay_t
+// set up an overlay_t
+
 #define setol(o,a,b)          \
         {                     \
         overlay[o].x = (a);   \
@@ -58,16 +79,14 @@
         }
 #define HUDCOLOUR FC_GRAY
 
-/* globals ****************************/
-
 int hud_overlaystyle = 1;
 int hud_enabled = 1;
 int hud_hidestatus = 0;
 
-/********************************
-  Heads up font
- ********************************/
-
+///////////////////////////////////////////////////////////////////////
+//
+// Heads Up Font
+//
 // the utility code to draw the tiny heads-up
 // font. Based on the code from v_video.c
 // which draws the normal font.
@@ -154,7 +173,8 @@ void HU_WriteText(unsigned char *s, int x, int y)
     }
 }
 
-        // the width in pixels of a string in heads-up font
+// the width in pixels of a string in heads-up font
+
 int HU_StringWidth(unsigned char *s)
 {
   int length = 0;
@@ -175,8 +195,8 @@ int HU_StringWidth(unsigned char *s)
 
 #define BARSIZE 15
 
-        // create a string containing the text 'bar' which graphically
-        // show %age of ammo/health/armor etc left
+// create a string containing the text 'bar' which graphically
+// show %age of ammo/health/armor etc left
 
 void HU_TextBar(unsigned char *s, int pct)
 {
@@ -197,14 +217,16 @@ void HU_TextBar(unsigned char *s, int pct)
 	  addchar = 127 - (pct*5)/BARSIZE;
 	  pct = 0;
 	}
-      sprintf(s, "%s%c", s, addchar);
+
+      s[strlen(s) + 1] = '\0';
+      s[strlen(s)] = addchar;
     }
 }
 
-/******************************
-                 Drawer
-*******************************/
-
+/////////////////////////////////////////////////////////////////////////
+//
+// Drawer
+//
 // the actual drawer is the heart of the overlay
 // code. It is split into individual functions,
 // each of which draws a different part.
@@ -212,8 +234,10 @@ void HU_TextBar(unsigned char *s, int pct)
 // the offset of percentage bars from the starting text
 #define GAP 40
 
-//////////////////////////////////////////////////////////
+/////////////////////////
+//
 // draw health
+//
 
 void HU_DrawHealth(int x, int y)
 {
@@ -242,8 +266,11 @@ void HU_DrawHealth(int x, int y)
   HU_WriteText(tempstr, x, y);
 }
 
-////////////////////////////////////////////////////////////
-// draw armour. very similar to drawhealth.
+/////////////////////////////
+//
+// Draw Armour.
+// very similar to drawhealth.
+//
 
 void HU_DrawArmor(int x, int y)
 {
@@ -272,8 +299,10 @@ void HU_DrawArmor(int x, int y)
   HU_WriteText(tempstr, x, y);
 }
 
-////////////////////////////////////////////////////////
-// drawing ammo
+////////////////////////////
+//
+// Drawing Ammo
+//
 
 void HU_DrawAmmo(int x, int y)
 {
@@ -292,13 +321,15 @@ void HU_DrawAmmo(int x, int y)
       sprintf(tempstr, "%s %i/%i", tempstr, playerammo, playermaxammo);
     }
   else    // fist or chainsaw
-    sprintf(tempstr, "%sN/A", tempstr);
+    strcat(tempstr, "N/A");
   
   HU_WriteText(tempstr, x, y);
 }
 
-////////////////////////////////////////////
-// draw the list of weapons
+//////////////////////////////
+//
+// Weapons List
+//
 
 void HU_DrawWeapons(int x, int y)
 {
@@ -324,7 +355,9 @@ void HU_DrawWeapons(int x, int y)
 }
 
 ////////////////////////////////
-// draw the keys
+//
+// Draw the keys
+//
 
 extern patch_t *keys[NUMCARDS+3];
 
@@ -346,8 +379,9 @@ void HU_DrawKeys(int x, int y)
     }
 }
 
-//////////////////////////////////////
-// draw the frags
+///////////////////////////////
+//
+// Draw the Frags
 
 void HU_DrawFrag(int x, int y)
 {
@@ -361,7 +395,10 @@ void HU_DrawFrag(int x, int y)
 }
 
 ///////////////////////////////////////
-        // draw the status (number of kills etc)
+//
+// draw the status (number of kills etc)
+//
+
 void HU_DrawStatus(int x, int y)
 {
   char tempstr[50];
@@ -382,10 +419,11 @@ void HU_DrawStatus(int x, int y)
   HU_WriteText(tempstr, x, y);
 }
 
-
+// all overlay modules
 overlay_t overlay[NUMOVERLAY];
 
-        // toggle the overlay style
+// toggle the overlay style
+
 void HU_OverlayStyle()
 {
   hud_enabled = true;
@@ -410,76 +448,100 @@ void HU_OverlaySetup()
   overlay[ol_frag].drawer = HU_DrawFrag;
   overlay[ol_status].drawer = HU_DrawStatus;
 
-  //////// now decide where to put all the widgets //////////
+  // now decide where to put all the widgets
 
   for(i=0; i<NUMOVERLAY; i++)
     overlay[i].x = 1;       // turn em all on
+
+  // turn off status if we aren't using it
   
-  if(hud_hidestatus) overlay[ol_status].x = -1;     // turn off status
+  if(hud_hidestatus) overlay[ol_status].x = -1;
+
+  // turn off frag counter or key display,
+  // according to if we're in a deathmatch game or not
   
   if(deathmatch)
-    overlay[ol_key].x = -1;         // turn off keys now
+    overlay[ol_key].x = -1;
   else
-    overlay[ol_frag].x = -1;        // turn off frag
+    overlay[ol_frag].x = -1;
 
   // now build according to style
-  
-  if(hud_overlaystyle == 0)        // 0 means all turned off
+
+  switch(hud_overlaystyle)
     {
-      for(i=0; i<NUMOVERLAY; i++)
-	{
-	  setol(i, -1, -1);       // turn it off
-	}
-    }
-  else if(hud_overlaystyle == 1)
-    {                       // 'bottom left' style
-      int y = SCREENHEIGHT-8;
+      // 0: off
       
-      for(i=NUMOVERLAY-1; i >= 0; i--)
+      case 0:
+	for(i=0; i<NUMOVERLAY; i++)
+	  {
+	    setol(i, -1, -1);       // turn it off
+	  }
+	break;
+
+      // 1:'bottom left' style
+	
+      case 1:
 	{
-	  if(overlay[i].x != -1)
+	  int y = SCREENHEIGHT-8;
+	  
+	  for(i=NUMOVERLAY-1; i >= 0; i--)
 	    {
-	      setol(i, 0, y);
-	      y -= 8;
-	    }
-	}
-    }
-  else if(hud_overlaystyle == 2)  // all at the bottom
-    {
-      int x, y;
-      
-      x = 0; y = 192;
-      for(i=0; i<NUMOVERLAY; i++)
-	{
-	  if(overlay[i].x != -1)
-	    {
-	      setol(i, x, y);
-	      x += 160;
-	      if(x >= 300)
+	      if(overlay[i].x != -1)
 		{
-		  x = 0; y -=8;
+		  setol(i, 0, y);
+		  y -= 8;
 		}
 	    }
+	  break;
 	}
-    }
-  else if(hud_overlaystyle == 3)
-    {
-      // similar to boom 'distributed' style
-      setol(ol_health, 182, 0);
-      setol(ol_armor, 182, 8);
-      setol(ol_weap, 182, 184);
-      setol(ol_ammo, 182, 192);
-      if(deathmatch)  // if dm, put frags in place of keys
-        setol(ol_frag, 0, 192)
-      else
-        setol(ol_key, 0, 192)
-      if(!hud_hidestatus)
-	setol(ol_status, 0, 184);
+
+      // 2: all at bottom of screen
+      
+      case 2:
+	{
+	  int x = 0, y = 192;
+	  
+	  for(i=0; i<NUMOVERLAY; i++)
+	    {
+	      if(overlay[i].x != -1)
+		{
+		  setol(i, x, y);
+		  x += 160;
+		  if(x >= 300)
+		    {
+		      x = 0; y -=8;
+		    }
+		}
+	    }
+	  break;
+	}
+
+      // 3: similar to boom 'distributed' style
+
+      case 3:
+	setol(ol_health, SCREENWIDTH-138, 0);
+	setol(ol_armor, SCREENWIDTH-138, 8);
+	setol(ol_weap, SCREENWIDTH-138, 184);
+	setol(ol_ammo, SCREENWIDTH-138, 192);
+	if(deathmatch)  // if dm, put frags in place of keys
+	  {
+	    setol(ol_frag, 0, 192);
+	  }
+	else
+	  {
+	    setol(ol_key, 0, 192);
+	  }
+	if(!hud_hidestatus)
+	  setol(ol_status, 0, 184);
+	break;
+
     }
 }
 
-//     heart of the overlay really.
-//     draw the overlay, deciding which bits to draw and where
+////////////////////////////////////////////////////////////////////////
+//
+// heart of the overlay really.
+// draw the overlay, deciding which bits to draw and where
 
 void HU_OverlayDraw()
 {
@@ -517,3 +579,12 @@ void HU_OverAddCommands()
   C_AddCommand(hu_overlay);
   C_AddCommand(hu_hidesecrets);
 }
+
+//-----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//-----------------------------------------------------------------------------

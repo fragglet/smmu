@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: z_zone.h,v 1.7 1998/05/08 20:32:12 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Zone Memory Allocation, perhaps NeXT ObjectiveC inspired.
@@ -32,14 +39,6 @@
 #define __inline__
 #endif
 
-// Remove all definitions before including system definitions
-
-#undef malloc
-#undef free
-#undef realloc
-#undef calloc
-#undef strdup
-
 // Include system definitions so that prototypes become
 // active before macro replacements below are in effect.
 
@@ -47,6 +46,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+// Remove all definitions before including system definitions
+
+#undef malloc
+#undef free
+#undef realloc
+#undef calloc
+#undef strdup
 
 // ZONE MEMORY
 // PU - purge tags.
@@ -90,35 +97,16 @@ void Z_ZoneHistory(char *);
 
 #ifdef INSTRUMENTED
 extern int printstats;        // killough 8/23/98
-//void Z_PrintStats(void);      // killough 8/23/98
-char *Z_PrintStats(void);     // haleyjd 1/13/00:  wtf??
+void Z_PrintStats(void);      // killough 8/23/98
 #endif
 
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log: z_zone.h,v $
-// Revision 1.7  1998/05/08  20:32:12  killough
-// fix __attribute__ redefinition
-//
-// Revision 1.6  1998/05/03  22:38:11  killough
-// Remove unnecessary #include
-//
-// Revision 1.5  1998/04/27  01:49:42  killough
-// Add history of malloc/free and scrambler (INSTRUMENTED only)
-//
-// Revision 1.4  1998/03/23  03:43:54  killough
-// Make Z_CheckHeap() more diagnostic
-//
-// Revision 1.3  1998/02/02  13:28:06  killough
-// Add doom_printf
-//
-// Revision 1.2  1998/01/26  19:28:04  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:06  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

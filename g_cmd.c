@@ -1,9 +1,27 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Game console commands
 //
-// console commands controlling the game functions.
+// Console commands controlling the game functions.
 //
 // By Simon Howard
 //
@@ -21,9 +39,9 @@
 #include "mn_engin.h"
 #include "m_random.h"
 #include "p_inter.h"
+#include "p_setup.h"
 #include "w_wad.h"
-
-/****** externs ******/
+#include "z_zone.h"
 
 extern int automlook;
 extern int invert_mouse;
@@ -32,7 +50,10 @@ extern boolean sendpause;
 extern int forwardmove[2];
 extern int sidemove[2];
 
-/******* game commands *******/
+////////////////////////////////////////////////////////////////////////
+//
+// Game Commands
+//
 
 CONSOLE_COMMAND(i_error, 0)
 {
@@ -90,7 +111,7 @@ CONSOLE_VARIABLE(sens_horiz, mouseSensitivity_horiz, 0) {}
 
 // vertical mouse sensitivity
 
-VARIABLE_INT(mouseSensitivity_vert, NULL, 0, 48, NULL);
+VARIABLE_INT(mouseSensitivity_vert, NULL, 0, 100, NULL);
 CONSOLE_VARIABLE(sens_vert, mouseSensitivity_vert, 0) {}
 
 // player bobbing
@@ -102,7 +123,7 @@ CONSOLE_VARIABLE(bobbing, player_bobbing, 0) {}
 
 int turbo_scale = 100;
 VARIABLE_INT(turbo_scale, NULL,         10, 400, NULL);
-CONSOLE_VARIABLE(turbo, turbo_scale, 0)
+CONSOLE_VARIABLE(turbo, turbo_scale, cf_nosave)
 {
   C_Printf ("turbo scale: %i%%\n",turbo_scale);
   forwardmove[0] = (0x19*turbo_scale)/100;
@@ -116,19 +137,10 @@ CONSOLE_NETCMD(exitlevel, cf_server|cf_level, netcmd_exitlevel)
   G_ExitLevel();
 }
 
-          /******* demo stuff *********/
-
-CONSOLE_COMMAND(playdemo, cf_notnet)
-{
-  if(W_CheckNumForName(c_argv[0]) == -1)
-    {
-      C_Printf("%s not found\n",c_argv[0]);
-      return;
-    }
-  G_DeferedPlayDemo(c_argv[0]);
-  singledemo = true;            // quit after one demo
-}
-
+//////////////////////////////////////
+//
+// Demo Stuff
+//
 
 CONSOLE_COMMAND(stopdemo, cf_notnet)
 {
@@ -143,9 +155,12 @@ CONSOLE_COMMAND(timedemo, cf_notnet)
 // 'cool' demo
 
 VARIABLE_BOOLEAN(cooldemo, NULL,            onoff);
-CONSOLE_VARIABLE(cooldemo, cooldemo, 0) {}
+CONSOLE_VARIABLE(cooldemo, cooldemo, cf_nosave) {}
 
-    /**************** wads ****************/
+///////////////////////////////////////////////////
+//
+// Wads
+//
 
 // load new wad
 // buffered command: r_init during load
@@ -155,7 +170,8 @@ CONSOLE_COMMAND(addfile, cf_notnet|cf_buffered)
   D_AddNewFile(c_argv[0]);
 }
 
-        // list loaded wads
+// list loaded wads
+
 CONSOLE_COMMAND(listwads, 0)
 {
   D_ListWads();
@@ -183,7 +199,10 @@ CONSOLE_NETCMD(kill, cf_level, netcmd_kill)
 
 // change level
 
-CONSOLE_NETCMD(map, cf_server, netcmd_map)
+CONST_STRING(levelmapname);
+CONSOLE_CONST(mapname, levelmapname);
+
+CONSOLE_NETCMD(map, cf_buffered|cf_server, netcmd_map)
 {
   if(!c_argc)
     {
@@ -205,7 +224,10 @@ CONSOLE_NETCMD(map, cf_server, netcmd_map)
 	{
 	  if(D_AddNewFile(c_argv[0]))
 	    {
-	      G_InitNew(gameskill, firstlevel);
+	      if(wad_level)     // new wad contains level(s)
+		G_InitNew(gameskill, firstlevel);
+	      else
+		D_StartTitle();   // go to title
 	    }
 	  return;
 	}
@@ -214,7 +236,7 @@ CONSOLE_NETCMD(map, cf_server, netcmd_map)
   G_InitNew(gameskill, c_argv[0]);
 }
 
-        // player name
+// player name
 VARIABLE_STRING(default_name, NULL,             18);
 CONSOLE_NETVAR(name, default_name, cf_handlerset, netcmd_name)
 {
@@ -222,11 +244,11 @@ CONSOLE_NETVAR(name, default_name, cf_handlerset, netcmd_name)
   
   playernum = cmdsrc;
   
-  strncpy(players[playernum].name, c_argv[0], 18);
+  strncpy(players[playernum].name, c_args, 18);
   if(playernum == consoleplayer)
     {
       free(default_name);
-      default_name = strdup(c_argv[0]);
+      default_name = strdup(c_args);
     }
 }
 
@@ -253,7 +275,10 @@ extern int smooth_turning;
 VARIABLE_BOOLEAN(smooth_turning, NULL,          onoff);
 CONSOLE_VARIABLE(smooth_turning, smooth_turning, 0) {}
 
-        /********* chat macros ************/
+////////////////////////////////////////////////////////////////
+//
+// Chat Macros
+//
 
 void G_AddChatMacros()
 {
@@ -289,7 +314,10 @@ void G_AddChatMacros()
     }
 }
 
-        /********** weapon prefs **************/
+///////////////////////////////////////////////////////////////
+//
+// Weapon Prefs
+//
 
 extern int weapon_preferences[2][NUMWEAPONS+1];                   
 
@@ -350,7 +378,10 @@ void G_AddWeapPrefs()
     }
 }
 
-//      compatibility vectors
+///////////////////////////////////////////////////////////////
+//
+// Compatibility vectors
+//
 
 // names given to cmds
 const char *comp_strings[] =
@@ -410,6 +441,26 @@ void G_AddCompat()
     }
 }
 
+// wad/dehs loaded at startup
+
+char *wadfile_1 = NULL, *wadfile_2 = NULL;
+
+VARIABLE_STRING(wadfile_1, NULL,       30); 
+CONSOLE_VARIABLE(wadfile_1, wadfile_1, 0) {}
+
+VARIABLE_STRING(wadfile_2, NULL,       30); 
+CONSOLE_VARIABLE(wadfile_2, wadfile_2, 0) {}
+
+char *dehfile_1 = NULL, *dehfile_2 = NULL;
+
+VARIABLE_STRING(dehfile_1, NULL,       30); 
+CONSOLE_VARIABLE(dehfile_1, dehfile_1, 0) {}
+
+VARIABLE_STRING(dehfile_2, NULL,       30); 
+CONSOLE_VARIABLE(dehfile_2, dehfile_2, 0) {}
+
+extern void G_Bind_AddCommands();
+
 void G_AddCommands()
 {
   C_AddCommand(i_error);
@@ -425,7 +476,6 @@ void G_AddCommands()
   C_AddCommand(sens_horiz);
   C_AddCommand(invertmouse);
   C_AddCommand(turbo);
-  C_AddCommand(playdemo);
   C_AddCommand(timedemo);
   C_AddCommand(cooldemo);
   C_AddCommand(stopdemo);
@@ -435,12 +485,29 @@ void G_AddCommands()
   C_AddCommand(rngseed);
   C_AddCommand(kill);
   C_AddCommand(map);
+  C_AddCommand(mapname);
   C_AddCommand(name);
   C_AddCommand(textmode_startup);
   C_AddCommand(demo_insurance);
   C_AddCommand(smooth_turning);
+
+  C_AddCommand(wadfile_1);
+  C_AddCommand(wadfile_2);
+  C_AddCommand(dehfile_1);
+  C_AddCommand(dehfile_2);
   
   G_AddChatMacros();
   G_AddWeapPrefs();
   G_AddCompat();
+
+  G_Bind_AddCommands();
 }
+
+//-----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//-----------------------------------------------------------------------------

@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Heads up frag counter
 //
 // Counts the frags by each player and sorts them so that the best
@@ -9,8 +27,6 @@
 // By Simon Howard
 //
 //----------------------------------------------------------------------------
-
-/* includes ************************/
 
 #include <stdio.h>
 
@@ -34,21 +50,15 @@
 
 #define FRAGNUMX 175
 
-/* externs ************************/
+extern int action_frags;  // g_bind.c
 
-extern boolean gamekeydown[NUMKEYS];
+static player_t *sortedplayers[MAXPLAYERS];
 
-/* globals ************************/
-
-player_t *sortedplayers[MAXPLAYERS];
-
-int num_players;
+static int num_players;
 int show_scores;                // enable scores
 
 static patch_t *fragspic;
 static patch_t *fragbox;
-
-/* functions ************************/
 
 void HU_FragsInit()
 {
@@ -61,11 +71,16 @@ void HU_FragsDrawer()
   int i, y;
   char tempstr[50];
   
-  if(((players[displayplayer].playerstate!=PST_DEAD || walkcam_active)
-      && !gamekeydown[key_frags]) || !deathmatch )
+  if(!deathmatch)
     return;
   
-  if(!show_scores) return;
+  if(!action_frags)
+    {
+      if(players[displayplayer].playerstate != PST_DEAD ||
+	 walkcam_active ||
+	 !show_scores)
+	return;
+    }
   
   // "frags"
   V_DrawPatch(FRAGSX, FRAGSY, 0, fragspic);
@@ -160,6 +175,11 @@ void HU_FragsErase()
     R_VideoErase(i*SCREENWIDTH, SCREENWIDTH);
 }
 
+////////////////////////////////////
+//
+// Console Commands
+//
+
 CONSOLE_COMMAND(frags, 0)
 {
   int i;
@@ -181,3 +201,11 @@ void HU_FragsAddCommands()
   C_AddCommand(show_scores);
 }
 
+//-----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//-----------------------------------------------------------------------------

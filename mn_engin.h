@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Menu engine.
 //
 // All the main functions of the menu
@@ -39,6 +57,11 @@ void MN_Drawer (void);
 
 void MN_Init (void);
 
+// reload graphics
+// for when loading a wad
+
+void MN_ReloadGraphics();
+
 // Called by intro code to force menu up upon a keypress,
 // does nothing if menu is already up.
 
@@ -75,6 +98,7 @@ struct menuitem_s
   {
     it_gap,              // empty line
     it_runcmd,           // run console command
+    it_constant,         // like variable, but cannot be changed
     it_variable,         // variable
                          // enter pressed to type in new value
     it_toggle,           // togglable variable
@@ -83,6 +107,8 @@ struct menuitem_s
     it_info,             // information / section header
     it_slider,           // slider
     it_automap,          // an automap colour
+    it_disabled,         // disabled item
+    it_binding,          // key binding
     it_end,              // last menuitem in the list
   } type;
   
@@ -98,8 +124,9 @@ struct menuitem_s
   // patch to use or NULL
   char *patch;
 
-                  /*** internal stuff used by menu code ***/
-                  // messing with this is a bad idea(prob)
+  /*** internal stuff used by menu code ***/
+  // messing with this is a bad idea(prob)
+
   int x, y;
   variable_t *var;        // ptr to console variable
 };
@@ -110,10 +137,7 @@ struct menu_s
 
   // x,y offset of menu
   int x, y;
-  
-  // currently selected item
-  int selected;
-  
+ 
   // menu flags
   enum
   {
@@ -122,6 +146,11 @@ struct menu_s
     mf_leftaligned=4,   // left-aligned menu
   } flags;               
   void (*drawer)();       // seperate drawer function 
+
+  /******* internal **********/
+
+  // currently selected item
+  int selected;
 };
 
 // menu 'widgets':
@@ -139,11 +168,14 @@ struct menuwidget_s
   boolean (*responder)(event_t *ev);
 };
 
+extern boolean menuactive;
+
 extern menu_t *current_menu;                  // current menu being drawn
 extern menuwidget_t *current_menuwidget;      // current widget being drawn
 
 // size of automap colour blocks
 #define BLOCK_SIZE 9
+#define background_flat "FLOOR4_8"
 
 void MN_ErrorMsg(char *s, ...);
 
@@ -156,3 +188,11 @@ extern int menutime;
 
 #endif
                             
+//-------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
+//
+//-------------------------------------------------------------------------

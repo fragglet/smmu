@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_doors.c,v 1.13 1998/05/09 12:16:29 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //   Door animation code (opening/closing)
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_doors.c,v 1.13 1998/05/09 12:16:29 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "g_game.h"
@@ -304,7 +310,7 @@ int EV_DoDoor(line_t *line, vldoor_e type)
   vldoor_t *door;
 
   // open all doors with the same tag as the activating line
-  while ((secnum = P_FindSectorFromLineTag(line,secnum)) >= 0)
+  while ((secnum = P_FindSectorFromLineTag(line, secnum)) >= 0)
     {
       sec = &sectors[secnum];
       // if the ceiling already moving, don't start the door action
@@ -373,6 +379,117 @@ int EV_DoDoor(line_t *line, vldoor_e type)
         }
     }
   return rtn;
+}
+
+//
+// EV_OpenDoor
+//
+// sf: for FraggleScript functions
+// allows greater control over how the door behaves
+//
+
+void EV_OpenDoor(int sectag, int speed, int wait_time)
+{
+  vldoor_e door_type;
+  int secnum = -1;
+  vldoor_t *door;
+
+  if(speed < 1) speed = 1;
+  
+  // find out door type first
+
+  if(wait_time)               // door closes afterward
+    {
+      if(speed >= 4)              // blazing ?
+	door_type = blazeRaise;
+      else
+	door_type = normal;
+    }
+  else
+    {
+      if(speed >= 4)              // blazing ?
+	door_type = blazeOpen;
+      else
+	door_type = open;
+    }
+
+  // open door in all the sectors with the specified tag
+
+  while ((secnum = P_FindSectorFromTag(sectag, secnum)) >= 0)
+    {
+      sector_t *sec = &sectors[secnum];
+      // if the ceiling already moving, don't start the door action
+      if (P_SectorActive(ceiling_special,sec)) //jff 2/22/98
+        continue;
+
+      // new door thinker
+      door = Z_Malloc (sizeof(*door), PU_LEVSPEC, 0);
+      P_AddThinker(&door->thinker);
+      sec->ceilingdata = door;
+
+      door->thinker.function = T_VerticalDoor;
+      door->sector = sec;
+      door->type = door_type;
+      door->topwait = wait_time;
+      door->speed = VDOORSPEED * speed;
+      door->line = NULL;   // not triggered by a line
+      door->lighttag = 0;  // no lighting effect
+      door->topheight = P_FindLowestCeilingSurrounding(sec) - 4*FRACUNIT;
+      door->direction = plat_up;
+
+      if (door->topheight != sec->ceilingheight)
+	S_StartSound((mobj_t *)&door->sector->soundorg,
+		     speed >= 4 ? sfx_bdopn : sfx_doropn);
+    }
+}
+
+//
+// EV_CloseDoor
+//
+// sf: also for FraggleScript functions
+//
+
+void EV_CloseDoor(int sectag, int speed)
+{
+  vldoor_e door_type;
+  int secnum = -1;
+  vldoor_t *door;
+
+  if(speed < 1) speed = 1;
+  
+  // find out door type first
+
+  if(speed >= 4)              // blazing ?
+    door_type = blazeClose;
+  else
+    door_type = close;
+  
+  // open door in all the sectors with the specified tag
+
+  while ((secnum = P_FindSectorFromTag(sectag, secnum)) >= 0)
+    {
+      sector_t *sec = &sectors[secnum];
+      // if the ceiling already moving, don't start the door action
+      if (P_SectorActive(ceiling_special,sec)) //jff 2/22/98
+        continue;
+
+      // new door thinker
+      door = Z_Malloc (sizeof(*door), PU_LEVSPEC, 0);
+      P_AddThinker(&door->thinker);
+      sec->ceilingdata = door;
+
+      door->thinker.function = T_VerticalDoor;
+      door->sector = sec;
+      door->type = door_type;
+      door->speed = VDOORSPEED * speed;
+      door->line = NULL;   // not triggered by a line
+      door->lighttag = 0;  // no lighting effect
+      door->topheight = P_FindLowestCeilingSurrounding(sec) - 4*FRACUNIT;
+      door->direction = plat_down;
+
+      S_StartSound((mobj_t *)&door->sector->soundorg,
+		   speed >= 4 ? sfx_bdcls : sfx_dorcls);
+    }  
 }
 
 
@@ -615,41 +732,9 @@ void P_SpawnDoorRaiseIn5Mins(sector_t *sec, int secnum)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_doors.c,v $
-// Revision 1.13  1998/05/09  12:16:29  jim
-// formatted/documented p_doors
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.12  1998/05/03  23:07:16  killough
-// Fix #includes at the top, remove #if 0, nothing else
-//
-// Revision 1.11  1998/04/16  06:28:34  killough
-// Remove double-closing sound of blazing doors
-//
-// Revision 1.10  1998/03/28  05:32:36  jim
-// Text enabling changes for DEH
-//
-// Revision 1.9  1998/03/23  03:24:53  killough
-// Make door-opening 'oof' sound have true source
-//
-// Revision 1.8  1998/03/10  07:08:16  jim
-// Extended manual door lighting to generalized doors
-//
-// Revision 1.7  1998/02/23  23:46:40  jim
-// Compatibility flagged multiple thinker support
-//
-// Revision 1.6  1998/02/23  00:41:36  jim
-// Implemented elevators
-//
-// Revision 1.5  1998/02/13  03:28:25  jim
-// Fixed W1,G1 linedefs clearing untriggered special, cosmetic changes
-//
-// Revision 1.4  1998/02/08  05:35:23  jim
-// Added generalized linedef types
-//
-// Revision 1.2  1998/01/26  19:23:58  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

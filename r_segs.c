@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_segs.c,v 1.16 1998/05/03 23:02:01 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      All the clipping: columns, horizontal spans, sky columns.
@@ -23,7 +29,7 @@
 // 4/25/98, 5/2/98 killough: reformatted, beautified
 
 static const char
-rcsid[] = "$Id: r_segs.c,v 1.16 1998/05/03 23:02:01 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -77,7 +83,7 @@ static fixed_t  topstep;
 static fixed_t  bottomfrac;
 static fixed_t  bottomstep;
 
-//#define TRANWATER
+// #define TRANWATER
 #ifdef TRANWATER
 static fixed_t  bottomfrac2;    //sf
 static fixed_t  bottomstep2;
@@ -166,6 +172,8 @@ void R_RenderMaskedSegRange(drawseg_t *ds, int x1, int x2)
           {                             // killough 11/98:
             unsigned index = spryscale>>(LIGHTSCALESHIFT+hires);
 
+	    //	    index = FixedDiv(index, zoomscale);
+	    
             if (index >=  MAXLIGHTSCALE )
               index = MAXLIGHTSCALE-1;
 
@@ -270,36 +278,36 @@ static void R_RenderSegLoop (void)
 
 #ifdef TRANWATER
       if (markfloor2)
-      {
-           int yw = bottomfrac2>>HEIGHTBITS;
-
-           if(yw < 0) yw = 0;
-           if(yw >= viewheight) yw = viewheight-1;
-
-           if(yw > floorplane2->top[rw_x])
-                floorplane2->top[rw_x] = yw;
-           if(yw < floorplane2->bottom[rw_x])
-                floorplane2->bottom[rw_x] = yw;
-
-           if(viewz<floorplane2->height) // below plane
-           {
-                   top = floorclip2[rw_x]+1;
-                   bottom = yw;
-                   if(bottom >= floorclip[rw_x]) bottom = floorclip[rw_x]-1;
+	{
+	  int yw = bottomfrac2>>HEIGHTBITS;
+	  
+	  if(yw < 0) yw = 0;
+	  if(yw >= viewheight) yw = viewheight-1;
+	  
+	  if(yw > floorplane2->top[rw_x])
+	    floorplane2->top[rw_x] = yw;
+	  if(yw < floorplane2->bottom[rw_x])
+	    floorplane2->bottom[rw_x] = yw;
+	  
+	  if(viewz<floorplane2->height) // below plane
+	    {
+	      top = floorclip2[rw_x]+1;
+	      bottom = yw;
+	      if(bottom >= floorclip[rw_x]) bottom = floorclip[rw_x]-1;
+	    }
+	  else                 // above
+	    {
+	      top = yw;
+	      bottom = floorclip2[rw_x]-1;
+	      if(top <= ceilingclip[rw_x]) top = ceilingclip[rw_x]+1;
            }
-           else                 // above
-           {
-                   top = yw;
-                   bottom = floorclip2[rw_x]-1;
-                   if(top <= ceilingclip[rw_x]) top = ceilingclip[rw_x]+1;
-           }
-
-           if(top <= bottom)
-           {
-                floorplane2->top[rw_x] = top;
-                floorplane2->bottom[rw_x] = bottom;
-           }
-
+	  
+	  if(top <= bottom)
+	    {
+	      floorplane2->top[rw_x] = top;
+	      floorplane2->bottom[rw_x] = bottom;
+	    }
+	  
       }
 #endif
 
@@ -529,8 +537,10 @@ void R_StoreWallRange(const int start, const int stop)
       // a single sided line is terminal, so it must mark ends
       markfloor = markceiling = true;
 
+#ifdef TRANWATER
       markfloor2 = !!floorplane2;
-
+#endif
+      
       if (linedef->flags & ML_DONTPEGBOTTOM)
         {         // bottom of texture at bottom
           fixed_t vtop = frontsector->floorheight +
@@ -632,7 +642,7 @@ void R_StoreWallRange(const int start, const int stop)
 
         // killough 4/17/98: draw floors if different light levels
         || backsector->floorlightsec != frontsector->floorlightsec
-        ;
+	 ;
 
       markceiling = worldhigh != worldtop
         || backsector->ceilingpic != frontsector->ceilingpic
@@ -709,7 +719,7 @@ void R_StoreWallRange(const int start, const int stop)
       offsetangle = rw_normalangle-rw_angle1;
 
       if (offsetangle > ANG180)
-        offsetangle = -offsetangle;
+	offsetangle = -offsetangle;
 
       if (offsetangle > ANG90)
         offsetangle = ANG90;
@@ -771,11 +781,11 @@ void R_StoreWallRange(const int start, const int stop)
 
 #ifdef TRANWATER
   if (floorplane2)
-  {
-        int worldplane = (floorplane2->height - viewz)>>4;
-        bottomstep2 = -FixedMul (rw_scalestep,worldplane);
-        bottomfrac2 = (centeryfrac>>4) - FixedMul (worldplane, rw_scale);
-  }
+    {
+      int worldplane = (floorplane2->height - viewz)>>4;
+      bottomstep2 = -FixedMul (rw_scalestep,worldplane);
+      bottomfrac2 = (centeryfrac>>4) - FixedMul (worldplane, rw_scale);
+    }
 #endif
 
   if (backsector)
@@ -797,23 +807,29 @@ void R_StoreWallRange(const int start, const int stop)
 
   // render it
   if (markceiling)
-    if (ceilingplane)   // killough 4/11/98: add NULL ptr checks
-      ceilingplane = R_CheckPlane (ceilingplane, rw_x, rw_stopx-1);
-    else
-      markceiling = 0;
+    {
+      if (ceilingplane)   // killough 4/11/98: add NULL ptr checks
+	ceilingplane = R_CheckPlane (ceilingplane, rw_x, rw_stopx-1);
+      else
+	markceiling = 0;
+    }
 
   if (markfloor)
-    if (floorplane)     // killough 4/11/98: add NULL ptr checks
-      floorplane = R_CheckPlane (floorplane, rw_x, rw_stopx-1);
-    else
-      markfloor = 0;
+    {
+      if (floorplane)     // killough 4/11/98: add NULL ptr checks
+	floorplane = R_CheckPlane (floorplane, rw_x, rw_stopx-1);
+      else
+	markfloor = 0;
+    }
 
 #ifdef TRANWATER
   if (markfloor2)
-    if (floorplane2)
-      floorplane2 = R_CheckPlane (floorplane2, rw_x, rw_stopx-1);
-    else
-      markfloor2 = 0;
+    {
+      if (floorplane2)
+	floorplane2 = R_CheckPlane (floorplane2, rw_x, rw_stopx-1);
+      else
+	markfloor2 = 0;
+    }
 #endif
 
   R_RenderSegLoop();
@@ -846,53 +862,9 @@ void R_StoreWallRange(const int start, const int stop)
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_segs.c,v $
-// Revision 1.16  1998/05/03  23:02:01  killough
-// Move R_PointToDist from r_main.c, fix #includes
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.15  1998/04/27  01:48:37  killough
-// Program beautification
 //
-// Revision 1.14  1998/04/17  10:40:31  killough
-// Fix 213, 261 (floor/ceiling lighting)
-//
-// Revision 1.13  1998/04/16  06:24:20  killough
-// Prevent 2s sectors from bleeding across deep water or fake floors
-//
-// Revision 1.12  1998/04/14  08:17:16  killough
-// Fix light levels on 2s textures
-//
-// Revision 1.11  1998/04/12  02:01:41  killough
-// Add translucent walls, add insurance against SIGSEGV
-//
-// Revision 1.10  1998/04/07  06:43:05  killough
-// Optimize: use external doorclosed variable
-//
-// Revision 1.9  1998/03/28  18:04:31  killough
-// Reduce texture offsets vertically
-//
-// Revision 1.8  1998/03/16  12:41:09  killough
-// Fix underwater / dual ceiling support
-//
-// Revision 1.7  1998/03/09  07:30:25  killough
-// Add primitive underwater support, fix scrolling flats
-//
-// Revision 1.6  1998/03/02  11:52:58  killough
-// Fix texturemapping overflow, add scrolling walls
-//
-// Revision 1.5  1998/02/09  03:17:13  killough
-// Make closed door clipping more consistent
-//
-// Revision 1.4  1998/02/02  13:27:02  killough
-// fix openings bug
-//
-// Revision 1.3  1998/01/26  19:24:47  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/26  06:10:42  killough
-// Discard old Medusa hack -- fixed in r_data.c now
-//
-// Revision 1.1.1.1  1998/01/19  14:03:03  rand
-// Lee's Jan 19 sources
-//
-//----------------------------------------------------------------------------
+//--------------------------------------------------------------------------

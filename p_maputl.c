@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_maputl.c,v 1.13 1998/05/03 22:16:48 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Movement/collision utility functions,
@@ -24,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_maputl.c,v 1.13 1998/05/03 22:16:48 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_bbox.h"
@@ -694,44 +700,9 @@ boolean P_PathTraverse(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2,
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_maputl.c,v $
-// Revision 1.13  1998/05/03  22:16:48  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.12  1998/03/20  00:30:03  phares
-// Changed friction to linedef control
-//
-// Revision 1.11  1998/03/19  14:37:12  killough
-// Fix ThingIsOnLine()
-//
-// Revision 1.10  1998/03/19  00:40:52  killough
-// Change ThingIsOnLine() comments
-//
-// Revision 1.9  1998/03/16  12:34:45  killough
-// Add ThingIsOnLine() function
-//
-// Revision 1.8  1998/03/09  18:27:10  phares
-// Fixed bug in neighboring variable friction sectors
-//
-// Revision 1.7  1998/03/09  07:19:26  killough
-// Remove use of FP for point/line queries
-//
-// Revision 1.6  1998/03/02  12:03:43  killough
-// Change blockmap offsets to 32-bit
-//
-// Revision 1.5  1998/02/23  04:45:24  killough
-// Relax blockmap iterator to demo_compatibility
-//
-// Revision 1.4  1998/02/02  13:41:38  killough
-// Fix demo sync programs caused by last change
-//
-// Revision 1.3  1998/01/30  23:13:10  phares
-// Fixed delimiting 0 bug in P_BlockLinesIterator
-//
-// Revision 1.2  1998/01/26  19:24:11  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:00  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_saveg.c,v 1.17 1998/05/03 23:10:22 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Archiving: SaveGame I/O.
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_saveg.c,v 1.17 1998/05/03 23:10:22 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -132,7 +138,8 @@ void P_ArchivePlayers (void)
 void P_UnArchivePlayers (void)
 {
   int i;
-
+  player_t *read_player;
+  
   for (i=0 ; i<MAXPLAYERS ; i++)
     if (playeringame[i])
       {
@@ -144,23 +151,39 @@ void P_UnArchivePlayers (void)
 	//     do not change the player data when crossing
 	//     levels: ie. retain the same weapons etc.
 
+	read_player = (player_t *)save_p;
+	
 	if(!hub_changelevel)
-	{
-	  memcpy(&players[i], save_p, sizeof(player_t));
-	  for (j=0 ; j<NUMPSPRITES ; j++)
-	    if (players[i].psprites[j].state)
-	      players[i].psprites[j].state =
-		&states[ (int)players[i].psprites[j].state ];
-	}
+	  {
+	    memcpy(&players[i], read_player, sizeof(player_t));
+	    for (j=0 ; j<NUMPSPRITES ; j++)
+	      if (players[i].psprites[j].state)
+		players[i].psprites[j].state =
+		  &states[ (int)players[i].psprites[j].state ];
 
+	    players[i].skin = &marine;  // reset skin
+	    players[i].attackdown = players[i].usedown = false;  // sf
+	    players[i].cmd.buttons = 0;    // sf
+	  }
+	else
+	  {
+	    // still copy some data even when loading hubs
+
+	    // keycards are specific to each level
+	    memcpy(&players[i].cards,
+		   &read_player->cards, sizeof(players[i].cards));
+
+	    // kill/secret/item counts
+	    players[i].killcount = read_player->killcount;
+	    players[i].secretcount = read_player->secretcount;
+	    players[i].itemcount = read_player->itemcount;
+	  }
+	
         save_p += sizeof(player_t);
 
         // will be set when unarc thinker
         players[i].mo = NULL;
         players[i].attacker = NULL;
-	players[i].skin = &marine;  // reset skin
-	players[i].attackdown = players[i].usedown = false;  // sf
-	players[i].cmd.buttons = 0;    // sf
       }
 }
 
@@ -406,7 +429,7 @@ void P_ArchiveThinkers (void)
   }
   
   // killough 2/14/98: restore prev pointers
-        // sf: still needed for saving script mobj pointers
+  // sf: still needed for saving script mobj pointers
   // killough 2/14/98: end changes
 }
 
@@ -435,6 +458,9 @@ void P_UnArchiveThinkers (void)
   thinker_t *th;
   size_t    size;        // killough 2/14/98: size of or index into table
 
+  // sf: get kills/items count from savegame, not original level
+  totalkills = totalitems = 0;   
+  
   // killough 3/26/98: Load boss brain state
   memcpy(&brain, save_p, sizeof brain);
   save_p += sizeof brain;
@@ -494,6 +520,12 @@ void P_UnArchiveThinkers (void)
 
       mobj->thinker.function = P_MobjThinker;
       P_AddThinker (&mobj->thinker);
+
+      // sf:
+      if(mobj->flags & MF_COUNTKILL)
+	totalkills++;
+      if(mobj->flags & MF_COUNTITEM)
+	totalitems++;	  
     }
 
   // killough 2/14/98: adjust target and tracer fields, plus
@@ -1298,7 +1330,11 @@ runningscript_t *P_UnArchiveRunningScript()
     scriptnum = *short_p++;        // get scriptnum
     
     // levelscript?
-    rs->script = scriptnum == -1 ? &levelscript : scripts[scriptnum];
+
+    if(scriptnum == -1)
+      rs->script = &levelscript;
+    else
+      rs->script = levelscript.children[scriptnum];
     
     // read out offset from save
     rs->savepoint = rs->script->data + (*short_p++);
@@ -1490,52 +1526,9 @@ void P_UnArchiveScripts()
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_saveg.c,v $
-// Revision 1.17  1998/05/03  23:10:22  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.16  1998/04/19  01:16:06  killough
-// Fix boss brain spawn crashes after loadgames
-//
-// Revision 1.15  1998/03/28  18:02:17  killough
-// Fix boss spawner savegame crash bug
-//
-// Revision 1.14  1998/03/23  15:24:36  phares
-// Changed pushers to linedef control
-//
-// Revision 1.13  1998/03/23  03:29:54  killough
-// Fix savegame crash caused in P_ArchiveWorld
-//
-// Revision 1.12  1998/03/20  00:30:12  phares
-// Changed friction to linedef control
-//
-// Revision 1.11  1998/03/09  07:20:23  killough
-// Add generalized scrollers
-//
-// Revision 1.10  1998/03/02  12:07:18  killough
-// fix stuck-in wall loadgame bug, automap status
-//
-// Revision 1.9  1998/02/24  08:46:31  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.8  1998/02/23  04:49:42  killough
-// Add automap marks and properties to saved state
-//
-// Revision 1.7  1998/02/23  01:02:13  jim
-// fixed elevator size, comments
-//
-// Revision 1.4  1998/02/17  05:43:33  killough
-// Fix savegame crashes and monster sleepiness
-// Save new RNG info
-// Fix original plats height bug
-//
-// Revision 1.3  1998/02/02  22:17:55  jim
-// Extended linedef types
-//
-// Revision 1.2  1998/01/26  19:24:21  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:07  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // By Popular demand :)
 // Hubs.
 //
@@ -15,13 +33,18 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "doomstat.h"
 #include "c_io.h"
 #include "g_game.h"
 #include "p_maputl.h"
 #include "p_setup.h"
 #include "p_spec.h"
+#include "r_main.h"
 #include "t_vari.h"
 #include "z_zone.h"
+
+void P_SavePlayerPosition(player_t *player, int sectag);
+void P_RestorePlayerPosition();
 
 #define MAXHUBLEVELS 128
 
@@ -58,7 +81,7 @@ char *temp_hubfile()
 void P_ClearHubs()
 {
   int i;
-
+  
   for(i=0; i<num_hub_levels; i++)
     if(hub_levels[i].tmpfile)
       remove(hub_levels[i].tmpfile);
@@ -129,6 +152,8 @@ static void SaveHubLevel()
   G_SaveCurrentLevel(hublevel->tmpfile, "smmu hubs");
 }
 
+extern void G_DoLoadLevel();                  // g_game.c
+
 static void LoadHubLevel(char *levelname)
 {
   hublevel_t *hublevel;
@@ -139,31 +164,70 @@ static void LoadHubLevel(char *levelname)
     {
       // load level normally
       gamemapname = strdup(levelname);
-      gameaction = ga_loadlevel;
+      G_DoLoadLevel();
     }
   else
     {
       // found saved level: reload
-      G_LoadGame(hublevel->tmpfile, 0, 0);
+      G_LoadSavedLevel(hublevel->tmpfile);
       hub_changelevel = true;
     }
 
+  P_RestorePlayerPosition();
+  
   wipegamestate = gamestate;
 }
 
-void P_HubChangeLevel(char *levelname)
+//
+// G_LoadHubLevel
+//
+// sf: ga_loadhublevel is used instead of ga_loadlevel when
+// we are loading a level into the hub for the first
+// time.
+//
+
+static char new_hubmap[9];      // name of level to change to
+
+void P_DoChangeHubLevel()
 {
   hub_changelevel = true;
 
-  C_Printf("hubs: go to level %s\n", levelname);
+  V_SetLoading(0, "loading");
+  
   SaveHubLevel();
-  LoadHubLevel(levelname);
+  LoadHubLevel(new_hubmap);
+}
+
+void P_ChangeHubLevel(char *levelname)
+{
+  gameaction = ga_loadhublevel;
+  strncpy(new_hubmap, levelname, 8);
 }
 
 void P_HubReborn()
 {
-  // called when player is reborn when using hubs
-  LoadHubLevel(levelmapname);
+  // restore player from savegame created when
+  // we entered the level.
+  // we do _not_ use hub_changelevel as we want to
+  // restore all the data that was saved.
+
+  hublevel_t *hublevel;
+
+  hub_changelevel = false; // restore _all_ data
+  
+  hublevel = HublevelForName(levelmapname);
+
+  if(!hublevel)
+    {
+      // load level normally
+      G_DoLoadLevel();
+    }
+  else
+    {
+      // found saved level: reload
+      G_LoadSavedLevel(hublevel->tmpfile);
+      hub_changelevel = true;
+    }
 }
 
 void P_DumpHubs()
@@ -174,13 +238,12 @@ void P_DumpHubs()
   for(i=0; i<num_hub_levels; i++)
     {
       strncpy(tempbuf, hub_levels[i].levelname, 8);
-      C_Printf("%s: %s\n", tempbuf, hub_levels[i].tmpfile ?
-	       hub_levels[i].tmpfile : "");
     }
 }
 
 static fixed_t          save_xoffset;
 static fixed_t          save_yoffset;
+static fixed_t          save_viewzoffset;
 static mobj_t           save_mobj;
 static int              save_sectag;
 static player_t *       save_player;
@@ -202,8 +265,6 @@ void P_SavePlayerPosition(player_t *player, int sectag)
 
   save_sectag = sectag;
 
-  C_Printf("sectag: %i\n", sectag);
-
   if((secnum = P_FindSectorFromTag(sectag, -1)) < 0)
     {
       // invalid: sector not found
@@ -218,10 +279,14 @@ void P_SavePlayerPosition(player_t *player, int sectag)
   save_xoffset = player->mo->x - sec->soundorg.x;
   save_yoffset = player->mo->y - sec->soundorg.y;
 
+  // save viewheight
+
+  save_viewzoffset = player->viewz
+    - R_PointInSubsector(player->mo->x, player->mo->y)->sector->floorheight;  
+
   // save mobj so we can restore various bits of data
 
   memcpy(&save_mobj, player->mo, sizeof(mobj_t));
-
 }
 
 // restore the players position -- sector must be the same shape
@@ -257,6 +322,23 @@ void P_RestorePlayerPosition()
   save_player->mo->angle = save_mobj.angle;
   save_player->mo->momx = save_mobj.momx;    // keep momentum
   save_player->mo->momy = save_mobj.momy;
-
   P_SetThingPosition(save_player->mo);
+
+  // restore viewz
+
+  save_player->viewz =
+    R_PointInSubsector(save_player->mo->x,
+		       save_player->mo->y)->sector->floorheight
+    + save_viewzoffset;
+
+  SaveHubLevel();
 }
+
+//----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//----------------------------------------------------------------------------

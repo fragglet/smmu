@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: z_zone.c,v 1.13 1998/05/12 06:11:55 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Zone Memory Allocation. Neat.
@@ -27,7 +34,7 @@
 // statistics and tunables.
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: z_zone.c,v 1.13 1998/05/12 06:11:55 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include <stdio.h>
 
@@ -118,11 +125,9 @@ static size_t virtual_memory;
 
 int printstats;                    // killough 8/23/98
 
-char tempstr[128]; // haleyjd 1/12/00:  wtf?
-
-char *Z_PrintStats(void)            // Print allocation statistics
+void Z_PrintStats(void)            // Print allocation statistics
 {
-  //char tempstr[128];
+  static char tempstr[128];
 
   if (printstats)
     {
@@ -131,7 +136,7 @@ char *Z_PrintStats(void)            // Print allocation statistics
 	virtual_memory;
       double s = 100.0 / total_memory;
 
-      sprintf(tempstr,
+      doom_printf(
               "%-5lu\t%6.01f%%\tstatic\n"
 	      "%-5lu\t%6.01f%%\tpurgable\n"
 	      "%-5lu\t%6.01f%%\tfree\n"
@@ -150,9 +155,7 @@ char *Z_PrintStats(void)            // Print allocation statistics
 	      virtual_memory*s,
 	      total_memory
 	      );
-      return tempstr;
     }
-    return "";          // empty string
 }
 #endif
 
@@ -655,40 +658,9 @@ void (Z_CheckHeap)(const char *file, int line)
 
 //-----------------------------------------------------------------------------
 //
-// $Log: z_zone.c,v $
-// Revision 1.13  1998/05/12  06:11:55  killough
-// Improve memory-related error messages
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.12  1998/05/03  22:37:45  killough
-// beautification
-//
-// Revision 1.11  1998/04/27  01:49:39  killough
-// Add history of malloc/free and scrambler (INSTRUMENTED only)
-//
-// Revision 1.10  1998/03/28  18:10:33  killough
-// Add memory scrambler for debugging
-//
-// Revision 1.9  1998/03/23  03:43:56  killough
-// Make Z_CheckHeap() more diagnostic
-//
-// Revision 1.8  1998/03/02  11:40:02  killough
-// Put #ifdef CHECKHEAP around slow heap checks (debug)
-//
-// Revision 1.7  1998/02/02  13:27:45  killough
-// Additional debug info turned on with #defines
-//
-// Revision 1.6  1998/01/26  19:25:15  phares
-// First rev with no ^Ms
-//
-// Revision 1.5  1998/01/26  07:15:43  phares
-// Added rcsid
-//
-// Revision 1.4  1998/01/26  06:12:30  killough
-// Fix memory usage problems and improve debug stat display
-//
-// Revision 1.3  1998/01/22  05:57:20  killough
-// Allow use of virtual memory when physical memory runs out
-//
-// ???
 //
 //-----------------------------------------------------------------------------

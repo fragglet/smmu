@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Enemy thinking, AI.
@@ -23,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -39,6 +45,7 @@ rcsid[] = "$Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $";
 #include "p_enemy.h"
 #include "p_tick.h"
 #include "m_bbox.h"
+#include "t_script.h"
 
 static mobj_t *current_actor;
 
@@ -649,44 +656,46 @@ static void P_NewChaseDir(mobj_t *actor)
   actor->strafecount = 0;
 
   if (demo_version >= 203)
-    if (actor->floorz - actor->dropoffz > FRACUNIT*24 &&
-	actor->z <= actor->floorz && !(actor->flags & (MF_DROPOFF|MF_FLOAT)) &&
-	!comp[comp_dropoff] && P_AvoidDropoff(actor)) // Move away from dropoff
-      {
-	P_DoNewChaseDir(actor, dropoff_deltax, dropoff_deltay);
-
-	// If moving away from dropoff, set movecount to 1 so that 
-	// small steps are taken to get monster away from dropoff.
-
-	actor->movecount = 1;
-	return;
-      }
-    else
-      {
-	fixed_t dist = P_AproxDistance(deltax, deltay);
-
-	// Move away from friends when too close, except
-	// in certain situations (e.g. a crowded lift)
-
-	if (actor->flags & target->flags & MF_FRIEND &&
-	    distfriend << FRACBITS > dist && 
-	    !P_IsOnLift(target) && !P_IsUnderDamage(actor))
-	  deltax = -deltax, deltay = -deltay;
-	else
-	  if (target->health > 0 && (actor->flags ^ target->flags) & MF_FRIEND)
-	    {   // Live enemy target
-	      if (monster_backing &&
-		  actor->info->missilestate && actor->type != MT_SKULL &&
-		  ((!target->info->missilestate && dist < MELEERANGE*2) ||
-		   (target->player && dist < MELEERANGE*3 &&
-		    (target->player->readyweapon == wp_fist ||
-		     target->player->readyweapon == wp_chainsaw))))
-		{       // Back away from melee attacker
-		  actor->strafecount = P_Random(pr_enemystrafe) & 15;
-		  deltax = -deltax, deltay = -deltay;
-		}
-	    }
-      }
+    {
+      if (actor->floorz - actor->dropoffz > FRACUNIT*24 &&
+	  actor->z <= actor->floorz && !(actor->flags & (MF_DROPOFF|MF_FLOAT)) &&
+	  !comp[comp_dropoff] && P_AvoidDropoff(actor)) // Move away from dropoff
+	{
+	  P_DoNewChaseDir(actor, dropoff_deltax, dropoff_deltay);
+	  
+	  // If moving away from dropoff, set movecount to 1 so that 
+	  // small steps are taken to get monster away from dropoff.
+	  
+	  actor->movecount = 1;
+	  return;
+	}
+      else
+	{
+	  fixed_t dist = P_AproxDistance(deltax, deltay);
+	  
+	  // Move away from friends when too close, except
+	  // in certain situations (e.g. a crowded lift)
+	  
+	  if (actor->flags & target->flags & MF_FRIEND &&
+	      distfriend << FRACBITS > dist && 
+	      !P_IsOnLift(target) && !P_IsUnderDamage(actor))
+	    deltax = -deltax, deltay = -deltay;
+	  else
+	    if (target->health > 0 && (actor->flags ^ target->flags) & MF_FRIEND)
+	      {   // Live enemy target
+		if (monster_backing &&
+		    actor->info->missilestate && actor->type != MT_SKULL &&
+		    ((!target->info->missilestate && dist < MELEERANGE*2) ||
+		     (target->player && dist < MELEERANGE*3 &&
+		      (target->player->readyweapon == wp_fist ||
+		       target->player->readyweapon == wp_chainsaw))))
+		  {       // Back away from melee attacker
+		    actor->strafecount = P_Random(pr_enemystrafe) & 15;
+		    deltax = -deltax, deltay = -deltay;
+		  }
+	      }
+	}
+    }
 
   P_DoNewChaseDir(actor, deltax, deltay);
 
@@ -1069,10 +1078,12 @@ void A_Chase(mobj_t *actor)
 
   // modify target threshold
   if (actor->threshold)
-    if (!actor->target || actor->target->health <= 0)
-      actor->threshold = 0;
-    else
-      actor->threshold--;
+    {
+      if (!actor->target || actor->target->health <= 0)
+	actor->threshold = 0;
+      else
+	actor->threshold--;
+    }
 
   // turn towards movement direction if not there yet
   // killough 9/7/98: keep facing towards target if strafing or backing out
@@ -1128,45 +1139,49 @@ void A_Chase(mobj_t *actor)
         }
 
   if (!actor->threshold)
-    if (demo_version < 203)
-      {   // killough 9/9/98: for backward demo compatibility
-	if (netgame && !P_CheckSight(actor, actor->target) &&
-	    P_LookForPlayers(actor, true))
-	  return;  
-      }
-    else  // killough 7/18/98, 9/9/98: new monster AI
-      if (help_friends && P_HelpFriend(actor))
-	return;      // killough 9/8/98: Help friends in need
-      else  // Look for new targets if current one is bad or is out of view
-	if (actor->pursuecount)
-	  actor->pursuecount--;
-	else
-	  {
-	    actor->pursuecount = BASETHRESHOLD;
-	    
-	    // If current target is bad and a new one is found, return:
+    {
+      if (demo_version < 203)
+	{   // killough 9/9/98: for backward demo compatibility
+	  if (netgame && !P_CheckSight(actor, actor->target) &&
+	      P_LookForPlayers(actor, true))
+	    return;  
+	}
+      else  // killough 7/18/98, 9/9/98: new monster AI
+	if (help_friends && P_HelpFriend(actor))
+	  return;      // killough 9/8/98: Help friends in need
+	else  // Look for new targets if current one is bad or is out of view
+	  if (actor->pursuecount)
+	    actor->pursuecount--;
+	  else
+	    {
+	      actor->pursuecount = BASETHRESHOLD;
+	      
+	      // If current target is bad and a new one is found, return:
+	      
+	      if (!(actor->target && actor->target->health > 0 &&
+		    ((comp[comp_pursuit] && !netgame) || 
+		     (((actor->target->flags ^ actor->flags) & MF_FRIEND ||
+		       (!(actor->flags & MF_FRIEND) && monster_infighting)) &&
+		      P_CheckSight(actor, actor->target)))) &&
+		  P_LookForTargets(actor, true))
+		return;
+	      
+	      // (Current target was good, or no new target was found.)
+	      //
+	      // If monster is a missile-less friend, give up pursuit and
+	      // return to player, if no attacks have occurred recently.
+	      
+	      if (!actor->info->missilestate && actor->flags & MF_FRIEND)
+		{
+		  if (actor->flags & MF_JUSTHIT)        // if recent action,
+		    actor->flags &= ~MF_JUSTHIT;        // keep fighting
+		  else
+		    if (P_LookForPlayers(actor, true))  // else return to player
+		      return;
+		}
+	    }
+    }
 
-	    if (!(actor->target && actor->target->health > 0 &&
-		  ((comp[comp_pursuit] && !netgame) || 
-		   (((actor->target->flags ^ actor->flags) & MF_FRIEND ||
-		     (!(actor->flags & MF_FRIEND) && monster_infighting)) &&
-		    P_CheckSight(actor, actor->target)))) &&
-		P_LookForTargets(actor, true))
-	      return;
-	    
-	    // (Current target was good, or no new target was found.)
-	    //
-	    // If monster is a missile-less friend, give up pursuit and
-	    // return to player, if no attacks have occurred recently.
-
-	    if (!actor->info->missilestate && actor->flags & MF_FRIEND)
-	      if (actor->flags & MF_JUSTHIT)        // if recent action,
-		actor->flags &= ~MF_JUSTHIT;        // keep fighting
-	      else
-		if (P_LookForPlayers(actor, true))  // else return to player
-		  return;
-	  }
-  
   if (actor->strafecount)
     actor->strafecount--;
   
@@ -1267,10 +1282,12 @@ void A_CPosRefire(mobj_t *actor)
 
   // killough 11/98: prevent refiring on friends continuously
   if (P_Random(pr_cposrefire) < 40)
-    if (actor->target && actor->flags & actor->target->flags & MF_FRIEND)
-      goto stop;
-    else
-      return;
+    {
+      if (actor->target && actor->flags & actor->target->flags & MF_FRIEND)
+	goto stop;
+      else
+	return;
+    }
 
   if (!actor->target || actor->target->health <= 0
       || !P_CheckSight(actor, actor->target))
@@ -1443,18 +1460,20 @@ void A_Tracer(mobj_t *actor)
   exact = R_PointToAngle2(actor->x, actor->y, dest->x, dest->y);
 
   if (exact != actor->angle)
-    if (exact - actor->angle > 0x80000000)
-      {
-        actor->angle -= TRACEANGLE;
-        if (exact - actor->angle < 0x80000000)
-          actor->angle = exact;
-      }
-    else
-      {
-        actor->angle += TRACEANGLE;
-        if (exact - actor->angle > 0x80000000)
-          actor->angle = exact;
-      }
+    {
+      if (exact - actor->angle > 0x80000000)
+	{
+	  actor->angle -= TRACEANGLE;
+	  if (exact - actor->angle < 0x80000000)
+	    actor->angle = exact;
+	}
+      else
+	{
+	  actor->angle += TRACEANGLE;
+	  if (exact - actor->angle > 0x80000000)
+	    actor->angle = exact;
+	}
+    }
 
   exact = actor->angle>>ANGLETOFINESHIFT;
   actor->momx = FixedMul(actor->info->speed, finecosine[exact]);
@@ -1858,6 +1877,24 @@ void A_SkullAttack(mobj_t *actor)
 }
 
 // sf: removed beta lost soul
+// sf: add back for mbf dehacked patch compatibility
+//     might be a useful function to someone, anyway
+
+//
+// A_BetaSkullAttack()
+// killough 10/98: this emulates the beta version's lost soul attacks
+//
+
+void A_BetaSkullAttack(mobj_t *actor)
+{
+  int damage;
+  if (!actor->target || actor->target->type == MT_SKULL)
+    return;
+  S_StartSound(actor, actor->info->attacksound);
+  A_FaceTarget(actor);
+  damage = (P_Random(pr_skullfly)%8+1)*actor->info->damage;
+  P_DamageMobj(actor->target, actor, actor, damage);
+}
 
 void A_Stop(mobj_t *actor)
 {
@@ -2069,6 +2106,8 @@ void A_Mushroom(mobj_t *actor)
   // Mushroom parameters are part of code pointer's state
   fixed_t misc1 = actor->state->misc1 ? actor->state->misc1 : FRACUNIT*4;
   fixed_t misc2 = actor->state->misc2 ? actor->state->misc2 : FRACUNIT/2;
+
+  C_Printf("mushroom\n");
 
   A_Explode(actor);               // make normal explosion
 
@@ -2557,75 +2596,23 @@ void A_LineEffect(mobj_t *mo)
     }
 }
 
+// sf: Trigger running script
+
+void A_RunScript(mobj_t *mo)
+{
+  t_trigger = mo;
+
+  // script num is held in mo->state->misc1
+
+  T_RunThingScript(mo->state->misc1);
+}
+
+
 //----------------------------------------------------------------------------
 //
-// $Log: p_enemy.c,v $
-// Revision 1.22  1998/05/12  12:47:10  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.21  1998/05/07  00:50:55  killough
-// beautification, remove dependence on evaluation order
-//
-// Revision 1.20  1998/05/03  22:28:02  killough
-// beautification, move declarations and includes around
-//
-// Revision 1.19  1998/04/01  12:58:44  killough
-// Disable boss brain if no targets
-//
-// Revision 1.18  1998/03/28  17:57:05  killough
-// Fix boss spawn savegame bug
-//
-// Revision 1.17  1998/03/23  15:18:03  phares
-// Repaired AV ghosts stuck together bug
-//
-// Revision 1.16  1998/03/16  12:33:12  killough
-// Use new P_TryMove()
-//
-// Revision 1.15  1998/03/09  07:17:58  killough
-// Fix revenant tracer bug
-//
-// Revision 1.14  1998/03/02  11:40:52  killough
-// Use separate monsters_remember flag instead of bitmask
-//
-// Revision 1.13  1998/02/24  08:46:12  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.12  1998/02/23  04:43:44  killough
-// Add revenant p_atracer, optioned monster ai_vengence
-//
-// Revision 1.11  1998/02/17  06:04:55  killough
-// Change RNG calling sequences
-// Fix minor icon landing bug
-// Use lastenemy to make monsters remember former targets, and fix player look
-//
-// Revision 1.10  1998/02/09  03:05:22  killough
-// Remove icon landing limit
-//
-// Revision 1.9  1998/02/05  12:15:39  phares
-// tighten lost soul wall fix to compatibility
-//
-// Revision 1.8  1998/02/02  13:42:54  killough
-// Relax lost soul wall fix to demo_compatibility
-//
-// Revision 1.7  1998/01/28  13:21:01  phares
-// corrected Option3 in AV bug
-//
-// Revision 1.6  1998/01/28  12:22:17  phares
-// AV bug fix and Lost Soul trajectory bug fix
-//
-// Revision 1.5  1998/01/26  19:24:00  phares
-// First rev with no ^Ms
-//
-// Revision 1.4  1998/01/23  14:51:51  phares
-// No content change. Put ^Ms back.
-//
-// Revision 1.3  1998/01/23  14:42:14  phares
-// No content change. Removed ^Ms for experimental checkin.
-//
-// Revision 1.2  1998/01/19  14:45:01  rand
-// Temporary line for checking checkins
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

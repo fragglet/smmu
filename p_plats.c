@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_plats.c,v 1.16 1998/05/08 17:44:18 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Plats (i.e. elevator platforms) code, raising/lowering.
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_plats.c,v 1.16 1998/05/08 17:44:18 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -267,7 +273,7 @@ int EV_DoPlat
         plat->wait = 35*PLATWAIT;
         plat->status = down;
         if(!silentmove(sec))    // sf: silentmove
-                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+	  S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
           
       case blazeDWUS:
@@ -281,7 +287,7 @@ int EV_DoPlat
         plat->wait = 35*PLATWAIT;
         plat->status = down;
         if(!silentmove(sec))    // sf: silentmove
-                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+	  S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
           
       case perpetualRaise:
@@ -300,7 +306,7 @@ int EV_DoPlat
         plat->status = P_Random(pr_plats)&1;
 
         if(!silentmove(sec))    // sf: silentmove
-                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+	  S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
 
       case toggleUpDn: //jff 3/14/98 add new type to support instant toggle
@@ -438,45 +444,9 @@ void P_RemoveAllActivePlats(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_plats.c,v $
-// Revision 1.16  1998/05/08  17:44:18  jim
-// formatted/documented p_plats
-//
-// Revision 1.15  1998/05/03  23:11:15  killough
-// Fix #includes at the top, nothing else
-//
-// Revision 1.14  1998/03/29  21:45:45  jim
-// Fixed lack of switch action on second instant toggle activation
-//
-// Revision 1.13  1998/03/15  14:40:06  jim
-// added pure texture change linedefs & generalized sector types
-//
-// Revision 1.12  1998/03/14  17:19:22  jim
-// Added instant toggle floor type
-//
-// Revision 1.11  1998/02/23  23:46:59  jim
-// Compatibility flagged multiple thinker support
-//
-// Revision 1.9  1998/02/17  06:06:01  killough
-// Make activeplats global for savegame, change RNG calls
-//
-// Revision 1.8  1998/02/13  03:28:45  jim
-// Fixed W1,G1 linedefs clearing untriggered special, cosmetic changes
-//
-// Revision 1.6  1998/02/02  13:39:58  killough
-// Progam beautification
-//
-// Revision 1.5  1998/01/30  14:44:08  jim
-// Added gun exits, right scrolling walls and ceiling mover specials
-//
-// Revision 1.3  1998/01/27  16:20:42  jim
-// Fixed failure to set plat->low when a raise reversed direction
-//
-// Revision 1.2  1998/01/26  19:24:17  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:00  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

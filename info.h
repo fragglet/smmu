@@ -1,18 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: info.h,v 1.10 1998/05/12 12:47:31 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Thing frame/state LUT,
@@ -179,7 +186,12 @@ typedef enum
   SPR_PLS1, // killough 7/19/98: first  of two plasma fireballs in the beta
   SPR_PLS2, // killough 7/19/98: second of two plasma fireballs in the beta
 
-        // sf: beta sprites removed
+  // sf: beta sprites removed
+  // sf: beta sprites added back for old mbf dehacked patch compatibility
+  
+  SPR_BON3, // killough 7/11/98: evil sceptre in beta version
+  SPR_BON4, // killough 7/11/98: unholy bible in beta version
+  
   SPR_PART,
   NUMSPRITES  // counter of how many there are
 } spritenum_t;
@@ -1211,7 +1223,32 @@ typedef enum
   S_PLS2BALLX2,
   S_PLS2BALLX3,
 
-        // sf: removed MBF beta states
+  // sf: removed MBF beta states
+  // sf: added back for mbf dehacked patch compatiblity
+
+  S_BON3, // killough 7/11/98: evil sceptre in beta version
+  S_BON4, // killough 7/11/98: unholy bible in beta version
+
+  // killough 10/98: beta lost souls were different from their modern cousins
+  S_BSKUL_STND,
+  S_BSKUL_RUN1,
+  S_BSKUL_RUN2,
+  S_BSKUL_RUN3,
+  S_BSKUL_RUN4,
+  S_BSKUL_ATK1,
+  S_BSKUL_ATK2,
+  S_BSKUL_ATK3,
+  S_BSKUL_PAIN1,
+  S_BSKUL_PAIN2,
+  S_BSKUL_PAIN3,
+  S_BSKUL_DIE1,
+  S_BSKUL_DIE2,
+  S_BSKUL_DIE3,
+  S_BSKUL_DIE4,
+  S_BSKUL_DIE5,
+  S_BSKUL_DIE6,
+  S_BSKUL_DIE7,
+  S_BSKUL_DIE8,
 
   S_MUSHROOM,  // killough 10/98: mushroom explosion effect
   S_PART1,
@@ -1457,35 +1494,9 @@ extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
 
 //----------------------------------------------------------------------------
 //
-// $Log: info.h,v $
-// Revision 1.10  1998/05/12  12:47:31  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/05/06  11:31:53  jim
-// Moved predefined lump writer info->w_wad
-//
-// Revision 1.8  1998/05/04  21:35:54  thldrmn
-// commenting and reformatting
-//
-// Revision 1.7  1998/04/22  06:33:58  killough
-// Add const to WritePredefinedLumpWad() parm
-//
-// Revision 1.6  1998/04/21  23:47:10  jim
-// Predefined lump dumper option
-//
-// Revision 1.5  1998/03/23  15:24:09  phares
-// Changed pushers to linedef control
-//
-// Revision 1.4  1998/03/09  18:30:43  phares
-// Added invisible sprite for MT_PUSH
-//
-// Revision 1.3  1998/02/24  08:45:53  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.2  1998/01/26  19:27:02  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

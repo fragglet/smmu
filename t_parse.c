@@ -1,6 +1,24 @@
 // Emacs style mode select -*- C++ -*-
 //----------------------------------------------------------------------------
 //
+// Copyright(C) 2000 Simon Howard
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//--------------------------------------------------------------------------
+//
 // Parsing.
 //
 // Takes lines of code, or groups of lines and runs them.
@@ -153,8 +171,9 @@ static char escape_sequence(char c)
   if(c == '\\') return '\\';
   if(c == '"') return '"';
   if(c == '?') return '?';
-  if(c == 'a') return '\a'; // alert beep
-  if(c == 't') return '\t'; //tab
+  if(c == 'a') return '\a';         // alert beep
+  if(c == 't') return '\t';         //tab
+  if(c == 'z') return *FC_TRANS;    // translucent toggle
   
   // font colours
   if(c >= '0' && c <= '9') return 128 + (c-'0');
@@ -662,3 +681,13 @@ void script_error(char *s, ...)
   
   killscript = true;
 }
+
+//---------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//---------------------------------------------------------------------------
+

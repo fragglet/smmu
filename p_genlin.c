@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_genlin.c,v 1.18 1998/05/23 10:23:23 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //  Generalized linedef type handlers
@@ -22,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_genlin.c,v 1.18 1998/05/23 10:23:23 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -1150,56 +1156,9 @@ manual_door:
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_genlin.c,v $
-// Revision 1.18  1998/05/23  10:23:23  jim
-// Fix numeric changer loop corruption
-//
-// Revision 1.17  1998/05/08  03:34:56  jim
-// formatted/documented p_genlin
-//
-// Revision 1.16  1998/05/03  23:05:56  killough
-// Fix #includes at the top, nothing else
-//
-// Revision 1.15  1998/04/16  06:25:23  killough
-// Fix generalized doors' opening sounds
-//
-// Revision 1.14  1998/04/05  13:54:10  jim
-// fixed switch change on second activation
-//
-// Revision 1.13  1998/03/31  16:52:15  jim
-// Fixed uninited type field in stair builders
-//
-// Revision 1.12  1998/03/20  14:24:28  jim
-// Gen ceiling target now shortest UPPER texture
-//
-// Revision 1.11  1998/03/15  14:40:14  jim
-// added pure texture change linedefs & generalized sector types
-//
-// Revision 1.10  1998/03/13  14:05:56  jim
-// Fixed arith overflow in some linedef types
-//
-// Revision 1.9  1998/03/04  11:56:30  jim
-// Fix multiple sector stair raise
-//
-// Revision 1.8  1998/02/27  11:50:59  jim
-// Fixes for stairs
-//
-// Revision 1.7  1998/02/23  23:46:50  jim
-// Compatibility flagged multiple thinker support
-//
-// Revision 1.6  1998/02/23  00:41:46  jim
-// Implemented elevators
-//
-// Revision 1.4  1998/02/17  06:07:56  killough
-// Change RNG calling sequence
-//
-// Revision 1.3  1998/02/13  03:28:36  jim
-// Fixed W1,G1 linedefs clearing untriggered special, cosmetic changes
-//
-//
-// Revision 1.1.1.1  1998/02/04  09:19:00  jim
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------
-          

@@ -1,19 +1,25 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: m_cheat.c,v 1.7 1998/05/12 12:47:00 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+//--------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //      Cheat sequence checking.
@@ -21,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: m_cheat.c,v 1.7 1998/05/12 12:47:00 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "c_runcmd.h"
@@ -264,7 +270,7 @@ char buf[3];
         doom_printf(s_STSTR_NOMUS); // Ty 03/27/98 - externalized
       else
         {
-          S_ChangeMusic(musnum, 1);
+          S_ChangeMusicNum(musnum, 1);
           idmusnum = musnum; //jff 3/17/98 remember idmus number for restore
         }
     }
@@ -278,7 +284,7 @@ char buf[3];
         doom_printf(s_STSTR_NOMUS); // Ty 03/27/98 - externalized
       else
         {
-          S_ChangeMusic(musnum, 1);
+          S_ChangeMusicNum(musnum, 1);
           idmusnum = musnum; //jff 3/17/98 remember idmus number for restore
         }
     }
@@ -480,7 +486,7 @@ static void cheat_ddt()
 
 static void cheat_hom()
 {
-   C_RunTextCmd("r_showhom /"); //sf
+  C_RunTextCmd("r_showhom /"); //sf
 }
 
 // killough 2/16/98: keycard/skullkey cheat functions
@@ -521,16 +527,20 @@ char buf[3];
   if (w==wp_fist)           // make '1' apply beserker strength toggle
     cheat_pw(pw_strength);
   else
-    if (w >= 0 && w < NUMWEAPONS)
-      if ((plyr->weaponowned[w] = !plyr->weaponowned[w]))
-        doom_printf("Weapon Added");  // Ty 03/27/98 - *not* externalized
-      else 
-        {
-          int P_SwitchWeapon(player_t *player);
-          doom_printf("Weapon Removed"); // Ty 03/27/98 - *not* externalized
-          if (w==plyr->readyweapon)         // maybe switch if weapon removed
-            plyr->pendingweapon = P_SwitchWeapon(plyr);
-        }
+    {
+      if (w >= 0 && w < NUMWEAPONS)
+	{
+	  if ((plyr->weaponowned[w] = !plyr->weaponowned[w]))
+	    doom_printf("Weapon Added");  // Ty 03/27/98 - *not* externalized
+	  else 
+	    {
+	      int P_SwitchWeapon(player_t *player);
+	      doom_printf("Weapon Removed"); // Ty 03/27/98-*not* externalized
+	      if (w==plyr->readyweapon)      // maybe switch if weapon removed
+		plyr->pendingweapon = P_SwitchWeapon(plyr);
+	    }
+	}
+    }
 }
 
 // killough 2/16/98: generalized ammo cheats
@@ -643,25 +653,29 @@ boolean M_FindCheats(int key)
         // sf: removed beta flag
 
   for (matchedbefore = ret = i = 0; cheat[i].cheat; i++)
-    if ((sr & cheat[i].mask) == cheat[i].code &&  // if match found & allowed
-        !(cheat[i].when & not_dm   && deathmatch && !demoplayback) &&
-        !(cheat[i].when & not_coop && netgame && !deathmatch) &&
-        !(cheat[i].when & not_demo && (demorecording || demoplayback)) &&
-        !(cheat[i].when & not_menu && menuactive) &&
-        !(cheat[i].when & not_deh  && cheat[i].deh_modified))
-      if (cheat[i].arg < 0)               // if additional args are required
-        {
-          cht = i;                        // remember this cheat code
-          arg = argbuf;                   // point to start of arg buffer
-          argsleft = -cheat[i].arg;       // number of args expected
-          ret = 1;                        // responder has eaten key
-        }
-      else
-        if (!matchedbefore)               // allow only one cheat at a time 
-          {
-            matchedbefore = ret = 1;      // responder has eaten key
-            cheat[i].func(cheat[i].arg);  // call cheat handler
-          }
+    {
+      if ((sr & cheat[i].mask) == cheat[i].code &&  // if match found & allowed
+	  !(cheat[i].when & not_dm   && deathmatch && !demoplayback) &&
+	  !(cheat[i].when & not_coop && netgame && !deathmatch) &&
+	  !(cheat[i].when & not_demo && (demorecording || demoplayback)) &&
+	  !(cheat[i].when & not_menu && menuactive) &&
+	  !(cheat[i].when & not_deh  && cheat[i].deh_modified))
+	{
+	  if (cheat[i].arg < 0)            // if additional args are required
+	    {
+	      cht = i;                     // remember this cheat code
+	      arg = argbuf;                // point to start of arg buffer
+	      argsleft = -cheat[i].arg;    // number of args expected
+	      ret = 1;                     // responder has eaten key
+	  }
+	else
+	  if (!matchedbefore)              // allow only one cheat at a time 
+	    {
+	      matchedbefore = ret = 1;     // responder has eaten key
+	      cheat[i].func(cheat[i].arg);  // call cheat handler
+	    }
+	}
+    }
   return ret;
 }
 
@@ -759,26 +773,9 @@ void Cheat_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_cheat.c,v $
-// Revision 1.7  1998/05/12  12:47:00  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.6  1998/05/07  01:08:11  killough
-// Make TNTAMMO ammo ordering more natural
-//
-// Revision 1.5  1998/05/03  22:10:53  killough
-// Cheat engine, moved from st_stuff
-//
-// Revision 1.4  1998/05/01  14:38:06  killough
-// beautification
-//
-// Revision 1.3  1998/02/09  03:03:05  killough
-// Rendered obsolete by st_stuff.c
-//
-// Revision 1.2  1998/01/26  19:23:44  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:58  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------
