@@ -1475,8 +1475,7 @@ void AM_drawWalls(void)
 	} // now draw the lines only visible because the player has computermap
       else if (plr->powers[pw_allmap]) // computermap visible lines
 	{
-	  if(1)
-	    //      if (!(lines[i].flags & ML_DONTDRAW)) // invisible flag lines do not show
+	  if (!(lines[i].flags & ML_DONTDRAW)) // invisible flag lines do not show
 	    {
 	      if
 		(
@@ -1838,8 +1837,11 @@ void AM_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-07-29 22:33:02  fraggle
+// remove automap test code?
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
