@@ -100,6 +100,7 @@ void UDP_Shutdown();
 void UDP_SendPacket(int node, void *data, int datalen);
 void UDP_SendBroadcast(void *data, int datalen);
 void *UDP_GetPacket(int *node);
+void *UDP_GetPacket_Lagged(int *node);
 
 netmodule_t udp =
   {
@@ -108,7 +109,7 @@ netmodule_t udp =
     UDP_Shutdown,
     UDP_SendPacket,
     UDP_SendBroadcast,
-    UDP_GetPacket,
+    UDP_GetPacket_Lagged,
   };
 
 //==========================================================================
@@ -401,7 +402,7 @@ void UDP_SendPacket(int nodenum, void *data, int datalen)
     return;
   if(nodenum < 0 || nodenum >= udp.numnodes)
     return;
-  
+
   sendto
     (
      receive_socket,
@@ -553,6 +554,77 @@ void *UDP_GetPacket(int *node)
   return &packet;
 }
 
+//------------------------------------------------------------------------
+//
+// UDP_GetPacket_Lagged
+//
+// UDP_GetPacket but with simulated lag
+//
+
+#define INET_PACKETS 64
+#define LAG 8
+static netpacket_t inet_packets[INET_PACKETS];
+static int inet_source[INET_PACKETS];
+static int inet_gettime[INET_PACKETS];
+static int inet_head, inet_tail;
+
+void *UDP_GetPacket_Lagged(int *node)
+{
+  int i;
+  struct sockaddr_in src;
+  int addr_len;
+  static netpacket_t packet;
+    
+  if(!udp.initted || !tcpip_support)
+    return NULL;
+  
+  // get any new packet
+  
+  addr_len = sizeof(src);
+  
+  i = recvfrom
+    (
+     receive_socket,
+     &packet,
+     sizeof(packet),
+     0,
+     (struct sockaddr *) &src,
+     &addr_len
+     );
+
+  if(i < 0 && errno != EWOULDBLOCK)
+    {
+      C_Printf("socket receiving error:\n%s\n", lsck_strerror(errno));
+    }
+
+  if(i >= 0)
+    {
+      // add to queue
+      
+      inet_packets[inet_head] = packet;
+      inet_source[inet_head] = UDP_NodeForAddress(&src);
+      inet_gettime[inet_head] = I_GetTime_RealTime();
+      
+      inet_head = (inet_head + 1) % INET_PACKETS;
+    }
+  
+  if(inet_head == inet_tail)
+    return NULL;
+  
+  if(I_GetTime_RealTime() > inet_gettime[inet_tail] + LAG)
+    {
+      i = inet_tail;
+      inet_tail = (inet_tail + 1) % INET_PACKETS;
+      
+      if(node)
+	*node = inet_source[i];
+      
+      return &inet_packets[i];
+    }
+
+  return NULL;
+}
+
 //==========================================================================
 //
 // Console Commands
@@ -575,8 +647,11 @@ void UDP_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:10  fraggle
+// lag simulation code
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------
