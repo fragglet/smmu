@@ -532,6 +532,8 @@ void D_DoAdvanceDemo(void)
     demosequence = 0;
   demostates[demosequence][gamemode].func
     (demostates[demosequence][gamemode].name);
+
+  C_InstaPopup();       // make console go away
 }
 
 //
@@ -1190,7 +1192,7 @@ void startupmsg(char *func, char *desc)
 
 void D_SetGraphicsMode()
 {
-   if(debugfile) fprintf(debugfile, "** set graphics mode\n");
+   DEBUGMSG("** set graphics mode\n");
 
    I_InitKeyboard(); // last chance for ctrl-c
 
@@ -1198,7 +1200,7 @@ void D_SetGraphicsMode()
    I_InitGraphics();
 
           // set up the console to display startup messages
-   gamestate = GS_CONSOLE; consoleactive = 1;
+   gamestate = GS_CONSOLE; 
    current_height = SCREENHEIGHT;
    c_showprompt = false;
         
@@ -1232,23 +1234,7 @@ void D_DoomMain(void)
   // killough 10/98: process all command-line DEH's first
   D_ProcessDehCommandLine();
 
-        // sf: must remember to remove beta at some point
-#ifdef BETA
-  // killough 7/19/98: beta emulation option
-  beta_emulation = !!M_CheckParm("-beta");
-
-  if (beta_emulation)
-    { // killough 10/98: beta lost soul has different behavior frames
-      mobjinfo[MT_SKULL].spawnstate   = S_BSKUL_STND;
-      mobjinfo[MT_SKULL].seestate     = S_BSKUL_RUN1;
-      mobjinfo[MT_SKULL].painstate    = S_BSKUL_PAIN1;
-      mobjinfo[MT_SKULL].missilestate = S_BSKUL_ATK1;
-      mobjinfo[MT_SKULL].deathstate   = S_BSKUL_DIE1;
-      mobjinfo[MT_SKULL].damage       = 1;
-    }
-  else
-    mobjinfo[MT_SCEPTRE].doomednum = mobjinfo[MT_BIBLE].doomednum = -1;
-#endif
+        // sf: removed beta
 
   // jff 1/24/98 set both working and command line value of play parms
         // sf: make bitwise for console
@@ -1583,7 +1569,8 @@ void D_DoomMain(void)
         "http://fraggle.tsx.org/ \n"
         "version %i.%02i '%s' \n\n",
                 VERSION/100, VERSION%100, version_name);
-  C_Update();
+  if(!textmode_startup && !devparm)
+    C_Update();
 
   idmusnum = -1; //jff 3/17/98 insure idmus number is blank
 
@@ -1639,7 +1626,7 @@ void D_DoomMain(void)
 	  singledemo = true;          // quit after one demo
 	}
 
-  if(debugfile) fprintf(debugfile, "start gamestate: title screen or whatever\n");
+  DEBUGMSG("start gamestate: title screen or whatever\n");
 
 // killough 12/98: inlined D_DoomLoop
 
@@ -1669,10 +1656,11 @@ void D_DoomMain(void)
     }
 
   // this fixes a strange bug, don't know why but it works
-  for(p=0; p<10; p++)
-        C_Update();
+  if(!textmode_startup && !devparm)
+    for(p=0; p<10; p++)
+          C_Update();
 
-  if(debugfile) fprintf(debugfile, "start main loop\n");
+  DEBUGMSG("start main loop\n");
 
   while(1)
     {

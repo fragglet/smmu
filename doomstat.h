@@ -270,7 +270,9 @@ extern angle_t consoleangle;
 // File handling stuff.
 extern  char    basedefault[];
 extern  FILE   *debugfile;
-#define DEBUGMSG(s) if(debugfile) fprintf(debugfile, s);
+                // sf:
+#define DEBUGMSG(s) if(debugfile) { fprintf(debugfile, s);    \
+                                    fflush(debugfile); }
 
 // if true, load all graphics at level load
 extern  boolean precache;
@@ -329,11 +331,6 @@ extern int default_player_bobbing;  // killough 3/1/98: make local to each game
 
 // killough 7/19/98: Classic Pre-Beta BFG
 extern bfg_t bfgtype, default_bfgtype;
-
-#ifdef BETA
-// killough 7/24/98: Emulation of Press Release version of Doom
-extern int beta_emulation;
-#endif
 
 #ifdef DOGS
 extern int dogs, default_dogs;     // killough 7/19/98: Marine's best friend :)

@@ -40,8 +40,11 @@ rcsid[] = "$Id: p_pspr.c,v 1.13 1998/05/07 00:53:36 killough Exp $";
 #include "s_sound.h"
 #include "sounds.h"
 
-#define LOWERSPEED   (FRACUNIT*6)
-#define RAISESPEED   (FRACUNIT*6)
+int weapon_speed = 6;
+int default_weapon_speed = 6;
+
+#define LOWERSPEED   (FRACUNIT*weapon_speed)
+#define RAISESPEED   (FRACUNIT*weapon_speed)
 #define WEAPONBOTTOM (FRACUNIT*128)
 #define WEAPONTOP    (FRACUNIT*32)
 
@@ -680,13 +683,8 @@ void A_FirePlasma(player_t *player, pspdef_t *psp)
   player->ammo[weaponinfo[player->readyweapon].ammo]--;
   A_FireSomething(player, P_Random(pr_plasma) & 1);
 
-#ifdef BETA
-  // killough 7/11/98: emulate Doom's beta version, which alternated fireballs
-  P_SpawnPlayerMissile(player->mo, beta_emulation ?
-		       player->refire&1 ? MT_PLASMA2 : MT_PLASMA1 : MT_PLASMA);
-#else
+        // sf: removed beta
   P_SpawnPlayerMissile(player->mo, MT_PLASMA);
-#endif
 }
 
 //
@@ -810,17 +808,7 @@ void A_FireCGun(player_t *player, pspdef_t *psp)
   if (!player->ammo[weaponinfo[player->readyweapon].ammo])
     return;
 
-  // killough 8/2/98: workaround for beta chaingun sprites missing at bottom
-  // The beta did not have fullscreen, and its chaingun sprites were chopped
-  // off at the bottom for some strange reason. So we lower the sprite if
-  // fullscreen is in use.
-#ifdef BETA
-  {
-    extern int screenblocks;
-    if (beta_emulation && screenblocks>=11)
-      player->psprites[ps_weapon].sy = FRACUNIT*48;
-  }
-#endif
+        // sf: removed beta
 
   P_SetMobjState(player->mo, S_PLAY_ATK2);
   player->ammo[weaponinfo[player->readyweapon].ammo]--;

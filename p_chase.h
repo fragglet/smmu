@@ -21,6 +21,9 @@ extern int chasecam_active;
 
 extern int walkcam_active;
 
+extern camera_t chasecam;
+extern camera_t walkcamera;
+
 void P_ChaseSetupFrame();
 void P_ChaseTicker();
 void P_ChaseStart();

@@ -63,14 +63,6 @@ typedef enum
   FirstPersonState
 } st_stateenum_t;
 
-// States for the chat code.
-typedef enum
-{
-  StartChatState,
-  WaitDestState,
-  GetChatState
-} st_chatstateenum_t;
-
 boolean ST_Responder(event_t* ev);
 
 // killough 5/2/98: moved from m_misc.c:

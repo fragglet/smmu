@@ -29,6 +29,8 @@
 
 static const char rcsid[] = "$Id: z_zone.c,v 1.13 1998/05/12 06:11:55 killough Exp $";
 
+#include <stdio.h>
+
 #include "z_zone.h"
 #include "doomstat.h"
 
@@ -227,7 +229,7 @@ void Z_Init(void)
       size -= RETRY_AMOUNT;
     }
 
-  usermsg("Z_Init: malloc'd %i", zonebase_size);
+  printf("Z_Init: malloc'd %i\n", (int)zonebase_size);
 
   // Align on cache boundary
 

@@ -80,12 +80,7 @@ void R_StartSky()
         texturename="SKY1";
 	break;
       case 2:
-#ifdef BETA
-	// killough 10/98: beta version had different sky orderings
-        texturename=beta_emulation ? "SKY1" : "SKY2";
-#else
         texturename="SKY2";
-#endif
 	break;
       case 3:
         texturename="SKY3";
@@ -95,12 +90,10 @@ void R_StartSky()
 	break;
       }//jff 3/27/98 end sky setting fix
 
-      if(*info_skyname)
-      {
-              texturename=info_skyname;
-      }
+  if(*info_skyname)
+    texturename=info_skyname;
 
-      skytexture = R_TextureNumForName (texturename);
+  skytexture = R_TextureNumForName (texturename);
 
 }
 

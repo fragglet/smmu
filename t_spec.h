@@ -8,8 +8,11 @@ void spec_while();
 void spec_for();
 void spec_goto();
 
+        // variable types
 void spec_int();
 void spec_string();
+void spec_const();
+void spec_mobj();
 
 void spec_script();     // in t_script.c btw
 

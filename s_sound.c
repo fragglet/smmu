@@ -57,6 +57,17 @@ rcsid[] = "$Id: s_sound.c,v 1.11 1998/05/03 22:57:06 killough Exp $";
 #define NORM_PRIORITY 64
 #define NORM_SEP 128
 #define S_STEREO_SWING (96<<FRACBITS)
+        // sf:
+#define SOUND_HASHSLOTS 17
+#define sound_hash(s)                             \
+         ( ( tolower((s)[0]) + (s)[0] ?           \
+             tolower((s)[1]) + (s)[1] ?           \
+             tolower((s)[2]) + (s)[2] ?           \
+             tolower((s)[3]) + (s)[3] ?           \
+             tolower((s)[4]) : 0 : 0 : 0 : 0 ) % SOUND_HASHSLOTS )
+
+static void S_CreateSoundHashTable();
+
 
 //jff 1/22/98 make sound enabling variables readable here
 extern int snd_card, mus_card;
@@ -100,6 +111,9 @@ int default_numChannels;  // killough 9/98
 int idmusnum;
 
 int playing_lumpnum;    // the lumpnum of the playing mus
+
+        // sf:
+sfxinfo_t *sfxinfos[SOUND_HASHSLOTS];
 
 //
 // Internals.
@@ -221,7 +235,7 @@ static int S_getChannel(const void *origin, sfxinfo_t *sfxinfo)
   return cnum;
 }
 
-void S_Startsfxinfo(const mobj_t *origin, sfxinfo_t *sfx)
+void S_StartSfxInfo(const mobj_t *origin, sfxinfo_t *sfx)
 {
   int sep, pitch, priority, cnum;
   int volume = snd_SfxVolume;
@@ -231,10 +245,10 @@ void S_Startsfxinfo(const mobj_t *origin, sfxinfo_t *sfx)
   if (!snd_card || nosfxparm)
     return;
 
-  if (sfx->skinsound)
+  if (sfx->skinsound)           // check for skin sounds
   {
-        if(origin && origin->skin)
-                sfx = origin->skin->sound[sfx->skinsound-1];
+     if(origin && origin->skin && origin->skin->sounds[sfx->skinsound-1])
+        sfx = S_SfxInfoForName(origin->skin->sounds[sfx->skinsound-1]);
   }
 
   sfx_id = sfx - S_sfx;
@@ -327,7 +341,17 @@ void S_Startsfxinfo(const mobj_t *origin, sfxinfo_t *sfx)
 
 void S_StartSound(const mobj_t *origin, int sfx_id)
 {
-        S_Startsfxinfo(origin, S_sfx+sfx_id);
+   S_StartSfxInfo(origin, &S_sfx[sfx_id]);
+}
+
+void S_StartSoundName(const mobj_t *origin, char *name)
+{
+   sfxinfo_t *sfx;
+
+   if(!(sfx = S_SfxInfoForName(name)))
+        C_Printf("sound not found: %s\n", name);
+   else
+        S_StartSfxInfo(origin, sfx);
 }
 
 void S_StopSound(const mobj_t *origin)
@@ -609,10 +633,10 @@ void S_Start(void)
 
 void S_PreCacheAllSounds()
 {
-        int i;
+  int i;
 
-        for(i=0;i<NUMSFX;i++)
-                I_CacheSound(S_sfx+i);
+  for(i=1; i<NUMSFX; i++)
+    I_CacheSound(&S_sfx[i]);
 }
 
 //
@@ -623,6 +647,8 @@ void S_PreCacheAllSounds()
 
 void S_Init(int sfxVolume, int musicVolume)
 {
+  S_CreateSoundHashTable();
+
   //jff 1/22/98 skip sound init if sound not enabled
   if (snd_card && !nosfxparm)
     {
@@ -652,112 +678,145 @@ void S_Init(int sfxVolume, int musicVolume)
   mus_paused = 0;
 }
 
+/********** sound hashing ************/
 
-sfxinfo_t *S_sfxinfoForname(char *name)
+int hashtable_created = false;  // set to 1 when created
+
+        // store sfxinfo_t in hashchain
+void S_StoreSfxInfo(sfxinfo_t *sfxinfo)
 {
-        int i;
+   int hashnum = sound_hash(sfxinfo->name);
 
-                // start at 1: 0 is a dummy
-        for(i=1; i<NUMSFX; i++)
-        {
-                if(!strnicmp(name,S_sfx[i].name,6))
-                {
-                        return S_sfx+i;
-                }
-        }
+   if(!hashtable_created)
+   {
+        S_CreateSoundHashTable();
+        hashnum = sound_hash(sfxinfo->name);
+   }
 
-        return NULL;
+          // hook it in
+   sfxinfo->next = sfxinfos[hashnum];
+   sfxinfos[hashnum] = sfxinfo;
 }
 
-        // free sound and reload (new wad)
-        // NOTE: LUMPNUM NOT SOUNDNUM
-void S_UpdateSound(int lumpnum)
+static void S_CreateSoundHashTable()
 {
-        sfxinfo_t *sfx;
-        char name[8];
+   int i;
 
-        strncpy(name,lumpinfo[lumpnum]->name+2,6);
-        name[6] = 0;
+   if(hashtable_created) return;   // already done
+   hashtable_created = true;    // set here to prevent recursive calls
 
-        sfx = S_sfxinfoForname(name);
-        if(!sfx) return;        // not found
+          // clear hash slots first
+   for(i=0; i<SOUND_HASHSLOTS; i++)
+           sfxinfos[i] = 0;
 
-        if(!sfx->data) return;  // not yet cached anyway
+   for(i=1; i<NUMSFX; i++)
+   {
+      S_StoreSfxInfo(&S_sfx[i]);
+   }
+}
 
-        Z_Free(sfx->data);      // free
-        sfx->data = NULL;
-        if(s_precache) I_CacheSound(sfx);       // precache if we do that
+sfxinfo_t *S_SfxInfoForName(char *name)
+{
+   sfxinfo_t *si = sfxinfos[sound_hash(name)];
+ 
+   if(!hashtable_created)
+   {
+        S_CreateSoundHashTable();
+        si = sfxinfos[sound_hash(name)];
+   }
+
+   while(si)
+   {
+       if(!strcasecmp(name, si->name)) return si;
+       si = si->next;
+   }
+
+   return NULL;
 }
 
 void S_Chgun()
 {
-        memcpy(S_sfx+sfx_chgun, &chgun, sizeof(sfxinfo_t));
-        S_sfx[sfx_chgun].data = NULL;
+   memcpy(&S_sfx[sfx_chgun], &chgun, sizeof(sfxinfo_t));
+   S_sfx[sfx_chgun].data = NULL;
 }
+
+        // free sound and reload (new wad)
+        // also check to see if a new sound name has been found
+        // (ie. not one in the original game). If so, we create
+        // a new sfxinfo_t and hook it into the hashtable for use
+        // by scripting and skins
+
+        // NOTE: LUMPNUM NOT SOUNDNUM
+void S_UpdateSound(int lumpnum)
+{
+   sfxinfo_t *sfx;
+   char name[8];
+
+   strncpy(name,lumpinfo[lumpnum]->name+2,6);
+   name[6] = 0;
+
+   sfx = S_SfxInfoForName(name);
+
+   if(!sfx)
+   {
+       // create a new one and hook into hashchain
+
+       sfx = Z_Malloc(sizeof(sfxinfo_t), PU_STATIC, 0);
+
+       sfx->name = strdup(name);
+       sfx->singularity = sg_none;
+       sfx->priority = 64;
+       sfx->link = NULL;
+       sfx->pitch = sfx->volume = -1;
+       sfx->skinsound = 0;
+       sfx->data = NULL;
+       S_StoreSfxInfo(sfx);
+   }
+
+   if(sfx->data)
+   {
+          // free it if cached
+        Z_Free(sfx->data);      // free
+        sfx->data = NULL;
+   }
+}
+
 
 /*************************
         CONSOLE COMMANDS
  *************************/
 
-variable_t var_s_precache =
-{&s_precache,     NULL,                 vt_int,    0,1, onoff};
-variable_t var_pitched =
-{&pitched_sounds, NULL,                 vt_int,    0,1, onoff};
-variable_t var_sndchannels =
-{
-        &default_numChannels, NULL,
-        vt_int, 1, 128,
-};
-variable_t var_sfxvol =
-{
-        &snd_SfxVolume, NULL,
-        vt_int, 0, 15,        
-};
-variable_t var_musvol =
-{
-        &snd_MusicVolume, NULL,
-        vt_int, 0, 127
-};
+VARIABLE_BOOLEAN(s_precache, NULL,      onoff);
+VARIABLE_BOOLEAN(pitched_sounds, NULL,  onoff);
+VARIABLE_INT(default_numChannels, NULL, 1, 128, NULL);
+VARIABLE_INT(snd_SfxVolume, NULL,       0, 15, NULL);
+VARIABLE_INT(snd_MusicVolume, NULL,     0, 127, NULL);
 
 void S_ResetVolume()
 {
-        S_SetMusicVolume(snd_MusicVolume);
-        S_SetSfxVolume(snd_SfxVolume);
+   S_SetMusicVolume(snd_MusicVolume);
+   S_SetSfxVolume(snd_SfxVolume);
 }
 
-command_t s_commands[] =
+CONSOLE_VARIABLE(s_precache, s_precache, 0) {}
+CONSOLE_VARIABLE(s_pitched, pitched_sounds, 0) {}
+CONSOLE_VARIABLE(snd_channels, default_numChannels, 0) {}
+CONSOLE_VARIABLE(sfx_volume, snd_SfxVolume, 0)
 {
-        {
-                "s_pitched",   ct_variable,
-                0,
-                &var_pitched,NULL
-        },
-        {
-                "s_precache",  ct_variable,
-                0,
-                &var_s_precache,NULL
-        },
-        {
-                "snd_channels", ct_variable,
-                0,
-                &var_sndchannels
-        },
-        {
-                "sfx_volume", ct_variable,
-                0,
-                &var_sfxvol, S_ResetVolume
-        },
-        {
-                "music_volume", ct_variable,
-                0,
-                &var_musvol, S_ResetVolume
-        },
-        {"end", ct_end}
-};
+    S_ResetVolume();
+}
+CONSOLE_VARIABLE(music_volume, snd_MusicVolume, 0)
+{
+    S_ResetVolume();
+}
 
 void S_AddCommands()
 {
-        C_AddCommandList(s_commands);
+    C_AddCommand(s_pitched);
+    C_AddCommand(s_precache);
+    C_AddCommand(snd_channels);
+    C_AddCommand(sfx_volume);
+    C_AddCommand(music_volume);
 }
 
 

@@ -4,13 +4,72 @@
 typedef struct command_s command_t;
 typedef struct variable_s variable_t;
 
-#include "c_cmdlst.h"
-
 /******************************** #defines ********************************/
 
 #define MAXTOKENS 32
 #define MAXTOKENLENGTH 64
 #define CMDCHAINS 16
+
+// zdoom _inspired_:
+#define CONSOLE_COMMAND(name, flags)                    \
+        void Handler_ ## name();                        \
+        command_t Cmd_ ## name = { # name, ct_command,  \
+                       flags, NULL, Handler_ ## name,   \
+                       0 };                             \
+        void Handler_ ## name()
+
+        // variable
+#define CONSOLE_VARIABLE(name, variable, flags)                         \
+        void Handler_ ## name();                                        \
+        command_t Cmd_ ## name = { # name, ct_variable,                 \
+                        flags, &var_ ## variable, Handler_ ## name,     \
+                        0 };                                            \
+        void Handler_ ## name()
+
+#define CONSOLE_NETCMD(name, flags, netcmd)             \
+        void Handler_ ## name();                        \
+        command_t Cmd_ ## name = { # name, ct_command,  \
+                       (flags) | cf_netvar, NULL,       \
+                       Handler_ ## name, netcmd };      \
+        void Handler_ ## name()
+
+#define CONSOLE_NETVAR(name, variable, flags, netcmd)                   \
+        void Handler_ ## name();                                        \
+        command_t Cmd_ ## name = { # name, ct_variable,                 \
+                        cf_netvar | (flags), &var_ ## variable,         \
+                        Handler_ ## name, netcmd };                     \
+        void Handler_ ## name()
+
+#define CONSOLE_CONST(name, variable)                           \
+        command_t Cmd_ ## name = { # name, ct_constant, 0,      \
+                &var_ ## variable, NULL, 0 };           
+
+#define VARIABLE(name, defaultvar, type, min, max, strings)  \
+        variable_t var_ ## name = { &name, defaultvar,       \
+                        type, min, max, strings};
+
+#define VARIABLE_INT(name, defaultvar, min, max, strings)    \
+        variable_t var_ ## name = { &name, defaultvar,       \
+                        vt_int, min, max, strings};
+
+#define VARIABLE_STRING(name, defaultvar, max)               \
+        variable_t var_ ## name = { &name, defaultvar,       \
+                        vt_string, 0, max, NULL};
+
+#define VARIABLE_BOOLEAN(name, defaultvar, strings)          \
+        variable_t var_ ## name = { &name, defaultvar,       \
+                        vt_int, 0, 1, strings };
+
+#define CONST_INT(name)                                      \
+        variable_t var_ ## name = { &name, NULL,             \
+                        vt_int, -1, -1, NULL};
+
+#define CONST_STRING(name)                                   \
+        variable_t var_ ## name = { &name, NULL,             \
+                        vt_string, -1, -1, NULL};
+
+
+#define C_AddCommand(c)  (C_AddCommand)(&Cmd_ ## c) 
 
 /********************************* ENUMS **********************************/
 
@@ -124,9 +183,17 @@ void C_ClearBuffer(int);
 
 extern command_t *cmdroots[CMDCHAINS];   // the commands in hash chains
 
-void C_AddCommand(command_t *command);
+void (C_AddCommand)(command_t *command);
 void C_AddCommandList(command_t *list);
 void C_AddCommands();
 command_t *C_GetCmdForName(char *cmdname);
+
+/***** define strings for variables *****/
+
+extern char *yesno[];
+extern char *onoff[];
+extern char *colournames[];
+extern char *textcolours[];
+extern char *skills[];
 
 #endif

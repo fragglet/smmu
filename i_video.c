@@ -490,6 +490,8 @@ void I_CheckVESA()
     int i;
     __dpmi_regs     regs;
 
+    return;
+
     // new ugly stuff...
     for (i=0; i<sizeof(vbeinfoblock_t); i++)
        _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
@@ -526,30 +528,19 @@ void I_CheckVESA()
         CONSOLE COMMANDS
  ************************/
 
-variable_t var_retrace =
-{&use_vsync,      NULL,                 vt_int,    0,1, yesno};
-variable_t var_disk =
-{&disk_icon,      NULL,                 vt_int,    0,1, onoff};
+VARIABLE_BOOLEAN(use_vsync, NULL,  yesno);
+VARIABLE_BOOLEAN(disk_icon, NULL,  onoff);
 
-
-command_t i_video_commands[] =
+CONSOLE_VARIABLE(v_diskicon, disk_icon, 0) {}
+CONSOLE_VARIABLE(v_retrace, use_vsync, 0)
 {
-        {
-                "v_diskicon",  ct_variable,
-                0,
-                &var_disk, NULL
-        },
-        {
-                "v_retrace",   ct_variable,
-                0,
-                &var_retrace,V_ResetMode
-        },
-        {"end", ct_end}
-};
+    V_ResetMode();
+}
 
 void I_Video_AddCommands()
 {
-        C_AddCommandList(i_video_commands);
+    C_AddCommand(v_diskicon);
+    C_AddCommand(v_retrace);
 }
 
 //----------------------------------------------------------------------------

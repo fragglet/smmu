@@ -41,7 +41,8 @@ void S_Start(void);
 //  using <sound_id> from sounds.h
 //
 void S_StartSound(const mobj_t *origin, int sound_id);
-void S_Startsfxinfo(const mobj_t *origin, sfxinfo_t *sfx);
+void S_StartSoundName(const mobj_t *origin, char *name);
+void S_StartSfxInfo(const mobj_t *origin, sfxinfo_t *sfx);
 
 // Stop sound for thing at <origin>
 void S_StopSound(const mobj_t *origin);
@@ -60,7 +61,7 @@ void S_StopSounds();
 void S_PauseSound(void);
 void S_ResumeSound(void);
 
-sfxinfo_t *S_sfxinfoForname(char *name);
+sfxinfo_t *S_SfxInfoForName(char *name);
 void S_UpdateSound(int lumpnum);
 void S_Chgun();
 

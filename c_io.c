@@ -13,9 +13,7 @@
 #include <stdarg.h>
 
 #include "c_io.h"
-#include "c_handle.h"
 #include "c_runcmd.h"
-#include "c_cmdlst.h"
 #include "c_net.h"
 
 #include "d_event.h"
@@ -45,7 +43,6 @@ extern const char* shiftxform;
 
 /* prototypes **********************/
 
-void C_ScrollUp();
 void C_EasterEgg();     // shhh!
 
 /* local variables *****************/
@@ -53,7 +50,8 @@ void C_EasterEgg();     // shhh!
 unsigned char messages[MESSAGES][LINELENGTH];
 int message_pos=0;      // position in the history (last line in window)
 int message_last=0;     // the last message
-        // the messages history(what you type in)
+
+        // the command history(what you type in)
 unsigned char history[HISTORY][LINELENGTH];
 int history_last=0;
 int history_current=0;
@@ -61,9 +59,8 @@ int history_current=0;
 char* inputprompt = FC_GRAY "$" FC_RED;
 int c_height=100;     // the height of the console
 int c_speed=10;       // pixels/tic it moves
-int current_target=0;
-int current_height=0;
-int consoleactive=0;
+int current_target = 0;
+int current_height = 0;
 boolean c_showprompt;
 char *backdrop;
 char inputtext[INPUTLENGTH];
@@ -73,18 +70,26 @@ int pgup_down=0, pgdn_down=0;
 
 /* functions ***********************/
 
-void C_InitBackdrop()
+        /************* main console module functions ***************/
+
+        // ticker, responder, drawer, init etc.
+
+static void C_InitBackdrop()
 {
         patch_t *patch;
         char *lumpname;
         byte *oldscreen;
 
+                // replace this with the new SMMU graphic soon i hope..
         switch(gamemode)
         {
                 case commercial: case retail: lumpname = "INTERPIC";break;
                 case registered: lumpname = "PFUB2"; break;
                 default: lumpname = "TITLEPIC"; break;
         }
+
+        if(W_CheckNumForName("CONSOLE") >= 0)
+                lumpname = "CONSOLE";
 
         if(backdrop) Z_Free(backdrop);
         backdrop = Z_Malloc(C_SCREENHEIGHT*C_SCREENWIDTH, PU_STATIC, 0);
@@ -100,7 +105,7 @@ void C_InitBackdrop()
         // input_point is the leftmost point of the inputtext which
         // we see. This function is called every time the inputtext
         // changes to decide where input_point should be.
-void C_UpdateInputPoint()
+static void C_UpdateInputPoint()
 {
         for(input_point=inputtext;
                 V_StringWidth(input_point) > SCREENWIDTH-20; input_point++);
@@ -114,31 +119,9 @@ void C_Init()
         // sf: stupid american spellings =)
         C_NewAlias("color", "colour %opt");
         C_NewAlias("centermsg", "centremsg %opt");
-        C_NewAlias("colourtest",
-                "echo "
-                FC_BRICK "M" FC_TAN "U" FC_GRAY "L" FC_GREEN "T" FC_BROWN "I"
-                FC_GOLD "C" FC_RED "O" FC_BLUE "L" FC_ORANGE "O" FC_YELLOW "U"
-                FC_BRICK "R" FC_TAN "E" FC_GRAY "D" FC_GREEN "!");
 
         C_AddCommands();
         C_UpdateInputPoint();
-}
-
-// put smmu into console mode
-
-void C_SetConsole()
-{
-        gamestate = GS_CONSOLE;
-        gameaction = ga_nothing;
-        consoleactive = 1;
-        current_height = SCREENHEIGHT;
-        current_target = SCREENHEIGHT;
-
-        C_Update();
-        C_ClearBuffer(c_script);
-        S_StopMusic();  // stop music if any
-        S_StopSounds(); // and sounds
-        G_StopDemo();
 }
 
         // called every tic
@@ -148,32 +131,39 @@ void C_Ticker()
 
         if(gamestate != GS_CONSOLE)
         {
+                 // specific to half-screen version only
+
             if(current_height != current_target)
                 redrawsbar = true;
 
+                // move the console toward its target
             if(abs(current_height-current_target)>=c_speed)
                current_height +=
                current_target<current_height ? -c_speed : c_speed;
             else
                current_height = current_target;
         }
-        else   current_target = current_height;
-
-        if(!current_height) consoleactive = 0;
-
-        if(consoleactive)       // no moving console when fullscreen
+        else
         {
-            if(pgdn_down) message_pos++;
-            if(pgup_down) message_pos--;
+                // console gamestate: no moving consoles!
+
+               current_target = current_height;
         }
 
-        if(message_pos < 0) message_pos = 0;
-        if(message_pos > message_last) message_pos = message_last;
+        if(consoleactive)  // no scrolling thru messages when fullscreen
+        {
+                // scroll based on keys down
+            message_pos += pgdn_down - pgup_down;
 
-        C_RunBuffer(c_typed);   // run the typed commands
+                // check we're in the area of valid messages        
+            if(message_pos < 0) message_pos = 0;
+            if(message_pos > message_last) message_pos = message_last;
+        }
+
+        C_RunBuffer(c_typed);   // run the delayed typed commands
 }
 
-void C_AddToHistory(char *s)
+static void C_AddToHistory(char *s)
 {
         char *t;
 
@@ -186,11 +176,12 @@ void C_AddToHistory(char *s)
 
                 // add it to the history
                 // 6/8/99 maximum linelength to prevent segfaults
+                // -3 for safety
         strncpy(history[history_last], s, LINELENGTH-3);
         history_last++;
 
                 // scroll the history if neccesary
-        while(history_last > HISTORY)
+        while(history_last >= HISTORY)
         {
                 int i;
                 for(i=0; i<HISTORY; i++)
@@ -198,7 +189,7 @@ void C_AddToHistory(char *s)
                 history_last--;
         }
         history_current = history_last;
-        *history[history_last] = 0;
+        history[history_last][0] = 0;
 }
 
 #define KEYD_CONSOLE '`'
@@ -212,7 +203,7 @@ int C_Responder(event_t* ev)
         if(ev->data1 == KEYD_RSHIFT)
         {
                 shiftdown = ev->type==ev_keydown;
-                return consoleactive;
+                return consoleactive;   // eat if console active
         }
         if(ev->data1 == KEYD_PAGEUP)
         {
@@ -225,72 +216,96 @@ int C_Responder(event_t* ev)
                 return consoleactive;
         }
 
+                // only interested in keypresses
         if(ev->type != ev_keydown) return 0;
 
+                /******* check for special keypresses *********/
+                  // detect activating of console etc.
+
+                // activate console?
         if(ev->data1 == KEYD_CONSOLE)
         {
+                  // set console
                 current_target =
                         current_target == c_height ? 0 : c_height;
-                consoleactive = true;
                 return true;
         }
 
         if(!consoleactive) return false;
         if(current_target < current_height) return false; // not til its stopped moving
 
+                /********** console active commands **********/
+                // keypresses only dealt with if console active
+
+                // tab-completion
         if(ev->data1 == KEYD_TAB)
         {
+                        // set inputtext to next or previous in
+                        // tab-completion list depending on whether
+                        // shift is being held down
                 strcpy(inputtext, shiftdown ? C_NextTab(inputtext) :
                                 C_PrevTab(inputtext));
-                C_UpdateInputPoint(); // update scrolling
+
+                C_UpdateInputPoint(); // reset scrolling
                 return true;
         }
+                // run command
         if(ev->data1 == KEYD_ENTER)
         {
-                char *tempcmdstr = strdup(inputtext);
-
                 C_AddToHistory(inputtext);      // add to history
 
-                inputtext[0] = 0;       // clear inputtext
+                        // shh!
+                if(!strcmp(inputtext, "r0x0rz delux0rz")) C_EasterEgg();
+
+                        // run the command
                 cmdtype = c_typed;
-                if(!strcmp(tempcmdstr, "r0x0rz delux0rz")) C_EasterEgg();
-                C_RunTextCmd(tempcmdstr);
-                C_InitTab();
+                C_RunTextCmd(inputtext);
+
+                C_InitTab();            // reset tab completion
                 C_UpdateInputPoint();   // reset scrolling
 
-                free(tempcmdstr);
+                inputtext[0] = 0;       // clear inputtext now
                 return true;
         }
 
+                /********** command history ***********/
+
+                // previous command
         if(ev->data1 == KEYD_UPARROW)
         {
-                history_current--;
-                if(history_current < 0)
-                    history_current = 0;
+                history_current =
+                        history_current <= 0 ? 0 : history_current-1;
+                        // read history from inputtext
                 strcpy(inputtext, history[history_current]);
-                C_InitTab();
-                C_UpdateInputPoint();   // update scrolling
+
+                C_InitTab();            // reset tab completion
+                C_UpdateInputPoint();   // reset scrolling
                 return true;
         }
+                // next command
         if(ev->data1 == KEYD_DOWNARROW)
         {
-                history_current++;
-                if(history_current > history_last)
-                    history_current = history_last;
+                history_current = history_current >= history_last ?
+                                  history_last : history_current+1;
 
                         // the last history is an empty string
                 strcpy(inputtext, (history_current == history_last) ?
-                               "" : (char*)(history[history_current]) );
-                C_InitTab();
-                C_UpdateInputPoint();   // update scrolling
+                               "" : (char*)history[history_current]);
+
+                C_InitTab();            // reset tab-completion
+                C_UpdateInputPoint();   // reset scrolling
                 return true;
         }
+
+                /******** normal text input ************/
+
         if(ev->data1 == KEYD_BACKSPACE)
         {
                 if(strlen(inputtext) > 0)
                         inputtext[strlen(inputtext)-1] = '\0';
-                C_InitTab();
-                C_UpdateInputPoint();   // update scrolling
+
+                C_InitTab();            // reset tab-completion
+                C_UpdateInputPoint();   // reset scrolling
                 return true;
         }
 
@@ -298,14 +313,18 @@ int C_Responder(event_t* ev)
 
         ch = shiftdown ? shiftxform[ev->data1] : ev->data1; // shifted?
 
+                // only care about valid characters
+                // dont allow too many characters on one command line
         if(ch>31 && ch<127 && strlen(inputtext) < INPUTLENGTH-3)
         {
                 sprintf(inputtext, "%s%c", inputtext, ch);
-                C_InitTab();
-                C_UpdateInputPoint();   // update scrolling
+
+                C_InitTab();            // reset tab-completion
+                C_UpdateInputPoint();   // reset scrolling
                 return true;
         }
-        return false;
+
+        return false;   // dont care about this event
 }
 
 
@@ -315,61 +334,95 @@ void C_Drawer()
         int y;
         int count;
         static int oldscreenheight;
-        unsigned char tempstr[LINELENGTH];
 
-        if(!consoleactive) return;
+        if(!consoleactive) return;   // dont draw if not active
 
+               /******* check for change in screen res ********/
         if(oldscreenheight != C_SCREENHEIGHT)
         {
                 C_InitBackdrop();       // re-init to the new screen size
                 oldscreenheight = C_SCREENHEIGHT;
         }
 
-                /////// BACKDROP FIRST ////////
+                /******** draw backdrop *********/
+
+                // fullscreen console for fullscreen mode
+        if(gamestate == GS_CONSOLE) current_height = SCREENHEIGHT;
+
         memcpy(screens[0],
           backdrop + (C_SCREENHEIGHT-(current_height<<hires))*C_SCREENWIDTH,
                 (current_height<<hires)*C_SCREENWIDTH);
 
-        if(gamestate == GS_CONSOLE) current_height = SCREENHEIGHT;
+                /********** draw text **************/
 
-                //////////// TEXT /////////////
-        y = c_showprompt ? current_height-8 : current_height;
+            // offset starting point up by 8 if we are showing input prompt
+            // or if we are scrolling back in the history
+        y = current_height -
+            ((c_showprompt && message_pos==message_last) ? 8 : 0);
+
+            // start at our position in the message history
         count = message_pos;
         
         while(1)
         {
+                 // move up one line on the screen
+                 // back one line in the history
                 y-=8; count--;
-                if(count < 0) break;
-                if(y < 0) break;
+
+                if(count < 0) break;    // end of message history?
+                if(y < 0) break;        // past top of screen?
+
+                  // draw this line
                 V_WriteText(messages[count], 0, y);
         }
 
-                /////// NOW THE INPUT LINE ///////
+                /****** draw the input line ******/
 
-        if(current_height > 8 && c_showprompt)    // off the screen ?
+                    // input line on screen, not scrolled back in history?
+        if(current_height > 8 && c_showprompt && message_pos == message_last)
         {
+                unsigned char tempstr[LINELENGTH];
+
+                  // if we are scrolled back, dont draw the input line
                 if(message_pos == message_last)
                         sprintf(tempstr, "%s%s_", inputprompt, input_point);
-                else
-                        sprintf(tempstr, "V V V V V V V V V V V V V V V V");
+
                 V_WriteText(tempstr, 0, current_height-8);
         }
 }
 
-        // write a line of text to the console
-        // kind of redundant now, #defined as c_puts also
-void C_WriteText(unsigned char *s, ...)
+// updates the screen without actually waiting for d_display
+// useful for functions that get input without using the gameloop
+// eg. serial code
+
+void C_Update()
 {
-        va_list args;
-        unsigned char tempstr[500];
-        va_start(args, s);
-
-        vsprintf(tempstr, s, args);
-        va_end(args);
-
-        C_Printf("%s\n", tempstr);
+        C_Drawer();
+        I_FinishUpdate ();
 }
 
+     /**************** I/O Functions ******************/
+
+        // scroll console up (static)
+static void C_ScrollUp()
+{
+        if(message_last == message_pos) message_pos++;
+        message_last++;
+
+        if(message_last >= MESSAGES)       // past the end of the string
+        {
+                int i;      // cut off the oldest 128 messages
+                for(i=0; i<MESSAGES-128; i++)
+                        strcpy(messages[i], messages[i+128]);
+
+                message_last-=128;      // move the message boundary
+                message_pos-=128;       // move the view
+        }
+
+        messages[message_last] [0] = 0;  // new line is empty
+}
+
+        // add a character to the console(static)
 static void C_AddChar(unsigned char c)
 {
         char *end;
@@ -396,11 +449,14 @@ static void C_AddChar(unsigned char c)
         }
 }
 
+        // write some text 'printf' style to the console
+        // the main function for I/O
+
 void C_Printf(unsigned char *s, ...)
 {
         va_list args;
-        unsigned char tempstr[1024];
-
+        unsigned char tempstr[10240];   // 10k should be enough i hope
+                                        // difficult to remove limit
         va_start(args, s);
         vsprintf(tempstr, s, args);
         va_end(args);
@@ -409,22 +465,41 @@ void C_Printf(unsigned char *s, ...)
                 C_AddChar(*s);
 }
 
-        // scroll it up
-void C_ScrollUp()
+        // write a line of text to the console
+        // kind of redundant now, #defined as c_puts also
+void C_WriteText(unsigned char *s, ...)
 {
-        if(message_last == message_pos) message_pos++;
-        message_last++;
+        va_list args;
+        unsigned char tempstr[500];
+        va_start(args, s);
 
-        if(message_last >= MESSAGES)       // past the end of the string
-        {
-                int i;      // cut off the oldest 128 messages
-                for(i=0; i<MESSAGES-128; i++)
-                        strcpy(messages[i], messages[i+128]);
-                message_last-=128;      // move the message boundary
-                message_pos-=128;       // move the view
-        }
+        vsprintf(tempstr, s, args);
+        va_end(args);
 
-        messages[message_last] [0] = 0;  // new line is empty
+        C_Printf("%s\n", tempstr);
+}
+
+void C_Seperator()
+{
+        C_Printf("{|||||||||||||||||||||||||||||}\n");
+}
+
+        /********** console activation *****************/
+
+// put smmu into console mode
+
+void C_SetConsole()
+{
+        gamestate = GS_CONSOLE;         
+        gameaction = ga_nothing;
+        current_height = SCREENHEIGHT;
+        current_target = SCREENHEIGHT;
+
+        C_Update();
+        C_ClearBuffer(c_script);        // clear level scripting buffer
+        S_StopMusic();                  // stop music if any
+        S_StopSounds();                 // and sounds
+        G_StopDemo();                   // stop demo playing
 }
 
         // make the console go up
@@ -433,30 +508,10 @@ void C_Popup()
         current_target = 0;
 }
 
-        // make the console instantly go away
+        // make the console disappear
 void C_InstaPopup()
 {
-        current_target = 0;
-        current_height = 0;
-        consoleactive = false;
-}
-
-// updates the screen without actually waiting for d_display
-
-void C_Update()
-{
-        C_Drawer();
-        I_FinishUpdate ();
-}
-
-void C_DrawBackdrop()
-{
-        memcpy(screens[0], backdrop, C_SCREENWIDTH * C_SCREENHEIGHT);
-}
-
-void C_Seperator()
-{
-        C_Printf("{|||||||||||||||||||||||||||||}\n");
+        current_target = current_height = 0;
 }
 
 void C_EasterEgg(){char *oldscreen;int x,y;extern unsigned char egg[];for(x
@@ -465,5 +520,3 @@ void C_EasterEgg(){char *oldscreen;int x,y;extern unsigned char egg[];for(x
 =screens[0];screens[0]=backdrop;HU_WriteText(FC_BROWN"my hair looks much too"
 "\n dark in this pic.\noh well, have fun!\n      -- fraggle",160,168);screens
 [0]=oldscreen;}
-
-

@@ -741,10 +741,11 @@ void M_VerifyNightmare(int ch)
   // killough 10/98 moved to here
   defaultskill = nightmare+1;
 
-  if(gamemode == commercial)
-          G_DeferedInitNew(nightmare, startlevel);
-  else
-          G_DeferedInitNewNum(nightmare,epi+1,1);
+  G_DeferedInitNew(nightmare, startlevel);
+
+//  if(gamemode == commercial)
+//  else
+//          G_DeferedInitNewNum(nightmare,epi+1,1);
 
   M_ClearMenus ();
 }
@@ -761,10 +762,12 @@ void M_ChooseSkill(int choice)
   // killough 10/98 moved to here
   defaultskill = choice+1;
 
-  if(gamemode == commercial)
-          G_DeferedInitNew(choice, startlevel);
-  else
-          G_DeferedInitNewNum(choice,epi+1,1);
+  G_DeferedInitNew(choice, startlevel);
+
+//  if(gamemode == commercial)
+//  else
+//          G_DeferedInitNewNum(choice,epi+1,1);
+
   M_ClearMenus ();
 }
 

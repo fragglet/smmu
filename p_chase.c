@@ -57,6 +57,10 @@ void P_GetChasecamTarget()
         targety = playermobj->y-(sin>>9)*FRACUNIT;
         targetz = playermobj->z+aimfor;
 
+                // the intersections test mucks up the first time, but
+                // aiming at something seems to cure it
+        P_AimLineAttack(players[consoleplayer].mo, 0, MELEERANGE, 0);
+
                 // check for intersections
         P_PathTraverse(playermobj->x, playermobj->y, targetx, targety,
                 PT_ADDLINES, PTR_chasetraverse);
@@ -111,16 +115,18 @@ void P_ChaseTicker()
 
 // console command
 
-void P_ToggleChasecam()
+VARIABLE_BOOLEAN(chasecam_active, NULL, onoff);
+
+CONSOLE_VARIABLE(chasecam, chasecam_active, 0)
 {
-        if(atoi(c_argv[0])) P_ChaseStart();
-        else P_ChaseEnd();
+    if(atoi(c_argv[0])) P_ChaseStart();
+    else P_ChaseEnd();
 }
 
 void P_ChaseStart()
 {
 //        if(chasecam_active) return;     // already active
-
+        DEBUGMSG("activate chasecam\n");
         chasecam_active = true;
         camera = &chasecam;
         P_ResetChasecam();
@@ -129,6 +135,7 @@ void P_ChaseStart()
 void P_ChaseEnd()
 {
 //        if(!chasecam_active) return;
+        DEBUGMSG("deactivate chasecam\n");
         chasecam_active = false;
         camera = NULL;
 }       
@@ -226,16 +233,14 @@ void P_ResetChasecam()
         if(!chasecam_active) return;
         if(gamestate != GS_LEVEL) return;       // only in level
 
+        DEBUGMSG("reset chasecam\n");
+
                 // find the chasecam target
         P_GetChasecamTarget();
 
         chasecam.x = targetx;
         chasecam.y = targety;
         chasecam.z = targetz;
-
-                // the intersections test mucks up the first time, but
-                // aiming at something seems to cure it
-        P_AimLineAttack(players[consoleplayer].mo, 0, MELEERANGE, 0);
 }
 
 
@@ -278,8 +283,8 @@ void P_WalkTicker()
                                  walkcamera.updownangle;
 }
 
-        // console command
-void P_ToggleWalk()
+VARIABLE_BOOLEAN(walkcam_active, NULL,              onoff);
+CONSOLE_VARIABLE(walkcam, walkcam_active, cf_notnet)
 {
         if(!c_argc)
                 walkcam_active = !walkcam_active;
@@ -300,4 +305,10 @@ void P_ResetWalkcam()
         walkcamera.x = playerstarts[0].x << FRACBITS;
         walkcamera.y = playerstarts[0].y << FRACBITS;
         walkcamera.angle = R_WadToAngle(playerstarts[0].angle);
+}
+
+void P_Chase_AddCommands()
+{
+        C_AddCommand(chasecam);
+        C_AddCommand(walkcam);
 }

@@ -147,20 +147,19 @@ int  oldentertics;
 void ResetNet()
 {
   int i;
+  int nowtime = I_GetTime();
 
-  gametic = 0;
   if(!in_textmode) C_SetConsole();
-  I_SetTime(0);
-  oldentertics = 0;       //1
+
+  oldentertics = nowtime;
+
   maketic = 1;
-  levelstarttic = 0;
-  basetic = 0;
+  gametic = levelstarttic = basetic = 0;
 
   for(i=0; i<MAXNETNODES; i++)
   {
-     nettics[i] = 0;
+     nettics[i] = resendto[i] = 0;
      remoteresend[i] = false; 
-     resendto[i] = 0;
   }
   netbuffer->starttic = 0;
 }
@@ -672,8 +671,8 @@ void D_QuitNetGame (void)
 {
   int             i, j;
       
-  if (debugfile)
-      fclose (debugfile);
+//  if (debugfile)
+//      fclose (debugfile);
               
   if (!netgame || !usergame || consoleplayer == -1 || demoplayback)
       return;
@@ -689,7 +688,7 @@ void D_QuitNetGame (void)
     I_WaitVBL (1);
   }
 
-  if(ser_active) ser_Disconnect();      // hang up modem etc.
+  if(ser_active) Ser_Disconnect();      // hang up modem etc.
 
   consoleplayer = 0;
   netgame = 0; deathmatch = 0;
@@ -767,10 +766,12 @@ void RunGameTics (void)
               
   frameon++;
 
-  if (debugfile)
-    fprintf (debugfile,
-             "=======real: %i  avail: %i  game: %i\n",
-             realtics, availabletics,counts);
+  if(debugfile)
+  {
+        fprintf(debugfile, "=======real: %i  avail: %i  game: %i\n",
+                                    realtics, availabletics,counts);
+        fflush(debugfile);
+  }
 
   if (!demoplayback)
   {   
@@ -835,7 +836,7 @@ void RunGameTics (void)
   opensocket_count = 0;
   opensocket = 0;
 
-  if(debugfile) fprintf(debugfile,"run the tics\n");
+  DEBUGMSG("run the tics\n");
   // run the count * ticdup dics
   while (counts--)
   {
@@ -901,7 +902,7 @@ void TryRunTics (void)
         CONSOLE COMMANDS
 *************************/
 
-void C_Kick()
+CONSOLE_COMMAND(kick, cf_server)
 {
    if(!c_argc)
    {
@@ -912,8 +913,7 @@ void C_Kick()
    D_KickPlayer(atoi(c_argv[0]));
 }
 
-        // player info
-void C_Players()
+CONSOLE_COMMAND(playerinfo, 0)
 {
    int i;
 
@@ -922,35 +922,17 @@ void C_Players()
          C_Printf("%i: %s\n",i, players[i].name);
 }
 
-void C_Disconnect()
+CONSOLE_COMMAND(disconnect, cf_netonly)
 {
    D_QuitNetGame();
    C_SetConsole();
 }
 
-command_t net_commands[] =
-{
-        {
-                "disconnect", ct_command,
-                cf_netonly,
-                NULL,C_Disconnect
-        },
-        {
-                "playerinfo",  ct_command,
-                0,
-                NULL,C_Players
-        },
-        {
-                "kick",        ct_command,
-                cf_server,
-                NULL,C_Kick
-        },
-        {"end", ct_end}
-};
-
 void net_AddCommands()
 {
-   C_AddCommandList(net_commands);
+   C_AddCommand(kick);
+   C_AddCommand(disconnect);
+   C_AddCommand(playerinfo);
 }
 
 //----------------------------------------------------------------------------

@@ -9,13 +9,13 @@
 /* includes ************************/
 
 #include <stdio.h>
+#include "c_io.h"
 #include "z_zone.h"
 
 #include "t_parse.h"
-#include "t_main.h"
 #include "t_vari.h"
 
-int find_token(int start, int stop, char *value);
+int find_operator(int start, int stop, char *value);
 
         // ending brace found in parsing
 void spec_brace()
@@ -41,7 +41,7 @@ void spec_if()
         int endtoken;
         svalue_t eval;
 
-        if( (endtoken = find_token(0, num_tokens-1, ")")) == -1)
+        if( (endtoken = find_operator(0, num_tokens-1, ")")) == -1)
         {
                 script_error("parse error in if statement\n");
                 return;
@@ -53,8 +53,6 @@ void spec_if()
         if(current_section && bracetype == bracket_open
            && endtoken == num_tokens-1)
         {
-                current_section->type = st_if;  // mark as if
-
                 // {} braces
                 if(!intvalue(eval))       // skip to end of section
                         rover = current_section->end+1;
@@ -79,14 +77,11 @@ void spec_while()      // while() loop
                 return;
         }
 
-        if( (endtoken = find_token(0, num_tokens-1, ")")) == -1)
+        if( (endtoken = find_operator(0, num_tokens-1, ")")) == -1)
         {
                 script_error("parse error in loop statement\n");
                 return;
         }
-
-        current_section->type = st_loop;    // mark as loop
-        current_section->data.data_loop.loopstart = linestart;
 
         eval = evaluate_expression(2, endtoken-1);
 
@@ -108,15 +103,12 @@ void spec_for()                 // for() loop
 
         // is a valid section
 
-        current_section->type = st_loop;
-        current_section->data.data_loop.loopstart = linestart;
-
         start = 2;     // skip "for" and "(": start on third token(2)
 
         // find the seperating commas first
 
-        if( (comma1 = find_token(start,    num_tokens-1, ",")) == -1
-         || (comma2 = find_token(comma1+1, num_tokens-1, ",")) == -1)
+        if( (comma1 = find_operator(start,    num_tokens-1, ",")) == -1
+         || (comma2 = find_operator(comma1+1, num_tokens-1, ",")) == -1)
         {
                 script_error("incorrect arguments to if()\n");
                 return;
@@ -180,7 +172,7 @@ void parse_var_line(start)
         while(1)
         {
                 if(killscript) return;
-                endtoken = find_token(starttoken, num_tokens-1, ",");
+                endtoken = find_operator(starttoken, num_tokens-1, ",");
                 if(endtoken == -1) break;
                 create_variable(starttoken, endtoken-1);
                 starttoken = endtoken+1;  //start next after end of this one
@@ -205,6 +197,24 @@ void spec_int()
 void spec_string()
 {
         newvar_type = svt_string;
+
+        parse_var_line();
+}
+
+        // const %s is rather strange. It is initially set to variable
+        // type svt_const. It then adopts the type of the first value
+        // it is set to. This allows statements such as
+        //      const a=3;
+void spec_const()
+{
+        newvar_type = svt_const;
+
+        parse_var_line();
+}
+
+void spec_mobj()
+{
+        newvar_type = svt_mobj;
 
         parse_var_line();
 }

@@ -3,20 +3,24 @@
 
 // scripting.
 //
-// the current scripting system is a pretty temporary thing, this is
-// only really here until i finish FraggleScript
+// delayed scripts, running scripts, console cmds etc in here
 //
 
+#include "doomstat.h"
 #include "c_io.h"
+#include "c_net.h"
 #include "c_runcmd.h"
+#include "d_net.h"
 #include "p_info.h"
 #include "p_mobj.h"
+#include "w_wad.h"
+#include "z_zone.h"
+
 #include "t_script.h"
 #include "t_parse.h"
 #include "t_vari.h"
 #include "t_func.h"
-#include "w_wad.h"
-#include "z_zone.h"
+
 
 void clear_runningscripts();
 
@@ -54,7 +58,7 @@ void T_ClearScripts()
         for(i=0; i<MAXSCRIPTS; i++)
                 scripts[i] = NULL;
 
-                // clear runningscripts
+                // stop runningscripts
         clear_runningscripts();
 
         // clear the levelscript
@@ -63,6 +67,13 @@ void T_ClearScripts()
 
         levelscript.scriptnum = -1;
         levelscript.parent = &global_script;
+
+        // clear levelscript variables
+
+        for(i=0; i<VARIABLESLOTS; i++)
+        {
+                levelscript.variables[i] = NULL;
+        }
 }
 
 void T_PreprocessScripts()
@@ -70,29 +81,27 @@ void T_PreprocessScripts()
         // run the levelscript first
         // get the other scripts
 
+                // levelscript started by player 0 'superplayer'
+        levelscript.trigger = players[0].mo;
+
         preprocess(&levelscript);
         run_script(&levelscript);
 }
 
 void T_RunScript(int n)
 {
+
         if(n<0 || n>=MAXSCRIPTS) return;
         if(!scripts[n]) return;
 
-                // add the trigger object
-        {
-                svariable_t *trig;
-                trig = new_variable(scripts[n], "trigger", svt_int);
-                trig->value.mobj = t_trigger;
-        }
+        scripts[n]->trigger = t_trigger;        // save trigger in script
 
         run_script(scripts[n]);
 }
 
 // console scripting debugging commands
 
-        // console cmd: dump a script
-void T_Dump()
+CONSOLE_COMMAND(t_dump, 0)
 {
         script_t *script;
 
@@ -111,11 +120,10 @@ void T_Dump()
                 return;
         }
 
-        C_Printf(script->data);
-        C_Printf("\n");
+        C_Printf("%s\n", script->data);
 }
 
-void T_ConsRun()
+CONSOLE_COMMAND(t_run, cf_level)
 {
         int sn;
 
@@ -131,7 +139,10 @@ void T_ConsRun()
         if(!scripts[sn])
         {
                 C_Printf("script not defined\n");
+                return;
         }
+        t_trigger = players[cmdsrc].mo;
+
         T_RunScript(sn);
 }
 
@@ -173,12 +184,13 @@ void T_DelayedScripts()
 
         while(current)
         {
-            if(!--current->timer)
+            if(--current->timer <= 0)
             {
                   // copy out the script variables from the
                   // runningscript_t
                  for(i=0; i<VARIABLESLOTS; i++)
                      current->script->variables[i] = current->variables[i];
+                 current->script->trigger = current->trigger; // copy trigger
 
                   // continue the script
                  continue_script(current->script, current->savepoint);
@@ -211,7 +223,7 @@ void SF_Wait()
         runscr = new_runningscript();
         runscr->script = current_script;
         runscr->savepoint = rover;
-        runscr->timer = intvalue(t_argv[0]);
+        runscr->timer = (intvalue(t_argv[0]) * 35) / 100;
 
                 // hook into chain at start
 
@@ -233,9 +245,12 @@ void SF_Wait()
                       current_script->variables[i] =
                       current_script->variables[i]->next;
         }
+        runscr->trigger = current_script->trigger;      // save trigger
 
         killscript = true;      // stop the script
 }
+
+extern mobj_t *trigger_obj;           // in t_func.c
 
 void SF_StartScript()
 {
@@ -268,7 +283,7 @@ void SF_StartScript()
         if(runscr->next)
           runscr->next->prev = runscr;
 
-                // save the script variables 
+                        // save the script variables 
         for(i=0; i<VARIABLESLOTS; i++)
         {
              runscr->variables[i] = scripts[snum]->variables[i];
@@ -276,22 +291,25 @@ void SF_StartScript()
                 // in case we are starting another current_script:
                 // remove all the variables from the script variable list
                 // we only start with the basic labels
-             while(scripts[snum]->variables[i] &&
-                   scripts[snum]->variables[i]->type != svt_label)
-                      scripts[snum]->variables[i] =
-                      scripts[snum]->variables[i]->next;
+             while(runscr->variables[i] &&
+                   runscr->variables[i]->type != svt_label)
+                      runscr->variables[i] =
+                      runscr->variables[i]->next;
         }
+                // copy trigger
+        runscr->trigger = current_script->trigger;
+
 }
 
-// console command
+// running scripts
 
-void T_RunningScripts()
+CONSOLE_COMMAND(t_running, 0)
 {
         runningscript_t *current;
 
         current = runningscripts.next;
 
-        C_Printf(FC_GRAY "RUNNING SCRIPTS\n" FC_RED);
+        C_Printf(FC_GRAY "running scripts\n" FC_RED);
 
         if(!current)
                 C_Printf("no running scripts.\n");
@@ -319,6 +337,25 @@ void clear_runningscripts()
         }
         runningscripts.next = NULL;
 }
+
+mobj_t *MobjForSvalue(svalue_t svalue)
+{
+        int intval ;
+
+        if(svalue.type == svt_mobj)
+                return svalue.value.mobj;
+
+          // this requires some creativity. We use the intvalue
+          // as the thing number of a thing in the level.
+
+        intval = intvalue(svalue);        
+
+        if(intval < 0 || intval >= numthings)
+        { script_error("no levelthing %i\n", intval); return NULL;}
+
+        return spawnedthings[intval];
+}
+
 
 /*********************
             ADD SCRIPT
@@ -392,27 +429,9 @@ void spec_script()
 
 /****** scripting command list *******/
 
-command_t t_commands[] =
-{
-        {
-                "t_dump",      ct_command,
-                0,
-                NULL,T_Dump
-        },
-        {
-                "t_run",       ct_command,
-                0,
-                NULL,T_ConsRun
-        },
-        {
-                "t_running",    ct_command,
-                0,
-                NULL,T_RunningScripts
-        },
-        {"end", ct_end}
-};
-
 void T_AddCommands()
 {
-        C_AddCommandList(t_commands);
+    C_AddCommand(t_dump);
+    C_AddCommand(t_run);
+    C_AddCommand(t_running);
 }

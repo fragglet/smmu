@@ -18,6 +18,7 @@ struct runningscript_s
         svariable_t *variables[VARIABLESLOTS];
 
         runningscript_t *prev, *next;  // for chain
+        mobj_t *trigger;
 };
 
 void T_Init();
@@ -25,6 +26,7 @@ void T_ClearScripts();
 void T_RunScript(int n);
 void T_PreprocessScripts();
 void T_DelayedScripts();
+mobj_t *MobjForSvalue(svalue_t svalue);
 
         // console commands
 void T_Dump();

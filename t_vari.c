@@ -23,6 +23,7 @@
 #include <string.h>
 #include "z_zone.h"
 
+#include "t_script.h"
 #include "t_parse.h"
 #include "t_vari.h"
 #include "t_func.h"
@@ -42,13 +43,6 @@ void init_variables()
 
         // any hardcoded global variables can be added here
 }
-
-        // hash the variables for speed: this is the hashkey
-
-#define variable_hash(n)                \
-              (   ( (n)[0] + (n)[1] +   \
-                  ((n)[1] ? (n)[2] +    \
-                  ((n)[2] ? (n)[3]  : 0) : 0) ) % VARIABLESLOTS )
 
         // find_variable checks through the current script, level script
         // and global script to try to find the variable of the name wanted
@@ -77,17 +71,19 @@ svariable_t *new_variable(script_t *script, char *name, int vtype)
 {
         int n;
         svariable_t *newvar;
+        int tagtype = script==&global_script ? PU_STATIC : PU_LEVEL;
+
 
         // find an empty slot first
 
-        newvar = Z_Malloc(sizeof(svariable_t), PU_LEVEL, 0);
-        newvar->name = (char*)Z_Strdup(name, PU_LEVEL, 0);
+        newvar = Z_Malloc(sizeof(svariable_t), tagtype, 0);
+        newvar->name = (char*)Z_Strdup(name, tagtype, 0);
         newvar->type = vtype;
 
         if(vtype == svt_string)
         {
                            // 128 bytes for string
-             newvar->value.s = Z_Malloc(128, PU_LEVEL, 0);
+             newvar->value.s = Z_Malloc(128, tagtype, 0);
              newvar->value.s[0] = 0;
         }
         else
@@ -163,9 +159,27 @@ svalue_t getvariablevalue(svariable_t *v)
 
         if(!v) return nullvar;
 
-        returnvar.type = v->type;
+        if(v->type == svt_pString)
+        {
+            returnvar.type = svt_string;
+            returnvar.value.s = *v->value.pS;
+        }
+        else if(v->type == svt_pInt)
+        {
+            returnvar.type = svt_int;
+            returnvar.value.i = *v->value.pI;
+        }
+        else if(v->type == svt_pMobj)
+        {
+            returnvar.type = svt_mobj;
+            returnvar.value.mobj = *v->value.pMobj;
+        }
+        else
+        {
+            returnvar.type = v->type;
                 // copy the value
-        returnvar.value.i = v->value.i;
+            returnvar.value.i = v->value.i;
+        }
 
         return returnvar;
 }
@@ -177,27 +191,95 @@ void setvariablevalue(svariable_t *v, svalue_t newvalue)
 
         if(!v) return;
 
+        if(v->type == svt_const)
+        {
+                // const adapts to the value it is set to
+            v->type = newvalue.type;
+                // alloc memory for string
+            if(v->type == svt_string)   // static incase a global_script var
+                v->value.s = Z_Malloc(128, PU_STATIC, 0);
+        }
+
         if(v->type == svt_int)
         {
             v->value.i = intvalue(newvalue);
         }
-
         if(v->type == svt_string)
         {
             if(newvalue.type == svt_int)
             {
                 sprintf(v->value.s, "%i", (int)newvalue.value.i);
             }
-            if(newvalue.type == svt_string)
+            else if(newvalue.type == svt_string)
             {
                 strcpy(v->value.s, newvalue.value.s);
             }
+        }
+        if(v->type == svt_mobj)
+        {
+             v->value.mobj = MobjForSvalue(newvalue);
+        }
+
+
+        if(v->type == svt_pInt)
+        {
+            *v->value.pI = intvalue(newvalue);
+        }
+        if(v->type == svt_pString)
+        {
+                // free old value
+            free(*v->value.pS);
+
+                // set new one
+            if(newvalue.type == svt_int)
+            {
+                char tempstr[128];
+                sprintf(tempstr, "%i", (int)newvalue.value.i);
+                *v->value.pS = strdup(tempstr);
+            }
+            if(newvalue.type == svt_string)
+            {
+                        // dup new string
+                *v->value.pS = strdup(newvalue.value.s);
+            }
+        }
+        if(v->type == svt_pMobj)
+        {
+             *v->value.pMobj = MobjForSvalue(newvalue);
         }
 
         if(v->type == svt_function)
                 script_error("attempt to set function to a value\n");
 
 }
+
+svariable_t *add_game_int(char *name, int *var)
+{
+        svariable_t* newvar;
+        newvar = new_variable(&global_script, name, svt_pInt);
+        newvar->value.pI = var;
+
+        return newvar;
+}
+
+svariable_t *add_game_string(char *name, char **var)
+{
+        svariable_t* newvar;
+        newvar = new_variable(&global_script, name, svt_pString);
+        newvar->value.pS = var;
+
+        return newvar;
+}
+
+svariable_t *add_game_mobj(char *name, mobj_t **mo)
+{
+        svariable_t* newvar;
+        newvar = new_variable(&global_script, name, svt_pMobj);
+        newvar->value.pMobj = mo;
+
+        return newvar;
+}
+
 
 /********************************
                      FUNCTIONS
@@ -236,8 +318,8 @@ svalue_t evaluate_function(int start, int stop)
         int argc;
         svalue_t argv[MAXARGS];
 
-        if(tokentype[start] != function || tokentype[start+1] != bracket_open
-        || tokentype[stop] != bracket_close)
+        if(tokentype[start] != function || tokentype[stop] != operator
+                        || tokens[stop][0] != ')' )
                 script_error("misplaced closing bracket\n");
 
                 // all the functions are stored in the global script
@@ -259,13 +341,15 @@ svalue_t evaluate_function(int start, int stop)
         while(endpoint < stop)
         {
                 startpoint = endpoint;
-                endpoint = find_token(startpoint, stop-1, ",");
+                endpoint = find_operator(startpoint, stop-1, ",");
 
                 // check for -1: no more ','s 
                 if(endpoint == -1)
                 {               // evaluate the last expression
                         endpoint = stop;
                 }
+                if(endpoint-1 < startpoint)
+                        break;
 
                 argv[argc] = evaluate_expression(startpoint, endpoint-1);
                 endpoint++;    // skip the ','
@@ -328,14 +412,16 @@ svalue_t OPstructure(int start, int n, int stop)
                 while(endpoint < stop)
                 {
                         startpoint = endpoint;
-                        endpoint = find_token(startpoint, stop-1, ",");
+                        endpoint = find_operator(startpoint, stop-1, ",");
         
                         // check for -1: no more ','s 
                         if(endpoint == -1)
                         {               // evaluate the last expression
                                 endpoint = stop;
                         }
-        
+                        if(endpoint-1 < startpoint)
+                                break;
+
                         argv[argc] = evaluate_expression(startpoint, endpoint-1);
                         endpoint++;    // skip the ','
                         argc++;
@@ -371,4 +457,5 @@ svariable_t *new_function(char *name, void (*handler)() )
 
         return newvar;
 }
+
 

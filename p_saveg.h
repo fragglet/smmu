@@ -32,6 +32,8 @@ void P_ArchiveThinkers(void);
 void P_UnArchiveThinkers(void);
 void P_ArchiveSpecials(void);
 void P_UnArchiveSpecials(void);
+void P_ArchiveScripts(void);
+void P_UnArchiveScripts(void);
 
 // 1/18/98 killough: add RNG info to savegame
 void P_ArchiveRNG(void);
@@ -40,6 +42,10 @@ void P_UnArchiveRNG(void);
 // 2/21/98 killough: add automap info to savegame
 void P_ArchiveMap(void);
 void P_UnArchiveMap(void);
+
+void P_FreeObjTable();
+void P_NumberObjects();
+void P_DeNumberObjects();
 
 extern byte *save_p;
 void CheckSaveGame(size_t);              // killough

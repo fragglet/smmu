@@ -1857,30 +1857,12 @@ void A_SkullAttack(mobj_t *actor)
   actor->momz = (dest->z+(dest->height>>1) - actor->z) / dist;
 }
 
-//
-// A_BetaSkullAttack()
-// killough 10/98: this emulates the beta version's lost soul attacks
-//
-
-#ifdef BETA
-
-void A_BetaSkullAttack(mobj_t *actor)
-{
-  int damage;
-  if (!actor->target || actor->target->type == MT_SKULL)
-    return;
-  S_StartSound(actor, actor->info->attacksound);
-  A_FaceTarget(actor);
-  damage = (P_Random(pr_skullfly)%8+1)*actor->info->damage;
-  P_DamageMobj(actor->target, actor, actor, damage);
-}
+// sf: removed beta lost soul
 
 void A_Stop(mobj_t *actor)
 {
   actor->momx = actor->momy = actor->momz = 0;
 }
-
-#endif
 
 //
 // A_PainShootSkull

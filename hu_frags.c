@@ -133,19 +133,6 @@ void HU_FragsUpdate()
         }
 }
 
-        // dump frag list to the console
-void HU_FragsDump()
-{
-        int i;
-
-        for(i=0; i<num_players; i++)
-        {
-                C_Printf(FC_GRAY"%i"FC_RED" %s\n",
-			sortedplayers[i]->totalfrags,
-			sortedplayers[i]->name);
-        }
-}
-
 void HU_FragsErase()
 {
         int i;
@@ -157,15 +144,20 @@ void HU_FragsErase()
                 R_VideoErase(i*SCREENWIDTH, SCREENWIDTH);
 }
 
-command_t cmd_frags = 
+CONSOLE_COMMAND(frags, 0)
 {
-        "frags",       ct_command,
-        0,
-        NULL,HU_FragsDump
-};
+        int i;
+
+        for(i=0; i<num_players; i++)
+        {
+                C_Printf(FC_GRAY"%i"FC_RED" %s\n",
+			sortedplayers[i]->totalfrags,
+			sortedplayers[i]->name);
+        }
+}
 
 void HU_FragsAddCommands()
 {
-        C_AddCommand(&cmd_frags);
+        C_AddCommand(frags);
 }
 

@@ -1,4 +1,208 @@
 ============================================================================
+13-10-1999
+
+* The main thing is that I finished integrating FraggleScript into SMMU
+  The FraggleScript source files are named t_???.c and t_???.h. These are:
+
+        t_func.c  --  contains all the FraggleScript 'functions'. Each
+                      Function has a corresponding 'handler' function in C,
+                      which is called when the function is called. The
+                      function arguments are stored in a C-command-line style
+                      t_argc, t_argv way. Functions are stored as variables
+                      in the global_script.
+        t_oper.c  --  handler functions for all of the different operators.
+                      There is an array there with all the different operators.
+        t_parse.c --  FraggleScript's core. This takes normal ascii text and
+                      breaks it into tokens, then uses a recursive-descent
+                      method to parse the expressions given to it.
+        t_prepro.c -- Preprocessor. Each script_t must be preprocessed before
+                      it can be run. The preprocessor goes through the
+                      script, blanks out comments, notes all section '{', '}'
+                      delimiters and stores all of the 'goto' labels (which
+                      are stored as variables). Finally it is 'dry-run': each
+                      statement is considered and the types for the
+                      section_t's found.
+        t_spec.c   -- All the 'special' features: if() statements, while()
+                      and for() loops, creating variables, etc. Loops are
+                      accomplished in a rather lame way but it works.
+                      Basically every { -- } delimiter pair is found by
+                      the preprocessor at the start. These are stored as
+                      section_t's in the script. When the parser finds
+                      a '}' it checks the section_t's and if it is a loop,
+                      jumps back to the beginning of the loop.
+        t_script.c -- Controls console commands, basic running of scripts
+                      etc. Scripts can be delayed, where the offset from the
+                      script start, local variables and so on are saved into
+                      a runningscript_t. These are stored in a chain and
+                      checked every tic. When the time comes, the script is
+                      restored and continued.
+                      Note that this means that not only can we have more
+                      than one script running at once, we can also have more
+                      than one of _the same_ script.
+        t_vari.c   -- Variables. There are 3 variable types in FraggleScript,
+                      int, string and mobj. Variables are stored in
+                      svariable_t's and hashed according to their name.
+                      Variables cannot exist alone: they must be stored in
+                      a script_t which is what led me to introduce script
+                      'levels'. (see below)
+
+  Each script is stored as a script_t. This contains a pointer to the data,
+  the script number, a hashed array of variables, all of the section_t's for
+  that script, etc. The problem of global and local variables led me to
+  introduce script 'levels' as shown:
+
+                global_script
+                      |
+                levelscript
+            /         |      \
+    scripts[1]  scripts[2]  scripts[3]  .. etc
+
+  The global_script is not actually a proper script, it merely contains
+  all of the 'game' global variables and function variables (ie. everything
+  that stays the same regardless of the level played).
+  The levelscript is just all of the data put in the wad under the
+  [scripts] section. When the level is loaded this script is executed.
+  This creates all of the global variables etc. It also defines all of the
+  individual scripts. Note that it is possible to place normal statements
+  in the levelscript, although I would advise keeping actions in individual
+  scripts and calling them using the startscript() function.
+
+  The scripts all have pointers to the 'parent' script: for the individual
+  scripts this points to the levelscript, and for the levelscript this is
+  the global_script. The global_script has no parent and hence this is NULL.
+  When a variable is looked up, the current_script (a pointer to the
+  currently running script) is first checked, then its parent, then its
+  parent, etc. This allows global and local variables in a quite
+  structured and generalised way.
+
+  All i need to do to finish it really is add more functions, and a lot of
+  these are already added.
+
+* p_setup.c saves pointers to all of the things spawned at level start.
+  These are stored in an array, 'spawnedthings'. This allows FraggleScript
+  users to refer to things in the level by their thing number.
+
+* Savegames improved: the savegames now save the following:
+        - Running scripts (t_script.c)
+        - spawnedthings list (see above)
+        - the levelscript and variables
+  This did require some minor changes. Some bits of code from existing
+  functions were moved into individual functions: most noticably the ones
+  which number all of the things in the level and then restore them
+  afterward. This is important as FraggleScript needs to save pointers to
+  things.
+
+* Re-organised console command. c_cmdlst.c and c_handle.c removed, the
+  individual commands have been moved to their appropriate individual
+  modules. I also added some useful defines to c_runcmd.h, so creating new
+  console commands is easier, eg:
+
+        CONSOLE_COMMAND(hello, cf_notnet)
+        {
+                C_Printf("hello!\n");
+        }
+
+  The C_AddCommand function is used to register commands. eg
+
+        C_AddCommand(hello);
+
+  note that this is actually a #define also for nicer looking code.
+
+* MBF allowed you to change the game speed, but you had to restart the game
+  to do this. Now you don't need to. Extra changes to d_net.c mean that the
+  console and menu run seperately from the game, so they run at the right
+  speed regardless of game speed.
+
+* Changed some of the sound code in s_sound.c. The sfxinfo_t's are stored in
+  a hash-table at startup. d_main.c checks for new sound lumps (beginning
+  'ds') and adds them to the hash-table as neccesary. This means that the
+  skin code is also somewhat nicer: there is no longer a need to create new
+  sfxinfo_t's inside p_skin.c. The main point to this, however, is to allow
+  playing of sounds from inside FraggleScript. New sounds (or originals) can
+  be played from inside sectors or from things.
+
+* P_KillMobj in p_inter.c globalised to allow killing of monsters from inside
+  scripts
+
+* I released a 'private beta' to a few people and they seemed impressed:
+  mystican, prower, mewse, zokum, afterglow. Also included smmutest.wad
+  which I have been using to develop FraggleScript.
+
+============================================================================
+22-9-1999
+
+I've done quite a bit recently:
+
+* Fixed the serial code again, basetic was not being reset. Now you can do
+  (just about) anything you want before you chose to play over a serial/modem
+  connection
+* Console command list 'shattered': the individual commands have been moved
+  to their appropriate modules. c_runcmd.c calls various functions in
+  different modules which add their commands. Also uses hashtable for
+  speed. g_cmd.c added for game console commands/vars
+* Various new variables added: snd_card, mus_card etc. I'm going thru the
+  original menus and adding them as console commands.
+  One interesting one is i_gamespeed: this does the same job as the
+  original MBF one, but can be set from the console without having to
+  restart the game. I can do this because I have the d_net.c ResetNet
+  function to reset all the tickers. Code added to ensure console/menu run
+  at the right speed when the game speed is changed.
+* Console command flag added: cf_handlerset. When this is set, the variable
+  itself is not changed in the console code: the handler is relied on to do
+  this.
+* Made the console 'tink' when it receives a '\a'. Increased size of printf
+  buffer in c_io.c
+* Video mode setting rearranged: rather than individual hires, pageflip,
+  vesa variables being stored in .cfg file, it is now stored by console
+  mode number. v_mode changed to a variable from a command.
+  Also split into two layers: platform-independent(v_misc.c) and platform
+  specific(i_video.c). videomode_t is defined in the platform specific
+  code and is used by both.
+  Code to detect for VESA support from legacy
+* Video functions rearranged: all my new stuff moved to new v_misc.c
+  functions there deal with: mode setting (platform independent), 
+  font stuff (text write), box drawing/loading pic, fps ticker.
+* FPS ticker rewritten. Now displays a scrolling graph to show the
+  framerate. Made platform-independent: v_misc.c
+* Made chasecam appear instantly: when you turn it on you no longer see it
+  shoot out of your body. Also removed the code to make it show you going
+  back in which was kinda hacked and didnt work anyway
+* Removed translucent gunflashes which were not good for TC's which
+  replaced the guns
+* Fixed savegames on new levels without the MAPxy, ExMy format.
+* FRAGGLESCRIPT! This is probably the most important thing to mention.
+  I have finished the dos version so I decided to start integrating it into
+  SMMU. Code in p_info.c loads the scripts from the level header resource
+  at the start of the level. This on its own is called the 'levelscript'.
+  This is run at the start of the level and statements in it define all of
+  the sub-scripts (script n {} .. ).
+
+  Code in t_script.c allows for pausing of scripts with the 'wait' function.
+  This means that you can have for example, a script running in the
+  background while you wander round a level. You can have more than one
+  script paused at once, infact you can have more than one of _the same_
+  script paused at once, each instance with its own set of local variables.
+
+  I have added a 'const' type which was not in the dos version, which allows
+  for constant values. I have started adding an 'include' function which
+  allows you to 'include' data from another WAD resource in the same way
+  C lets you include data from header files. This means I can create wad
+  resources containing all the thing numbers and so on.
+
+  Added a 'dot' operator which allows for a more object-orientated feel
+  to the language. In actual fact it is just a different way of running
+  a function. I merely include it to make the code look a bit nicer, for
+  example:
+
+                // display a message to the player who started the script
+        trigger.player.msg("hello");
+     looks nicer than
+        msg(player(trigger), "hello");
+
+  It's practically finished, I have to say. All I need to do is add the
+  neccesary functions and then it will rock =).
+
+============================================================================
 5-8-1999
 
 Got bug reports back from many different people via email. Basically fixed

@@ -22,31 +22,38 @@
         right = evaluate_expression((b)+1, (c)); }\
 
 svalue_t OPequals(int, int, int);           // =
-svalue_t OPor(int, int, int);               // |
-svalue_t OPand(int, int, int);              // &
-svalue_t OPcmp(int, int, int);              // ==
-svalue_t OPnotcmp(int, int, int);           // !=
+
 svalue_t OPplus(int, int, int);             // +
 svalue_t OPminus(int, int, int);            // -
 svalue_t OPmultiply(int, int, int);         // *
 svalue_t OPdivide(int, int, int);           // /
 svalue_t OPremainder(int, int, int);        // %
+
+svalue_t OPor(int, int, int);               // ||
+svalue_t OPand(int, int, int);              // &&
 svalue_t OPnot(int, int, int);              // !
+
+svalue_t OPor_bin(int, int, int);           // |
+svalue_t OPand_bin(int, int, int);          // &
+svalue_t OPnot_bin(int, int, int);          // ~
+
+svalue_t OPcmp(int, int, int);              // ==
+svalue_t OPnotcmp(int, int, int);           // !=
 svalue_t OPlessthan(int, int, int);         // <
 svalue_t OPgreaterthan(int, int, int);      // >
+
 svalue_t OPincrement(int, int, int);        // ++
-svalue_t OPdecrement(int, int, int);        //--
+svalue_t OPdecrement(int, int, int);        // --
 
 svalue_t OPstructure(int, int, int);    // in t_vari.c
-
 
 operator_t operators[]=
 {
         {"=",   OPequals,               backward},
         {"||",  OPor,                   forward},
         {"&&",  OPand,                  forward},
-        {"|",   OPor,                   forward},
-        {"&",   OPand,                  forward},
+        {"|",   OPor_bin,               forward},
+        {"&",   OPand_bin,              forward},
         {"==",  OPcmp,                  forward},
         {"!=",  OPnotcmp,               forward},
         {"<",   OPlessthan,             forward},
@@ -59,7 +66,7 @@ operator_t operators[]=
         {"!",   OPnot,                  forward},
         {"++",  OPincrement,            forward},
         {"--",  OPdecrement,            forward},
-        {".",   OPstructure,            backward},
+        {".",   OPstructure,            forward},
 };
 
 int num_operators = sizeof(operators) / sizeof(operator_t);
@@ -265,25 +272,65 @@ svalue_t OPmultiply(int start, int n, int stop)
 svalue_t OPdivide(int start, int n, int stop)
 {
         svalue_t left, right, returnvar;
+        int ir;
 
         evaluate_leftnright(start, n, stop);
 
-
-        returnvar.type = svt_int;
-        returnvar.value.i = intvalue(left) / intvalue(right);
+        if(!(ir = intvalue(right)))
+                script_error("divide by zero\n");
+        else
+        {
+                returnvar.type = svt_int;
+                returnvar.value.i = intvalue(left) / ir;
+        }
         return returnvar;
 }
 
 svalue_t OPremainder(int start, int n, int stop)
 {
         svalue_t left, right, returnvar;
+        int ir;
+
+        evaluate_leftnright(start, n, stop);
+
+        if(!(ir = intvalue(right)))
+                script_error("divide by zero\n");
+        else
+        {
+                returnvar.type = svt_int;
+                returnvar.value.i = intvalue(left) % ir;
+        }
+        return returnvar;
+}
+
+        /********** binary operators **************/
+
+        // binary or |
+svalue_t OPor_bin(int start, int n, int stop)
+{
+        svalue_t left, right, returnvar;
 
         evaluate_leftnright(start, n, stop);
 
         returnvar.type = svt_int;
-        returnvar.value.i = intvalue(left) % intvalue(right);
+        returnvar.value.i = intvalue(left) | intvalue(right);
         return returnvar;
 }
+
+
+        // binary and &
+svalue_t OPand_bin(int start, int n, int stop)
+{
+        svalue_t left, right, returnvar;
+
+        evaluate_leftnright(start, n, stop);
+
+        returnvar.type = svt_int;
+        returnvar.value.i = intvalue(left) & intvalue(right);
+        return returnvar;
+}
+
+
 
         // ++
 svalue_t OPincrement(int start, int n, int stop)
@@ -376,3 +423,6 @@ svalue_t OPdecrement(int start, int n, int stop)
         script_error("incorrect arguments to ++ operator\n");
         return nullvar;
 }
+
+
+

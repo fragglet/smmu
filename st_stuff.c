@@ -27,6 +27,8 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 
 #include "doomdef.h"
 #include "doomstat.h"
+#include "c_runcmd.h"
+#include "d_main.h"
 #include "m_random.h"
 #include "i_video.h"
 #include "w_wad.h"
@@ -169,11 +171,11 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 
 // static player_t *plyr;
 
+// sf 15/10/99: removed a load of useless stuff left over from
+//              when the messages were displayed in the statusbar!
+
 // ST_Start() has just been called
 static boolean st_firsttime;
-
-// used to execute ST_Init() only once
-static int veryfirsttime = 1;
 
 // lump number for PLAYPAL
 static int lu_palette;
@@ -181,26 +183,11 @@ static int lu_palette;
 // used for timing
 static unsigned int st_clock;
 
-// used for making messages go away
-static int st_msgcounter=0;
-
-// used when in chat
-static st_chatstateenum_t st_chatstate;
-
 // whether in automap or first-person
 static st_stateenum_t st_gamestate;
 
 // whether left-side main status bar is active
 static boolean st_statusbaron;
-
-// whether status bar chat is active
-static boolean st_chat;
-
-// value of st_chat before message popped up
-static boolean st_oldchat;
-
-// whether chat window has the cursor on
-static boolean st_cursoron;
 
 // !deathmatch
 static boolean st_notdeathmatch;
@@ -232,7 +219,7 @@ patch_t *keys[NUMCARDS+3];
 patch_t *default_faces[ST_NUMFACES];
 
 // face background
-static patch_t *faceback; // sf: change to one and colormap
+static patch_t *faceback; // sf: change to use one and colormap
 
  // main bar right
 static patch_t *armsbg;
@@ -297,9 +284,6 @@ static int      st_faceindex = 0;
 
 // holds key-type for each key box on bar
 static int      keyboxes[3];
-
-// a random number per tick
-static int      st_randomnumber;
 
 extern char     *mapnames[];
 extern byte     *translationtables;
@@ -540,7 +524,8 @@ void ST_updateFaceWidget(void)
   // look left or look right if the facecount has timed out
   if (!st_facecount)
     {
-      st_faceindex = ST_calcPainOffset() + (st_randomnumber % 3);
+                        // sf: remove st_randomnumber
+      st_faceindex = ST_calcPainOffset() + (M_Random() % 3);
       st_facecount = ST_STRAIGHTFACECOUNT;
       priority = 0;
     }
@@ -602,26 +587,13 @@ void ST_updateWidgets(void)
 
   // used by w_frags widget
   st_fragson = deathmatch && st_statusbaron;
-  st_fragscount = 0;
 
-  for (i=0 ; i<MAXPLAYERS ; i++)
-    {
-      if (i != displayplayer)            // killough 3/7/98
-        st_fragscount += plyr->frags[i];
-      else
-        st_fragscount -= plyr->frags[i];
-    }
-
-  // get rid of chat window if up because of message
-  if (!--st_msgcounter)
-    st_chat = st_oldchat;
-
+  st_fragscount = plyr->totalfrags;     // sf 15/10/99 use totalfrags
 }
 
 void ST_Ticker(void)
 {
   st_clock++;
-  st_randomnumber = M_Random();
   ST_updateWidgets();
   st_oldhealth = plyr->health;
 }
@@ -633,11 +605,6 @@ void ST_doPaletteStuff(void)
   int         palette;
   byte*       pal;
   int cnt = plyr->damagecount;
-
-#ifdef BETA
-  // killough 7/14/98: beta version did not cause red berserk palette
-  if (!beta_emulation)
-#endif
 
   if (plyr->powers[pw_strength])
     {
@@ -663,18 +630,12 @@ void ST_doPaletteStuff(void)
         palette += STARTBONUSPALS;
       }
     else
-#ifdef BETA
-      // killough 7/14/98: beta version did not cause green palette
-      if (beta_emulation)
-        palette = 0;
-      else
-#endif
       if (plyr->powers[pw_ironfeet] > 4*32 || plyr->powers[pw_ironfeet] & 8)
         palette = RADIATIONPAL;
       else
         palette = 0;
 
-  if (chasecam_active || walkcam_active) palette = 0;     //sf
+  if (camera) palette = 0;     //sf
 
   if (palette != st_palette)
     {
@@ -919,12 +880,9 @@ void ST_initData(void)
   st_firsttime = true;
 
   st_clock = 0;
-  st_chatstate = StartChatState;
   st_gamestate = FirstPersonState;
 
   st_statusbaron = true;
-  st_oldchat = st_chat = false;
-  st_cursoron = false;
 
   st_faceindex = 0;
   st_palette = -1;
@@ -1118,10 +1076,46 @@ void ST_Stop(void)
 
 void ST_Init(void)
 {
-  veryfirsttime = 0;
   ST_loadData();
   // killough 11/98: allocate enough for hires
   screens[4] = Z_Malloc(ST_WIDTH*ST_HEIGHT*4, PU_STATIC, 0);
+}
+
+/***********************
+        CONSOLE COMMANDS
+ ***********************/
+
+VARIABLE_INT(ammo_red, NULL,               0, 100, NULL);
+VARIABLE_INT(ammo_yellow, NULL,            0, 100, NULL);
+VARIABLE_INT(health_red, NULL,             0, 200, NULL);
+VARIABLE_INT(health_yellow, NULL,          0, 200, NULL);
+VARIABLE_INT(health_green, NULL,           0, 200, NULL);
+VARIABLE_INT(armor_red, NULL,              0, 200, NULL);
+VARIABLE_INT(armor_yellow, NULL,           0, 200, NULL);
+VARIABLE_INT(armor_green, NULL,            0, 200, NULL);
+
+CONSOLE_VARIABLE(ammo_red, ammo_red, 0) { }
+CONSOLE_VARIABLE(ammo_yellow, ammo_yellow, 0) { }
+CONSOLE_VARIABLE(health_red, health_red, 0) { }
+CONSOLE_VARIABLE(health_yellow, health_yellow, 0) { }
+CONSOLE_VARIABLE(health_green, health_green, 0) { }
+CONSOLE_VARIABLE(armor_red, armor_red, 0) { }
+CONSOLE_VARIABLE(armor_yellow, armor_yellow, 0) { }
+CONSOLE_VARIABLE(armor_green, armor_green, 0) { }
+
+void ST_AddCommands()
+{
+        C_AddCommand(ammo_red);
+        C_AddCommand(ammo_yellow);
+
+        C_AddCommand(health_red);
+        C_AddCommand(health_yellow);
+        C_AddCommand(health_green);
+
+        C_AddCommand(armor_red);
+        C_AddCommand(armor_yellow);
+        C_AddCommand(armor_green);
+
 }
 
 //----------------------------------------------------------------------------

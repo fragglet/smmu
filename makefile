@@ -19,7 +19,7 @@ EXE = smmu.exe
 CFLAGS_COMMON = -Wall -g
 
 # new features; comment out what you don't want at the moment
-CFLAGS_NEWFEATURES = -DDOGS -DBETA
+CFLAGS_NEWFEATURES = -DDOGS
 
 # debug options
 CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
@@ -53,8 +53,6 @@ OBJS=	\
 	$(O)/lumps.o        \
 	$(O)/c_io.o	    \
 	$(O)/c_runcmd.o	    \
-	$(O)/c_cmdlst.o     \
-	$(O)/c_handle.o     \
 	$(O)/c_net.o	    \
 	$(O)/doomdef.o      \
         $(O)/doomstat.o     \
@@ -81,6 +79,7 @@ OBJS=	\
         $(O)/am_map.o       \
         $(O)/p_ceilng.o     \
 	$(O)/p_chase.o	    \
+	$(O)/p_cmd.o	    \
         $(O)/p_doors.o      \
         $(O)/p_enemy.o      \
         $(O)/p_floor.o      \

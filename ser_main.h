@@ -86,7 +86,7 @@ typedef struct
 	unsigned char	data[QUESIZE];
 } que_t;
 
-void ser_Start();
+void Ser_Start();
 
 void InitPort (void);
 void ShutdownPort (void);
@@ -95,8 +95,8 @@ int read_byte( void );
 void write_byte( int c );
 
 
-void ser_Error (char *error, ...);
-void ser_Disconnect();
+void Ser_Error (char *error, ...);
+void Ser_Disconnect();
 extern int ser_active;
 
 extern int comport;

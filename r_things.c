@@ -23,6 +23,7 @@
 static const char
 rcsid[] = "$Id: r_things.c,v 1.22 1998/05/03 22:46:41 killough Exp $";
 
+#include "c_io.h"
 #include "doomstat.h"
 #include "w_wad.h"
 #include "g_game.h"
@@ -452,7 +453,11 @@ void R_ProjectSprite (mobj_t* thing)
 
     // decide which patch to use for sprite relative to player
   if ((unsigned) thing->sprite >= numsprites)
-    I_Error ("R_ProjectSprite: invalid sprite number %i", thing->sprite);
+  {
+    C_Printf ("R_ProjectSprite: invalid sprite number %i\n", thing->sprite);
+    C_SetConsole();
+    return;
+  }
 
   sprdef = &sprites[thing->sprite];
 
@@ -696,14 +701,8 @@ void R_DrawPSprite (pspdef_t *psp)
 
   vis->patch = lump;
 
-#ifdef BETA
-  // killough 7/11/98: beta psprites did not draw shadows
-  if ((viewplayer->powers[pw_invisibility] > 4*32
-      || viewplayer->powers[pw_invisibility] & 8) && !beta_emulation)
-#else
   if (viewplayer->powers[pw_invisibility] > 4*32
       || viewplayer->powers[pw_invisibility] & 8)
-#endif
 
     vis->colormap = NULL;                    // shadow draw
   else if (fixedcolormap)

@@ -30,18 +30,6 @@ extern int gamma_correct;
 int v_mode = 0;
 int prevmode = 0;
 
-void V_ModeList()
-{
-        videomode_t* videomode = videomodes;
-
-        while(videomode->description)
-        {
-                C_Printf("%i: %s\n",(int)(videomode-videomodes),
-                                        videomode->description);
-                videomode++;
-        }
-}
-
 int NumModes()
 {
         int count=0;
@@ -81,6 +69,10 @@ void V_LoadFont()
         int i, j;
         char tempstr[10];
 
+                // init to NULL first
+        for(i=0; i<V_FONTSIZE; i++)
+          v_font[i] = NULL;
+
         for(i=0, j=V_FONTSTART; i<V_FONTSIZE; i++, j++)
         {
                 if(j>96 && j!=121 && j!=123 && j!=124 && j!=125) continue;
@@ -99,7 +91,8 @@ void V_WriteText(unsigned char *s, int x, int y)
   unsigned int c;
   int   cx;
   int   cy;
-  
+  patch_t *patch;
+
   ch = s;
   cx = x;
   cy = y;
@@ -132,12 +125,15 @@ void V_WriteText(unsigned char *s, int x, int y)
 	  cx += 4;
 	  continue;
 	}
-  
-      w = SHORT (v_font[c]->width);
+
+      patch = v_font[c];
+      if(!patch) continue;
+
+      w = SHORT (patch->width);
       if (cx+w > SCREENWIDTH)
 	break;
 
-      V_DrawPatchTranslated(cx, cy, 0, v_font[c], colour, 0);
+      V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
 
       cx+=w;
     }
@@ -405,32 +401,31 @@ void V_InitMisc()
           CONSOLE COMMANDS
  *************************/
 
-variable_t var_vidmode =
-{&v_mode,         NULL,                 vt_int,    0,10, NULL};
-variable_t var_ticker =
-{&v_ticker,       NULL,                 vt_int,    0,1, onoff};
+VARIABLE_INT(v_mode, NULL,              0, 10, NULL);
+VARIABLE_INT(v_ticker, NULL,            0, 1, onoff);
 
-command_t v_commands[] =
+CONSOLE_VARIABLE(v_mode, v_mode, 0)
 {
-        {
-                "v_mode",      ct_variable,
-                0,
-                &var_vidmode,V_ResetMode
-        },
-        {
-                "v_modelist",  ct_command,
-                0,
-                NULL,V_ModeList
-        },
-        {
-                "v_ticker",    ct_variable,
-                0,
-                &var_ticker,
-        },
-        {"end",ct_end}
-};
+     V_ResetMode();
+}
+
+CONSOLE_COMMAND(v_modelist, 0)
+{
+     videomode_t* videomode = videomodes;
+
+     while(videomode->description)
+     {
+         C_Printf("%i: %s\n",(int)(videomode-videomodes),
+                                   videomode->description);
+         videomode++;
+     }
+}
+
+CONSOLE_VARIABLE(v_ticker, v_ticker, 0) {}
 
 void V_AddCommands()
 {
-        C_AddCommandList(v_commands);
+        C_AddCommand(v_mode);
+        C_AddCommand(v_modelist);
+        C_AddCommand(v_ticker);
 }

@@ -7,6 +7,14 @@ typedef struct svariable_s svariable_t;
 #include "t_parse.h"
 #include "p_mobj.h"
 
+        // hash the variables for speed: this is the hashkey
+
+#define variable_hash(n)                \
+              (   ( (n)[0] + (n)[1] +   \
+                  ((n)[1] ? (n)[2] +    \
+                  ((n)[2] ? (n)[3]  : 0) : 0) ) % VARIABLESLOTS )
+
+        // svariable_t
 struct svariable_s
 {
         char *name;
@@ -15,14 +23,31 @@ struct svariable_s
         {
                 char *s;
                 long i;
+                mobj_t *mobj;
+
+                char **pS;              // pointer to game string
+                int *pI;                // pointer to game int
+                mobj_t **pMobj;         // pointer to game obj
+
                 void (*handler)();      // for functions
                 char *labelptr;         // for labels
-                mobj_t *mobj;
         } value;
         svariable_t *next;       // for hashing
 };
 
-//extern svariable_t *svariables[MAXVARIABLES];
+        // variable types
+enum
+{
+        svt_string,
+        svt_int,
+        svt_mobj,         // a map object
+        svt_function,     // functions are stored as variables
+        svt_label,        // labels for goto calls are variables
+        svt_const,        // const
+        svt_pInt,         // pointer to game int
+        svt_pString,      // pointer to game string
+        svt_pMobj,        // pointer to game mobj
+};
 
         // variables
 
@@ -33,6 +58,10 @@ svariable_t *variableforname(script_t *script, char *name);
 svalue_t getvariablevalue(svariable_t *v);
 void setvariablevalue(svariable_t *v, svalue_t newvalue);
 void clear_variables(script_t *script);
+
+svariable_t *add_game_int(char *name, int *var);
+svariable_t *add_game_string(char *name, char **var);
+svariable_t *add_game_mobj(char *name, mobj_t **mo);
 
         // functions
 

@@ -4,7 +4,7 @@
 // Command running functions
 //
 // Running typed commands, or network/linedef triggers. Sending commands over
-// the network. Calls handlers for some commands in c_handle.c
+// the network. Calls handlers for some commands.
 //
 
 
@@ -17,7 +17,6 @@
 
 #include "c_io.h"
 #include "c_runcmd.h"
-#include "c_cmdlst.h"
 #include "c_net.h"
 
 #include "doomdef.h"
@@ -468,6 +467,7 @@ void C_SetVariable(command_t *command)
                    // 5/8/99 set default value also
                    // 16/9/99 cf_handlerset flag for variables set from
                            // the handler instead
+
         if(!(command->flags & cf_handlerset))
            switch(variable->type)  // implicitly set the variable
            {
@@ -663,41 +663,6 @@ void C_RemoveAlias(unsigned char *aliasname)
       }
 }
 
-        // console command to handle aliases
-void C_Alias()
-{
-        alias_t *alias;
-        char *temp;
-
-        if(!c_argc)
-        {
-                // list em
-                C_Printf(FC_GRAY"alias list:" FC_RED "\n\n");
-                alias = aliases;
-                while(alias->name)
-                {
-                        C_Printf("\"%s\": \"%s\"\n", alias->name,
-					alias->command);
-                        alias++;
-                }
-                if(alias==aliases) C_Printf("(empty)\n");
-                return;
-        }
-
-        if(c_argc == 1)  // only one, remove alias
-        {
-                C_RemoveAlias(c_argv[0]);
-                return;
-        }
-
-       // find it or make a new one
-
-        temp = c_args + strlen(c_argv[0]);
-        while(*temp == ' ') temp++;
-
-        C_NewAlias(c_argv[0], temp);
-}
-
         // run an alias
 void C_RunAlias(alias_t *alias)
 {
@@ -744,6 +709,7 @@ cmdbuffer buffers[C_CMDTYPES];
 void C_BufferCommand(int cmdtype, command_t *command, char *options,
                         int cmdsrc)
 {
+//        C_Printf("adding %s to buffer\n", command->name);
                 // add to appropriate list
         bufcmd [buffers[cmdtype].cmds].command = command;
         bufcmd [buffers[cmdtype].cmds].options = strdup(options);
@@ -759,6 +725,7 @@ void C_RunBuffer(int cmtype)
         if(buffers[cmtype].timer)      // buffer frozen
         {
                   buffers[cmtype].timer--;
+//                  C_Printf("timer t %i\n", buffers[cmtype].timer);
                   return;
         }
 
@@ -772,6 +739,7 @@ void C_RunBuffer(int cmtype)
              if(buffers[cmtype].timer)      // countdown ticker
              {
                   buffers[cmtype].timer--;
+//                  C_Printf("timer t %i\n", buffers[cmtype].timer);
                   return;
              }
              else
@@ -841,7 +809,7 @@ command_t *cmdroots[16];
                  (s)[2] ? (s)[3] + (s)[3] ? (s)[4]        \
                         : 0 : 0 : 0 : 0 ) % 16)
 
-void C_AddCommand(command_t *command)
+void (C_AddCommand)(command_t *command)
 {
         int hash;
 
@@ -861,7 +829,7 @@ void C_AddCommand(command_t *command)
 void C_AddCommandList(command_t *list)
 {
         for(;list->type != ct_end; list++)
-                C_AddCommand(list);
+                (C_AddCommand)(list);
 }
 
 extern void Cheat_AddCommands();
@@ -873,11 +841,11 @@ extern void     S_AddCommands();
 extern void   net_AddCommands();
 extern void     V_AddCommands();
 extern void     T_AddCommands();
+extern void     P_AddCommands();
+extern void    ST_AddCommands();
 
 void C_AddCommands()
 {
-        C_AddCommandList(commands);
-
                 // add commands in other modules
         Cheat_AddCommands();    // m_cheat.c
         G_AddCommands();        // g_cmd.c
@@ -886,8 +854,10 @@ void C_AddCommands()
         I_AddCommands();        // i_system.c
         S_AddCommands();        // s_sound.c
         net_AddCommands();      // d_net.c
+        P_AddCommands();        // p_cmd.c
         V_AddCommands();        // v_misc.c
         T_AddCommands();        // t_script.c
+        ST_AddCommands();       // st_stuff.c
 }
 
 
@@ -917,34 +887,5 @@ command_t *C_GetCmdForName(char *cmdname)
         return NULL;
 }
 
-        // console command to list commands
-void C_Cmdlist()
-{
-        int numonline = 0;
-        command_t *current;
-        int i;
-        int charnum;
-
-                // list each command from the hash chains
-
-                //  5/8/99 change: use hash table and 
-                //  alphabetical order by first letter
-        for(charnum=33; charnum < 'z'; charnum++)
-          for(i=0; i<CMDCHAINS; i++)
-            for(current = cmdroots[i]; current; current = current->next)
-            {
-              if(current->name[0]==charnum && !(current->flags & cf_hidden))
-              {
-                 C_Printf("%s ", current->name);
-                 numonline++;
-                 if(numonline >= 3)
-                 {
-                   numonline = 0;
-                   C_Printf("\n");
-                 }
-               }
-            }
-        C_Printf("\n");
-}
 
 

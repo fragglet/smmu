@@ -12,9 +12,7 @@
 
 #include "doomdef.h"
 #include "doomstat.h"
-#include "c_cmdlst.h"
 #include "c_net.h"
-#include "c_runcmd.h"
 #include "d_deh.h"
 #include "d_event.h"
 #include "g_game.h"
@@ -332,17 +330,6 @@ void HU_CrossHairTick()
         }        
 }
 
-        // console command
-void HU_CrossHairConsole()
-{
-        int a;
-
-        a=atoi(c_argv[0]);
-
-        crosshair = a ? crosshairs[a-1] : NULL;
-        crosshairnum = a;
-}
-
 /*****************
           WARNINGS
  *****************/
@@ -590,13 +577,6 @@ boolean HU_ChatRespond(event_t *ev)
         return false;
 }
 
-        // netgame talk console
-void HU_CmdSay()
-{
-        S_StartSound(0, gamemode == commercial ? sfx_radio : sfx_tink);
-        dprintf(FC_GRAY"%s:"FC_RED" %s", players[cmdsrc].name, c_args);
-}
-
 // Widgets Init
 
 void HU_WidgetsInit()
@@ -656,64 +636,45 @@ const char english_shiftxform[] =
         CONSOLE COMMANDS
  *****************************/
 
-variable_t var_obcolour = 
-{&obcolour,       NULL,                 vt_int,    0,CR_LIMIT-1, textcolours};
-variable_t var_obituaries =
-{&obituaries,     NULL,                 vt_int,    0,1, onoff};
-variable_t var_crosshair =
-{&crosshairnum,   NULL,                 vt_int,    0,CROSSHAIRS, cross_str};
-variable_t var_vpo =
-{&show_vpo,       NULL,                 vt_int,    0,1, yesno};
-variable_t var_messages =
-{&showMessages,   NULL,                 vt_int,    0,1, onoff};
-variable_t var_messcolour =
-{&mess_colour,    NULL,                 vt_int,    0,CR_LIMIT-1, textcolours};
+VARIABLE_BOOLEAN(showMessages, NULL,    onoff);
+VARIABLE_INT(mess_colour, NULL,         0, CR_LIMIT-1, textcolours);
+VARIABLE_INT(obcolour, NULL,            0, CR_LIMIT-1, textcolours);
+VARIABLE_BOOLEAN(obituaries, NULL,      onoff);
+VARIABLE_INT(crosshairnum, NULL,        0, CROSSHAIRS, cross_str);
+VARIABLE_BOOLEAN(show_vpo, NULL,        yesno);
 
-command_t hu_commands[] =
+CONSOLE_VARIABLE(obituaries, obituaries, 0) {}
+CONSOLE_VARIABLE(obcolour, obcolour, 0) {}
+CONSOLE_VARIABLE(crosshair, crosshairnum, 0)
 {
-        {
-                "obituaries",  ct_variable,
-                0,
-                &var_obituaries,NULL
-        },
-        {
-                "obcolour",    ct_variable,
-                0,
-                &var_obcolour, NULL
-        },
-        {
-                "crosshair",   ct_variable,
-                0,
-                &var_crosshair,HU_CrossHairConsole
-        },
-        {
-                "show_vpo",    ct_variable,
-                0,
-                &var_vpo, NULL
-        },
-        {
-                "messages",    ct_variable,
-                0,
-                &var_messages, NULL
-        },
-        {
-                "mess_colour", ct_variable,
-                0,
-                &var_messcolour, NULL
-        },
-        {
-                "say",         ct_command,
-                cf_netvar,
-                NULL,HU_CmdSay, cmd_chat
-        },
+        int a;
 
-        {"end", ct_end}
-};
+        a=atoi(c_argv[0]);
+
+        crosshair = a ? crosshairs[a-1] : NULL;
+        crosshairnum = a;
+}
+CONSOLE_VARIABLE(show_vpo, show_vpo, 0) {}
+CONSOLE_VARIABLE(messages, showMessages, 0) {}
+CONSOLE_VARIABLE(mess_colour, mess_colour, 0) {}
+CONSOLE_NETCMD(say, cf_netvar, netcmd_chat)
+{
+        S_StartSound(0, gamemode == commercial ? sfx_radio : sfx_tink);
+
+        dprintf(FC_GRAY"%s:"FC_RED" %s", players[cmdsrc].name, c_args);
+}
 
 extern void HU_FragsAddCommands();
 
 void HU_AddCommands()
 {
-        C_AddCommandList(hu_commands);
+        C_AddCommand(obituaries);
+        C_AddCommand(obcolour);
+        C_AddCommand(crosshair);
+        C_AddCommand(show_vpo);
+        C_AddCommand(messages);
+        C_AddCommand(mess_colour);
+        C_AddCommand(say);
+
         HU_FragsAddCommands();
 }

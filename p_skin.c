@@ -94,7 +94,7 @@ void P_CreateMarine()
         int i;
         
         for(i=0; i<NUMSKINSOUNDS; i++)
-                marine.sound[i] = S_sfxinfoForname(skinsoundnames[i]+2);
+                marine.sounds[i] = NULL;
         marine.faces = default_faces;
         marine.facename = "STF";
 }
@@ -182,17 +182,7 @@ void P_ParseSkinCmd(char *line)
               while(*newsoundname == ' ') newsoundname++;
               newsoundname += 2;        // ds
 
-              newskin->sound[i] = S_sfxinfoForname(newsoundname);
-
-              if(!newskin->sound[i]) // new sound in pwad
-              {
-                 newskin->sound[i] =
-                    Z_Malloc(sizeof(sfxinfo_t), PU_STATIC, 0);
-                 memcpy(newskin->sound[i],
-                    S_sfxinfoForname(skinsoundnames[i]+2), sizeof(sfxinfo_t));
-                 newskin->sound[i]->name = strdup(newsoundname);
-                 newskin->sound[i]->data = NULL;
-              }
+              newskin->sounds[i] = strdup(newsoundname);
            }
         }
 }
@@ -214,7 +204,7 @@ void P_ParseSkin(int lumpnum)
         newskin->faces = 0;
         
         for(i=0; i<NUMSKINSOUNDS; i++)
-                newskin->sound[i] = S_sfxinfoForname(skinsoundnames[i]+2);
+                newskin->sounds[i] = NULL;       // init to NULL
 
         lump = W_CacheLumpNum(lumpnum, PU_STATIC);  // get the lump
 
@@ -286,7 +276,6 @@ skin_t *P_SkinForName(char *s)
                 skin++;
         }
 
-        C_Printf("no skin %s\n", s);
         return NULL;
 }
 
@@ -334,9 +323,7 @@ void P_ChangeSkin()
             return;
         }
 
-        skin = P_SkinForName(c_argv[0]);
-
-        if(!skin)
+        if(!(skin = P_SkinForName(c_argv[0])))
         {
            if(consoleplayer == cmdsrc)
                 C_Printf("skin not found: '%s'\n", c_argv[0]);

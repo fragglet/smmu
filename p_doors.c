@@ -56,31 +56,31 @@ void T_VerticalDoor (vldoor_t *door)
   // Is the door waiting, going up, or going down?
   switch(door->direction)
     {
-    case 0:
+    case plat_stop:
       // Door is waiting
       if (!--door->topcountdown)  // downcount and check
         switch(door->type)
           {
           case blazeRaise:
           case genBlazeRaise:
-            door->direction = -1; // time to go back down
+            door->direction = plat_down; // time to go back down
             S_StartSound((mobj_t *)&door->sector->soundorg,sfx_bdcls);
             break;
 
           case normal:
           case genRaise:
-            door->direction = -1; // time to go back down
+            door->direction = plat_down; // time to go back down
             S_StartSound((mobj_t *)&door->sector->soundorg,sfx_dorcls);
             break;
 
           case close30ThenOpen:
           case genCdO:
-            door->direction = 1;  // time to go back up
+            door->direction = plat_up;  // time to go back up
             S_StartSound((mobj_t *)&door->sector->soundorg,sfx_doropn);
             break;
 
           case genBlazeCdO:
-            door->direction = 1;  // time to go back up
+            door->direction = plat_up;  // time to go back up
             S_StartSound((mobj_t *)&door->sector->soundorg,sfx_bdopn);
             break;
 
@@ -95,7 +95,7 @@ void T_VerticalDoor (vldoor_t *door)
         switch(door->type)
           {
           case raiseIn5Mins:
-            door->direction = 1;  // time to raise then
+            door->direction = plat_up;  // time to raise then
             door->type = normal;  // door acts just like normal 1 DR door now
             S_StartSound((mobj_t *)&door->sector->soundorg,sfx_doropn);
             break;
@@ -105,7 +105,7 @@ void T_VerticalDoor (vldoor_t *door)
           }
       break;
 
-    case -1:
+    case plat_down:
       // Door is moving down
       res = T_MovePlane(door->sector, door->speed,
                         door->sector->floorheight,
@@ -145,13 +145,13 @@ void T_VerticalDoor (vldoor_t *door)
 
             // close then open doors start waiting
           case close30ThenOpen:
-            door->direction = 0;
+            door->direction = plat_stop;
             door->topcountdown = TICRATE*30;
             break;
 
           case genCdO:
           case genBlazeCdO:
-            door->direction = 0;
+            door->direction = plat_stop;
             door->topcountdown = door->topwait; // jff 5/8/98 insert delay
             break;
 
@@ -173,13 +173,13 @@ void T_VerticalDoor (vldoor_t *door)
               break;
 
             default:             // other types bounce off the obstruction
-              door->direction = 1;
+              door->direction = plat_up;
               S_StartSound((mobj_t *)&door->sector->soundorg,sfx_doropn);
               break;
             }
       break;
 
-    case 1:
+    case plat_up:
       // Door is moving up
       res = T_MovePlane(door->sector, door->speed,
                         door->topheight, false, 1,
@@ -201,7 +201,7 @@ void T_VerticalDoor (vldoor_t *door)
           case normal:
           case genRaise:
           case genBlazeRaise:
-            door->direction = 0; // wait at top with delay
+            door->direction = plat_stop; // wait at top with delay
             door->topcountdown = door->topwait;
             break;
 
@@ -332,7 +332,7 @@ int EV_DoDoor(line_t *line, vldoor_e type)
         case blazeClose:
           door->topheight = P_FindLowestCeilingSurrounding(sec);
           door->topheight -= 4*FRACUNIT;
-          door->direction = -1;
+          door->direction = plat_down;
           door->speed = VDOORSPEED * 4;
           S_StartSound((mobj_t *)&door->sector->soundorg,sfx_bdcls);
           break;
@@ -340,19 +340,19 @@ int EV_DoDoor(line_t *line, vldoor_e type)
         case close:
           door->topheight = P_FindLowestCeilingSurrounding(sec);
           door->topheight -= 4*FRACUNIT;
-          door->direction = -1;
+          door->direction = plat_down;
           S_StartSound((mobj_t *)&door->sector->soundorg,sfx_dorcls);
           break;
 
         case close30ThenOpen:
           door->topheight = sec->ceilingheight;
-          door->direction = -1;
+          door->direction = plat_down;
           S_StartSound((mobj_t *)&door->sector->soundorg,sfx_dorcls);
           break;
 
         case blazeRaise:
         case blazeOpen:
-          door->direction = 1;
+          door->direction = plat_up;
           door->topheight = P_FindLowestCeilingSurrounding(sec);
           door->topheight -= 4*FRACUNIT;
           door->speed = VDOORSPEED * 4;
@@ -362,7 +362,7 @@ int EV_DoDoor(line_t *line, vldoor_e type)
 
         case normal:
         case open:
-          door->direction = 1;
+          door->direction = plat_up;
           door->topheight = P_FindLowestCeilingSurrounding(sec);
           door->topheight -= 4*FRACUNIT;
           if (door->topheight != sec->ceilingheight)
@@ -465,14 +465,14 @@ int EV_VerticalDoor(line_t *line, mobj_t *thing)
         case  27:
         case  28:
         case  117:
-          if (door->direction == -1)
-            door->direction = 1;  // go back up
+          if (door->direction == plat_down)
+            door->direction = plat_up;  // go back up
           else
             {
               if (!thing->player)
                 return 0;           // JDC: bad guys never close doors
 
-              door->direction = -1; // start going down immediately
+              door->direction = plat_down; // start going down immediately
             }
           return 1;
         }
@@ -502,7 +502,7 @@ int EV_VerticalDoor(line_t *line, mobj_t *thing)
   sec->ceilingdata = door; //jff 2/22/98
   door->thinker.function = T_VerticalDoor;
   door->sector = sec;
-  door->direction = 1;
+  door->direction = plat_up;
   door->speed = VDOORSPEED;
   door->topwait = VDOORWAIT;
   door->line = line; // jff 1/31/98 remember line that triggered us
@@ -576,7 +576,7 @@ void P_SpawnDoorCloseIn30 (sector_t* sec)
 
   door->thinker.function = T_VerticalDoor;
   door->sector = sec;
-  door->direction = 0;
+  door->direction = plat_stop;
   door->type = normal;
   door->speed = VDOORSPEED;
   door->topcountdown = 30 * 35;

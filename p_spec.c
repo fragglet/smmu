@@ -653,6 +653,18 @@ int P_FindLineFromLineTag(const line_t *line, int start)
   return start;
 }
 
+// sf: same thing but from just a number
+
+int P_FindSectorFromTag(const int tag, int start)
+{
+  start = start >= 0 ? sectors[start].nexttag :
+    sectors[(unsigned) tag % (unsigned) numsectors].firsttag;
+  while (start >= 0 && sectors[start].tag != tag)
+    start = sectors[start].nexttag;
+  return start;
+}
+
+
 // Hash the sector tags across the sectors and linedefs.
 static void P_InitTagLists(void)
 {
@@ -920,10 +932,15 @@ int P_CheckTag(line_t *line)
     case 198:
     case 48:  // Scrolling walls
     case 85:
-    case 2048:  // execute console command
-    case 2049:
-    case 2050:
-    case 2051:
+        // sf: scripting
+    case 270:   // WR
+    case 271:
+    case 272:   // W1
+    case 273:
+    case 274:   // SR
+    case 275:   // S1
+    case 276:   // GR
+    case 277:   // G1
       return 1;
     }
 
@@ -996,10 +1013,8 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
       case MT_TROOPSHOT:
       case MT_HEADSHOT:
       case MT_BRUISERSHOT:
-#ifdef BETA
       case MT_PLASMA1:    // killough 8/28/98: exclude beta fireballs
       case MT_PLASMA2:
-#endif
         return;
       default:
         break;
@@ -1556,12 +1571,27 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
       EV_DoFloor(line,raiseFloorTurbo);
       break;
 
-    case 2049:  // console command (1sided)
+        // scripting ld types
+
+        // repeatable
+
+    case 271:  // console command (1sided)
       if(side) break;
 
-    case 2048:  // console command (2sided)
+    case 270:  // console command (2sided)
       t_trigger = thing;
       T_RunScript(line->tag);
+      break;
+
+        // once-only triggers
+
+    case 273:  // console command (1sided)
+      if(side) break;
+
+    case 272:  // console command (2sided)
+      t_trigger = thing;
+      T_RunScript(line->tag);
+      line->special = 0;        // clear trigger
       break;
 
       // Extended walk triggers
@@ -2029,6 +2059,14 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
 
       //jff 1/30/98 added new gun linedefs here
       // killough 1/31/98: added demo_compatibility check, added inner switch
+
+        // sf: scripting
+    case 276:
+    case 277:
+      t_trigger = thing;
+      T_RunScript(line->tag);
+      if(line->special == 277) line->special = 0;       // clear if G1
+      break;
 
     default:
       if (!demo_compatibility)

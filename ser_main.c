@@ -5,7 +5,6 @@
 // this is a hacked up piece of shit
 //
 
-
 #include "ser_main.h"
 #include "d_net.h"
 #include "c_net.h"
@@ -21,7 +20,7 @@
 void (*netdisconnect)();
 
 int CheckForEsc();
-void ser_Disconnect();
+void Ser_Disconnect();
 void ModemClear ();
 
 extern	que_t		inque, outque;
@@ -67,18 +66,18 @@ void write_buffer( char *buffer, unsigned int count )
 /*
 =================
 =
-= ser_Error
+= Ser_Error
 =
 = For abnormal program terminations
 =
 =================
 */
 
-void ser_Error (char *error, ...)
+void Ser_Error (char *error, ...)
 {
 	va_list argptr;
 
-        ser_Disconnect();
+        Ser_Disconnect();
 
 	ShutdownPort ();
 
@@ -95,7 +94,7 @@ void ser_Error (char *error, ...)
         ser_active = 0;
 }
 
-void ser_Disconnect()
+void Ser_Disconnect()
 {
         doomcom = &singleplayer;
 
@@ -120,7 +119,7 @@ void ser_Disconnect()
 /*
 ================
 =
-= ser_ReadPacket
+= Ser_ReadPacket
 =
 ================
 */
@@ -133,7 +132,7 @@ int		packetlen;
 int		inescape;
 int		newpacket;
 
-boolean ser_ReadPacket (void)
+boolean Ser_ReadPacket (void)
 {
 	int	c;
 
@@ -185,14 +184,14 @@ boolean ser_ReadPacket (void)
 /*
 =============
 =
-= ser_WritePacket
+= Ser_WritePacket
 =
 =============
 */
 
 
 
-void ser_WritePacket (char *buffer, int len)
+void Ser_WritePacket (char *buffer, int len)
 {
 	int		b;
 	char	static localbuffer[MAXPACKET*2+2];
@@ -218,23 +217,23 @@ void ser_WritePacket (char *buffer, int len)
 /*
 =============
 =
-= ser_NetISR
+= Ser_NetISR
 =
 =============
 */
 
-void ser_NetISR (void)
+void Ser_NetISR (void)
 {
         if (ser_doomcom.command == CMD_SEND)
 	{
 //I_ColorBlack (0,0,63);
-                ser_WritePacket ((char *)&ser_doomcom.data, ser_doomcom.datalength);
+                Ser_WritePacket ((char *)&ser_doomcom.data, ser_doomcom.datalength);
 	}
         else if (ser_doomcom.command == CMD_GET)
 	{
 //I_ColorBlack (63,63,0);
 
-                if (ser_ReadPacket () && packetlen <= sizeof(ser_doomcom.data) )
+                if (Ser_ReadPacket () && packetlen <= sizeof(ser_doomcom.data) )
 		{
                         ser_doomcom.remotenode = 1;
                         ser_doomcom.datalength = packetlen;
@@ -252,13 +251,13 @@ void ser_NetISR (void)
 /*
 =================
 =
-= ser_Connect
+= Ser_Connect
 =
 = Figures out who is player 0 and 1
 =================
 */
 
-void ser_Connect (void)
+void Ser_Connect (void)
 {
         int             time;
         int             oldsec;
@@ -280,10 +279,10 @@ void ser_Connect (void)
 	{
                 if(CheckForEsc())
                 {
-                        ser_Error(FC_GRAY "connection aborted.");
+                        Ser_Error(FC_GRAY "connection aborted.");
                         return;
                 }
-                while (ser_ReadPacket ())
+                while (Ser_ReadPacket ())
 		{
 			packet[packetlen] = 0;
 //                      printf ("read: %s",packet);
@@ -307,7 +306,7 @@ badpacket:
 		{
                         oldsec = time;
                         sprintf (str,"PLAY%i_%i",ser_doomcom.consoleplayer,localstage);
-                        ser_WritePacket (str,strlen(str));
+                        Ser_WritePacket (str,strlen(str));
 		}
 
 	} while (remotestage < 1);
@@ -315,7 +314,7 @@ badpacket:
 //
 // flush out any extras
 //
-        while (ser_ReadPacket ());
+        while (Ser_ReadPacket ());
 }
 
 
@@ -364,7 +363,7 @@ void ModemClear ()
 =
 = ModemResponse
 =
-= Waits for OK, RING, ser_Connect, etc
+= Waits for OK, RING, Ser_Connect, etc
 ==============
 */
 
@@ -384,7 +383,7 @@ void ModemResponse (char *resp)
 		{
                         if(CheckForEsc())
                         {
-                                ser_Error(FC_GRAY "modem response aborted.");
+                                Ser_Error(FC_GRAY "modem response aborted.");
                                 return;
                         }
 			c = read_byte ();
@@ -423,7 +422,7 @@ void ReadLine (FILE *f, char *dest)
 	{
 		c = fgetc (f);
 		if (c == EOF)
-                        ser_Error ("EOF in modem.cfg");
+                        Ser_Error ("EOF in modem.cfg");
 		if (c == '\r' || c == '\n')
 			break;
 		*dest++ = c;
@@ -446,7 +445,7 @@ void InitModem (void)
 
 	f = fopen ("modem.cfg","r");
 	if (!f)
-                ser_Error ("Couldn't read MODEM.CFG");
+                Ser_Error ("Couldn't read MODEM.CFG");
 	ReadLine (f, startup);
 	ReadLine (f, shutdown);
 	fclose (f);
@@ -483,7 +482,7 @@ void Dial (void)
         ModemResponse ("CONNECT");
         if(!ser_active) return; // aborted
 	if (strncmp (response+8,"9600",4) )
-                ser_Error ("The Connection MUST be made at 9600 baud, no Error correction, no compression!\n"
+                Ser_Error ("The Connection MUST be made at 9600 baud, no Error correction, no compression!\n"
 			   "Check your modem initialization string!");
         ser_doomcom.consoleplayer = 1;
 }
@@ -526,7 +525,7 @@ extern void    (*netsend) (void);
 =================
 */
 
-void ser_Start()
+void Ser_Start()
 {
         c_showprompt = false;
         C_SetConsole();
@@ -571,13 +570,13 @@ void ser_Start()
 
         if(!ser_active) return; // aborted
 
-        ser_Connect ();
+        Ser_Connect ();
 
         if(!ser_active) return; // aborted
 
-        netdisconnect = ser_Disconnect;
-        netget = ser_NetISR;
-        netsend = ser_NetISR;
+        netdisconnect = Ser_Disconnect;
+        netget = Ser_NetISR;
+        netsend = Ser_NetISR;
         netgame = true;
 
         ResetNet();
@@ -589,7 +588,7 @@ void ser_Start()
         C_SendNetData();
         if(!netgame) // aborted
         {
-                ser_Disconnect();
+                Ser_Disconnect();
                 ResetNet();
                 return;
         }
@@ -619,57 +618,33 @@ int CheckForEsc()
         CONSOLE COMMANDS
  ***************************/
 
-variable_t var_comport =
-{
-        &comport,        NULL,
-        vt_int,    1,4, NULL
-};
+VARIABLE_INT(comport, NULL,             1, 4, NULL);
 
-void ser_CmdNullModem()
+CONSOLE_COMMAND(nullmodem, cf_notnet)
 {
         connectmode = CONNECT;
-        ser_Start();
+        Ser_Start();
 }
 
-void ser_CmdDial()
+CONSOLE_COMMAND(dial, cf_notnet)
 {
         connectmode = DIAL;
         strcpy(phonenum, c_args);
-        ser_Start();
+        Ser_Start();
 }
 
-void ser_CmdAnswer()
+CONSOLE_COMMAND(answer, cf_notnet)
 {
         connectmode = ANSWER;
-        ser_Start();
+        Ser_Start();
 }
 
-command_t ser_commands[] =
-{
-        {
-                "answer",      ct_command,
-                cf_notnet,
-                NULL,ser_CmdAnswer
-        },
-        {
-                "com",         ct_variable,
-                0,
-                &var_comport,NULL
-        },
-        {
-                "dial",        ct_command,
-                cf_notnet,
-                NULL,ser_CmdDial
-        },
-        {
-                "nullmodem",   ct_command,
-                cf_notnet,
-                NULL,ser_CmdNullModem
-        },
-        {"end", ct_end}
-};
+CONSOLE_VARIABLE(com, comport, 0) {}
 
-void ser_AddCommands()
+void Ser_AddCommands()
 {
-        C_AddCommandList(ser_commands);
+        C_AddCommand(nullmodem);
+        C_AddCommand(dial);
+        C_AddCommand(com);
+        C_AddCommand(answer);
 }

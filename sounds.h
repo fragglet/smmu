@@ -71,9 +71,9 @@ struct sfxinfo_struct {
   // then throw out, if > 0, then it is in use)
   int usefulness;
 
-  // lump number of sfx
-//        int lumpnum; // sf: now redundant
-  int length;
+  int length;   // lump length
+
+  sfxinfo_t *next;      // next in hash chain
 };
 
 //

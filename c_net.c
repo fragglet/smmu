@@ -12,7 +12,6 @@
 #include <stdarg.h>
 #include "c_io.h"
 #include "c_runcmd.h"
-#include "c_cmdlst.h"
 #include "c_net.h"
 #include "g_game.h"
 #include "doomdef.h"
@@ -177,7 +176,7 @@ void C_DealWithChar(unsigned char c, int source)
                   netcmdnum = incomingmsg[source][0];
 
                   if(netcmdnum >= NUMNETCMDS || netcmdnum == 0)
-                        C_Printf("unknown netcmd: %i", netcmdnum);
+                        C_Printf("unknown netcmd: %i\n", netcmdnum);
                   else
                         C_RunCommand(c_netcmds[netcmdnum],
                                incomingmsg[source] + 1);
@@ -194,6 +193,7 @@ void C_SendNetData()
 {
     char tempstr[50];
     command_t *command;
+    int i;
 
     C_SetConsole();
 
@@ -201,19 +201,22 @@ void C_SendNetData()
       FC_GRAY"Please Wait"FC_RED" Receiving game data..\n" :
       FC_GRAY"Please Wait"FC_RED" Sending game data..\n");
 
-    command = commands;
 
-    while(command->type != ct_end)
+        // go thru all hash chains
+
+    for(i=0; i<CMDCHAINS; i++)
     {
-      if(command->flags & cf_netvar && command->type==ct_variable)
-      {
-             // only send non-server commands or all if this is the server
-        if(!(command->flags & cf_server) || consoleplayer == 0)
+        command = cmdroots[i];
+
+        while(command)
         {
-          C_UpdateVar(command);
+            if(command->type == ct_variable && command->flags & cf_netvar
+              && ( consoleplayer==0 || !(command->flags & cf_server)))
+            {
+               C_UpdateVar(command);
+            }
+            command = command->next;
         }
-      }
-      command++;
     }
 
     if(consoleplayer == 0)      // if server, send command to warp to map

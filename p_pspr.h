@@ -68,6 +68,7 @@ typedef struct
 
 extern int weapon_preferences[2][NUMWEAPONS+1];      // killough 5/2/98
 int P_WeaponPreferred(int w1, int w2);
+extern int weapon_speed, default_weapon_speed;
 
 struct player_s;
 int P_SwitchWeapon(struct player_s *player);

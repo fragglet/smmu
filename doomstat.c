@@ -80,10 +80,7 @@ int default_autoaim = 1;
 // killough 7/19/98: classic Doom BFG
 bfg_t bfgtype, default_bfgtype;
 
-#ifdef BETA
-// killough 7/24/98: Emulation of Press Release version of Doom
-int beta_emulation;
-#endif
+        // sf: removed beta_emulation
 
 #ifdef DOGS
 int dogs, default_dogs;         // killough 7/19/98: Marine's best friend :)

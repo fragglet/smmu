@@ -626,13 +626,12 @@ static void G_DoLoadLevel(void)
   memset (mousebuttons, 0, sizeof(mousebuttons));
   memset (joybuttons, 0, sizeof(joybuttons));
 
+  // killough: make -timedemo work on multilevel demos
+  // Move to end of function to minimize noise -- killough 2/22/98:
+
   //jff 4/26/98 wake up the status bar in case were coming out of a DM demo
   // killough 5/13/98: in case netdemo has consoleplayer other than green
   ST_Start();
-  HU_Start();
-
-  // killough: make -timedemo work on multilevel demos
-  // Move to end of function to minimize noise -- killough 2/22/98:
 
   C_Popup();  // pop up the console
   if(oldgamestate != GS_CONSOLE) wipe_StartScreen();
@@ -1033,9 +1032,6 @@ static void G_DoPlayDemo(void)
       monster_infighting = 1;           // killough 7/19/98
 
       bfgtype = bfg_normal;                  // killough 7/19/98
-#ifdef BETA
-      beta_emulation = 0;               // killough 7/24/98
-#endif
 
 #ifdef DOGS
       dogs = 0;                         // killough 7/19/98
@@ -1327,6 +1323,9 @@ static void G_DoSaveGame(void)
   *save_p++ = (gametic-basetic) & 255;
 
   // killough 3/22/98: add Z_CheckHeap after each call to ensure consistency
+
+  P_NumberObjects();    // turn ptrs to numbers
+
   Z_CheckHeap();
   P_ArchivePlayers();
   Z_CheckHeap();
@@ -1338,6 +1337,11 @@ static void G_DoSaveGame(void)
   P_ArchiveRNG();    // killough 1/18/98: save RNG information
   Z_CheckHeap();
   P_ArchiveMap();    // killough 1/22/98: save automap information
+  Z_CheckHeap();
+  P_ArchiveScripts();   // sf: archive scripts
+  Z_CheckHeap();
+
+  P_DeNumberObjects();
 
   *save_p++ = 0xe6;   // consistancy marker
 
@@ -1450,9 +1454,17 @@ static void G_DoLoadGame(void)
   P_UnArchiveSpecials();
   P_UnArchiveRNG();    // killough 1/18/98: load RNG information
   P_UnArchiveMap();    // killough 1/22/98: load automap information
+  P_UnArchiveScripts(); // sf: scripting
+
+  P_FreeObjTable();
 
   if (*save_p != 0xe6)
-    I_Error ("Bad savegame");
+  {
+        Z_Free(savebuffer);
+        C_SetConsole();
+        C_Printf("bad savegame\n");
+        return; 
+  }
 
   // done
   Z_Free(savebuffer);
@@ -1634,7 +1646,7 @@ void G_Ticker(void)
         }
     }
 
-  if(walkcam_active) P_WalkTicker();
+  if((walkcam_active = camera==&walkcamera)) P_WalkTicker();
 
   // cooldemo countdown
 
@@ -1643,6 +1655,8 @@ void G_Ticker(void)
                 cooldemo_tics--;
           else
                 G_CoolViewPoint();                
+
+  DEBUGMSG("  g_ticker: main actions\n");
 
   // do main actions
 
@@ -2064,9 +2078,6 @@ void G_ReloadDefaults(void)
   monkeys = default_monkeys;
 
   bfgtype = default_bfgtype;               // killough 7/19/98
-#ifdef BETA
-  beta_emulation = !!M_CheckParm("-beta");         // killough 7/24/98
-#endif
 
   // jff 1/24/98 reset play mode to command line spec'd version
   // killough 3/1/98: moved to here
@@ -2312,12 +2323,8 @@ byte *G_WriteOptions(byte *demo_p)
 #endif
 
   *demo_p++ = bfgtype;          // killough 7/19/98
-#ifdef BETA
-  *demo_p++ = beta_emulation;       // killough 7/24/98
-#else
-  *demo_p++ = 0;
-  *demo_p++ = 0;
-#endif
+
+  demo_p++ ; //sf: remove beta emulation but keep space
 
   *demo_p++ = (distfriend >> 8) & 0xff;  // killough 8/8/98  
   *demo_p++ =  distfriend       & 0xff;  // killough 8/8/98  
@@ -2408,15 +2415,7 @@ byte *G_ReadOptions(byte *demo_p)
 #endif
 
       bfgtype = *demo_p++;          // killough 7/19/98
-#ifdef BETA
-      beta_emulation = *demo_p++;       // killough 7/24/98
-      
-      if (beta_emulation && !M_CheckParm("-beta"))
-	I_Error("The -beta option is required to play "
-		"back beta emulation demos");
-#else
-      demo_p += 2;
-#endif
+      demo_p ++;        // sf: where beta was
 
       distfriend = *demo_p++ << 8;      // killough 8/8/98
       distfriend+= *demo_p++;
@@ -2464,9 +2463,6 @@ byte *G_ReadOptions(byte *demo_p)
       help_friends = 0;                 // killough 9/9/98
 
       bfgtype = bfg_normal;                  // killough 7/19/98
-#ifdef BETA
-      beta_emulation = 0;               // killough 7/24/98
-#endif
 
 #ifdef DOGS
       dogs = 0;                         // killough 7/19/98
@@ -2623,6 +2619,8 @@ boolean G_CheckDemoStatus(void)
 void G_StopDemo()
 {
       extern boolean advancedemo;
+
+      DEBUGMSG("    stop demo\n");
 
       if(!demorecording && !demoplayback) return;
 

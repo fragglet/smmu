@@ -303,14 +303,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       // bonus items
     case SPR_BON1:
 
-#ifdef BETA
-      if (beta_emulation)
-	{   // killough 7/11/98: beta version items did not have any effect
-          message = "You pick up a demonic dagger.";
-	  break;
-	}
-#endif
-
+        // sf: removed beta
       player->health++;               // can go over 100%
       if (player->health > (maxhealth * 2))
         player->health = (maxhealth * 2);
@@ -320,13 +313,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 
     case SPR_BON2:
 
-#ifdef BETA
-      if (beta_emulation)
-	{ // killough 7/11/98: beta version items did not have any effect
-          message = "You pick up a skullchest.";
-	  break;
-	}
-#endif
+        // sf: remove beta
 
       player->armorpoints++;          // can go over 100%
       if (player->armorpoints > max_armor)
@@ -336,15 +323,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       message = s_GOTARMBONUS; // Ty 03/22/98 - externalized
       break;
 
-#ifdef BETA
-    case SPR_BON3:      // killough 7/11/98: evil sceptre from beta version
-      message = "Picked up an evil sceptre";
-      break;
-
-    case SPR_BON4:      // killough 7/11/98: unholy bible from beta version
-      message = "Picked up an unholy bible";
-      break;
-#endif
+        // sf: removed beta items
 
     case SPR_SOUL:
       player->health += soul_health;
@@ -440,10 +419,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
         return;
       message = s_GOTBERSERK; // Ty 03/22/98 - externalized
       if (player->readyweapon != wp_fist)
-#ifdef BETA
-	if (!beta_emulation // killough 10/98: don't switch as much in -beta
-	    || player->readyweapon == wp_pistol)
-#endif
+        // sf: removed beta
 	  player->pendingweapon = wp_fist;
       sound = sfx_getpow;
       break;
@@ -459,10 +435,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       if (!P_GivePower (player, pw_ironfeet))
         return;
 
-#ifdef BETA
-      if (beta_emulation)  // killough 7/19/98: beta rad suit did not wear off
-	player->powers[pw_ironfeet] = -1;
-#endif
+        // sf:removed beta
 
       message = s_GOTSUIT; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
@@ -480,12 +453,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       if (!P_GivePower (player, pw_infrared))
         return;
 
-#ifdef BETA
-      // killough 7/19/98: light-amp visor did not wear off in beta
-      if (beta_emulation)
-	player->powers[pw_infrared] = -1;
-#endif /* BETA */
-
+        // sf:removed beta
       sound = sfx_getpow;
       message = s_GOTVISOR; // Ty 03/22/98 - externalized
       break;
@@ -651,30 +619,19 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 // KillMobj
 //
 // killough 11/98: make static
+// sf 9/99: globaled removed for FraggleScript
 
-static void P_KillMobj(mobj_t *source, mobj_t *target)
+void P_KillMobj(mobj_t *source, mobj_t *target)
 {
   mobjtype_t item;
   mobj_t     *mo;
+
+  if(target->flags & MF_CORPSE) return; // already dead
 
   target->flags &= ~(MF_SHOOTABLE|MF_FLOAT|MF_SKULLFLY);
 
   if (target->type != MT_SKULL)
     target->flags &= ~MF_NOGRAVITY;
-
-/*      FIXME: this causes crashes - sf
-
-  if (source->type == MT_BARREL) // barrels of fun
-  {
-        source=target->target;
-  }
-
-  if (target->type == MT_BARREL)
-  {
-        target->target=source;
-        if(source->type==MT_BARREL)
-           target->target=source->target;
-  }*/
 
   target->flags |= MF_CORPSE|MF_DROPOFF;
   target->height >>= 2;
@@ -772,8 +729,12 @@ static void P_KillMobj(mobj_t *source, mobj_t *target)
              mo->extradata.backpack->ammo[a] = target->player->ammo[a];
        mo->extradata.backpack->weapon = target->player->readyweapon;
             // set the backpack moving slightly faster than the player
-       mo->momx = target->momx * 2;
-       mo->momy = target->momy * 2;
+
+                // start it moving in a (fairly) random direction
+                // i cant be bothered to create a new random number
+                // class right now
+       mo->momx = target->momx * (gametic-basetic) % 5;
+       mo->momy = target->momy * (gametic-basetic+30) % 5;
   }
 }
 

@@ -37,6 +37,8 @@ char *info_backdrop;
 char *info_weapons;
 int info_scripts;       // has the current level got scripts?
 
+void P_LowerCase(char *line);
+void P_StripSpaces(char *line);
 static void P_RemoveEqualses(char *line);
 static void P_RemoveComments(char *line);
 
@@ -65,7 +67,7 @@ void P_LoadLevelInfo(int lumpnum)
         readtype = RT_OTHER;
         P_ClearLevelVars();
 
-        lump = W_CacheLumpNum(lumpnum,PU_STATIC);
+        lump = W_CacheLumpNum(lumpnum, PU_STATIC);
 
         rover = startofline = lump;
 
@@ -80,7 +82,7 @@ void P_LoadLevelInfo(int lumpnum)
             }
             rover++;
         }
-        free(lump);
+        Z_Free(lump);
 
         P_InitWeapons();
 }
@@ -88,12 +90,16 @@ void P_LoadLevelInfo(int lumpnum)
 void P_ParseInfoCmd(char *line)
 {
         P_CleanLine(line);
-        while(*line == ' ') line++;
-        if(!*line) return;
 
-        if(readtype != RT_SCRIPT && (      // not for scripts
-           (line[0] == '/' && line[1] == '/') ||            // comment
-            line[0] == '#' || line[0] == ';') ) return;
+        if(readtype != RT_SCRIPT)       // not for scripts
+        {
+                P_StripSpaces(line);
+                P_LowerCase(line);
+                while(*line == ' ') line++;
+                if(!*line) return;
+                if((line[0] == '/' && line[1] == '/') ||     // comment
+                    line[0] == '#' || line[0] == ';') return;
+        }
 
         if(*line == '[')                // a new section seperator
         {
@@ -253,9 +259,6 @@ void P_ClearLevelVars()
 
 // Add a line to the levelscript
 
-
-int intstrlen(int value);
-
 void P_ParseScriptLine(char *line)
 {
         int allocsize;
@@ -271,21 +274,26 @@ void P_ParseScriptLine(char *line)
         sprintf(levelscript.data, "%s%s\n", levelscript.data, line);
 }
 
-int intstrlen(int value)
-{
-        char tempstr[50];
-
-        sprintf(tempstr, "%i", value);
-
-        return strlen(tempstr);
-}
-
 void P_CleanLine(char *line)
 {
         char *temp;
 
         for(temp=line; *temp; temp++)
-                *temp = *temp<32 ? ' ' : tolower(*temp);
+                *temp = *temp<32 ? ' ' : *temp;
+
+}
+
+void P_LowerCase(char *line)
+{
+        char *temp;
+
+        for(temp=line; *temp; temp++)
+                *temp = tolower(*temp);
+}
+
+void P_StripSpaces(char *line)
+{
+        char *temp;
 
         temp = line+strlen(line)-1;
 

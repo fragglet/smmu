@@ -456,22 +456,9 @@ void P_PlayerThink (player_t* player)
   // Handling colormaps.
   // killough 3/20/98: reformat to terse C syntax
 
-  // killough 7/11/98: beta version had invisibility, instead of
-  // invulernability, and the light amp visor used the last colormap.
-  // But white flashes occurred when invulnerability wore off.
-
   player->fixedcolormap = 
 
-#ifdef BETA
-    beta_emulation ?    /* Beta Emulation */
-    player->powers[pw_infrared] > 4*32 ||
-    player->powers[pw_infrared] & 8 ? 32 :
-    player->powers[pw_invisibility] > 4*32 ||
-    player->powers[pw_invisibility] & 8 ||
-    (player->powers[pw_invulnerability] < 4*32 &&
-     player->powers[pw_invulnerability] > 0 &&
-     player->powers[pw_invulnerability] & 8) ? 33 : 0 :
-#endif
+        // sf: removed MBF beta stuff
 
     player->powers[pw_invulnerability] > 4*32 ||    /* Regular Doom */
     player->powers[pw_invulnerability] & 8 ? INVERSECOLORMAP :

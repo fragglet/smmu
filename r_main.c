@@ -24,8 +24,8 @@
 
 static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
 
-#include "c_cmdlst.h"
 #include "doomstat.h"
+#include "c_runcmd.h"
 #include "g_game.h"
 #include "r_main.h"
 #include "r_things.h"
@@ -34,7 +34,6 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "r_bsp.h"
 #include "r_draw.h"
 #include "m_bbox.h"
-#include "p_chase.h"
 #include "r_sky.h"
 #include "v_video.h"
 
@@ -464,6 +463,14 @@ void R_SetupFrame (player_t *player, camera_t *camera)
 {               
   int i;
   mobj_t *mobj;
+  static int oldzoom;
+
+  // check for change to zoom
+  if(zoom != oldzoom)
+  {
+        R_ExecuteSetViewSize(); // reset view
+        oldzoom = zoom;
+  }
 
   viewplayer = player;
   mobj = player->mo;
@@ -583,8 +590,6 @@ void R_SectorColormap(sector_t *s)
 
 angle_t R_WadToAngle(int wadangle)
 {
-        return (wadangle/45) *ANG45;
-
         if(demo_version<302)
                 return (wadangle/45)*ANG45;
 
@@ -652,51 +657,52 @@ void R_HOMdrawer()
 //      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8);
 }
 
-/***************************
-            CONSOLE COMMANDS
-  **************************/
-
-variable_t var_chasecam = 
-{&chasecam_active,NULL,                 vt_int,    0,1,onoff};
-variable_t var_walkcam = 
-{&walkcam_active, NULL,                 vt_int,    0,1, onoff};
-variable_t var_lefthanded = 
-{&lefthanded,     NULL,                 vt_int,    0,1, yesno};
-variable_t var_blockmap = 
-{&r_blockmap,  NULL,                    vt_int,    0,1, onoff};
-variable_t var_flatskip =
-{&flatskip,       NULL,                 vt_int,    0,100,NULL};
-variable_t var_homflash =
-{&flashing_hom,   NULL,                 vt_int,    0,1, onoff};
-variable_t var_planeview = 
-{&visplane_view,  NULL,                 vt_int,    0,1, onoff};
-variable_t var_precache =
-{&r_precache,     NULL,                 vt_int,    0,1, onoff};
-variable_t var_psprites =
-{&default_psprites,NULL,                vt_int,    0,1, yesno};
-variable_t var_stretchsky =
-{&stretchsky,     NULL,                 vt_int,    0,1, onoff};
-variable_t var_swirlywater =
-{&r_swirl,   NULL,                      vt_int,    0,1, onoff};
-variable_t var_trans =
-{&general_translucency,NULL,            vt_int,    0,1, onoff};
-variable_t var_tranpct = 
-{&tran_filter_pct,NULL,                 vt_int,    0,100, NULL};
-variable_t var_homdetect =
-{&autodetect_hom, NULL,                 vt_int,    0,1, yesno};
-variable_t var_screensize =
-{&screenSize,     NULL,                 vt_int,    0,8, NULL};
-variable_t var_zoom =
-{&zoom,            NULL,                 vt_int,    0,8192, NULL};
-
-
 void R_ResetTrans()
 {
   if (general_translucency)
     R_InitTranMap(0);
 }
 
-void R_SizeScreen()
+//
+//  Console Commands
+//
+
+VARIABLE_BOOLEAN(lefthanded, NULL,                  yesno);
+VARIABLE_BOOLEAN(r_blockmap, NULL,                  onoff);
+VARIABLE_INT(flatskip, NULL,                    0, 100, NULL);
+VARIABLE_BOOLEAN(flashing_hom, NULL,                onoff);
+VARIABLE_BOOLEAN(visplane_view, NULL,               onoff);
+VARIABLE_BOOLEAN(r_precache, NULL,                  onoff);
+VARIABLE_BOOLEAN(showpsprites, NULL,                yesno);
+VARIABLE_BOOLEAN(stretchsky, NULL,                  onoff);
+VARIABLE_BOOLEAN(r_swirl, NULL,                     onoff);
+VARIABLE_BOOLEAN(general_translucency, NULL,        onoff);
+VARIABLE_INT(tran_filter_pct, NULL,             0, 100, NULL);
+VARIABLE_BOOLEAN(autodetect_hom, NULL,              yesno);
+VARIABLE_INT(screenSize, NULL,                  0, 8, NULL);
+VARIABLE_INT(zoom, NULL,                        0, 8192, NULL);
+
+CONSOLE_VARIABLE(lefthanded, lefthanded, 0) {}
+CONSOLE_VARIABLE(r_blockmap, r_blockmap, 0) {}
+// CONSOLE_VARIABLE(r_flatskip, flatskip, 0) {}
+CONSOLE_VARIABLE(r_homflash, flashing_hom, 0) {}
+CONSOLE_VARIABLE(r_planeview, visplane_view, 0) {}
+CONSOLE_VARIABLE(r_zoom, zoom, 0) {}
+CONSOLE_VARIABLE(r_precache, r_precache, 0) {}
+CONSOLE_VARIABLE(r_showgun, showpsprites, 0) {}
+CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0) {}
+CONSOLE_VARIABLE(r_stretchsky, stretchsky, 0) {}
+CONSOLE_VARIABLE(r_swirl, r_swirl, 0) {}
+CONSOLE_VARIABLE(r_trans, general_translucency, 0)
+{
+  R_ResetTrans();
+}
+CONSOLE_VARIABLE(r_tranpct, tran_filter_pct, 0)
+{
+  R_ResetTrans();
+}
+
+CONSOLE_VARIABLE(screensize, screenSize, 0)
 {
   screenblocks = screenSize + 3;
 
@@ -704,100 +710,27 @@ void R_SizeScreen()
      R_SetViewSize (screenblocks);
 }
 
-command_t r_commands[] =
+CONSOLE_COMMAND(listskins, 0)
 {
-    {
-        "chasecam",    ct_variable,
-        0,
-        &var_chasecam, P_ToggleChasecam
-    },
-    {
-        "walkcam",     ct_variable,
-        cf_notnet,
-        &var_walkcam, P_ToggleWalk
-    },
-    {
-        "lefthanded",  ct_variable,
-        0,
-        &var_lefthanded
-    },
-    {
-        "r_blockmap", ct_variable,
-        0,
-        &var_blockmap
-    },
-    {
-        "r_flatskip",  ct_variable,
-        0,
-        &var_flatskip
-    },
-    {
-        "r_homflash", ct_variable,
-        0,
-        &var_homflash
-    },
-    {
-        "r_planeview", ct_variable,
-        0,
-        &var_planeview
-    },
-    {
-        "r_zoom",      ct_variable,
-        0,
-        &var_zoom, R_ExecuteSetViewSize
-    },
-    {
-        "r_precache", ct_variable,
-        0,
-        &var_precache
-    },
-    {
-        "r_showgun", ct_variable,
-        0,
-        &var_psprites
-    },
-    {
-        "r_showhom", ct_variable,
-        0,
-        &var_homdetect
-    },
-    {
-        "r_stretchsky",ct_variable,
-        0,
-        &var_stretchsky
-    },
-    {
-        "r_swirl", ct_variable,
-        0,
-        &var_swirlywater
-    },
-    {
-        "r_trans", ct_variable,
-        0,
-        &var_trans, R_ResetTrans
-    },
-    {
-        "r_tranpct", ct_variable,
-        0,
-        &var_tranpct, R_ResetTrans
-    },
-    {
-        "screensize", ct_variable,
-        0,
-        &var_screensize, R_SizeScreen
-    },
-    {
-        "listskins",   ct_command,
-        0,
-        NULL,P_ListSkins
-    },
-
-    {"end", ct_end}
-};
+   P_ListSkins();
+}
 
 void R_AddCommands()
 {
-        C_AddCommandList(r_commands);
+   C_AddCommand(lefthanded);
+   C_AddCommand(r_blockmap);
+   C_AddCommand(r_homflash);
+   C_AddCommand(r_planeview);
+   C_AddCommand(r_zoom);
+   C_AddCommand(r_precache);
+   C_AddCommand(r_showgun);
+   C_AddCommand(r_showhom);
+   C_AddCommand(r_stretchsky);
+   C_AddCommand(r_swirl);
+   C_AddCommand(r_trans);
+   C_AddCommand(r_tranpct);
+   C_AddCommand(screensize);
+   C_AddCommand(listskins);
 }
 
 //----------------------------------------------------------------------------

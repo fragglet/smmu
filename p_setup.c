@@ -25,7 +25,6 @@ static const char
 rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 
 #include "c_io.h"
-#include "c_cmdlst.h"
 #include "c_runcmd.h"
 #include "d_main.h"
 #include "hu_stuff.h"
@@ -81,6 +80,9 @@ line_t   *lines;
 
 int      numsides;
 side_t   *sides;
+
+int      numthings;
+mobj_t   **spawnedthings;               // array of spawned things
 
 // BLOCKMAP
 // Created from axis aligned bounding box
@@ -325,10 +327,15 @@ void P_LoadNodes (int lump)
 //
 // killough 5/3/98: reformatted, cleaned up
 
+// sf: added spawnedthings for scripting
+
 void P_LoadThings (int lump)
 {
-  int  i, numthings = W_LumpLength (lump) / sizeof(mapthing_t);
+  int  i;
   byte *data = W_CacheLumpNum (lump,PU_STATIC);
+
+  numthings = W_LumpLength (lump) / sizeof(mapthing_t); //sf: use global
+  spawnedthings = Z_Malloc(numthings * sizeof(mobj_t*), PU_LEVEL, 0);
 
   for (i=0; i<numthings; i++)
     {
@@ -358,7 +365,7 @@ void P_LoadThings (int lump)
       mt->type = SHORT(mt->type);
       mt->options = SHORT(mt->options);
 
-      P_SpawnMapThing (mt);
+      spawnedthings[i] = P_SpawnMapThing (mt);
     }
 
   Z_Free (data);
@@ -990,8 +997,11 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   // Initial height of PointOfView will be set by player think.
   players[consoleplayer].viewz = 1;
 
-  if(debugfile) fprintf(debugfile,"P_SetupLevel: got here\n"
-				"mapname: %s\n",mapname);
+  if(debugfile)
+  {
+     fprintf(debugfile, "P_SetupLevel: got here\n mapname: %s\n",mapname);
+     fflush(debugfile);
+  }
 
       // get the map name lump number
   if((lumpnum = W_CheckNumForName(mapname)) == -1)
@@ -1036,16 +1046,17 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   newlevel = lumpinfo[lumpnum]->handle != iwadhandle;
   doom1level = false;
   HU_NewLevel();
+  HU_Start();
 
   // must be after p_loadlevelinfo as the music lump name is got there
   S_Start();
 
-  if(debugfile) fprintf(debugfile,"P_SetupLevel: loaded level info\n");
+  DEBUGMSG("P_SetupLevel: loaded level info\n");
   
 	// load the sky
   R_StartSky();
 
-  if(debugfile) fprintf(debugfile,"P_SetupLevel: sky done\n");
+  DEBUGMSG("P_SetupLevel: sky done\n");
 
   // note: most of this ordering is important
 
@@ -1078,7 +1089,7 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   P_LoadSegs      (lumpnum+ML_SEGS);
 //         V_LoadingIncrease();  // update loading box
 
-  if(debugfile) fprintf(debugfile,"loaded level\n");
+  DEBUGMSG("loaded level\n");
 
   rejectmatrix = W_CacheLumpNum(lumpnum+ML_REJECT,PU_LEVEL);
   P_GroupLines();
@@ -1094,7 +1105,7 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
 //        V_LoadingIncrease();  // update loading box
 
-  if(debugfile) fprintf(debugfile,"ok, things loaded, spawn players\n");
+  DEBUGMSG("ok, things loaded, spawn players\n");
 
   // if deathmatch, randomly spawn the active players
   if (deathmatch)
@@ -1105,7 +1116,7 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 	  G_DeathMatchSpawnPlayer(i);
 	}
 
-  if(debugfile) fprintf(debugfile,"done\n");
+  DEBUGMSG("done\n");
 
   // killough 3/26/98: Spawn icon landings:
   if (gamemode==commercial)
@@ -1117,8 +1128,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   // set up world state
   P_SpawnSpecials();
 
-  T_PreprocessScripts();        // preprocess FraggleScript scripts
-
   // preload graphics
   if (precache)
     R_PrecacheLevel();
@@ -1126,24 +1135,24 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 //        V_LoadingIncrease();  // update loading box
 
   // psprites
-  showpsprites = default_psprites;
+//  showpsprites = default_psprites;
 
 	// clear script command buffer
   C_ClearBuffer(c_script);
-
-  P_ResetChasecam();    // chasecam to player start pos.
-  P_ResetWalkcam();     // and walk cam
 
   HU_FragsUpdate();     // reset frag counter
 
   R_SetViewSize (screenblocks); //sf
 
-  if(debugfile) fprintf(debugfile,"P_SetupLevel: finished\n");
+  T_PreprocessScripts();        // preprocess FraggleScript scripts
+
+  DEBUGMSG("P_SetupLevel: finished\n");
   if(doom1level && gamemode == commercial)
           C_Printf("doom 1 level\n");
 
 //      V_LoadingIncrease();  // update loading box
 
+  camera = NULL;        // camera off
 }
 
 //
@@ -1186,6 +1195,20 @@ void P_LoadOlo()
 
 	olo_loaded = true;
 }
+
+// test thingy
+
+void C_DumpThings()
+{
+        int i;
+
+        for(i=0; i<numthings; i++)
+        {
+                C_Printf("%i\n", spawnedthings[i]);
+        }
+        C_Printf(FC_GRAY"(%i)\n", numthings);
+}
+
 
 //----------------------------------------------------------------------------
 //

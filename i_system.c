@@ -324,19 +324,10 @@ int I_CheckAbort()
         CONSOLE COMMANDS
  *************************/
 
-variable_t var_leds =
-{
-       &leds_always_off, NULL,
-       vt_int, 0, 1, yesno
-};
+VARIABLE_BOOLEAN(leds_always_off, NULL,     yesno);
+VARIABLE_INT(realtic_clock_rate, NULL,  0, 500, NULL);
 
-variable_t var_gamespeed =
-{
-       &realtic_clock_rate, NULL,
-       vt_int, 0, 500
-};
-
-void I_ResetGameSpeed()
+CONSOLE_VARIABLE(i_gamespeed, realtic_clock_rate, 0)
 {
     if (realtic_clock_rate != 100)
       {
@@ -349,36 +340,26 @@ void I_ResetGameSpeed()
     ResetNet();         // reset the timers and stuff
 }
 
-command_t i_commands[] =
+CONSOLE_VARIABLE(i_ledsoff, leds_always_off, 0)
 {
-        {
-                "i_ledsoff", ct_variable,
-                0,
-                &var_leds, I_ResetLEDs,
-        },
-        {
-                "i_gamespeed", ct_variable,
-                0,
-                &var_gamespeed, I_ResetGameSpeed
-        },
-        {"end", ct_end}
-};
-
+   I_ResetLEDs();
+}
 
 extern void I_Sound_AddCommands();
 extern void I_Video_AddCommands();
 extern void I_Input_AddCommands();
-extern void ser_AddCommands();
+extern void Ser_AddCommands();
 
         // add system specific commands
 void I_AddCommands()
 {
-        C_AddCommandList(i_commands);
-        
+        C_AddCommand(i_ledsoff);
+        C_AddCommand(i_gamespeed);
+
         I_Video_AddCommands();
         I_Sound_AddCommands();
         I_Input_AddCommands();
-        ser_AddCommands();
+        Ser_AddCommands();
 }
 
 //----------------------------------------------------------------------------

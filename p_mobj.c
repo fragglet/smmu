@@ -956,8 +956,9 @@ void P_SpawnPlayer (mapthing_t* mthing)
 // The fields of the mapthing should
 // already be in host byte order.
 //
+// sf: made to return mobj_t* spawned
 
-void P_SpawnMapThing (mapthing_t* mthing)
+mobj_t *P_SpawnMapThing (mapthing_t* mthing)
 {
   int    i;
   mobj_t *mobj;
@@ -970,7 +971,7 @@ void P_SpawnMapThing (mapthing_t* mthing)
     case DEN_PLAYER6:
     case DEN_PLAYER7:
     case DEN_PLAYER8:
-      return;
+      return NULL;
     }
 
   // killough 11/98: clear flags unused by Doom
@@ -1003,13 +1004,14 @@ void P_SpawnMapThing (mapthing_t* mthing)
 	  deathmatch_p = deathmatchstarts + offset;
 	}
       memcpy(deathmatch_p++, mthing, sizeof*mthing);
-      return;
+      return NULL; //sf
     }
 
   if(mthing->type == 5003)
   {
         // save for intermissions
         WI_AddCamera(mthing);
+        return NULL;
   }
 
   // check for players specially
@@ -1035,30 +1037,30 @@ void P_SpawnMapThing (mapthing_t* mthing)
       if (!deathmatch)
 	P_SpawnPlayer (mthing);
 
-      return;
+      return NULL; //sf
     }
 
   // check for apropriate skill level
 
   if (!netgame && mthing->options & MTF_NOTSINGLE)//jff "not single" thing flag
-    return;
+    return NULL; //sf
 
   //jff 3/30/98 implement "not deathmatch" thing flag
 
   if (netgame && deathmatch && mthing->options & MTF_NOTDM)
-    return;
+    return NULL; //sf
 
   //jff 3/30/98 implement "not cooperative" thing flag
 
   if (netgame && !deathmatch && mthing->options & MTF_NOTCOOP)
-    return;
+    return NULL;  // sf
 
   // killough 11/98: simplify
   if (gameskill == sk_baby || gameskill == sk_easy ? 
       !(mthing->options & MTF_EASY) :
       gameskill == sk_hard || gameskill == sk_nightmare ?
       !(mthing->options & MTF_HARD) : !(mthing->options & MTF_NORMAL))
-    return;
+    return NULL;  // sf
 
   // find which type to spawn
 
@@ -1073,18 +1075,18 @@ void P_SpawnMapThing (mapthing_t* mthing)
     {
       dprintf("Unknown Thing type %i at (%i, %i)",
 	      mthing->type, mthing->x, mthing->y);
-      return;
+      return NULL;  // sf
     }
 
   // don't spawn keycards and players in deathmatch
 
   if (deathmatch && mobjinfo[i].flags & MF_NOTDMATCH)
-    return;
+    return NULL;        // sf
 
   // don't spawn any monsters if -nomonsters
 
   if (nomonsters && (i == MT_SKULL || (mobjinfo[i].flags & MF_COUNTKILL)))
-    return;
+    return NULL;        // sf
 
 #ifdef DOGS
   // spawn it
@@ -1120,6 +1122,8 @@ spawnit:
   mobj->angle = R_WadToAngle(mthing->angle);
   if (mthing->options & MTF_AMBUSH)
     mobj->flags |= MF_AMBUSH;
+
+  return mobj;
 }
 
 //

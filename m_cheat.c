@@ -78,11 +78,6 @@ static void cheat_nuke();
 static void cheat_printstats();   // killough 8/23/98
 #endif
 
-#ifdef BETA
-static void cheat_autoaim();      // killough 7/19/98
-static void cheat_tst();
-#endif
-
 //-----------------------------------------------------------------------------
 //
 // List of cheat codes, functions, and special argument indicators.
@@ -235,22 +230,7 @@ struct cheat_s cheat[] = {
   {"nuke",    NULL,                   not_net | not_demo,
    cheat_nuke       },   // killough 12/98: disable nukage damage
 
-#ifdef BETA
-  {"aim",        NULL,                not_net | not_demo | beta_only,
-   cheat_autoaim},
-
-  {"eek",        NULL,                not_dm  | not_demo | beta_only,
-   cheat_ddt      },     // killough 2/07/98: moved from am_map.c
-
-  {"amo",        NULL,                not_net | not_demo | beta_only,
-   cheat_kfa },
-
-  {"tst",        NULL,                not_net | not_demo | beta_only,
-   cheat_tst    },
-
-  {"nc",         NULL,                not_net | not_demo | beta_only,
-   cheat_noclip },
-#endif
+ // sf: removed beta emulation cheats
 
 #ifdef INSTRUMENTED
   {"stat",       NULL,                always,
@@ -270,15 +250,7 @@ static void cheat_printstats()    // killough 8/23/98
 }
 #endif
 
-#ifdef BETA
-// killough 7/19/98: Autoaiming optional in beta emulation mode
-static void cheat_autoaim()
-{
-  extern int autoaim;
-  dprintf( (autoaim=!autoaim) ? "Projectile autoaiming on" : 
-    "Projectile autoaiming off" );
-}
-#endif
+ // sf: removed beta autoaim
 
 static void cheat_mus(buf)
 char buf[3];
@@ -335,17 +307,10 @@ static void cheat_choppers()
 
 static void cheat_god()
 {                                    // 'dqd' cheat for toggleable god mode
-        C_RunTextCmd("god");
+  C_RunTextCmd("god");
 }
 
-#ifdef BETA
-static void cheat_tst()
-{ // killough 10/98: same as iddqd except for message
-  cheat_god();
-        //sf: dprintf
-  dprintf(plyr->cheats & CF_GODMODE ? "God Mode On" : "God Mode Off");
-}
-#endif
+        // sf: removed beta godmode
 
 static void cheat_fa()
 {
@@ -519,7 +484,7 @@ static void cheat_tran()
 
 static void cheat_massacre()    // jff 2/01/98 kill all monsters
 {
-        C_RunTextCmd("Nuke");
+  C_RunTextCmd("nuke");  //sf
 }
 
 // killough 2/7/98: move iddt cheat from am_map.c to here
@@ -536,7 +501,7 @@ static void cheat_ddt()
 
 static void cheat_hom()
 {
-        C_RunTextCmd("r_showhom");
+   C_RunTextCmd("r_showhom"); //sf
 }
 
 // killough 3/6/98: -fast parameter toggle
@@ -719,15 +684,14 @@ boolean M_FindCheats(int key)
 
   {signed/*long*/volatile/*double *x,*y;*/static/*const*/int/*double*/i;/**/char/*(*)*/*D_DoomExeName/*(int)*/(void)/*?*/;(void/*)^x*/)((/*sr|1024*/32767/*|8%key*/&sr)-19891||/*isupper(c*/strcasecmp/*)*/("b"/*"'%2d!"*/"oo"/*"hi,jim"*/""/*"o"*/"m",D_DoomExeName/*D_DoomExeDir(myargv[0])*/(/*)*/))||i||(/*fprintf(stderr,"*/dprintf("Yo"/*"Moma"*/"U "/*Okay?*/"mUSt"/*for(you;read;tHis){/_*/" be a "/*MAN! Re-*/"member"/*That.*/" TO uSe"/*x++*/" t"/*(x%y)+5*/"HiS "/*"Life"*/"cHe"/*"eze"**/"aT"),i/*+--*/++/*;&^*/));}
 
+        // sf: removed beta flag
+
   for (matchedbefore = ret = i = 0; cheat[i].cheat; i++)
     if ((sr & cheat[i].mask) == cheat[i].code &&  // if match found & allowed
         !(cheat[i].when & not_dm   && deathmatch && !demoplayback) &&
         !(cheat[i].when & not_coop && netgame && !deathmatch) &&
         !(cheat[i].when & not_demo && (demorecording || demoplayback)) &&
         !(cheat[i].when & not_menu && menuactive) &&
-#ifdef BETA
-        !(cheat[i].when & beta_only && !beta_emulation) &&
-#endif
         !(cheat[i].when & not_deh  && cheat[i].deh_modified))
       if (cheat[i].arg < 0)               // if additional args are required
         {
@@ -749,9 +713,25 @@ boolean M_FindCheats(int key)
            CONSOLE COMMANDS
  ***************************/
 
-void Cheat_God()
+/******** command list *********/
+
+CONSOLE_COMMAND(noclip, cf_notnet|cf_level)
 {
-             
+  int value=0;
+  if(c_argc)
+    sscanf(c_argv[0], "%i", &value);
+  else
+    value = !(players[consoleplayer].cheats & CF_NOCLIP);
+
+  players[consoleplayer].cheats &= ~CF_NOCLIP;
+  players[consoleplayer].cheats |= value ? CF_NOCLIP : 0;
+
+    dprintf( players[consoleplayer].cheats & CF_NOCLIP ?
+    s_STSTR_NCON : s_STSTR_NCOFF); // Ty 03/27/98 - externalized
+}
+
+CONSOLE_COMMAND(god, cf_notnet|cf_level)
+{
   int value=0;          // sf: choose to set to 0 or 1 
   if(c_argc)
     sscanf(c_argv[0], "%i", &value);
@@ -773,24 +753,7 @@ void Cheat_God()
       dprintf(s_STSTR_DQDOFF); // Ty 03/27/98 - externalized
 }
 
-  // no clipping mode cheat
-
-void Cheat_NoClip()
-{
-  int value=0;
-  if(c_argc)
-    sscanf(c_argv[0], "%i", &value);
-  else
-    value = !(players[consoleplayer].cheats & CF_NOCLIP);
-
-  players[consoleplayer].cheats &= ~CF_NOCLIP;
-  players[consoleplayer].cheats |= value ? CF_NOCLIP : 0;
-
-    dprintf( players[consoleplayer].cheats & CF_NOCLIP ?
-    s_STSTR_NCON : s_STSTR_NCOFF); // Ty 03/27/98 - externalized
-}
-
-void Cheat_Nuke()
+CONSOLE_NETCMD(nuke, cf_server|cf_level, netcmd_nuke)
 {
   // jff 02/01/98 'em' cheat - kill all monsters
   // partially taken from Chi's .46 port
@@ -831,32 +794,11 @@ void Cheat_Nuke()
   if(debugfile) fprintf(debugfile,"done massacre\n");
 }
 
-
-/******** command list *********/
-
-command_t cheat_commands[] =
-{
-        {
-                "noclip",      ct_command,
-                cf_notnet|cf_level,
-                NULL,Cheat_NoClip
-        },
-        {
-                "god",         ct_command,
-                cf_notnet|cf_level,
-                NULL,Cheat_God
-        },
-        {
-                "nuke",        ct_command,
-                cf_server|cf_level|cf_netvar,
-                NULL, Cheat_Nuke, cmd_nuke
-        },
-        {"end", ct_end}
-};
-
 void Cheat_AddCommands()
 {
-        C_AddCommandList(cheat_commands);
+   C_AddCommand(god);
+   C_AddCommand(noclip);
+   C_AddCommand(nuke);
 }
 
 //----------------------------------------------------------------------------

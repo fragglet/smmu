@@ -9,13 +9,13 @@
 /* includes ************************/
 
 #include <stdio.h>
-#include "c_io.h"
-#include "z_zone.h"
 #include <stdarg.h>
+#include "c_io.h"
 #include "doomtype.h"
 #include "s_sound.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
-#include "t_main.h"
 #include "t_parse.h"
 #include "t_prepro.h"
 #include "t_spec.h"
@@ -24,7 +24,10 @@
 #include "t_func.h"
 
 void parse_script();
+void parse_data(char *data, char *end);
 svalue_t evaluate_expression(int start, int stop);
+
+mobj_t *trigger_obj;            // object which triggered script
 
 char *tokens[T_MAXTOKENS];
 tokentype_t tokentype[T_MAXTOKENS];
@@ -53,11 +56,11 @@ char *rover;            // current point reached in script
 
 section_t *current_section; // the section (if any) found in parsing the line
 int bracetype;              // bracket_open or bracket_close
-void add_char(char c);
+static void add_char(char c);
 
 // next_token: end this token, go onto the next
 
-void next_token()
+static void next_token()
 {
         if(tok[0] || tt==string)
         {
@@ -92,6 +95,9 @@ void next_token()
 
                 break;  // otherwise
         }
+
+        if(num_tokens>1 && *rover == '(' && tokentype[num_tokens-2] == name)
+                tokentype[num_tokens-2] = function;
 
         if(*rover == '{' || *rover == '}')
         {
@@ -135,7 +141,7 @@ void next_token()
 // return an escape sequence (prefixed by a '\')
 // do not use all C escape sequences
 
-char escape_sequence(char c)
+static char escape_sequence(char c)
 {
         if(c == 'n') return '\n';
         if(c == '\\') return '\\';
@@ -144,43 +150,20 @@ char escape_sequence(char c)
         if(c == 'a') return '\a'; // alert beep
         if(c == 't') return '\t'; //tab
 
+                // font colours
+        if(c >= '0' && c <= '9') return 128 + (c-'0');
+
         return c;
 }
 
 // add_char: add one character to the current token
 
-void add_char(char c)
+static void add_char(char c)
 {
         char *out = tok + strlen(tok);
 
         *out++ = c;
         *out = 0;
-}
-
-        // second stage parsing.
-        // go through the tokens and mark brackets as brackets
-        // also mark function names, which are name tokens
-        // followed by open brackets
-
-void find_brackets()
-{
-        int i;
-
-        for(i=0; i<num_tokens; i++)
-        {
-            if(tokentype[i] == operator)
-            {
-               if(tokens[i][0] == '(')
-               {
-                  tokentype[i] = bracket_open;
-                  if(i && tokentype[i-1] == name)
-                    tokentype[i-1] = function;
-               }
-               else
-                  if(tokens[i][0] == ')')
-                    tokentype[i] = bracket_close;
-            }
-        }
 }
 
 // get_tokens.
@@ -200,7 +183,6 @@ void find_brackets()
         //   string: a text string that was enclosed in quote "" marks in
         //           the original text
         //   unset: shouldn't ever end up being set really.
-        //   bracket_open, bracket_close : open and closing () brackets
         //   function: a function name (found in second stage parsing)
 
 
@@ -285,9 +267,6 @@ void get_tokens(char *s)
                 num_tokens = num_tokens - 1;
         }
 
-                        // now do second stage parsing
-        find_brackets();
-
         rover++;
 }
 
@@ -305,8 +284,6 @@ void print_tokens()	// DEBUG
                     case name: C_Printf("name");            break;
                     case number: C_Printf("number");        break;
                     case unset : C_Printf("duh");           break;
-                    case bracket_open: C_Printf("open bracket"); break;
-                    case bracket_close: C_Printf("close bracket"); break;
                     case function: C_Printf("function name"); break;
                 }
             }
@@ -344,8 +321,6 @@ void continue_script(script_t *script, char *continue_point)
 
 void parse_script()
 {
-        char *token_alloc;      // allocated memory for tokens
-
                 // check for valid rover
         if(rover < current_script->data
         || rover > current_script->data+current_script->len)
@@ -354,6 +329,20 @@ void parse_script()
                              "outside script!\n");
                 return;
         }
+
+        trigger_obj = current_script->trigger;  // set trigger
+
+        parse_data(current_script->data,
+                   current_script->data+current_script->len);
+
+                // dont clear global vars!
+        if(current_script->scriptnum != -1)
+                clear_variables(current_script);        // free variables
+}
+
+void parse_data(char *data, char *end)
+{
+        char *token_alloc;      // allocated memory for tokens
 
         killscript = false;     // dont kill the script straight away
 
@@ -365,7 +354,7 @@ void parse_script()
         while(*rover)   // go through the script executing each statement
         {
                         // past end of script?
-                if(rover > current_script->data+current_script->len)
+                if(rover > end)
                         break;
 
                         // reset the tokens before getting the next line
@@ -394,10 +383,6 @@ void parse_script()
                 run_statement();         // run the statement
         }
         Z_Free(token_alloc);
-
-                // dont clear global vars!
-        if(current_script->scriptnum != -1)
-                clear_variables(current_script);        // free variables
 }
 
 void run_statement()
@@ -440,6 +425,16 @@ void run_statement()
                     spec_string();
                     return;
                 }
+                else if(!strcmp(tokens[0], "const"))
+                {
+                    spec_const();
+                    return;
+                }
+                else if(!strcmp(tokens[0], "mobj"))
+                {
+                    spec_mobj();
+                    return;
+                }
                 else if(!strcmp(tokens[0], "script"))
                 {
                     spec_script();
@@ -457,17 +452,20 @@ void run_statement()
 /***************** Evaluating Expressions ************************/
 
         // find a token, ignoring things in brackets        
-int find_token(int start, int stop, char *value)
+int find_operator(int start, int stop, char *value)
 {
         int i;
         int bracketlevel = 0;
 
         for(i=start; i<=stop; i++)
         {
+                        // only interested in operators
+                if(tokentype[i] != operator) continue;
+
                         // use bracketlevel to check the number of brackets
                         // which we are inside
-                bracketlevel += tokentype[i]==bracket_open ? 1 :
-                                tokentype[i]==bracket_close ? -1 : 0;
+                bracketlevel += tokens[i][0]=='(' ? 1 :
+                                tokens[i][0]==')' ? -1 : 0;
 
                         // only check when we are not in brackets
                 if(!bracketlevel && !strcmp(value, tokens[i]))
@@ -477,18 +475,21 @@ int find_token(int start, int stop, char *value)
         return -1;
 }
 
-        // go through tokens the same as find_token, but backwards
-int find_token_backwards(int start, int stop, char *value)
+        // go through tokens the same as find_operator, but backwards
+int find_operator_backwards(int start, int stop, char *value)
 {
         int i;
         int bracketlevel = 0;
 
         for(i=stop; i>=start; i--)      // check backwards
         {
+                        // operators only
+                if(tokentype[i] != operator) continue;
+
                         // use bracketlevel to check the number of brackets
                         // which we are inside
-                bracketlevel += tokentype[i]==bracket_open ? 1 :
-                                tokentype[i]==bracket_close ? -1 : 0;
+                bracketlevel += tokens[i][0]=='(' ? -1 :
+                                tokens[i][0]==')' ? 1 : 0;
 
                         // only check when we are not in brackets
                 if(!bracketlevel && !strcmp(value, tokens[i]))
@@ -547,8 +548,7 @@ static void pointless_brackets(int *start, int *stop)
 
                 // check that the start and end are brackets
 
-        while(tokentype[*start] == bracket_open &&
-               tokentype[*stop] == bracket_close)
+        while(tokens[*start][0] == '(' && tokens[*stop][0] == ')')
         {
 
             bracket_level = 0;
@@ -560,8 +560,9 @@ static void pointless_brackets(int *start, int *stop)
                   // the last token
             for(i = *start; i<*stop; i++)
             {
-                bracket_level += (tokentype[i] == bracket_open);
-                bracket_level -= (tokentype[i] == bracket_close);
+                if(tokentype[i] != operator) continue; // ops only
+                bracket_level += (tokens[i][0] == '(');
+                bracket_level -= (tokens[i][0] == ')');
                 if(bracket_level == 0) return;
             }
 
@@ -586,16 +587,12 @@ static void pointless_brackets(int *start, int *stop)
 
 svalue_t evaluate_expression(int start, int stop)
 {
-        int n, count;
+        int i, n;
 
         if(killscript) return nullvar;  // killing the script
 
-        // debug
-//        C_Printf("evaluate_expression(%i, %i)\n", start, stop);
-
                 // possible pointless brackets
-        if(tokentype[start] == bracket_open
-        && tokentype[stop] == bracket_close)
+        if(tokentype[start] == operator && tokentype[stop] == operator)
                 pointless_brackets(&start, &stop);
 
         if(start == stop)       // only 1 thing to evaluate
@@ -605,23 +602,20 @@ svalue_t evaluate_expression(int start, int stop)
 
         // go through each operator in order of precedence
 
-        for(count=0; count<num_operators; count++)
+        for(i=0; i<num_operators; i++)
         {
                 // check backwards for the token. it has to be
                 // done backwards for left-to-right reading: eg so
                 // 5-3-2 is (5-3)-2 not 5-(3-2)
            if( -1 != (n =
-                (operators[count].direction==forward ?
-                        find_token_backwards : find_token)
-                (start, stop, operators[count].string)) )
+                (operators[i].direction==forward ?
+                        find_operator_backwards : find_operator)
+                (start, stop, operators[i].string)) )
            {
-                // useful for debug:
-//                C_Printf("operator %s: %i,%i,%i\n",
-//                        operators[count].string, start, n, stop);
-
+//                C_Printf("operator %s, %i-%i-%i\n", operators[count].string, start, n, stop);
                         // call the operator function
                         // and evaluate this chunk of code
-                return operators[count].handler(start, n, stop);
+                return operators[i].handler(start, n, stop);
            }
         }
 
@@ -631,7 +625,6 @@ svalue_t evaluate_expression(int start, int stop)
         // error ?
         {        
                 char tempstr[128]="";
-                int i;
 
                 for(i=start; i<=stop; i++)
                   sprintf(tempstr,"%s %s", tempstr, tokens[i]);
@@ -650,21 +643,25 @@ void script_error(char *s, ...)
 
         if(killscript) return;  //already killing script
 
+        if(current_script->scriptnum == -1)
+             C_Printf("global");
+        else
+             C_Printf("%i", current_script->scriptnum);
+
                 // find the line number
+        if(rover>=current_script->data &&
+           rover<=current_script->data+current_script->len)
         {
                 int linenum = 1;
                 char *temp;
                 for(temp = current_script->data; temp<linestart; temp++)
                         if(*temp == '\n') linenum++;    // count EOLs
-                if(current_script->scriptnum == -1)
-                  C_Printf("global, %i: ", linenum);
-                else
-                  C_Printf("%i,%i: ", current_script->scriptnum, linenum);
+                C_Printf(", %i", linenum);
         }
 
                 // print the error
         vsprintf(tempstr, s, args);
-        C_Printf(tempstr);
+        C_Printf(": %s", tempstr);
 
         // make a noise
         S_StartSound(NULL, sfx_pldeth);

@@ -519,7 +519,7 @@ boolean F_CastResponder (event_t* ev)
   if (mobjinfo[castorder[castnum].type].deathsound)
   {
     if(castorder[castnum].type == MT_PLAYER)
-      S_Startsfxinfo (NULL, players[displayplayer].skin->sound[sk_pldeth]);
+      S_StartSoundName (NULL, players[displayplayer].skin->sounds[sk_pldeth]);
     else
       S_StartSound (NULL, mobjinfo[castorder[castnum].type].deathsound);
   }

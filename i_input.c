@@ -185,34 +185,14 @@ void I_GetEvent()
         CONSOLE COMMANDS
  *************************/
 
-variable_t var_usemouse =
-{
-       &usemouse, NULL,
-       vt_int, 0, 1, yesno
-};
+VARIABLE_INT(usemouse, NULL,            0, 1, yesno);
+VARIABLE_INT(usejoystick, NULL,         0, 1, yesno);
 
-variable_t var_usejoystick =
-{
-        &usejoystick, NULL,
-        vt_int, 0, 1, yesno
-};
-
-command_t i_input_commands[] =
-{
-        {
-                "use_mouse", ct_variable,
-                0,
-                &var_usemouse
-        },
-        {
-                "use_joystick", ct_variable,
-                0,
-                &var_usejoystick
-        },
-        {"end", ct_end}
-};
+CONSOLE_VARIABLE(use_mouse, usemouse, 0) {}
+CONSOLE_VARIABLE(use_joystick, usejoystick, 0) {}
 
 void I_Input_AddCommands()
 {
-        C_AddCommandList(i_input_commands);
+    C_AddCommand(use_mouse);
+    C_AddCommand(use_joystick);
 }

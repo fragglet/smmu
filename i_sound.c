@@ -30,6 +30,7 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 #include "doomstat.h"
 #include "mmus2mid.h"   //jff 1/16/98 declarations for MUS->MIDI converter
 #include "i_sound.h"
+#include "i_system.h"
 #include "w_wad.h"
 #include "g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
 #include "d_main.h"
@@ -41,6 +42,9 @@ void I_CacheSound(sfxinfo_t *sound);
 
 // Factor volume is increased before sending to allegro
 #define VOLSCALE                16
+
+        // sf: adjust temp when changing gamespeed
+extern int realtic_clock_rate;
 
 int snd_card;   // default.cfg variables for digi and midi drives
 int mus_card;   // jff 1/18/98
@@ -194,7 +198,7 @@ static SAMPLE channel[NUM_CHANNELS];
 // active sounds, which is maintained as a given number
 // of internal channels. Returns a handle.
 
-int I_StartSound(sfxinfo_t *sound, int   vol, int sep, int pitch, int pri)
+int I_StartSound(sfxinfo_t *sound, int vol, int sep, int pitch, int pri)
 {
   static int handle;
 
@@ -211,7 +215,8 @@ int I_StartSound(sfxinfo_t *sound, int   vol, int sep, int pitch, int pri)
   memcpy(&channel[handle], sound->data, sizeof(SAMPLE));
 
   // Start the sound
-  play_sample(&channel[handle],vol*VOLSCALE+VOLSCALE-1,256-sep,PITCH(pitch),0);
+  play_sample(&channel[handle],vol*VOLSCALE+VOLSCALE-1,256-sep,
+          PITCH(pitch),0);
 
   // Reference for s_sound.c to use when calling functions below
   return handle;
@@ -277,6 +282,8 @@ void I_ShutdownSound(void)
 // sf: dynamic sound resource loading
 void I_CacheSound(sfxinfo_t *sound)
 {
+    if(sound->data) return;     // already cached
+
                 // sf: changed
     if(sound->link) I_CacheSound(sound->link);
     else
@@ -402,7 +409,8 @@ int I_RegisterSong(void *data)
   if    //jff 02/08/98 add native midi support
     (
      (err=MidiToMIDI(data, &mididata)) &&       // try midi first
-     (err=mmus2mid(data, &mididata, 89, 1))     // now try mus
+              // now try mus    sf: change tempo with gamespeed
+     (err=mmus2mid(data, &mididata, 89*realtic_clock_rate/100, 1))
      )
     {
       handle=-1;
@@ -436,48 +444,19 @@ char *muscardstr[] =
    {"autodetect","none", "adlib", "OPL2", "2xOPL2",
    "OPL3", "SB MIDI", "MPU-401", "GUS","DIGMID", "AWE32"};
 
-variable_t var_sndcard=
-{
-   &snd_card,      NULL,
-   vt_int,      -1, 7,
-   sndcardstr
-};
-variable_t var_muscard=
-{
-   &mus_card,      NULL,
-   vt_int,      -1, 9,
-   muscardstr
-};
-variable_t var_detectvoices=
-{
-   &detect_voices, NULL,
-   vt_int,      0,1,
-   yesno
-};
+VARIABLE_INT(snd_card, NULL,            -1, 7, sndcardstr);
+VARIABLE_INT(mus_card, NULL,            -1, 9, muscardstr);
+VARIABLE_INT(detect_voices, NULL,       0, 1, yesno);
 
-command_t i_sound_commands[] =
-{
-        {
-                "snd_card", ct_variable,
-                0,
-                &var_sndcard
-        },
-        {
-                "mus_card",  ct_variable,
-                0,
-                &var_muscard
-        },
-        {
-                "detect_voices", ct_variable,
-                0,
-                &var_detectvoices
-        },
-        {"end", ct_end}
-};
+CONSOLE_VARIABLE(snd_card, snd_card, 0) {}
+CONSOLE_VARIABLE(mus_card, mus_card, 0) {}
+CONSOLE_VARIABLE(detect_voices, detect_voices, 0) {}
 
 void I_Sound_AddCommands()
 {
-        C_AddCommandList(i_sound_commands);
+    C_AddCommand(snd_card);
+    C_AddCommand(mus_card);
+    C_AddCommand(detect_voices);
 }
 
 

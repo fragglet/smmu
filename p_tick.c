@@ -24,6 +24,7 @@ static const char
 rcsid[] = "$Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $";
 
 #include "doomstat.h"
+#include "d_main.h"
 #include "p_user.h"
 #include "p_chase.h"
 #include "p_spec.h"
@@ -242,7 +243,7 @@ void P_Ticker (void)
 
   reset_viewz = false;  // sf
 
-  if(chasecam_active) P_ChaseTicker();
+  if((chasecam_active = camera==&chasecam)) P_ChaseTicker();
 
   P_RunThinkers();
   P_UpdateSpecials();

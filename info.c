@@ -72,12 +72,10 @@ char *sprnames[NUMSPRITES+1] = {
   "DOGS", // killough 7/19/98: Marine's best friend :)
 #endif
 
-#ifdef BETA
   "PLS1", // killough 7/19/98: first  of two plasma fireballs in the beta
   "PLS2", // killough 7/19/98: second of two plasma fireballs in the beta
-  "BON3", // killough 7/11/98: evil sceptre in the beta version
-  "BON4", // killough 7/11/98: unholy bible in the beta version
-#endif
+
+        // sf: removed MBF beta sprites (keeping plasma for classic bfg)
   "PART",       // sf : particle
 
   NULL
@@ -170,7 +168,6 @@ void A_BrainExplode();
 void A_FireOldBFG();      // killough 7/19/98: classic BFG firing function
 void A_Detonate();        // killough 8/9/98: detonate a bomb or other device
 void A_Mushroom();        // killough 10/98: mushroom effect
-void A_BetaSkullAttack(); // killough 10/98: beta lost souls attacked different
 
 // ********************************************************************
 // State or "frame" information
@@ -1210,7 +1207,6 @@ state_t states[NUMSTATES] = {
   {SPR_DOGS,8,5,NULL,S_DOGS_RUN1},  // S_DOGS_RAISE6
 #endif
 
-#ifdef BETA
   // killough 7/11/98: beta BFG begins here
   // S_OLDBFG1
 
@@ -1248,43 +1244,7 @@ state_t states[NUMSTATES] = {
   {SPR_PLS2,32771,6,NULL,S_PLS2BALLX3},  // S_PLS2BALLX2
   {SPR_PLS2,32772,6,NULL,S_NULL}, // S_PLS2BALLX3
 
-  {SPR_BON3,0,6,NULL,S_BON3},           // S_BON3  // killough 7/11/98:
-  {SPR_BON4,0,6,NULL,S_BON4},           // S_BON4  // beta bonus items
-
-  // killough 10/98: beta lost souls attacked from a distance, 
-  // animated with colors, and stayed in the air when killed.
-  // This is an approximation, but I'm sure it can be improved.
-
-  // spawnstate
-  {SPR_SKUL,0,10,A_Look,S_BSKUL_STND},  // S_BSKUL_STND
-
-  // chasestate
-  {SPR_SKUL,1,5,A_Chase,S_BSKUL_RUN2},  // S_BSKUL_RUN1
-  {SPR_SKUL,2,5,A_Chase,S_BSKUL_RUN3},  // S_BSKUL_RUN2
-  {SPR_SKUL,3,5,A_Chase,S_BSKUL_RUN4},  // S_BSKUL_RUN3
-  {SPR_SKUL,0,5,A_Chase,S_BSKUL_RUN1},  // S_BSKUL_RUN4
-
-  // missilestate
-  {SPR_SKUL,4,4,A_FaceTarget,S_BSKUL_ATK2},     // S_BSKUL_ATK1
-  {SPR_SKUL,5,5,A_BetaSkullAttack,S_BSKUL_ATK3}, // S_BSKUL_ATK2
-  {SPR_SKUL,5,4,NULL,S_BSKUL_RUN1},              // S_BSKUL_ATK3
-
-  // painstate
-  {SPR_SKUL,6,4,NULL,S_BSKUL_PAIN2},     // S_BSKUL_PAIN1
-  {SPR_SKUL,7,2,A_Pain,S_BSKUL_RUN1},   // S_BSKUL_PAIN2
-  {SPR_SKUL,8,4,NULL,S_BSKUL_RUN1},      // S_BSKUL_PAIN3
-
-  // deathstate
-  {SPR_SKUL, 9,5,NULL,S_BSKUL_DIE2},     // S_BSKUL_DIE1
-  {SPR_SKUL,10,5,NULL,S_BSKUL_DIE3},     // S_BSKUL_DIE2
-  {SPR_SKUL,11,5,NULL,S_BSKUL_DIE4},     // S_BSKUL_DIE3
-  {SPR_SKUL,12,5,NULL,S_BSKUL_DIE5},     // S_BSKUL_DIE4
-  {SPR_SKUL,13,5,A_Scream,S_BSKUL_DIE6}, // S_BSKUL_DIE5
-  {SPR_SKUL,14,5,NULL,S_BSKUL_DIE7},     // S_BSKUL_DIE6
-  {SPR_SKUL,15,5,A_Fall,S_BSKUL_DIE8},   // S_BSKUL_DIE7
-  {SPR_SKUL,16,5,A_Stop,S_BSKUL_DIE8},   // S_BSKUL_DIE8
-
-#endif
+        // sf: removed beta-emulation states
 
   // killough 10/98: mushroom effect
   {SPR_MISL,32769,8,A_Mushroom,S_EXPLODE2},  // S_MUSHROOM
@@ -4963,7 +4923,6 @@ mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
   },
 #endif
 
-#ifdef BETA
   // killough 7/11/98: this is the first of two plasma fireballs in the beta
   {   // MT_PLASMA1
     -1,   // doomednum
@@ -5018,60 +4977,7 @@ mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
     S_NULL    // raisestate
   },
 
-  // killough 7/11/98: this is the evil sceptre in the beta version
-  {   // MT_SCEPTRE
-    2016,   // doomednum
-    S_BON3,   // spawnstate
-    1000,   // spawnhealth
-    S_NULL,   // seestate
-    sfx_None,   // seesound
-    8,    // reactiontime
-    sfx_None,   // attacksound
-    S_NULL,   // painstate
-    0,    // painchance
-    sfx_None,   // painsound
-    S_NULL,   // meleestate
-    S_NULL,   // missilestate
-    S_NULL,   // deathstate
-    S_NULL,   // xdeathstate
-    sfx_None,   // deathsound
-    0,    // speed
-    10*FRACUNIT,    // radius
-    16*FRACUNIT,    // height
-    100,    // mass
-    0,    // damage
-    sfx_None,   // activesound
-    MF_SPECIAL|MF_COUNTITEM,    // flags
-    S_NULL    // raisestate
-  },
-
-  // killough 7/11/98: this is the unholy bible in the beta version
-  {   // MT_BIBLE
-    2017,   // doomednum
-    S_BON4,   // spawnstate
-    1000,   // spawnhealth
-    S_NULL,   // seestate
-    sfx_None,   // seesound
-    8,    // reactiontime
-    sfx_None,   // attacksound
-    S_NULL,   // painstate
-    0,    // painchance
-    sfx_None,   // painsound
-    S_NULL,   // meleestate
-    S_NULL,   // missilestate
-    S_NULL,   // deathstate
-    S_NULL,   // xdeathstate
-    sfx_None,   // deathsound
-    0,    // speed
-    20*FRACUNIT,    // radius
-    10*FRACUNIT,    // height
-    100,    // mass
-    0,    // damage
-    sfx_None,   // activesound
-    MF_SPECIAL|MF_COUNTITEM,    // flags
-    S_NULL    // raisestate
-  },
-#endif /* BETA */
+        // sf: removed MBF beta things
 
                 // sf: end of level camera
   {   // MT_CAMERA
