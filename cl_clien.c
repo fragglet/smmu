@@ -40,6 +40,7 @@
 #include "c_net.h"
 #include "doomdef.h"
 #include "doomstat.h"
+#include "d_deh.h"
 #include "d_main.h"
 #include "f_wipe.h"
 #include "g_game.h"
@@ -413,7 +414,7 @@ static void CL_SendChatMsg(char *s)
 
   // put message in packet
 
-  sprintf(msg->message, "<" FC_GOLD "%s" FC_RED "> %s", default_name, s);
+  strcpy(msg->message, s);
 
   // reliable send
 
@@ -682,7 +683,6 @@ void CL_WaitDrawer()
     else
       y += 8;
 
-
   // draw chat prompt
 
   sprintf(tempstr, FC_GOLD ">" FC_RED "%s_", chat_input);
@@ -744,16 +744,26 @@ void CL_WaitDrawer()
 // Responder for key input
 //
 
+extern const char *shiftxform;    // hu_stuff.c
+
 boolean CL_WaitResponder(event_t *ev)
 {
   static boolean ctrldown = false;
-
+  static boolean shiftdown = false;
+  unsigned char ch;
+  
   if(ev->data1 == KEYD_RCTRL)
     {
       ctrldown = ev->type == ev_keydown;
       return true;
     }
 
+  if(ev->data1 == KEYD_RSHIFT)
+    {
+      shiftdown = ev->type == ev_keydown;
+      return true;
+    }
+  
   if(ev->type != ev_keydown)
     return false;
 
@@ -764,8 +774,13 @@ boolean CL_WaitResponder(event_t *ev)
       // disconnect from server
       if(ev->data1 == 'd')
 	{
-	  ctrldown = false;    // dont get stuck thinking ctrl is down
-	  NetDisconnect("leaving");
+	  char buffer[128];
+
+	  sprintf(buffer, "disconnect from server?\n\n%s", s_PRESSYN);
+	  MN_Question(buffer, "disconnect leaving");
+
+	  // dont get stuck thinking ctrl is down
+	  shiftdown = ctrldown = false;
 	  return true;
 	}
       
@@ -774,7 +789,8 @@ boolean CL_WaitResponder(event_t *ev)
       if(ev->data1 == KEYD_ENTER && got_waitinfo && waitinfo.controller)
 	{
 	  CL_SendStartGame();
-	  ctrldown = false;    // dont get stuck thinking ctrl is down
+	  // dont get stuck thinking ctrl is down
+	  shiftdown = ctrldown = false;
 	  return true;
 	}
 
@@ -805,12 +821,14 @@ boolean CL_WaitResponder(event_t *ev)
       return true;
     }
 
+  ch = shiftdown ? shiftxform[ev->data1] : ev->data1;
+  
   // chat input
 
   if(isprint(ev->data1) && strlen(chat_input) < CHAT_MAXINPUT)
     {
       chat_input[strlen(chat_input) + 1] = '\0';
-      chat_input[strlen(chat_input)] = ev->data1;
+      chat_input[strlen(chat_input)] = ch;
       return true;
     }
 
@@ -1923,7 +1941,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.7  2000-05-06 14:39:10  fraggle
+// Revision 1.8  2000-05-07 13:11:21  fraggle
+// improve multiplayer chatroom interface
+//
+// Revision 1.7  2000/05/06 14:39:10  fraggle
 // add prediction/ticdup to menu
 //
 // Revision 1.6  2000/05/06 14:06:11  fraggle

@@ -106,7 +106,7 @@ static void WriteCentredText(char *message)
 
 void MN_PopupDrawer()
 {
-  if(gamestate == GS_CONSOLE)
+  if(gamestate == GS_CONSOLE || gamestate == GS_SERVERWAIT)
     {
       int wid = V_StringWidth(popup_message) + 10;
       int height = V_StringHeight(popup_message) + 3;
@@ -555,8 +555,11 @@ void MN_Misc_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-07 13:11:21  fraggle
+// improve multiplayer chatroom interface
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------
