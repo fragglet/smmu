@@ -147,6 +147,7 @@ EXE=smmu.exe
         
 # options common to all builds
 CFLAGS_COMMON=-Wall -g -DCYGWIN -DTCPIP
+LDFLAGS_COMMON=
 
 # new features; comment out what you don't want at the moment
 # remove -DTCPIP if you want a version without tcp/ip support
@@ -163,7 +164,6 @@ LDFLAGS_RELEASE=
        
 # libraries to link in
 LIBS=-lcygwin -luser32 -lgdi32 -lcomdlg32 -lkernel32 -lwsock32 -lwinmm
-
         
 # this selects flags based on debug and release tagets
 CFLAGS=$(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)

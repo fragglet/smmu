@@ -731,13 +731,7 @@ VARIABLE_INT(tran_filter_pct, NULL,                 0, 100, NULL);
 VARIABLE_BOOLEAN(autodetect_hom, NULL,              onoff);
 VARIABLE_INT(screenSize, NULL,                      0, 8, NULL);
 VARIABLE_INT(fov, NULL,                             1, 179, NULL);
-VARIABLE_INT(usegamma, NULL,                        0, 4, NULL);
 
-CONSOLE_VARIABLE(gamma, usegamma, 0)
-{
-  // change to new gamma val
-  V_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
-}
 CONSOLE_VARIABLE(lefthanded, lefthanded, 0) {}
 CONSOLE_VARIABLE(r_blockmap, r_blockmap, cf_nosave) {}
 CONSOLE_VARIABLE(r_homflash, flashing_hom, 0) {}
@@ -795,7 +789,6 @@ void R_AddCommands()
   C_AddCommand(r_trans);
   C_AddCommand(r_tranpct);
   C_AddCommand(screensize);
-  C_AddCommand(gamma);
   
   C_AddCommand(p_dumphubs);
 }
@@ -803,7 +796,10 @@ void R_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-10 13:11:37  fraggle
+// Revision 1.4  2000-06-20 21:09:40  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.3  2000/05/10 13:11:37  fraggle
 // fix demos
 //
 // Revision 1.2  2000/05/02 15:43:41  fraggle

@@ -372,9 +372,9 @@ void SVGA_SetPalette(byte *pal)
 
   for(i=0; i<256; i++)
     {
-      buffer[3*i] = (gammatable[usegamma][pal[3*i]] >> 2);
-      buffer[3*i+1] = (gammatable[usegamma][pal[3*i+1]] >> 2);
-      buffer[3*i+2] = (gammatable[usegamma][pal[3*i+2]] >> 2);
+      buffer[3*i] = (gamma_xlate[pal[3*i]] >> 2);
+      buffer[3*i+1] = (gamma_xlate[pal[3*i+1]] >> 2);
+      buffer[3*i+2] = (gamma_xlate[pal[3*i+2]] >> 2);
     }
   
   vga_setpalvec(0, 256, buffer);
@@ -550,7 +550,10 @@ viddriver_t svga_driver =
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-09 20:53:50  fraggle
+// Revision 1.3  2000-06-20 21:09:50  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.2  2000/06/09 20:53:50  fraggle
 // add I_StartFrame frame-syncronous stuff (joystick)
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle

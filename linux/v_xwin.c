@@ -35,16 +35,16 @@ rcsid[] = "$Id$";
 
 #include <stdlib.h>
 #include <unistd.h>
+
+#ifndef NOSHM
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <X11/extensions/XShm.h>
+#endif
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
-
-#ifndef NOSHM
-#include <X11/extensions/XShm.h>
-#endif
 
 // Had to dig up XShm.c for this one.
 // It is in the libXext, but not in the X headers.
@@ -126,12 +126,6 @@ static unsigned long x_blue_mask = 0;
 static unsigned char x_red_offset = 0;
 static unsigned char x_green_offset = 0;
 static unsigned char x_blue_offset = 0;
-
-// sf: whether the mouse should be grabbed at this particular moment
-// do not grab mouse in console or menu or when the game is paused
-
-#define grabnow \
- ( grabMouse && !paused && !menuactive && gamestate != GS_CONSOLE)
 
 // in linux, all doom code/scan code conversion done in here
 
@@ -845,11 +839,11 @@ static void UploadNewPalette(Colormap cmap, byte *palette)
 	// set the X colormap entries
 	for (i=0 ; i<256 ; i++)
 	  {
-	    c = gammatable[usegamma][*palette++];
+	    c = gamma_xlate[*palette++];
 	    colors[i].red = (c<<8) + c;
-	    c = gammatable[usegamma][*palette++];
+	    c = gamma_xlate[*palette++];
 	    colors[i].green = (c<<8) + c;
-	    c = gammatable[usegamma][*palette++];
+	    c = gamma_xlate[*palette++];
 	    colors[i].blue = (c<<8) + c;
 	  }
 	
@@ -1637,7 +1631,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-09 20:53:50  fraggle
+// Revision 1.4  2000-06-20 21:09:50  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.3  2000/06/09 20:53:50  fraggle
 // add I_StartFrame frame-syncronous stuff (joystick)
 //
 // Revision 1.2  2000/04/30 19:38:33  fraggle

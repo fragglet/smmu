@@ -454,9 +454,9 @@ static void Alleg_SetPalette(byte *palette)
   outportb(0x3c8,0);
   for (i=0;i<256;i++)
     {
-      outportb(0x3c9,gammatable[usegamma][*palette++]>>2);
-      outportb(0x3c9,gammatable[usegamma][*palette++]>>2);
-      outportb(0x3c9,gammatable[usegamma][*palette++]>>2);
+      outportb(0x3c9,gamma_xlate[*palette++]>>2);
+      outportb(0x3c9,gamma_xlate[*palette++]>>2);
+      outportb(0x3c9,gamma_xlate[*palette++]>>2);
     }
 }
 
@@ -749,7 +749,10 @@ viddriver_t alleg_driver =
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-19 14:57:37  fraggle
+// Revision 1.4  2000-06-20 21:09:47  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.3  2000/06/19 14:57:37  fraggle
 // make functions static
 //
 // Revision 1.2  2000/06/09 20:53:45  fraggle
