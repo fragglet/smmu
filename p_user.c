@@ -39,6 +39,7 @@ rcsid[] = "$Id$";
 #include "r_main.h"
 #include "p_map.h"
 #include "p_maputl.h"
+#include "p_pspr.h"
 #include "p_spec.h"
 #include "p_user.h"
 
@@ -485,6 +486,8 @@ void P_PlayerThink (player_t* player)
 //
 //============================================================================
 
+void A_WeaponReady();
+
 // predicted player and player object -- copy of the actual ones
 
 static player_t *actual_player;
@@ -511,6 +514,30 @@ void P_StartPrediction(player_t *player)
   player->predicted = &predicted_player;
 }
 
+// predict psprites
+
+static void PredictPsprites()
+{
+  int i;
+  
+  for(i=0; i<NUMPSPRITES; i++)
+    {
+      pspdef_t *psp = &predicted_player.psprites[i];
+
+      if(psp->state && psp->state->action == A_WeaponReady)
+	{
+	  // bob the weapon based on movement speed
+	  
+	  int angle = (128*leveltime) & FINEMASK;
+	  psp->sx = FRACUNIT +
+	    FixedMul(predicted_player.bob, finecosine[angle]);
+	  angle &= FINEANGLES/2-1;
+	  psp->sy = WEAPONTOP +
+	    FixedMul(predicted_player.bob, finesine[angle]);
+	}
+    }
+}
+
 void P_RunPredictedTic(ticcmd_t *ticcmd)
 {
   // unhook the actual player object from the level
@@ -528,6 +555,7 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
 
   P_PlayerThink (&predicted_player);
   P_MobjThinker(&predicted_mobj);
+  PredictPsprites();
   
   // sf: run heads up - make sure we update the lightup crosshair
 
@@ -545,7 +573,10 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-05-24 13:29:11  fraggle
+// Revision 1.6  2000-06-20 21:06:10  fraggle
+// predict psprite bob
+//
+// Revision 1.5  2000/05/24 13:29:11  fraggle
 // fix jerkiness problem w/client prediction
 //
 // Revision 1.4  2000/05/22 10:14:02  fraggle

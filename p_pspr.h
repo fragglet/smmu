@@ -52,6 +52,12 @@
 #define FF_FRAMEMASK    0x7fff
 
 //
+// sf: moved this as its used by p_user.c in prediction code now
+//
+
+#define WEAPONTOP    (FRACUNIT*32)
+
+//
 // Overlay psprites are scaled shapes
 // drawn directly on the view screen,
 // coordinates are given for a 320*200 view screen.
@@ -89,8 +95,11 @@ void P_DropWeapon(struct player_s *player);
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:06:10  fraggle
+// predict psprite bob
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
