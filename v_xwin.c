@@ -511,11 +511,6 @@ void XWin_UpdateNoBlit(void)
 void XWin_FinishUpdate(void)
 {  
 
-  printf("XWin_FinishUpdate: start\n");
-
-
-  printf("%i\n", x_bpp);
-
   if((multiply == 1) && (x_bpp == 1))
     {
       memcpy(image->data, screens[0], SCREENWIDTH * SCREENHEIGHT);
@@ -728,23 +723,20 @@ void XWin_FinishUpdate(void)
       int xstart = basewidth*multiply-1;
       unsigned char* ilineptr;
       unsigned short* olineptr;
-      y = baseheight*multiply;      
-      while (y--) 
-	{
-	  olineptr =  (unsigned short *) &(image->data[y*X_width*x_bpp]);
-	  if(multiply == 1)
-	    ilineptr = (unsigned char*) (screens[0]+y*X_width);
-	  else
-	    ilineptr =  (unsigned char*) &(image->data[y*X_width]);
-	  x = xstart;
-	  do 
-	    {
-	      // sf: yay, looks like someone was off sick the day 
-	      // they explained endianness
-
-	      olineptr[x] = x_colormap2[ilineptr[x]];
-	    } while (x--);
-	}
+      y = baseheight*multiply;
+      while (y--)
+        {
+          olineptr =  (unsigned short *) &(image->data[y*X_width*x_bpp]);
+          if (multiply==1)
+            ilineptr = (unsigned char*) (screens[0]+y*X_width);
+          else
+            ilineptr =  (unsigned char*) &(image->data[y*X_width]);
+          x = xstart;
+          do
+            {
+              olineptr[x] = x_colormap2[ilineptr[x]];
+            } while (x--);
+        }
     }
   else if (x_bpp == 3)
     {
@@ -825,8 +817,6 @@ void XWin_FinishUpdate(void)
 		0, 0,
 		X_width, X_height );
     }
-
-  printf("XWin_FinishUpdate: finished\n");
 }
 
 
@@ -892,9 +882,9 @@ static void EmulateNewPalette(byte *palette)
       if (x_bpp==2) 
 	{
 	  x_colormap2[i] =
-	    ((gammatable[usegamma][*palette]>>x_red_mask)<<x_red_offset) |
-	    ((gammatable[usegamma][palette[1]]>>x_green_mask)<<x_green_offset) |
-	    ((gammatable[usegamma][palette[2]]>>x_blue_mask)<<x_blue_offset);
+	    ((gammatable[usegamma][*palette] >> x_red_mask) << x_red_offset) |
+	    ((gammatable[usegamma][palette[1]] >> x_green_mask) << x_green_offset) |
+	    ((gammatable[usegamma][palette[2]] >> x_blue_mask) << x_blue_offset);
 	  palette+=3;  
 	} 
       else if (x_bpp==3)
@@ -1497,7 +1487,6 @@ static void InitExpand2(void)
     unsigned	u[2];
   } pixel;
   
-  printf ("building exptable2...\n");
   exp = exptable2;
   for (i=0 ; i<256 ; i++)
     {
@@ -1508,7 +1497,6 @@ static void InitExpand2(void)
 	  *exp++ = pixel.d;
 	}
     }
-  printf ("done.\n");
 }
 
 static int inited;
@@ -1662,7 +1650,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2001-01-14 02:26:20  fraggle
+// Revision 1.4  2001-02-25 00:58:56  fraggle
+// remove some debug messages
+//
+// Revision 1.3  2001/01/14 02:26:20  fraggle
 // fix X build
 //
 // Revision 1.2  2001/01/13 16:32:17  fraggle
