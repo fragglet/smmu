@@ -345,18 +345,25 @@ static char chat_input[CHAT_MAXINPUT];
 static void CL_SendJoin(netnode_t *netnode)
 {
   netpacket_t packet;
-
+  unsigned long wadsig;
+  
   // display "connecting" box in menu
   
   if(menuactive)
     V_SetLoading(0, "trying...");
   else
     usermsg("trying...");
-  
+
   packet.type = pt_join;
   packet.data.joinpacket.drone = 0;          // not a drone
   packet.data.joinpacket.version = VERSION;
   strcpy(packet.data.joinpacket.name, default_name);
+
+  wadsig = W_Signature();
+  packet.data.joinpacket.wadsig[0] = wadsig & 255;
+  packet.data.joinpacket.wadsig[1] = (wadsig >> 8) & 255;
+  packet.data.joinpacket.wadsig[2] = (wadsig >> 16) & 255;
+  packet.data.joinpacket.wadsig[3] = (wadsig >> 24) & 255;
   
   SendPacket(netnode, &packet);
 }
@@ -1900,7 +1907,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-05-03 16:30:42  fraggle
+// Revision 1.5  2000-05-03 16:46:45  fraggle
+// check wads in netgames
+//
+// Revision 1.4  2000/05/03 16:30:42  fraggle
 // remove multiplayer quit flash
 //
 // Revision 1.3  2000/05/03 16:21:23  fraggle

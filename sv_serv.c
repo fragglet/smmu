@@ -136,6 +136,8 @@ int sv_stack=1;          // stack height before sending
 #define SYNC_COUNTDOWN_TIME 1
 static int sync_countdown = SYNC_COUNTDOWN_TIME;
 
+static long wad_signature;       // signature of wad players are using
+
 //---------------------------------------------------------------------------
 //
 // SV_ServerNode
@@ -390,8 +392,6 @@ void SV_SendSpeedupPackets()
   int i;
   int skiptics;
   
-  C_Printf("check speedup times\n");
-  
   packet.type = pt_speedup;
 
   for(i=0; i<server_numplayers; i++)
@@ -402,8 +402,6 @@ void SV_SendSpeedupPackets()
       
       if(!player->ingame)
 	continue;
-
-      C_Printf("%s: %i\n", ni->name, player->sync_time);
 
       if(pivot_time == -1)
 	pivot_time = sendtime;
@@ -1165,6 +1163,8 @@ static void SV_AcceptJoin(joinpacket_t *jp)
 
 static void SV_JoinRequest(joinpacket_t *jp)
 {  
+  unsigned long wadsig;
+  
   // different doom versions cannot play a netgame!
   
   if(jp->version != VERSION)
@@ -1173,6 +1173,27 @@ static void SV_JoinRequest(joinpacket_t *jp)
       return;
     }
 
+  // check player is using the right wad
+  // if this is the first node, copy the signature
+
+  wadsig =
+    jp->wadsig[0] +
+    (jp->wadsig[1] << 8) +
+    (jp->wadsig[2] << 16) +
+    (jp->wadsig[3] << 24);
+
+  if(server_numnodes > 0)
+    {
+      if(wad_signature != wadsig)
+	{
+	  SV_DenyJoin("wrong wads loaded");
+	  return;
+	}
+    }
+  else
+    wad_signature = wadsig;
+  
+  
   // if not currently accepting connections, send back deny
 
   //  if(!waiting_players)
@@ -1563,7 +1584,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-03 16:21:23  fraggle
+// Revision 1.4  2000-05-03 16:46:45  fraggle
+// check wads in netgames
+//
+// Revision 1.3  2000/05/03 16:21:23  fraggle
 // client speedup code
 //
 // Revision 1.2  2000/05/02 15:43:41  fraggle
