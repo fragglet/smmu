@@ -52,15 +52,15 @@ typedef int fixed_t;
 // killough 5/10/98: In djgpp, use inlined assembly for performance
 // killough 9/05/98: better code seems to be gotten from using inlined C
 
-#ifdef I386
+#ifdef I386ASM
 #define abs(x) ({fixed_t _t = (x), _s = _t >> (8*sizeof _t-1); (_t^_s)-_s;})
-#endif // I386
+#endif // I386ASM
 
 //
 // Fixed Point Multiplication
 //
 
-#ifdef I386
+#ifdef I386ASM
 
 // killough 5/10/98: In djgpp, use inlined assembly for performance
 // sf: code imported from lxdoom
@@ -84,20 +84,20 @@ inline static const fixed_t FixedMul(fixed_t a, fixed_t b)
   return result;
 }
 
-#else // I386
+#else // I386ASM
 
 __inline__ static fixed_t FixedMul(fixed_t a, fixed_t b)
 {
   return (fixed_t)((long long) a*b >> FRACBITS);
 }
 
-#endif // I386
+#endif // I386ASM
 
 //
 // Fixed Point Division
 //
 
-#ifdef I386
+#ifdef I386ASM
 
 // killough 5/10/98: In djgpp, use inlined assembly for performance
 // killough 9/5/98: optimized to reduce the number of branches
@@ -123,7 +123,7 @@ inline static const fixed_t FixedDiv(fixed_t a, fixed_t b)
   return ((a^b)>>31) ^ INT_MAX;
 }
 
-#else // I386
+#else // I386ASM
 
 __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
@@ -131,14 +131,18 @@ __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
     (fixed_t)(((long long) a << FRACBITS) / b);
 }
 
-#endif // I386
+#endif // I386ASM
 
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-09 20:51:09  fraggle
+// Revision 1.3  2001-01-13 16:33:09  fraggle
+// change I386 #define to I386ASM
+// to avoid conflicting with compiler-defined I386
+//
+// Revision 1.2  2000/06/09 20:51:09  fraggle
 // fix i386 asm for v2 djgpp
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

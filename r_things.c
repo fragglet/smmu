@@ -810,7 +810,7 @@ void R_DrawPlayerSprites(void)
 // linked lists, and to use faster sorting algorithm.
 //
 
-#ifdef I386
+#ifdef I386ASM
 
 // killough 9/22/98: inlined memcpy of pointer arrays
 
@@ -1065,7 +1065,11 @@ void R_DrawMasked(void)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-08-16 13:28:36  fraggle
+// Revision 1.5  2001-01-13 16:33:09  fraggle
+// change I386 #define to I386ASM
+// to avoid conflicting with compiler-defined I386
+//
+// Revision 1.4  2000/08/16 13:28:36  fraggle
 // fix asm
 //
 // Revision 1.3  2000/06/09 20:51:09  fraggle
