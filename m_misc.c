@@ -1977,11 +1977,13 @@ void M_LoadDefaults (void)
   // check for a custom default file
 
   if (!defaultfile)
-    if ((i = M_CheckParm("-config")) && i < myargc-1)
-      printf(" default file: %s\n", defaultfile = strdup(myargv[i+1]));
-    else
-      defaultfile = strdup(basedefault);
-
+    {
+      if ((i = M_CheckParm("-config")) && i < myargc-1)
+	printf(" default file: %s\n", defaultfile = strdup(myargv[i+1]));
+      else
+	defaultfile = strdup(basedefault);
+    }
+  
   NormalizeSlashes(defaultfile);
 
   // read the file in, overriding any set defaults
@@ -2386,8 +2388,11 @@ void M_ScreenShot (void)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-08-16 13:28:19  fraggle
+// shut up compiler
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
