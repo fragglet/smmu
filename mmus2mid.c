@@ -547,6 +547,7 @@ size_t ReadLength(UBYTE **mid)
 //
 // Returns 0 if successful, BADMIDHDR if the buffer is not MIDI format
 //
+
 int MidiToMIDI(UBYTE *mid,MIDI *mididata)
 {
   int i;
@@ -600,7 +601,6 @@ int MidiToMIDI(UBYTE *mid,MIDI *mididata)
   return 0;
 }
 
-#ifdef STANDALONE /* this code unused by BOOM provided for future portability */
 /* it also provides a MUS to MID file converter*/
 
 static void FreeTracks(MIDI *mididata);
@@ -654,6 +654,7 @@ static void TWriteLength(UBYTE **midiptr,ULONG length)
 // a buffer containing midi data, and a pointer to a length return.
 // Returns 0 if successful, MEMALLOC if a memory allocation error occurs
 //
+
 int MIDIToMidi(MIDI *mididata,UBYTE **mid,int *midlen)
 {
   size_t total;
@@ -708,6 +709,7 @@ int MIDIToMidi(MIDI *mididata,UBYTE **mid,int *midlen)
   return 0;
 }
 
+#ifdef STANDALONE /* this code unused by BOOM provided for future portability */
 //
 // main()
 //
@@ -815,7 +817,10 @@ int main(int argc,char **argv)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2001-01-14 21:13:00  fraggle
+// Revision 1.4  2001-01-15 01:33:03  fraggle
+// MIDIToMidi function made available for windows music code
+//
+// Revision 1.3  2001/01/14 21:13:00  fraggle
 // fix headers (again)
 //
 // Revision 1.2  2001/01/14 21:09:30  fraggle
