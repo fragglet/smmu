@@ -30,11 +30,14 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <malloc.h>
-#include "mmus2mid.h"
 
 #ifdef DJGPP
 #include <allegro.h>
 #else
+#include "midi.h"
+#endif
+
+#include "mmus2mid.h"
 
 //#define STANDALONE  /* uncomment this to make MMUS2MID.EXE */
 #ifndef STANDALONE
@@ -812,7 +815,10 @@ int main(int argc,char **argv)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2001-01-14 21:09:30  fraggle
+// Revision 1.3  2001-01-14 21:13:00  fraggle
+// fix headers (again)
+//
+// Revision 1.2  2001/01/14 21:09:30  fraggle
 // fix headers
 //
 // Revision 1.1  2001/01/14 21:08:01  fraggle
