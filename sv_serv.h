@@ -268,6 +268,7 @@ typedef struct
   char player;             // player number allocated for this computer
   byte num_players;        // number of players in game
   byte rndseed[4];         // long
+  byte ticdup;
 } startgame_t;
 
 // sent when node disconnects from server/player exits game
@@ -388,7 +389,10 @@ void SV_Update();
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-03 16:46:45  fraggle
+// Revision 1.4  2000-05-06 14:06:11  fraggle
+// fix ticdup
+//
+// Revision 1.3  2000/05/03 16:46:45  fraggle
 // check wads in netgames
 //
 // Revision 1.2  2000/05/03 16:21:23  fraggle

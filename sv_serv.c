@@ -958,12 +958,17 @@ static void SV_StartGameSignal(startgame_t *sg)
 {
   netpacket_t packet;
   int i;
+  int ticdup;
   long rndseed = time(NULL);
   
   // check received packet is correct
   
   if(!SV_CorrectPacket(sg->packet_num))
     return;  
+
+  // get ticdup from packet
+
+  ticdup = sg->ticdup;
   
   // send start game signal to client nodes
   
@@ -1017,6 +1022,8 @@ static void SV_StartGameSignal(startgame_t *sg)
       sg->rndseed[2] = (rndseed >> 16) & 255;
       sg->rndseed[3] = (rndseed >> 24) & 255;
 
+      sg->ticdup = ticdup;
+      
       // reliable send data
       
       SV_ReliableSend(ni, &packet);
@@ -1584,7 +1591,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-05-03 16:46:45  fraggle
+// Revision 1.5  2000-05-06 14:06:11  fraggle
+// fix ticdup
+//
+// Revision 1.4  2000/05/03 16:46:45  fraggle
 // check wads in netgames
 //
 // Revision 1.3  2000/05/03 16:21:23  fraggle

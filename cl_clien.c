@@ -78,7 +78,7 @@ boolean isconsoletic;
 boolean drone;
 extern int consoleplayer;
 
-int ticdup;
+int ticdup = 1;
 int extratics = 2;
 
 extern int levelstarttic, basetic;
@@ -113,7 +113,7 @@ static int lastpacket_time;
 
 boolean out_of_sync;
 
-static int skiptics;
+static int gametime;
 
 int cl_stack=2;
 
@@ -375,7 +375,8 @@ static void CL_SendStartGame()
   netpacket_t packet;
   
   packet.type = pt_startgame;
-
+  packet.data.startgame.ticdup = 1;
+  
   // reliable send
   
   CL_ReliableSend(&packet);
@@ -858,6 +859,10 @@ static void CL_StartGame(startgame_t *sg)
   else
     consoleplayer = sg->player;
 
+  // set ticdup
+
+  ticdup = sg->ticdup;
+  
   // find which node is the controller
   
   CL_FindController();
@@ -1097,7 +1102,9 @@ static void CL_Speedup(speeduppacket_t *speedup)
   if(!CL_CorrectPacket(speedup->packet_num))
     return;
 
-  skiptics += speedup->skiptics;
+  gametime += speedup->skiptics;
+
+  C_Printf("skiptics: %i\n", speedup->skiptics);
 }
 
 //-------------------------------------------------------------------------
@@ -1460,56 +1467,40 @@ void CL_ReadTiccmds()
 // to make any new tics, and if so, send them. We also check for any
 // new packets from the server and if so, deal with them.
 //
-
-static int oldentertic;
+// sf: tic building is complicated because of ticdup. Each time we
+// enter NetUpdate, we find the time since the last time it was called.
+// We store the elapsed time in newtics. We then adjust newtics because
+// of skiptics. newtics is then added to buildabletics. When
+// buildabletics >= ticdup, we can make buildabletics/ticdup new ticcmds.
+//
 
 void NetUpdate()
 {
-  int entertic = I_GetTime() / ticdup;
-  int newtics = entertic - oldentertic;
-  
-  oldentertic = entertic;
+  int entertic = I_GetTime();
+  int newtics = (entertic - gametime) / ticdup;
 
-  // dont build too many tics
-
-  if(newtics > 4)
-    newtics = 4;
-
-  // skip tics 
-
-  if(skiptics)
+  if(newtics > 0)
     {
-      if(skiptics > 0 && skiptics > newtics)
+      if(newtics > 4)
+	newtics = 4;
+
+      gametime += newtics * ticdup;
+      
+      if(!drone && gamestate != GS_SERVERWAIT &&
+	 (maketic - gametic/ticdup) < 20)
 	{
-	  skiptics -= newtics;
-	  newtics = 0;
-	}
-      else
-	{
-	  newtics -= skiptics;
-	  skiptics = 0;
+	  int ticnum;
+	  	  
+	  for (ticnum=0 ; ticnum<newtics ; ticnum++)
+	    if(demoplayback)
+	      CL_ReadTiccmds();
+	    else
+	      CL_BuildTiccmd();
 	}
     }
-  
-  // if we are behind, we stop sending new tics
-  // until we get ahead again
-  
-  //      C_Printf("entertic: %i oldentertic: %i\n", entertic, oldentertic);
 
   // drones do not build ticcmds
   
-  if(!drone && gamestate != GS_SERVERWAIT)
-    if(maketic-gametic < 20 && newtics >= 0)
-      {
-	int ticnum;
-
-	for (ticnum=0 ; ticnum<newtics ; ticnum++)
-	  if(demoplayback)
-	    CL_ReadTiccmds();
-	  else
-	    CL_BuildTiccmd();
-      }
-
   if(netgame && !demoplayback)
     {  
       // get all new packets from server
@@ -1547,8 +1538,7 @@ void NetUpdate()
 
 void ResetNet()
 {
-  oldentertic = I_GetTime() / ticdup - 1;
-  skiptics = 0;
+  gametime = I_GetTime();
 }
 
 //=========================================================================
@@ -1640,7 +1630,7 @@ void D_InitNetGame()
 
 static boolean RunGameTics()
 {
-  int i;
+  int i, n;
   int lowtic = MAXINT;
   int availabletics;
   int count;
@@ -1718,7 +1708,19 @@ static boolean RunGameTics()
 	  if (advancedemo)
 	    D_DoAdvanceDemo ();
 	  //      C_Printf("run tic %i!\n", gametic);
+	  
 	  gametic++;
+
+	  // clear some of the data from the ticcmds
+
+	  if(i == 0)
+	    for(n=0; n<MAXPLAYERS; n++)
+	      {
+		if (player_cmds[n].buttons & BT_SPECIAL)
+		  player_cmds[n].buttons = 0;
+		memset(player_cmds[n].consdata, 0,
+		       sizeof(player_cmds[n].consdata));
+	      }
 	}
     }
 
@@ -1729,7 +1731,7 @@ static boolean RunGameTics()
     {
       // sf: only run multiples of 2 tics
       // otherwise we can end up flicking between eg. 4 and 5 and it jumps
-      availabletics = (maketic - gametic) & ~1;
+      availabletics = (maketic*ticdup - gametic);
       
       if(prediction_threshold < 16 &&            // 16 = predict max
 	 availabletics > prediction_threshold)
@@ -1739,12 +1741,17 @@ static boolean RunGameTics()
       
       if(availabletics)
 	{
+	  int ticnum;
+	  
 	  P_StartPrediction(&players[consoleplayer]);
+
+	  ticnum = gametic;
 	  
 	  for(i=0; i<availabletics; i++)
 	    {
 	      P_RunPredictedTic
-	      (&backup_tics[consoleplayer][((gametic+i)/ticdup) & 255]);
+		(&backup_tics[consoleplayer][(ticnum/ticdup) & 255]);
+	      ticnum++;
 	    }
 	}
       
@@ -1907,7 +1914,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-05-03 16:46:45  fraggle
+// Revision 1.6  2000-05-06 14:06:11  fraggle
+// fix ticdup
+//
+// Revision 1.5  2000/05/03 16:46:45  fraggle
 // check wads in netgames
 //
 // Revision 1.4  2000/05/03 16:30:42  fraggle
