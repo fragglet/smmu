@@ -33,6 +33,7 @@
   
 *********************************/
 
+#include <stdarg.h>
 #include <time.h>
 
 #ifdef DEDICATED
@@ -649,6 +650,74 @@ static void SV_CheckResendTics()
 
 //=========================================================================
 //
+// Chat Relay
+//
+// We relay chat messages from clients to other nodes as well as informing
+// them when other players join and quit
+//
+//=========================================================================
+
+//-------------------------------------------------------------------------
+//
+// SV_SendChatMsg
+//
+// Send Chat message to nodes in chat room
+//
+
+void SV_SendChatMsg(char *s, ...)
+{
+  char buffer[128];
+  va_list args;
+  int i;
+  netpacket_t packet;
+  
+  va_start(args, s);
+  vsprintf(buffer, s, args);
+  va_end(args);
+
+  // forward to waiting nodes
+
+  for(i=0; i<server_numnodes; i++)
+    {
+      nodeinfo_t *ni = &server_nodes[i];
+
+      if(!ni->waiting)       // only send to waiting players
+	continue;
+
+      // build new packet
+
+      packet.type = pt_chat;
+      strcpy(packet.data.messagepacket.message, buffer);
+
+      // reliable send
+
+      SV_ReliableSend(ni, &packet);
+    }  
+}
+
+//-------------------------------------------------------------------------
+//
+// SV_ChatMsg
+//
+// Forward chat messages between waiting nodes
+//
+
+static void SV_ChatMsg(msgpacket_t *msg)
+{
+  int node;
+  
+  if(!SV_CorrectPacket(msg->packet_num))
+    return;
+
+  node = SV_ServerNode();
+  
+  SV_SendChatMsg(FC_GRAY "<" FC_GOLD "%s" FC_GRAY ">" FC_RED " %s",
+		 server_nodes[node].name,
+		 msg->message);		 
+}
+
+//=========================================================================
+//
 // Ping
 //
 // It is important to know the latency of the connected clients for
@@ -764,41 +833,6 @@ static void SV_FingerRequest()
 
 //-------------------------------------------------------------------------
 //
-// SV_ChatMsg
-//
-// Forward chat messages between waiting nodes
-//
-
-static void SV_ChatMsg(msgpacket_t *msg)
-{
-  netpacket_t packet;
-  int i;
-
-  if(!SV_CorrectPacket(msg->packet_num))
-    return;
-
-  // forward to waiting nodes
-
-  for(i=0; i<server_numnodes; i++)
-    {
-      nodeinfo_t *ni = &server_nodes[i];
-
-      if(!ni->waiting)       // only send to waiting players
-	continue;
-
-      // build new packet
-
-      packet.type = pt_chat;
-      packet.data.messagepacket = *msg;  // copy chat data
-
-      // reliable send
-
-      SV_ReliableSend(ni, &packet);
-    }
-}
-
-//-------------------------------------------------------------------------
-//
 // SV_NodeQuit
 //
 // Called when a remote node disconnects
@@ -814,7 +848,13 @@ static void SV_NodeQuit(quitpacket_t *qp)
       // not in game anyway
       return;
     }
-  
+
+  // inform people in chat room
+
+  SV_SendChatMsg("%s quit (%s)",
+		 server_nodes[nodenum].name,
+		 qp->quitmsg);
+    
   // remove from node list
 
   for(i=nodenum; i<server_numnodes-1; i++)
@@ -1159,6 +1199,10 @@ static void SV_AcceptJoin(joinpacket_t *jp)
   // get ping from new client
 
   ping_sendtime = -PING_FREQ * TICRATE;
+
+  // inform people in chat room
+
+  SV_SendChatMsg("%s joined server", jp->name);
 }
 
 //-------------------------------------------------------------------------
@@ -1591,7 +1635,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-05-06 14:06:11  fraggle
+// Revision 1.6  2000-05-07 13:11:21  fraggle
+// improve multiplayer chatroom interface
+//
+// Revision 1.5  2000/05/06 14:06:11  fraggle
 // fix ticdup
 //
 // Revision 1.4  2000/05/03 16:46:45  fraggle
