@@ -149,8 +149,6 @@ byte gammatable[5][256] =
    251,252,252,253,254,254,255,255}
 };
 
-int usegamma;
-
 //
 // V_InitColorTranslation
 //
@@ -1035,8 +1033,11 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:09:40  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

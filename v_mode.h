@@ -31,6 +31,7 @@
 #endif
 
 #include "doomtype.h"
+#include "doomstat.h"
 
 // Set Palette
 void V_SetPalette (byte* palette);
@@ -109,6 +110,8 @@ extern int hires;
 extern int use_vsync;
 extern int grabMouse;   // keep mouse inside window - for win32/X
 
+extern unsigned char *gamma_xlate;
+
 #ifdef DJGPP
 extern int page_flip;  // killough 8/15/98: enables page flipping (320x200)
 extern int disk_icon;  // killough 10/98
@@ -116,12 +119,21 @@ extern int vesamode;
 extern BITMAP *screens0_bitmap;   // killough 12/98
 #endif
 
+// sf: whether the mouse should be grabbed at this particular moment
+// do not grab mouse in console or menu or when the game is paused
+
+#define grabnow \
+ ( grabMouse && !paused && !menuactive && gamestate != GS_CONSOLE)
+
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-09 20:54:53  fraggle
+// Revision 1.3  2000-06-20 21:09:40  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.2  2000/06/09 20:54:53  fraggle
 // add I_StartFrame frame-syncronous stuff (joystick)
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle

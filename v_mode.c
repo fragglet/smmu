@@ -294,6 +294,17 @@ CONSOLE_COMMAND(v_modelist, 0)
     }
 }
 
+unsigned char *gamma_xlate;      // gamma translation table
+int usegamma;
+
+CONSOLE_INT(gamma, usegamma, NULL,                        0, 4, NULL, 0)
+{
+  // change to new gamma val
+  gamma_xlate = gammatable[usegamma];
+  V_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+}
+
+
 //===========================================================================
 //
 // Library Init/Shutdown
@@ -442,6 +453,7 @@ void V_Mode_AddCommands()
 {
   C_AddCommand(use_mouse);
   C_AddCommand(use_joystick);
+  C_AddCommand(gamma);
 
   C_AddCommand(v_mode);
   C_AddCommand(v_modelist);
@@ -454,7 +466,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-19 14:58:55  fraggle
+// Revision 1.4  2000-06-20 21:09:40  fraggle
+// tweak gamma correction stuff
+//
+// Revision 1.3  2000/06/19 14:58:55  fraggle
 // cygwin (win32) support
 //
 // Revision 1.2  2000/06/09 20:53:30  fraggle
