@@ -1955,7 +1955,7 @@ void G_ReloadDefaults(void)
   G_ScrambleRand();
 }
 
-        // sf: seperate function
+         // sf: seperate function
 void G_ScrambleRand()
 {                            // killough 3/26/98: shuffle random seed
   // sf: simpler
@@ -1967,7 +1967,7 @@ void G_DoNewGame (void)
   G_StopDemo();
   G_ReloadDefaults();            // killough 3/1/98
   P_ClearHubs();                 // sf: clear hubs when starting new game
-
+  
   netgame = false;               // killough 3/29/98
   deathmatch = false;
   basetic = gametic;             // killough 9/29/98
@@ -2419,8 +2419,11 @@ void G_CoolViewPoint()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-22 10:01:54  fraggle
+// ctrl-d to disconnect from server
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //-----------------------------------------------------------------------------

@@ -374,16 +374,14 @@ boolean G_KeyResponder(event_t *ev)
   static boolean ctrldown;
 
   if(ev->data1 == KEYD_RCTRL)      // ctrl
-    {
-      ctrldown = ev->type == ev_keydown;
-      return false;
-    }    
+    ctrldown = ev->type == ev_keydown;
  
   if(ev->type == ev_keydown)
     {
       int key = tolower(ev->data1);
 
-      if(ctrldown && ev->data1 == 'd')      // netgame disconnect binding
+      if(opensocket &&                 // netgame disconnect binding
+	 ctrldown && ev->data1 == 'd')
 	{
 	  char buffer[128];
 
@@ -713,7 +711,10 @@ void G_Bind_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-12 16:42:20  fraggle
+// Revision 1.4  2000-05-22 10:01:54  fraggle
+// ctrl-d to disconnect from server
+//
+// Revision 1.3  2000/05/12 16:42:20  fraggle
 // ctrl-d to disconnect from server
 //
 // Revision 1.2  2000/05/10 13:11:37  fraggle
