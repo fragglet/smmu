@@ -1120,12 +1120,20 @@ static void SV_StartGameSignal(startgame_t *sg)
   int i;
   int ticdup;
   long rndseed = time(NULL);
-  
+
   // check received packet is correct
   
   if(!SV_CorrectPacket(sg->packet_num))
     return;  
 
+  // if correctpacket returned true then it must be from a connected
+  // node. now we make sure this is coming from the controller
+
+  i = SV_ServerNode();
+  
+  if(i != controller)
+    return;
+  
   // get ticdup from packet
 
   ticdup = sg->ticdup;
@@ -1344,6 +1352,12 @@ static void SV_JoinRequest(joinpacket_t *jp)
       return;
     }
 
+  if(server->nodes >= MAXNODES)
+    {
+      SV_DenyJoin("server is full");
+      return;
+    }
+  
   // check player is using the right wad
   // if this is the first node, copy the signature
 
@@ -1755,7 +1769,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.9  2000-05-22 09:59:04  fraggle
+// Revision 1.10  2000-05-24 13:36:05  fraggle
+// secure up server a bit
+//
+// Revision 1.9  2000/05/22 09:59:04  fraggle
 // /msg, /me commands for chat room
 //
 // Revision 1.8  2000/05/12 16:41:59  fraggle
