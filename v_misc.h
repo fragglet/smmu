@@ -1,3 +1,7 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+
 #ifndef __V_MISC_H__
 #define __V_MISC_H__
 
@@ -30,8 +34,10 @@ extern int v_mode;
 #define FC_YELLOW       "\x89"
 
 void V_WriteText(unsigned char *s, int x, int y);
+void V_WriteTextColoured(unsigned char *s, int colour, int x, int y);
 void V_LoadFont();
 int V_StringWidth(unsigned char *s);
+int V_StringHeight(unsigned char *s);
 
 /******************** box drawing *********************/
 void V_DrawBox(int, int, int, int);

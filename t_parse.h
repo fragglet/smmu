@@ -1,3 +1,7 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+
 #ifndef __PARSE_H__
 #define __PARSE_H__
 
@@ -17,14 +21,14 @@ typedef struct operator_s operator_t;
 
 struct svalue_s
 {
-        int type;
-        union
-        {
-                long i;
-                char *s;
-                char *labelptr; // goto() label
-                mobj_t *mobj;
-        } value;
+  int type;
+  union
+  {
+    long i;
+    char *s;
+    char *labelptr; // goto() label
+    mobj_t *mobj;
+  } value;
 };
 
 #include "t_vari.h"
@@ -32,41 +36,41 @@ struct svalue_s
 
 struct script_s
 {
-        // script data
+  // script data
+  
+  char *data;
+  int scriptnum;  // this script's number
+  int len;
+  
+  // {} sections
+  
+  section_t *sections[SECTIONSLOTS];
+  
+  // variables:
+  
+  svariable_t *variables[VARIABLESLOTS];
+  
+  // ptr to the parent script
+  // the parent script is the script above this level
+  // eg. individual linetrigger scripts are children
+  // of the levelscript, which is a child of the
+  // global_script
+  script_t *parent;
 
-        char *data;
-        int scriptnum;  // this script's number
-        int len;
-
-        // {} sections
-
-        section_t *sections[SECTIONSLOTS];
-
-        // variables:
-
-        svariable_t *variables[VARIABLESLOTS];
-
-                // ptr to the parent script
-                // the parent script is the script above this level
-                // eg. individual linetrigger scripts are children
-                // of the levelscript, which is a child of the
-                // global_script
-        script_t *parent;
-
-        mobj_t *trigger;        // object which triggered this script
+  mobj_t *trigger;        // object which triggered this script
 };
 
 struct operator_s
 {
-        char *string;
-        svalue_t (*handler)(int, int, int); // left, mid, right
-        int direction;
+  char *string;
+  svalue_t (*handler)(int, int, int); // left, mid, right
+  int direction;
 };
 
 enum
 {
-        forward,
-        backward
+  forward,
+  backward
 };
 
 void run_script(script_t *script);
@@ -81,19 +85,20 @@ int find_operator_backwards(int start, int stop, char *value);
 
 /******* tokens **********/
 
-typedef enum {
-        name,   // a name, eg 'count1' or 'frag'
-        number,
-        operator,
-        string,
-        unset,
-        function          // function name
+typedef enum
+{
+  name,   // a name, eg 'count1' or 'frag'
+  number,
+  operator,
+  string,
+  unset,
+  function          // function name
 } tokentype_t;
 
 enum    // brace types: where current_section is a { or }
 {
-        bracket_open,
-        bracket_close
+  bracket_open,
+  bracket_close
 };
 
 extern svalue_t nullvar;
@@ -113,8 +118,11 @@ extern section_t *current_section;
 extern section_t *prev_section;
 extern int bracetype;
 
-extern script_t global_script;  // the global_script is the root
-                        // script and contains only built-in
-                        // FraggleScript variables/functions
+// the global_script is the root
+// script and contains only built-in
+// FraggleScript variables/functions
+
+extern script_t global_script; 
+extern script_t hub_script;
 
 #endif

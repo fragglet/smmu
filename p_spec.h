@@ -751,9 +751,12 @@ enum
 
 //
 // End-level timer (-TIMER option)
+// frags limit (-frags)
 //
-extern  boolean levelTimer;
-extern  int levelTimeCount;
+
+extern int             levelTime;
+extern int             levelTimeLimit;
+extern int             levelFragLimit;
 
 // list of retriggerable buttons active
 extern button_t buttonlist[MAXBUTTONS];

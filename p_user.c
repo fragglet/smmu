@@ -323,14 +323,12 @@ void P_PlayerThink (player_t* player)
   if(!allowmlook) player->updownangle = 0;
 
   if(player->readyweapon == wp_bfg)
-  {
-       if(bfglook == 0) player->updownangle = 0;
-       if(bfglook == 2 && player->updownangle < -10)
-              player->updownangle = -10;
-  }
-
-        // sf: do this in p_tick.c now for hyperlift-jumping fix
-        // feels different: put pack
+    {
+      if(bfglook == 0) player->updownangle = 0;
+      if(bfglook == 2 && player->updownangle < -10)
+	player->updownangle = -10;
+    }
+  
   P_CalcHeight (player); // Determines view height and bobbing
 
   // Determine if there's anything about the sector you're in that's
@@ -426,20 +424,9 @@ void P_PlayerThink (player_t* player)
   if (player->powers[pw_invulnerability] > 0) // killough
     player->powers[pw_invulnerability]--;
 
-  if (player->powers[pw_invisibility] > 0)    // killough
-  {
-    player->mo->flags &= ~MF_SHADOW;    //sf: flash the invisibility like
-    player->powers[pw_invisibility]--;  // in the psprites
-    player->mo->flags |=               
-      player->powers[pw_invisibility] &&
-      (player->powers[pw_invisibility] > 4*32 ||
-        player->powers[pw_invisibility] & 8)
-        ? MF_SHADOW : 0;
-  }
-
-//      old code
-//    if (! --player->powers[pw_invisibility] )
-//      player->mo->flags &= ~MF_SHADOW;
+  if(player->powers[pw_invisibility] > 0)
+    if (! --player->powers[pw_invisibility] )
+       player->mo->flags &= ~MF_SHADOW;
 
   if (player->powers[pw_infrared] > 0)        // killough
     player->powers[pw_infrared]--;
@@ -460,9 +447,9 @@ void P_PlayerThink (player_t* player)
 
         // sf: removed MBF beta stuff
 
-    player->powers[pw_invulnerability] > 4*32 ||    /* Regular Doom */
-    player->powers[pw_invulnerability] & 8 ? INVERSECOLORMAP :
-    player->powers[pw_infrared] > 4*32 || player->powers[pw_infrared] & 8;
+  player->powers[pw_invulnerability] > 4*32 ||    /* Regular Doom */
+  player->powers[pw_invulnerability] & 8 ? INVERSECOLORMAP :
+  player->powers[pw_infrared] > 4*32 || player->powers[pw_infrared] & 8;
 }
 
 //----------------------------------------------------------------------------

@@ -1,5 +1,9 @@
-#ifndef __PLAYER_H__
-#define __PLAYER_H__
+// Emacs style mode select -*- C++ -*-
+//-----------------------------------------------------------------------------
+//
+
+#ifndef __HU_FRAGS_H__
+#define __HU_FRAGS_H__
 
 void HU_FragsInit();
 

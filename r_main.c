@@ -25,8 +25,10 @@
 static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
 
 #include "doomstat.h"
+#include "i_video.h"
 #include "c_runcmd.h"
 #include "g_game.h"
+#include "mn_engin.h" 
 #include "r_main.h"
 #include "r_things.h"
 #include "r_plane.h"
@@ -35,7 +37,9 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "r_draw.h"
 #include "m_bbox.h"
 #include "r_sky.h"
+#include "s_sound.h"
 #include "v_video.h"
+#include "w_wad.h"
 
 // Fineangles in the SCREENWIDTH wide window.
 int fov=2048;   //sf: made an int from a #define
@@ -59,6 +63,8 @@ extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
 camera_t *viewcamera;
 int zoom = 1;   // sf: fov/zooming
+
+extern int screenSize;
 
 void R_HOMdrawer();
 
@@ -426,13 +432,10 @@ void R_ExecuteSetViewSize (void)
 // R_Init
 //
 
-extern int screenblocks;
-extern int screenSize;
-
 void R_Init (void)
 {
   R_InitData();
-  R_SetViewSize(screenblocks);
+  R_SetViewSize(screenSize+3);
   R_InitPlanes();
   R_InitLightTables();
   R_InitSkyMap();
@@ -461,7 +464,6 @@ long updownangle = 0;
 
 void R_SetupFrame (player_t *player, camera_t *camera)
 {               
-  int i;
   mobj_t *mobj;
   static int oldzoom;
 
@@ -513,22 +515,6 @@ void R_SetupFrame (player_t *player, camera_t *camera)
         // use drawcolumn
   colfunc = R_DrawColumn; //sf
 
-  if (player->fixedcolormap)
-    {
-      // killough 3/20/98: localize scalelightfixed (readability/optimization)
-      static lighttable_t *scalelightfixed[MAXLIGHTSCALE];
-
-      fixedcolormap = fullcolormap   // killough 3/20/98: use fullcolormap
-        + player->fixedcolormap*256*sizeof(lighttable_t);
-        
-      walllights = scalelightfixed;
-
-      for (i=0 ; i<MAXLIGHTSCALE ; i++)
-        scalelightfixed[i] = fixedcolormap;
-    }
-  else
-    fixedcolormap = 0;
-
   validcount++;
 }
 
@@ -549,51 +535,52 @@ void R_SectorColormap(sector_t *s)
   if(s->heightsec == -1) cm = 0;
   else
   {
-        sector_t *viewsector;
-        area_t viewarea;
-        viewsector = R_PointInSubsector(viewx,viewy)->sector;
+     sector_t *viewsector;
+     area_t viewarea;
+     viewsector = R_PointInSubsector(viewx,viewy)->sector;
 
-                // find which area the viewpoint (player) is in
-        if(viewsector->heightsec == -1) viewarea = area_normal;
-        else
-           viewarea =
-           viewz < sectors[viewsector->heightsec].floorheight ? area_below :
-           viewz > sectors[viewsector->heightsec].ceilingheight ? area_above :
-           area_normal;
+             // find which area the viewpoint (player) is in
+     viewarea =
+        viewsector->heightsec == -1 ? area_normal :
+        viewz < sectors[viewsector->heightsec].floorheight ? area_below :
+        viewz > sectors[viewsector->heightsec].ceilingheight ? area_above :
+        area_normal;
 
-//        dprintf("%i",viewarea);
+     s = s->heightsec + sectors;
 
-      s = s->heightsec + sectors;
-
-        cm = viewarea==area_normal ? s->midmap :
-             viewarea==area_above ? s->topmap : s->bottommap;
+     cm = viewarea==area_normal ? s->midmap :
+           viewarea==area_above ? s->topmap : s->bottommap;
   }
 
   fullcolormap = colormaps[cm];
   zlight = c_zlight[cm];
   scalelight = c_scalelight[cm];
 
-}
-
-/*
-  if (s->heightsec != -1)
+  if (viewplayer->fixedcolormap)
     {
-      s = s->heightsec + sectors;
-      cm = viewz < s->floorheight ? s->bottommap : viewz > s->ceilingheight ?
-        s->topmap : s->midmap;
-      if (cm < 0 || cm > numcolormaps)
-        cm = 0;
+      int i;
+      // killough 3/20/98: localize scalelightfixed (readability/optimization)
+      static lighttable_t *scalelightfixed[MAXLIGHTSCALE];
+
+      fixedcolormap = fullcolormap   // killough 3/20/98: use fullcolormap
+        + viewplayer->fixedcolormap*256*sizeof(lighttable_t);
+        
+      walllights = scalelightfixed;
+
+      for (i=0 ; i<MAXLIGHTSCALE ; i++)
+        scalelightfixed[i] = fixedcolormap;
     }
   else
-    cm = 0;
-*/
+    fixedcolormap = 0;
+
+}
 
 angle_t R_WadToAngle(int wadangle)
 {
-        if(demo_version<302)
-                return (wadangle/45)*ANG45;
+  if(demo_version < 302)            // maintain compatibility
+    return (wadangle / 45) * ANG45;
 
-        return wadangle*(ANG45/45);     // allows wads to specify angles to
+  return wadangle * (ANG45 / 45);     // allows wads to specify angles to
                                       // the nearest degree, not nearest 45
 }
 
@@ -642,17 +629,17 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
 
 void R_HOMdrawer()
 {
-      int y, colour;
-      char *dest;
+  int y, colour;
+  char *dest;
 
-      colour = !flashing_hom || (gametic % 20) < 9 ? 0xb0 : 0;
-      dest = screens[0] + viewwindowy*(SCREENWIDTH<<hires) + viewwindowx;
+  colour = !flashing_hom || (gametic % 20) < 9 ? 0xb0 : 0;
+  dest = screens[0] + viewwindowy*(SCREENWIDTH<<hires) + viewwindowx;
 
-      for(y=viewwindowy; y<viewwindowy+viewheight; y++)
-      {
-           memset(dest, colour, viewwidth);
-           dest += SCREENWIDTH<<hires;
-      }
+  for(y=viewwindowy; y<viewwindowy+viewheight; y++)
+  {
+     memset(dest, colour, viewwidth);
+     dest += SCREENWIDTH<<hires;
+  }
 
 //      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8);
 }
@@ -667,7 +654,9 @@ void R_ResetTrans()
 //  Console Commands
 //
 
-VARIABLE_BOOLEAN(lefthanded, NULL,                  yesno);
+char *handedstr[]       = {"right", "left"};
+
+VARIABLE_BOOLEAN(lefthanded, NULL,                  handedstr);
 VARIABLE_BOOLEAN(r_blockmap, NULL,                  onoff);
 VARIABLE_INT(flatskip, NULL,                    0, 100, NULL);
 VARIABLE_BOOLEAN(flashing_hom, NULL,                onoff);
@@ -681,7 +670,13 @@ VARIABLE_INT(tran_filter_pct, NULL,             0, 100, NULL);
 VARIABLE_BOOLEAN(autodetect_hom, NULL,              yesno);
 VARIABLE_INT(screenSize, NULL,                  0, 8, NULL);
 VARIABLE_INT(zoom, NULL,                        0, 8192, NULL);
+VARIABLE_INT(usegamma, NULL,                    0, 4, NULL);
 
+CONSOLE_VARIABLE(gamma, usegamma, 0)
+{
+        // change to new gamma val
+    I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+}
 CONSOLE_VARIABLE(lefthanded, lefthanded, 0) {}
 CONSOLE_VARIABLE(r_blockmap, r_blockmap, 0) {}
 // CONSOLE_VARIABLE(r_flatskip, flatskip, 0) {}
@@ -690,7 +685,10 @@ CONSOLE_VARIABLE(r_planeview, visplane_view, 0) {}
 CONSOLE_VARIABLE(r_zoom, zoom, 0) {}
 CONSOLE_VARIABLE(r_precache, r_precache, 0) {}
 CONSOLE_VARIABLE(r_showgun, showpsprites, 0) {}
-CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0) {}
+CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0)
+{
+        doom_printf("hom detection %s", autodetect_hom ? "on" : "off");
+}
 CONSOLE_VARIABLE(r_stretchsky, stretchsky, 0) {}
 CONSOLE_VARIABLE(r_swirl, r_swirl, 0) {}
 CONSOLE_VARIABLE(r_trans, general_translucency, 0)
@@ -702,17 +700,24 @@ CONSOLE_VARIABLE(r_tranpct, tran_filter_pct, 0)
   R_ResetTrans();
 }
 
-CONSOLE_VARIABLE(screensize, screenSize, 0)
+CONSOLE_VARIABLE(screensize, screenSize, cf_buffered)
 {
-  screenblocks = screenSize + 3;
+  S_StartSound(NULL,sfx_stnmov);
 
   if(gamestate == GS_LEVEL) // not in intercam
-     R_SetViewSize (screenblocks);
+  {
+     hide_menu = 20;             // hide the menu for a few tics
+     R_SetViewSize (screenSize+3);
+  }
+
+  if(screenSize == 8)        // fullscreen
+    HU_ToggleHUD();
 }
 
-CONSOLE_COMMAND(listskins, 0)
+CONSOLE_COMMAND(p_dumphubs, 0)
 {
-   P_ListSkins();
+  extern void P_DumpHubs();
+  P_DumpHubs();
 }
 
 void R_AddCommands()
@@ -730,7 +735,9 @@ void R_AddCommands()
    C_AddCommand(r_trans);
    C_AddCommand(r_tranpct);
    C_AddCommand(screensize);
-   C_AddCommand(listskins);
+   C_AddCommand(gamma);
+
+   C_AddCommand(p_dumphubs);
 }
 
 //----------------------------------------------------------------------------

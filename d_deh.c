@@ -90,7 +90,7 @@ char *s_D_DEVSTR    = D_DEVSTR;
 char *s_D_CDROM     = D_CDROM;
 char *s_PRESSKEY    = PRESSKEY;
 char *s_PRESSYN     = PRESSYN;
-char *s_QUITMSG     = QUITMSG;
+char *s_QUITMSG     = NULL;    // sf: optional quitmsg replacement
 char *s_LOADNET     = LOADNET;   // PRESSKEY; // killough 4/4/98:
 char *s_QLOADNET    = QLOADNET;  // PRESSKEY;
 char *s_QSAVESPOT   = QSAVESPOT; // PRESSKEY;
@@ -727,7 +727,7 @@ deh_strs deh_strlookup[] = {
   {&bgflat31,"BGFLAT31"},
   {&bgcastcall,"BGCASTCALL"},
   // Ty 04/08/98 - added 5 general purpose startup announcement
-  // strings for hacker use.  See m_menu.c
+  // strings for hacker use.  See mn_menu.c
   {&startup1,"STARTUP1"},
   {&startup2,"STARTUP2"},
   {&startup3,"STARTUP3"},
@@ -2082,7 +2082,8 @@ void deh_procPars(DEHFILE *fpin, FILE* fpout, char *line) // extension
   while (!feof(fpin) && *inbuffer && (*inbuffer != ' '))
     {
       if (!fgets(inbuffer, sizeof(inbuffer), fpin)) break;
-      lfstrip(strlwr(inbuffer)); // lowercase it
+      // sf: should be strlwr too, removed for temp linux support
+      lfstrip(inbuffer); // lowercase it
       if (!*inbuffer) break;      // killough 11/98
       if (3 != sscanf(inbuffer,"par %i %i %i",&episode, &level, &partime))
         { // not 3

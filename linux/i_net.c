@@ -19,21 +19,18 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "z_zone.h"  /* memory allocation wrappers -- killough */
+#include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
 static const char
 rcsid[] = "$Id: i_net.c,v 1.4 1998/05/16 09:41:03 jim Exp $";
 
-#include "doomstat.h"
-#include "i_system.h"
-#include "d_event.h"
-#include "d_net.h"
-#include "m_argv.h"
+#include "../doomstat.h"
+#include "../i_system.h"
+#include "../d_event.h"
+#include "../d_net.h"
+#include "../m_argv.h"
 
-#include <dpmi.h>
-#include <sys/nearptr.h>
-
-#include "i_net.h"
+#include "../i_net.h"
 
 void    NetSend (void);
 boolean NetListen (void);
@@ -50,9 +47,6 @@ void    (*netsend) (void);
 //
 void PacketSend (void)
 {
-  __dpmi_regs r;
-                              
-  __dpmi_int(doomcom->intnum,&r);
 }
 
 
@@ -61,9 +55,6 @@ void PacketSend (void)
 //
 void PacketGet (void)
 {
-  __dpmi_regs r;
-                              
-  __dpmi_int(doomcom->intnum,&r);
 }
 
 //
@@ -71,7 +62,7 @@ void PacketGet (void)
 //
 void I_InitNetwork (void)
 {
-  int                 i,j;
+  int                 i;
 
   // set up the singleplayer doomcom
 
@@ -86,7 +77,7 @@ void I_InitNetwork (void)
                           
   // parse network game options,
   //  -net <consoleplayer> <host> <host> ...
-  i = M_CheckParm ("-net");
+  i = 0;        //M_CheckParm ("-net");
   if (!i)
   {
     // single player game
@@ -94,30 +85,6 @@ void I_InitNetwork (void)
     netgame = false;
     return;
   }
-
-  doomcom=(doomcom_t *)(__djgpp_conventional_base+atoi(myargv[i+1]));
-
-  doomcom->ticdup=1;
-  if (M_CheckParm ("-extratic"))
-    doomcom-> extratics = 1;
-  else
-    doomcom-> extratics = 0;
-
-  j = M_CheckParm ("-dup");
-  if (j && j< myargc-1)
-  {
-    doomcom->ticdup = myargv[j+1][0]-'0';
-    if (doomcom->ticdup < 1)
-      doomcom->ticdup = 1;
-    if (doomcom->ticdup > 9)
-      doomcom->ticdup = 9;
-  }
-  else
-    doomcom-> ticdup = 1;
-
-  netsend = PacketSend;
-  netget = PacketGet;
-  netgame = true;    
 }
 
 

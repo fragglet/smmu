@@ -556,19 +556,18 @@ P_UseSpecialLine
 
       // sf: scripting
 
-    case 274:
-    case 275:
+    case 276:
+    case 277:
        t_trigger = thing;
        T_RunScript(line->tag);
-       if(line->special == 275)
-       {
-         line->special = 0;         // clear tag
-         P_ChangeSwitchTexture(line,0);
-       }
+       if(line->special == 277)
+	 {
+	   line->special = 0;         // clear tag
+	   P_ChangeSwitchTexture(line,0);
+	 }
        else
          P_ChangeSwitchTexture(line,1);
        break;
-
 
       // killough 1/31/98: factored out compatibility check;
       // added inner switch, relaxed check to demo_compatibility

@@ -118,16 +118,21 @@ static size_t virtual_memory;
 
 int printstats;                    // killough 8/23/98
 
-void Z_PrintStats(void)            // Print allocation statistics
+char tempstr[128]; // haleyjd 1/12/00:  wtf?
+
+char *Z_PrintStats(void)            // Print allocation statistics
 {
+  //char tempstr[128];
+
   if (printstats)
     {
       unsigned long total_memory = free_memory + active_memory +
 	purgable_memory + inactive_memory +
 	virtual_memory;
       double s = 100.0 / total_memory;
-      
-      dprintf("%-5lu\t%6.01f%%\tstatic\n"
+
+      sprintf(tempstr,
+              "%-5lu\t%6.01f%%\tstatic\n"
 	      "%-5lu\t%6.01f%%\tpurgable\n"
 	      "%-5lu\t%6.01f%%\tfree\n"
 	      "%-5lu\t%6.01f%%\tfragmentary\n"
@@ -145,7 +150,9 @@ void Z_PrintStats(void)            // Print allocation statistics
 	      virtual_memory*s,
 	      total_memory
 	      );
+      return tempstr;
     }
+    return "";          // empty string
 }
 #endif
 
@@ -228,8 +235,6 @@ void Z_Init(void)
     {
       size -= RETRY_AMOUNT;
     }
-
-  printf("Z_Init: malloc'd %i\n", (int)zonebase_size);
 
   // Align on cache boundary
 

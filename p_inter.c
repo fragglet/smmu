@@ -27,6 +27,7 @@ rcsid[] = "$Id: p_inter.c,v 1.10 1998/05/03 23:09:29 killough Exp $";
 #include "doomstat.h"
 #include "dstrings.h"
 #include "m_random.h"
+#include "g_game.h"
 #include "hu_stuff.h"
 #include "hu_frags.h"
 #include "am_map.h"
@@ -602,9 +603,9 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       return;      // killough 12/98: suppress error message
     }
 
-  // sf: display message
-  if(message && player == players+displayplayer)
-        dprintf("%c%s", 128+mess_colour, message);
+  // sf: display message usign player_printf
+  if(message)
+    player_printf(player, "%c%s", 128+mess_colour, message);
   if(removeobj)
     P_RemoveMobj (special);
 
@@ -781,7 +782,7 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
 
         if(!source || !source->player) // killed by a monster or environment
         {
-                dprintf("%c%s died", 128+obcolour,
+                doom_printf("%c%s died", 128+obcolour,
                         target->player->name);
                 return;
         }
@@ -806,18 +807,18 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
             if(inflictor)
                 if(killweapon == wp_missile)
                 {
-                   dprintf("%c%s should have stood back", 128+obcolour,
+                   doom_printf("%c%s should have stood back", 128+obcolour,
                           source->player->name);
                    return;
                 }
                 else if(killweapon == wp_bfg)
                 {
-                   dprintf("%c%s used a bfg close-up",
+                   doom_printf("%c%s used a bfg close-up",
                         128+obcolour, source->player->name);
                    return;
                 }
 
-            dprintf("%c%s suicides", 128+obcolour,
+            doom_printf("%c%s suicides", 128+obcolour,
                         source->player->name);
             return;
         }
@@ -826,10 +827,10 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
         messtype = M_Random() % 2;
 
         if(messtype)
-            dprintf(deathmess1[killweapon], 128+obcolour,
+            doom_printf(deathmess1[killweapon], 128+obcolour,
                         target->player->name, source->player->name);
         else
-            dprintf(deathmess2[killweapon], 128+obcolour,
+            doom_printf(deathmess2[killweapon], 128+obcolour,
                         source->player->name, target->player->name);
 }
 

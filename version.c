@@ -9,10 +9,10 @@ static const char rcsid[] = "$Id: version.c,v 1.2 1998/05/03 22:59:31 killough E
 
 #include "version.h"
 
-int VERSION = 310;        // sf: made int from define 
+int VERSION = 321;        // sf: made int from define 
 const char version_date[] = __DATE__;
-const char version_name[] = "fs-beta";  // sf : version names
-                                        // at the suggestion of mystican
+const char version_name[] = "christmas"; // sf : version names
+                                         // at the suggestion of mystican
 
 //----------------------------------------------------------------------------
 //

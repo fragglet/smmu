@@ -35,6 +35,11 @@ rcsid[] = "$Id: w_wad.c,v 1.20 1998/05/06 11:32:00 jim Exp $";
 // GLOBALS
 //
 
+// sf:
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 // Location of each lump on disk.
 lumpinfo_t **lumpinfo;  //sf : array of ptrs
 int        numlumps;         // killough
@@ -280,9 +285,17 @@ static void W_CoalesceMarkedResource(const char *start_marker,
       else                  // sf: namespace already set
         if (is_marked || lump->namespace==namespace)// if we are marking lumps,
           {                                       // move lump to marked list
-            marked[num_marked] = lump;
-            marked[num_marked]->namespace = namespace;  // killough 4/17/98
-            num_marked++;
+
+                // sf 26/10/99:
+                // ignore sprite lumps greater than 8 (the smallest possible)
+                // in size -- this was used by some dmadds wads
+                // as an 'empty' graphics resource
+            if(namespace != ns_sprites || lump->size > 8)
+            {
+               marked[num_marked] = lump;
+               marked[num_marked]->namespace = namespace;  // killough 4/17/98
+               num_marked++;
+            }
          }
         else
         {
@@ -431,16 +444,10 @@ static void W_InitResources()          // sf
 
 void W_AddPredefines()
 {
-  int i;
+  // predefined lumps removed now
+  numlumps = 0;
 
-  numlumps = num_predefined_lumps;
-
-  lumpinfo = malloc(numlumps * sizeof(lumpinfo_t *));
-
-  for(i = 0; i < num_predefined_lumps; i++)
-  {
-        lumpinfo[i] = (lumpinfo_t *) &predefined_lumps[i];
-  }
+  lumpinfo = Z_Malloc(1, PU_STATIC, 0);
 }
 
 //
@@ -550,59 +557,7 @@ void *W_CacheLumpNum(int lump, int tag)
 
 // W_CacheLumpName macroized in w_wad.h -- killough
 
-// WritePredefinedLumpWad
-// Args: Filename - string with filename to write to
-// Returns: void
-//
-// If the user puts a -dumplumps switch on the command line, we will
-// write all those predefined lumps above out into a pwad.  User
-// supplies the pwad name.
-//
-// killough 4/22/98: make endian-independent, remove tab chars
-void WritePredefinedLumpWad(const char *filename)
-{
-  int handle;         // for file open
-  char filenam[256];  // we may have to add ".wad" to the name they pass
-
-  if (!filename || !*filename)  // check for null pointer or empty name
-    return;  // early return
-
-  AddDefaultExtension(strcpy(filenam, filename), ".wad");
-
-  // The following code writes a PWAD from the predefined lumps array
-  // How to write a PWAD will not be explained here.
-  if ( (handle = open (filenam, O_RDWR | O_CREAT | O_BINARY, S_IWUSR|S_IRUSR)) != -1)
-  {
-    wadinfo_t header = {"PWAD"};
-    size_t filepos = sizeof(wadinfo_t) + num_predefined_lumps * sizeof(filelump_t);
-    int i;
-
-    header.numlumps = LONG(num_predefined_lumps);
-    header.infotableofs = LONG(sizeof(header));
-
-    // write header
-    write(handle, &header, sizeof(header));
-
-    // write directory
-    for (i=0;i<num_predefined_lumps;i++)
-    {
-      filelump_t fileinfo = {0};
-      fileinfo.filepos = LONG(filepos);
-      fileinfo.size = LONG(predefined_lumps[i].size);
-      strncpy(fileinfo.name, predefined_lumps[i].name, 8);
-      write(handle, &fileinfo, sizeof(fileinfo));
-      filepos += predefined_lumps[i].size;
-    }
-
-    // write lumps
-    for (i=0;i<num_predefined_lumps;i++)
-      write(handle, predefined_lumps[i].data, predefined_lumps[i].size);
-
-    close(handle);
-    I_Error("Predefined lumps wad, %s written, exiting\n", filename);
-  }
- I_Error("Cannot open predefined lumps wad %s for output\n", filename);
-}
+// Predefined lumps removed -- sf
 
         // sf: lump checksum
 

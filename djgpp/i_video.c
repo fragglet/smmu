@@ -22,7 +22,7 @@
 
 static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 
-#include "z_zone.h"  /* memory allocation wrappers -- killough */
+#include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
 #include <stdio.h>
 #include <signal.h>
@@ -33,20 +33,179 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include <dos.h>
 #include <go32.h>
 
-#include "c_io.h"
-#include "c_runcmd.h"
-#include "doomstat.h"
-#include "v_video.h"
-#include "d_main.h"
-#include "m_bbox.h"
-#include "st_stuff.h"
-#include "m_argv.h"
-#include "w_wad.h"
-#include "r_draw.h"
-#include "am_map.h"
-#include "m_menu.h"
-#include "wi_stuff.h"
-#include "i_video.h"
+#include "../c_io.h"
+#include "../c_runcmd.h"
+#include "../doomstat.h"
+#include "../v_video.h"
+#include "../d_main.h"
+#include "../m_bbox.h"
+#include "../st_stuff.h"
+#include "../m_argv.h"
+#include "../w_wad.h"
+#include "../r_draw.h"
+#include "../am_map.h"
+#include "../wi_stuff.h"
+#include "../i_video.h"
+
+/**************************** Input code *************************************/
+
+extern void I_InitKeyboard();      // i_system.c
+
+//
+// Keyboard routines
+// By Lee Killough
+// Based only a little bit on Chi's v0.2 code
+//
+
+int I_ScanCode2DoomCode (int a)
+{
+  switch (a)
+    {
+    default:   return key_ascii_table[a]>8 ? key_ascii_table[a] : a+0x80;
+    case 0x7b: return KEYD_PAUSE;
+    case 0x0e: return KEYD_BACKSPACE;
+    case 0x48: return KEYD_UPARROW;
+    case 0x4d: return KEYD_RIGHTARROW;
+    case 0x50: return KEYD_DOWNARROW;
+    case 0x4b: return KEYD_LEFTARROW;
+    case 0x38: return KEYD_LALT;
+    case 0x79: return KEYD_RALT;
+    case 0x1d:
+    case 0x78: return KEYD_RCTRL;
+    case 0x36:
+    case 0x2a: return KEYD_RSHIFT;
+  }
+}
+
+// Automatic caching inverter, so you don't need to maintain two tables.
+// By Lee Killough
+
+int I_DoomCode2ScanCode (int a)
+{
+  static int inverse[256], cache;
+  for (;cache<256;cache++)
+    inverse[I_ScanCode2DoomCode(cache)]=cache;
+  return inverse[a];
+}
+
+
+extern int usemouse;   // killough 10/98
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// JOYSTICK                                                  // phares 4/3/98
+//
+/////////////////////////////////////////////////////////////////////////////
+
+extern int usejoystick;
+extern int joystickpresent;
+extern int joy_x,joy_y;
+extern int joy_b1,joy_b2,joy_b3,joy_b4;
+
+void poll_joystick(void);
+
+// I_JoystickEvents() gathers joystick data and creates an event_t for
+// later processing by G_Responder().
+
+static void I_JoystickEvents()
+{
+  event_t event;
+
+  if (!joystickpresent || !usejoystick)
+    return;
+  poll_joystick(); // Reads the current joystick settings
+  event.type = ev_joystick;
+  event.data1 = 0;
+
+  // read the button settings
+
+  if (joy_b1)
+    event.data1 |= 1;
+  if (joy_b2)
+    event.data1 |= 2;
+  if (joy_b3)
+    event.data1 |= 4;
+  if (joy_b4)
+    event.data1 |= 8;
+
+  // Read the x,y settings. Convert to -1 or 0 or +1.
+
+  if (joy_x < 0)
+    event.data2 = -1;
+  else if (joy_x > 0)
+    event.data2 = 1;
+  else
+    event.data2 = 0;
+  if (joy_y < 0)
+    event.data3 = -1;
+  else if (joy_y > 0)
+    event.data3 = 1;
+  else
+    event.data3 = 0;
+
+  // post what you found
+
+  D_PostEvent(&event);
+}
+
+
+//
+// I_StartFrame
+//
+void I_StartFrame (void)
+{
+  I_JoystickEvents(); // Obtain joystick data                 phares 4/3/98
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// END JOYSTICK                                              // phares 4/3/98
+//
+/////////////////////////////////////////////////////////////////////////////
+
+// killough 3/22/98: rewritten to use interrupt-driven keyboard queue
+
+static void I_GetEvent()
+{
+  event_t event;
+  int tail;
+
+  while ((tail=keyboard_queue.tail) != keyboard_queue.head)
+    {
+      int k = keyboard_queue.queue[tail];
+      keyboard_queue.tail = (tail+1) & (KQSIZE-1);
+      event.type = k & 0x80 ? ev_keyup : ev_keydown;
+      event.data1 = I_ScanCode2DoomCode(k & 0x7f);
+      D_PostEvent(&event);
+    }
+
+  if (mousepresent!=-1 && usemouse) // killough 10/98
+    {
+      static int lastbuttons;
+      int xmickeys,ymickeys,buttons=mouse_b;
+      get_mouse_mickeys(&xmickeys,&ymickeys);
+      if (xmickeys || ymickeys || buttons!=lastbuttons)
+        {
+          lastbuttons=buttons;
+          event.data1=buttons;
+          event.data3=-ymickeys;
+          event.data2=xmickeys;
+          event.type=ev_mouse;
+          D_PostEvent(&event);
+        }
+    }
+}
+
+//
+// I_StartTic
+//
+
+void I_StartTic()
+{
+  I_GetEvent();
+}
+
+/************************* Graphics code ************************************/
 
 //
 // I_UpdateNoBlit
@@ -271,7 +430,7 @@ static void I_InitGraphicsMode(void)
 	  if (page_flip)
 	    if (set_gfx_mode(gfx_type, 640, 400, 640, 800))
 	      {
-		warn_about_changes(S_BADVID);      // Revert to no pageflipping
+//                warn_about_changes(S_BADVID);      // Revert to no pageflipping
 		page_flip = 0;
 	      }
 	    else
@@ -281,7 +440,7 @@ static void I_InitGraphicsMode(void)
 	    {
 	      hires = 0;                           // Revert to lowres
 	      page_flip = in_page_flip;            // Restore orig pageflipping
-	      warn_about_changes(S_BADVID);
+//              warn_about_changes(S_BADVID);
 	      I_InitGraphicsMode();                // Start all over
 	      return;
 	    }
@@ -308,7 +467,7 @@ static void I_InitGraphicsMode(void)
       // switched to planar mode, which allows 256K of VGA RAM to be
       // addressable, and allows page flipping, split screen, and hardware
       // panning.
-
+      
       V_Init();
 
       destscreen = 0;
@@ -407,6 +566,9 @@ void I_InitGraphics(void)
   if (nodrawers) // killough 3/2/98: possibly avoid gfx mode
     return;
 
+  // init keyboard
+  I_InitKeyboard();
+
   //
   // enter graphics mode
   //
@@ -431,28 +593,28 @@ void I_InitGraphics(void)
         
 videomode_t videomodes[]=
 {
-        {0,0,0,"320x200 VGA"},
-        {0,1,0,"320x200 VGA (pageflipped)"},
-        {0,0,1,"320x200 VESA"},
-        {1,0,1,"640x400 VESA"},
-        {1,1,1,"640x400 VESA (pageflipped)"},
-        {0,0,0, NULL}  // last one has NULL description
+  {0,0,0,"320x200 VGA"},
+  {0,1,0,"320x200 VGA (pageflipped)"},
+  {0,0,1,"320x200 VESA"},
+  {1,0,1,"640x400 VESA"},
+  {1,1,1,"640x400 VESA (pageflipped)"},
+  {0,0,0, NULL}  // last one has NULL description
 };
 
 void I_SetMode(int i)
 {
-        static int firsttime = true;    // the first time to set mode
-
-        hires = videomodes[i].hires;
-        page_flip = videomodes[i].pageflip;
-        vesamode = videomodes[i].vesa;
-
-        if(firsttime)
-                I_InitGraphicsMode();
-        else
-                I_ResetScreen();
-
-        firsttime = false;
+  static int firsttime = true;    // the first time to set mode
+  
+  hires = videomodes[i].hires;
+  page_flip = videomodes[i].pageflip;
+  vesamode = videomodes[i].vesa;
+  
+  if(firsttime)
+    I_InitGraphicsMode();
+  else
+    I_ResetScreen();
+  
+  firsttime = false;
 }
         
      /*****************************************************************
@@ -463,18 +625,18 @@ void I_SetMode(int i)
 // VESA information block structure
 typedef struct vbeinfoblock_s
 {
-    unsigned char  VESASignature[4]   __attribute__ ((packed));
-    unsigned short VESAVersion	      __attribute__ ((packed));
-    unsigned long  OemStringPtr       __attribute__ ((packed));
-    byte    Capabilities[4];
-    unsigned long  VideoModePtr       __attribute__ ((packed));
-    unsigned short TotalMemory	      __attribute__ ((packed));
-    byte    OemSoftwareRev[2];
-    byte    OemVendorNamePtr[4];
-    byte    OemProductNamePtr[4];
-    byte    OemProductRevPtr[4];
-    byte    Reserved[222];
-    byte    OemData[256];
+  unsigned char  VESASignature[4]   __attribute__ ((packed));
+  unsigned short VESAVersion	      __attribute__ ((packed));
+  unsigned long  OemStringPtr       __attribute__ ((packed));
+  byte    Capabilities[4];
+  unsigned long  VideoModePtr       __attribute__ ((packed));
+  unsigned short TotalMemory	      __attribute__ ((packed));
+  byte    OemSoftwareRev[2];
+  byte    OemVendorNamePtr[4];
+  byte    OemProductNamePtr[4];
+  byte    OemProductRevPtr[4];
+  byte    Reserved[222];
+  byte    OemData[256];
 } vbeinfoblock_t;
 
 static vbeinfoblock_t vesainfo;
@@ -487,41 +649,43 @@ static vbeinfoblock_t vesainfo;
 
 void I_CheckVESA()
 {
-    int i;
-    __dpmi_regs     regs;
+  int i;
+  __dpmi_regs     regs;
+  
+  // new ugly stuff...
+  for (i=0; i<sizeof(vbeinfoblock_t); i++)
+    _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
+  
+  dosmemput("VBE2", 4, MASK_LINEAR(__tb));
+  
+  // see if VESA support is available
+  regs.x.ax = 0x4f00;
+  regs.x.di = RM_OFFSET(__tb);
+  regs.x.es = RM_SEGMENT(__tb);
+  __dpmi_int(0x10, &regs);
+  
+  if (regs.h.ah) goto no_vesa;
+  
+  dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
+  
+  if (strncmp(vesainfo.VESASignature, "VESA", 4))
+    goto no_vesa;
+  
+  if (vesainfo.VESAVersion < (VBEVERSION<<8))
+    goto no_vesa;
+  
+  // note: does not actually check to see if any of the available
+  //       vesa modes can be used in the game. Assumes all work.
 
-    return;
+  return;
 
-    // new ugly stuff...
-    for (i=0; i<sizeof(vbeinfoblock_t); i++)
-       _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
-
-    dosmemput("VBE2", 4, MASK_LINEAR(__tb));
-
-    // see if VESA support is available
-    regs.x.ax = 0x4f00;
-    regs.x.di = RM_OFFSET(__tb);
-    regs.x.es = RM_SEGMENT(__tb);
-    __dpmi_int(0x10, &regs);
-
-    if (regs.h.ah) goto no_vesa;
-
-    dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
-
-    if (strncmp(vesainfo.VESASignature, "VESA", 4))
-        goto no_vesa;
-
-    if (vesainfo.VESAVersion < (VBEVERSION<<8))
-        goto no_vesa;
-
-        // note: does not actually check to see if any of the available
-        //       vesa modes can be used in the game. Assumes all work.
-
-    return;
-
-    no_vesa:
-    videomodes[2].description = NULL;       // cut off VESA modes
-
+  //
+  // if no vesa support, cut off the vesa specific modes
+  //
+  
+no_vesa:
+  videomodes[2].description = NULL;       // cut off VESA modes
+  
 }
 
 /************************
@@ -534,13 +698,22 @@ VARIABLE_BOOLEAN(disk_icon, NULL,  onoff);
 CONSOLE_VARIABLE(v_diskicon, disk_icon, 0) {}
 CONSOLE_VARIABLE(v_retrace, use_vsync, 0)
 {
-    V_ResetMode();
+  V_ResetMode();
 }
+
+VARIABLE_INT(usemouse, NULL,            0, 1, yesno);
+VARIABLE_INT(usejoystick, NULL,         0, 1, yesno);
+
+CONSOLE_VARIABLE(use_mouse, usemouse, 0) {}
+CONSOLE_VARIABLE(use_joystick, usejoystick, 0) {}
 
 void I_Video_AddCommands()
 {
-    C_AddCommand(v_diskicon);
-    C_AddCommand(v_retrace);
+  C_AddCommand(use_mouse);
+  C_AddCommand(use_joystick);
+
+  C_AddCommand(v_diskicon);
+  C_AddCommand(v_retrace);
 }
 
 //----------------------------------------------------------------------------

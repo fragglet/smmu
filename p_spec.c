@@ -154,13 +154,15 @@ void P_InitPicAnims (void)
 
       lastanim->istexture = animdefs[i].istexture;
       lastanim->numpics = lastanim->picnum - lastanim->basepic + 1;
-
-      if (lastanim->numpics < 2)
-        I_Error ("P_InitPicAnims: bad cycle from %s to %s",
-                 animdefs[i].startname,
-                 animdefs[i].endname);
-
       lastanim->speed = LONG(animdefs[i].speed); // killough 5/5/98: add LONG()
+
+      // sf: include support for swirly water hack
+      if (lastanim->speed < 65536 && lastanim->numpics != 1)
+	if (lastanim->numpics < 2)
+	  I_Error ("P_InitPicAnims: bad cycle from %s to %s",
+		   animdefs[i].startname,
+		   animdefs[i].endname);
+
       lastanim++;
     }
   Z_ChangeTag (animdefs,PU_CACHE); //jff 3/23/98 allow table to be freed
@@ -745,8 +747,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
           !player->cards[it_yellowcard] &&
           !player->cards[it_yellowskull])
         {
-          if(player==players+consoleplayer)  //sf
-                HU_centremsg(s_PD_ANY);
+          player_printf(player, s_PD_ANY);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -755,8 +756,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_redcard] &&
           (!skulliscard || !player->cards[it_redskull]))
         {
-          if(player==players+consoleplayer)     //sf
-                HU_centremsg(skulliscard? s_PD_REDK : s_PD_REDC);
+          player_printf(player, skulliscard? s_PD_REDK : s_PD_REDC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -765,8 +765,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_bluecard] &&
           (!skulliscard || !player->cards[it_blueskull]))
         {
-          if(player==players+consoleplayer)  //sf
-                HU_centremsg(skulliscard? s_PD_BLUEK : s_PD_BLUEC);
+          player_printf(player, skulliscard ? s_PD_BLUEK : s_PD_BLUEC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -775,8 +774,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_yellowcard] &&
           (!skulliscard || !player->cards[it_yellowskull]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(skulliscard? s_PD_YELLOWK : s_PD_YELLOWC);
+          player_printf(player, skulliscard? s_PD_YELLOWK : s_PD_YELLOWC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -785,8 +783,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_redskull] &&
           (!skulliscard || !player->cards[it_redcard]))
         {
-          if(player==players+consoleplayer)  //sf
-                HU_centremsg(skulliscard? s_PD_REDK : s_PD_REDS);
+          player_printf(player, skulliscard? s_PD_REDK : s_PD_REDS);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -795,8 +792,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_blueskull] &&
           (!skulliscard || !player->cards[it_bluecard]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(skulliscard? s_PD_BLUEK : s_PD_BLUES);
+          player_printf(player, skulliscard? s_PD_BLUEK : s_PD_BLUES);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -805,8 +801,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_yellowskull] &&
           (!skulliscard || !player->cards[it_yellowcard]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(skulliscard? s_PD_YELLOWK : s_PD_YELLOWS);
+          player_printf(player, skulliscard? s_PD_YELLOWK : s_PD_YELLOWS);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -820,8 +815,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
            !player->cards[it_yellowcard] ||
            !player->cards[it_yellowskull]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(s_PD_ALL6);
+          player_printf(player, s_PD_ALL6);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -830,8 +824,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
            !(player->cards[it_bluecard] | player->cards[it_blueskull]) ||
            !(player->cards[it_yellowcard] | !player->cards[it_yellowskull])))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(s_PD_ALL3);
+          player_printf(player, s_PD_ALL3);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -933,14 +926,14 @@ int P_CheckTag(line_t *line)
     case 48:  // Scrolling walls
     case 85:
         // sf: scripting
-    case 270:   // WR
-    case 271:
-    case 272:   // W1
+    case 272:   // WR
     case 273:
-    case 274:   // SR
-    case 275:   // S1
-    case 276:   // GR
-    case 277:   // G1
+    case 274:   // W1
+    case 275:
+    case 276:   // SR
+    case 277:   // S1
+    case 278:   // GR
+    case 279:   // G1
       return 1;
     }
 
@@ -1575,20 +1568,20 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
 
         // repeatable
 
-    case 271:  // console command (1sided)
+    case 273:  // console command (1sided)
       if(side) break;
 
-    case 270:  // console command (2sided)
+    case 272:  // console command (2sided)
       t_trigger = thing;
       T_RunScript(line->tag);
       break;
 
         // once-only triggers
 
-    case 273:  // console command (1sided)
+    case 275:  // console command (1sided)
       if(side) break;
 
-    case 272:  // console command (2sided)
+    case 274:  // console command (2sided)
       t_trigger = thing;
       T_RunScript(line->tag);
       line->special = 0;        // clear trigger
@@ -1639,7 +1632,7 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
               line->special = 0;
             break;
 
-          case 146:
+	  case 146:
             // Lower Pillar, Raise Donut
             // 146 W1  EV_DoDonut()
             if (EV_DoDonut(line))
@@ -2061,11 +2054,11 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
       // killough 1/31/98: added demo_compatibility check, added inner switch
 
         // sf: scripting
-    case 276:
-    case 277:
+    case 278:
+    case 279:
       t_trigger = thing;
       T_RunScript(line->tag);
-      if(line->special == 277) line->special = 0;       // clear if G1
+      if(line->special == 279) line->special = 0;       // clear if G1
       break;
 
     default:
@@ -2097,7 +2090,8 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
     }
 }
 
-int disable_nuke;  // killough 12/98: nukage disabling cheat
+        // sf: changed to enable_nuke for console
+int enable_nuke = 1;  // killough 12/98: nukage disabling cheat
 
 //
 // P_PlayerInSpecialSector()
@@ -2128,7 +2122,7 @@ void P_PlayerInSpecialSector (player_t *player)
           sector->special = 0;
 	}
       else
-	if (!disable_nuke)  // killough 12/98: nukage disabling cheat
+        if (enable_nuke)  // killough 12/98: nukage disabling cheat
 	  switch (sector->special)
 	    {
 	    case 5:
@@ -2176,7 +2170,7 @@ void P_PlayerInSpecialSector (player_t *player)
     }
   else //jff 3/14/98 handle extended sector types for secrets and damage
     {
-      if (!disable_nuke)  // killough 12/98: nukage disabling cheat
+      if (enable_nuke)  // killough 12/98: nukage disabling cheat
 	switch ((sector->special&DAMAGE_MASK)>>DAMAGE_SHIFT)
 	  {
 	  case 0: // no damage
@@ -2229,10 +2223,11 @@ void P_PlayerInSpecialSector (player_t *player)
 //  levelFragLimit, levelFragLimitCount
 //
 
-boolean         levelTimer;
-int             levelTimeCount;
-boolean         levelFragLimit;      // Ty 03/18/98 Added -frags support
-int             levelFragLimitCount; // Ty 03/18/98 Added -frags support
+// sf: rearranged variables
+
+int             levelTime;              // sf
+int             levelTimeLimit;
+int             levelFragLimit; // Ty 03/18/98 Added -frags support
 
 void P_UpdateSpecials (void)
 {
@@ -2240,29 +2235,26 @@ void P_UpdateSpecials (void)
   int         pic;
   int         i;
 
+  levelTime++;
+
   // Downcount level timer, exit level if elapsed
-  if (levelTimer == true && --levelTimeCount)
+  if (levelTimeLimit && leveltime >= levelTimeLimit*35*60 )
     G_ExitLevel();
 
   // Check frag counters, if frag limit reached, exit level // Ty 03/18/98
   //  Seems like the total frags should be kept in a simple
   //  array somewhere, but until they are...
-  if (levelFragLimit == true)  // we used -frags so compare count
+  if (levelFragLimit)  // we used -frags so compare count
     {
-      int k,m,fragcount,exitflag=false;
-      for (k=0;k<MAXPLAYERS;k++)
+      int i;
+      for (i=0; i<MAXPLAYERS; i++)
         {
-          if (!playeringame[k]) continue;
-          fragcount = 0;
-          for (m=0;m<MAXPLAYERS;m++)
-            {
-              if (!playeringame[m]) continue;
-              fragcount += (m!=k)?  players[k].frags[m] : -players[k].frags[m];
-            }
-          if (fragcount >= levelFragLimitCount) exitflag = true;
-          if (exitflag == true) break; // skip out of the loop--we're done
+          if (!playeringame[i]) continue;
+
+                // sf: use hu_frags.c frag counter
+          if(players[i].totalfrags >= levelFragLimit) break;
         }
-      if (exitflag == true)
+      if (i < MAXPLAYERS)       // sf: removed exitflag (ugh)
         G_ExitLevel();
     }
 
@@ -2275,8 +2267,8 @@ void P_UpdateSpecials (void)
           texturetranslation[i] = pic;
         else                    // sf: swirly water hack
           flattranslation[i] = r_swirl ? -1 : pic;
-                // sf: > 65535 : swirly
-        if(anim->speed >> 16) flattranslation[i] = -1;
+                // sf: > 65535 : swirly hack 
+        if(anim->speed > 65535 || anim->numpics==1) flattranslation[i] = -1;
       }
 
   // Check buttons (retriggerable switches) and change texture on timeout
@@ -2332,37 +2324,14 @@ void P_SpawnSpecials (void)
   if (W_CheckNumForName("texture2") >= 0)
     episode = 2;
 
-  // See if -timer needs to be used.
-  levelTimer = false;
+        // sf: -timer moved to d_main.c
+        //     -avg also
 
-  i = M_CheckParm("-avg");   // Austin Virtual Gaming 20 min timer on DM play
-  if (i && deathmatch)
-    {
-      levelTimer = true;
-      levelTimeCount = 20 * 60 * TICRATE;
-    }
+        // sf: changed -frags: not loaded at start of every level
+        //     to allow changing by console
 
-  i = M_CheckParm("-timer"); // user defined timer on game play
-  if (i && deathmatch)
-    {
-      int time;
-      time = atoi(myargv[i+1]) * 60 * TICRATE;
-      levelTimer = true;
-      levelTimeCount = time;
-    }
-
-  // See if -frags has been used
-  levelFragLimit = false;
-  i = M_CheckParm("-frags");  // Ty 03/18/98 Added -frags support
-  if (i && deathmatch)
-    {
-      int frags;
-      frags = atoi(myargv[i+1]);
-      if (frags <= 0) frags = 10;  // default 10 if no count provided
-      levelFragLimit = true;
-      levelFragLimitCount = frags;
-    }
-
+        // reset levelTime.
+  levelTime = 0;
 
   //  Init special sectors.
   sector = sectors;

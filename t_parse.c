@@ -1,10 +1,14 @@
-/***************************** FraggleScript ******************************/
-                // Copyright(C) 1999 Simon Howard 'Fraggle' //
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
 //
 // Parsing.
 //
 // Takes lines of code, or groups of lines and runs them.
+// The main core of FraggleScript
 //
+// By Simon Howard
+//
+//----------------------------------------------------------------------------
 
 /* includes ************************/
 
@@ -62,80 +66,82 @@ static void add_char(char c);
 
 static void next_token()
 {
-        if(tok[0] || tt==string)
-        {
-                num_tokens++;
-                tokens[num_tokens-1] = tokens[num_tokens-2]
-                                 + strlen(tokens[num_tokens-2]) + 1;
-                tok[0] = 0;
-        }
+  if(tok[0] || tt==string)
+    {
+      num_tokens++;
+      tokens[num_tokens-1] = tokens[num_tokens-2]
+	+ strlen(tokens[num_tokens-2]) + 1;
+      tok[0] = 0;
+    }
+  
+  // get to the next token, ignoring spaces, newlines,
+  // useless chars, comments etc
+  
+  while(1)
+    {
+      // empty whitespace
+      if(*rover && (*rover==' ' || *rover<32))
+	{
+	  while((*rover==' ' || *rover<32) && *rover) rover++;
+	}
+      // end-of-script?
+      if(!*rover)
+	{
+	  if(tokens[0][0])
+	    {
+	      C_Printf("%s %i %i\n", tokens[0],
+		       rover-current_script->data, current_script->len);
+	      // line contains text, but no semicolon: an error
+	      script_error("missing ';'\n");
+	    }
+	  // empty line, end of command-list
+	  return;
+	}
+      // 11/8 comments moved to new preprocessor
+      
+      break;  // otherwise
+    }
 
-                // get to the next token, ignoring spaces, newlines,
-                // useless chars, comments etc
-        while(1)
-        {
-                        // empty whitespace
-                if(*rover && (*rover==' ' || *rover<32))
-                {
-                    while((*rover==' ' || *rover<32) && *rover) rover++;
-                }
-                        // end-of-script?
-                if(!*rover)
-                {
-                        if(tokens[0][0])
-                        {
-                                C_Printf("%s %i %i\n", tokens[0], rover-current_script->data, current_script->len);
-                                // line contains text, but no semicolon
-                                script_error("missing ';'\n");
-                        }
-                                // empty line, end of command-list
-                        return;
-                }
-                        // 11/8 comments moved to new preprocessor
-
-                break;  // otherwise
-        }
-
-        if(num_tokens>1 && *rover == '(' && tokentype[num_tokens-2] == name)
-                tokentype[num_tokens-2] = function;
-
-        if(*rover == '{' || *rover == '}')
-        {
-                if(*rover == '{')
-                {
-                    bracetype = bracket_open;
-                    current_section = find_section_start(rover);
-                }
-                else            // closing brace
-                {
-                    bracetype = bracket_close;
-                    current_section = find_section_end(rover);
-                }
-                if(!current_section)
-                {
-                        script_error("section not found!\n");
-                        return;
-                }
-        }
-        else if(*rover == ':')  // label
-        {
-                // ignore the label : reset
-                num_tokens = 1;
-                tokens[0][0] = 0; tt = name;
-                rover++;        // ignore
-        }
-        else if(*rover == '\"')
-        {
-                tt = string;
-                if(tokentype[num_tokens-2] == string)
-                        num_tokens--;   // join strings
-                rover++;
-        }
-        else
-        {
-                tt = isop(*rover) ? operator :
-                     isnum(*rover) ? number : name;
-        }
+  if(num_tokens>1 && *rover == '(' && tokentype[num_tokens-2] == name)
+    tokentype[num_tokens-2] = function;
+  
+  if(*rover == '{' || *rover == '}')
+    {
+      if(*rover == '{')
+	{
+	  bracetype = bracket_open;
+	  current_section = find_section_start(rover);
+	}
+      else            // closing brace
+	{
+	  bracetype = bracket_close;
+	  current_section = find_section_end(rover);
+	}
+      if(!current_section)
+	{
+	  script_error("section not found!\n");
+	  return;
+	}
+    }
+  else if(*rover == ':')  // label
+    {
+      // ignore the label : reset
+      num_tokens = 1;
+      tokens[0][0] = 0; tt = name;
+      rover++;        // ignore
+    }
+  else if(*rover == '\"')
+    {
+      tt = string;
+      if(tokentype[num_tokens-2] == string)
+	num_tokens--;   // join strings
+      rover++;
+    }
+  else
+    {
+      tt = isop(*rover) ? operator :
+	isnum(*rover) ? number : name;
+    }
 }
 
 // return an escape sequence (prefixed by a '\')
@@ -143,310 +149,288 @@ static void next_token()
 
 static char escape_sequence(char c)
 {
-        if(c == 'n') return '\n';
-        if(c == '\\') return '\\';
-        if(c == '"') return '"';
-        if(c == '?') return '?';
-        if(c == 'a') return '\a'; // alert beep
-        if(c == 't') return '\t'; //tab
-
-                // font colours
-        if(c >= '0' && c <= '9') return 128 + (c-'0');
-
-        return c;
+  if(c == 'n') return '\n';
+  if(c == '\\') return '\\';
+  if(c == '"') return '"';
+  if(c == '?') return '?';
+  if(c == 'a') return '\a'; // alert beep
+  if(c == 't') return '\t'; //tab
+  
+  // font colours
+  if(c >= '0' && c <= '9') return 128 + (c-'0');
+  
+  return c;
 }
 
 // add_char: add one character to the current token
 
 static void add_char(char c)
 {
-        char *out = tok + strlen(tok);
-
-        *out++ = c;
-        *out = 0;
+  char *out = tok + strlen(tok);
+  
+  *out++ = c;
+  *out = 0;
 }
 
 // get_tokens.
 // Take a string, break it into tokens.
 
-        // individual tokens are stored inside the tokens[] array
-        // which is created by run_line. tokentype is also used
-        // to hold the type for each token:
+// individual tokens are stored inside the tokens[] array
+// tokentype is also used to hold the type for each token:
 
-        //   name: a piece of text which starts with an alphabet letter.
-        //         probably a variable name. Some are converted into
-        //         function types later on in find_brackets
-        //   number: a number. like '12' or '1337'
-        //   operator: an operator such as '&&' or '+'. All FraggleScript
-        //             operators are either one character, or two character
-        //             (if 2 character, 2 of the same char or ending in '=')
-        //   string: a text string that was enclosed in quote "" marks in
-        //           the original text
-        //   unset: shouldn't ever end up being set really.
-        //   function: a function name (found in second stage parsing)
-
+//   name: a piece of text which starts with an alphabet letter.
+//         probably a variable name. Some are converted into
+//         function types later on in find_brackets
+//   number: a number. like '12' or '1337'
+//   operator: an operator such as '&&' or '+'. All FraggleScript
+//             operators are either one character, or two character
+//             (if 2 character, 2 of the same char or ending in '=')
+//   string: a text string that was enclosed in quote "" marks in
+//           the original text
+//   unset: shouldn't ever end up being set really.
+//   function: a function name (found in second stage parsing)
 
 void get_tokens(char *s)
 {
-        rover = s;
-        num_tokens = 1;
-        tokens[0][0] = 0; tt = name;
+  rover = s;
+  num_tokens = 1;
+  tokens[0][0] = 0; tt = name;
+  
+  current_section = NULL;   // default to no section found
+  
+  next_token();
+  linestart = rover;      // save the start
+  
+  if(*rover)
+    while(1)
+      {
+	if(killscript) return;
+	if(current_section)
+	  {
+	    // a { or } section brace has been found
+	    break;        // stop parsing now
+	  }
+	else if(tt != string)
+	  {
+	    if(*rover == ';') break;     // check for end of command ';'
+	  }
+	
+	switch(tt)
+	  {
+	  case unset:
+	  case string:
+	    while(*rover != '\"')     // dedicated loop for speed
+	      {
+		if(*rover == '\\')       // escape sequences
+		  {
+		    rover++;
+		    add_char(escape_sequence(*rover));
+		  }
+		else
+		  add_char(*rover);
+		rover++;
+	      }
+	    rover++;
+	    next_token();       // end of this token
+	    continue;
+	    
+	  case operator:
+	    // all 2-character operators either end in '=' or
+	    // are 2 of the same character
+	    // do not allow 2-characters for brackets '(' ')'
+	    // which are still being considered as operators
+	    
+	    // operators are only 2-char max, do not need
+	    // a seperate loop
+	    
+	    if((*tok && *rover != '=' && *rover!=*tok) ||
+	       *tok == '(' || *tok == ')')
+	      {
+		// end of operator
+		next_token();
+		continue;
+	      }
+	    add_char(*rover);
+	    break;
+	    
+	  case number:  // same for number or name
+	  case name:
 
-        current_section = NULL;   // default to no section found
+	    // add the chars
 
-        next_token();
-        linestart = rover;      // save the start
+	    while(!isop(*rover))        // dedicated loop
+	      add_char(*rover++);
+	    next_token();
+	    continue;
 
-        if(*rover)
-        while(1)
-        {
-             if(killscript) return;
-             if(current_section)
-             {
-                        // a { or } section brace has been found
-                  break;        // stop parsing now
-             }
-             else if(tt != string)
-             {
-                if(*rover == ';') break;     // check for end of command ';'
-             }
+	  default:
+	  }
+	rover++;
+      }
+  
+  // check for empty last token
 
-             switch(tt)
-             {
-                  case unset:
-                  case string:
-                    while(*rover != '\"')     // dedicated loop for speed
-                    {
-                       if(*rover == '\\')       // escape sequences
-                       {
-                            rover++;
-                            add_char(escape_sequence(*rover));
-                       }
-                       else
-                            add_char(*rover);
-                       rover++;
-                    }
-                    rover++;
-                    next_token();       // end of this token
-                    continue;
-
-                  case operator:
-                        // all 2-character operators either end in '=' or
-                        // are 2 of the same character
-                        // do not allow 2-characters for brackets '(' ')'
-                        // which are still being considered as operators
-
-                        // operators are only 2-char max, do not need
-                        // a seperate loop
-
-                    if((*tok && *rover != '=' && *rover!=*tok) ||
-                        *tok == '(' || *tok == ')')
-                    {
-                          // end of operator
-                        next_token();
-                        continue;
-                    }
-                    add_char(*rover);
-                    break;
-
-                  case number:  // same for number or name
-                  case name:
-                                // add the chars
-                    while(!isop(*rover))        // dedicated loop
-                            add_char(*rover++);
-                    next_token();
-                    continue;
-                  default:
-             }
-             rover++;
-        }
-        
-        //        // check for empty last token
-        if(!tok[0])
-        {
-                num_tokens = num_tokens - 1;
-        }
-
-        rover++;
+  if(!tok[0])
+    {
+      num_tokens = num_tokens - 1;
+    }
+  
+  rover++;
 }
 
 
 void print_tokens()	// DEBUG
-        {
-            int i;
-            for(i=0; i<num_tokens; i++)
-            {
-                C_Printf("\n'%s' \t\t --", tokens[i]);
-                switch(tokentype[i])
-                {
-                    case string: C_Printf("string");        break;
-                    case operator: C_Printf("operator");    break;
-                    case name: C_Printf("name");            break;
-                    case number: C_Printf("number");        break;
-                    case unset : C_Printf("duh");           break;
-                    case function: C_Printf("function name"); break;
-                }
-            }
-            C_Printf("\n");
-            if(current_section)
-                C_Printf("current section: offset %i\n",
-                       (int)(current_section->start-current_script->data) );
-        }
+{
+  int i;
+  for(i=0; i<num_tokens; i++)
+    {
+      C_Printf("\n'%s' \t\t --", tokens[i]);
+      switch(tokentype[i])
+	{
+	case string: C_Printf("string");        break;
+	case operator: C_Printf("operator");    break;
+	case name: C_Printf("name");            break;
+	case number: C_Printf("number");        break;
+	case unset : C_Printf("duh");           break;
+	case function: C_Printf("function name"); break;
+	}
+    }
+  C_Printf("\n");
+  if(current_section)
+    C_Printf("current section: offset %i\n",
+	     (int)(current_section->start-current_script->data) );
+}
 
 
-        // run_script
-        //
-        // the function called by t_script.c
+// run_script
+//
+// the function called by t_script.c
 
 void run_script(script_t *script)
 {
-                // set current script
-        current_script = script;
-
-                // start at the beginning of the script
-        rover = current_script->data;
-
-        parse_script(); // run it
+  // set current script
+  current_script = script;
+  
+  // start at the beginning of the script
+  rover = current_script->data;
+  
+  parse_script(); // run it
 }
 
 void continue_script(script_t *script, char *continue_point)
 {
-        current_script = script;
-
-                // continue from place specified
-        rover = continue_point;
-
-        parse_script(); // run 
+  current_script = script;
+  
+  // continue from place specified
+  rover = continue_point;
+  
+  parse_script(); // run 
 }
 
 void parse_script()
 {
-                // check for valid rover
-        if(rover < current_script->data
-        || rover > current_script->data+current_script->len)
-        {
-                script_error("parse_script: trying to continue from point"
-                             "outside script!\n");
-                return;
-        }
-
-        trigger_obj = current_script->trigger;  // set trigger
-
-        parse_data(current_script->data,
-                   current_script->data+current_script->len);
-
-                // dont clear global vars!
-        if(current_script->scriptnum != -1)
-                clear_variables(current_script);        // free variables
+  // check for valid rover
+  if(rover < current_script->data || 
+     rover > current_script->data+current_script->len)
+    {
+      script_error("parse_script: trying to continue from point"
+		   "outside script!\n");
+      return;
+    }
+  
+  trigger_obj = current_script->trigger;  // set trigger
+  
+  parse_data(current_script->data,
+	     current_script->data+current_script->len);
+  
+  // dont clear global vars!
+  if(current_script->scriptnum != -1)
+    clear_variables(current_script);        // free variables
 }
 
 void parse_data(char *data, char *end)
 {
-        char *token_alloc;      // allocated memory for tokens
-
-        killscript = false;     // dont kill the script straight away
-
-                // allocate space for the tokens
-        token_alloc = Z_Malloc(current_script->len + T_MAXTOKENS, PU_STATIC, 0);
-
-        prev_section = NULL;  // clear it
-
-        while(*rover)   // go through the script executing each statement
-        {
-                        // past end of script?
-                if(rover > end)
-                        break;
-
-                        // reset the tokens before getting the next line
-                tokens[0] = token_alloc;
-
-                prev_section = current_section; // store from prev. statement
-
-                        // get the line and tokens
-                get_tokens(rover);
+  char *token_alloc;      // allocated memory for tokens
   
-                if(killscript) break;
-
-                if(!num_tokens)
-                {
-                        if(current_section)       // no tokens but a brace
-                        {
-                                   // possible } at end of loop:
-                                   // refer to spec.c
-                                spec_brace();
-                        }
-
-                        continue;  // continue to next statement
-                }
-
-                if(script_debug) print_tokens();   // debug
-                run_statement();         // run the statement
-        }
-        Z_Free(token_alloc);
+  killscript = false;     // dont kill the script straight away
+  
+  // allocate space for the tokens
+  token_alloc = Z_Malloc(current_script->len + T_MAXTOKENS, PU_STATIC, 0);
+  
+  prev_section = NULL;  // clear it
+  
+  while(*rover)   // go through the script executing each statement
+    {
+      // past end of script?
+      if(rover > end)
+	break;
+      
+      // reset the tokens before getting the next line
+      tokens[0] = token_alloc;
+      
+      prev_section = current_section; // store from prev. statement
+      
+      // get the line and tokens
+      get_tokens(rover);
+      
+      if(killscript) break;
+      
+      if(!num_tokens)
+	{
+	  if(current_section)       // no tokens but a brace
+	    {
+	      // possible } at end of loop:
+	      // refer to spec.c
+	      spec_brace();
+	    }
+	  
+	  continue;  // continue to next statement
+	}
+      
+      if(script_debug) print_tokens();   // debug
+      run_statement();         // run the statement
+    }
+  Z_Free(token_alloc);
 }
 
 void run_statement()
 {
-        // decide what to do with it
+  // decide what to do with it
+  
+  // NB this stuff is a bit hardcoded:
+  //    it could be nicer really but i'm
+  //    aiming for speed
+  
+  // if() and while() will be mistaken for functions
+  // during token processing
+  if(tokentype[0] == function)
+    {
+      if(!strcmp(tokens[0], "if"))
+	{
+	  spec_if();
+	  return;
+	}
+      else if(!strcmp(tokens[0], "while"))
+	{
+	  spec_while();
+	  return;
+	}
+      else if(!strcmp(tokens[0], "for"))
+	{
+	  spec_for();
+	  return;
+	}
+    }
+  else if(tokentype[0] == name)
+    {
+      // NB: goto is a function so is not here
 
-        // NB this stuff is a bit hardcoded:
-        //    it could be nicer really but i'm
-        //    aiming for speed
+      // if a variable declaration, return now
+      if(spec_variable()) return;
+    }
 
-                // if() and while() will be mistaken for functions
-                // during token processing
-        if(tokentype[0] == function)
-        {
-                if(!strcmp(tokens[0], "if"))
-                {
-                    spec_if();
-                    return;
-                }
-                else if(!strcmp(tokens[0], "while"))
-                {
-                    spec_while();
-                    return;
-                }
-                else if(!strcmp(tokens[0], "for"))
-                {
-                    spec_for();
-                    return;
-                }
-        }
-        else if(tokentype[0] == name)
-        {
-                if(!strcmp(tokens[0], "int"))
-                {
-                    spec_int();
-                    return;
-                }
-                else if(!strcmp(tokens[0], "string"))
-                {
-                    spec_string();
-                    return;
-                }
-                else if(!strcmp(tokens[0], "const"))
-                {
-                    spec_const();
-                    return;
-                }
-                else if(!strcmp(tokens[0], "mobj"))
-                {
-                    spec_mobj();
-                    return;
-                }
-                else if(!strcmp(tokens[0], "script"))
-                {
-                    spec_script();
-                    return;
-                }
-                // goto is handled as a function
-
-                // NB "float" or other types could be added here
-        }
-
-                // just a plain expression
-        evaluate_expression(0, num_tokens-1);
+  // just a plain expression
+  evaluate_expression(0, num_tokens-1);
 }
 
 /***************** Evaluating Expressions ************************/
@@ -454,49 +438,53 @@ void run_statement()
         // find a token, ignoring things in brackets        
 int find_operator(int start, int stop, char *value)
 {
-        int i;
-        int bracketlevel = 0;
-
-        for(i=start; i<=stop; i++)
-        {
-                        // only interested in operators
-                if(tokentype[i] != operator) continue;
-
-                        // use bracketlevel to check the number of brackets
-                        // which we are inside
-                bracketlevel += tokens[i][0]=='(' ? 1 :
-                                tokens[i][0]==')' ? -1 : 0;
-
-                        // only check when we are not in brackets
-                if(!bracketlevel && !strcmp(value, tokens[i]))
-                        return i;
-        }
-
-        return -1;
+  int i;
+  int bracketlevel = 0;
+  
+  for(i=start; i<=stop; i++)
+    {
+      // only interested in operators
+      if(tokentype[i] != operator) continue;
+      
+      // use bracketlevel to check the number of brackets
+      // which we are inside
+      bracketlevel += tokens[i][0]=='(' ? 1 :
+	tokens[i][0]==')' ? -1 : 0;
+      
+      // only check when we are not in brackets
+      if(!bracketlevel && !strcmp(value, tokens[i]))
+	return i;
+    }
+  
+  return -1;
 }
 
         // go through tokens the same as find_operator, but backwards
 int find_operator_backwards(int start, int stop, char *value)
 {
-        int i;
-        int bracketlevel = 0;
+  int i;
+  int bracketlevel = 0;
+  
+  for(i=stop; i>=start; i--)      // check backwards
+    {
+      // operators only
 
-        for(i=stop; i>=start; i--)      // check backwards
-        {
-                        // operators only
-                if(tokentype[i] != operator) continue;
+      if(tokentype[i] != operator) continue;
+      
+      // use bracketlevel to check the number of brackets
+      // which we are inside
+      
+      bracketlevel += tokens[i][0]=='(' ? -1 :
+	tokens[i][0]==')' ? 1 : 0;
+      
+      // only check when we are not in brackets
+      // if we find what we want, return it
 
-                        // use bracketlevel to check the number of brackets
-                        // which we are inside
-                bracketlevel += tokens[i][0]=='(' ? -1 :
-                                tokens[i][0]==')' ? 1 : 0;
-
-                        // only check when we are not in brackets
-                if(!bracketlevel && !strcmp(value, tokens[i]))
-                        return i;
-        }
-
-        return -1;
+      if(!bracketlevel && !strcmp(value, tokens[i]))
+	return i;
+    }
+  
+  return -1;
 }
 
 // simple_evaluate is used once evalute_expression gets to the level
@@ -512,27 +500,30 @@ extern svalue_t nullvar;
 
 static svalue_t simple_evaluate(int n)
 {
-        svalue_t returnvar;
-        svariable_t *var;
+  svalue_t returnvar;
+  svariable_t *var;
+  
+  switch(tokentype[n])
+    {
+    case string: returnvar.type = svt_string;
+      returnvar.value.s = tokens[n];
+      return returnvar;
 
-        switch(tokentype[n])
-        {
-            case string: returnvar.type = svt_string;
-                         returnvar.value.s = tokens[n];
-                         return returnvar;
-            case number: returnvar.type = svt_int;
-                         returnvar.value.i = atoi(tokens[n]);
-                         return returnvar;
-            case name:   var = find_variable(tokens[n]);
-                         if(!var)
-                         {
-                            script_error("unknown variable '%s'\n", tokens[n]);
-                            return nullvar;
-                         }
-                         else
-                            return getvariablevalue(var);
-            default: return nullvar;
-        }
+    case number: returnvar.type = svt_int;
+      returnvar.value.i = atoi(tokens[n]);
+      return returnvar;
+
+    case name:   var = find_variable(tokens[n]);
+      if(!var)
+	{
+	  script_error("unknown variable '%s'\n", tokens[n]);
+	  return nullvar;
+	}
+      else
+	return getvariablevalue(var);
+
+    default: return nullvar;
+    }
 }
 
 // pointless_brackets checks to see if there are brackets surrounding
@@ -544,33 +535,34 @@ static svalue_t simple_evaluate(int n)
 
 static void pointless_brackets(int *start, int *stop)
 {
-        int bracket_level, i;
-
-                // check that the start and end are brackets
-
-        while(tokens[*start][0] == '(' && tokens[*stop][0] == ')')
-        {
-
-            bracket_level = 0;
-
-                  // confirm there are pointless brackets..
-                  // if they are, bracket_level will only get to 0
-                  // at the last token
-                  // check up to <*stop rather than <=*stop to ignore
-                  // the last token
-            for(i = *start; i<*stop; i++)
-            {
-                if(tokentype[i] != operator) continue; // ops only
-                bracket_level += (tokens[i][0] == '(');
-                bracket_level -= (tokens[i][0] == ')');
-                if(bracket_level == 0) return;
-            }
-
-                // move both brackets in
-
-            *start = *start + 1;
-            *stop = *stop - 1;
-        }
+  int bracket_level, i;
+  
+  // check that the start and end are brackets
+  
+  while(tokens[*start][0] == '(' && tokens[*stop][0] == ')')
+    {
+      
+      bracket_level = 0;
+      
+      // confirm there are pointless brackets..
+      // if they are, bracket_level will only get to 0
+      // at the last token
+      // check up to <*stop rather than <=*stop to ignore
+      // the last token
+      
+      for(i = *start; i<*stop; i++)
+	{
+	  if(tokentype[i] != operator) continue; // ops only
+	  bracket_level += (tokens[i][0] == '(');
+	  bracket_level -= (tokens[i][0] == ')');
+	  if(bracket_level == 0) return; // stop if braces stop before end
+	}
+      
+      // move both brackets in
+      
+      *start = *start + 1;
+      *stop = *stop - 1;
+    }
 }
 
 // evaluate_expresion is the basic function used to evaluate
@@ -587,84 +579,86 @@ static void pointless_brackets(int *start, int *stop)
 
 svalue_t evaluate_expression(int start, int stop)
 {
-        int i, n;
+  int i, n;
+  
+  if(killscript) return nullvar;  // killing the script
+  
+  // possible pointless brackets
+  if(tokentype[start] == operator && tokentype[stop] == operator)
+    pointless_brackets(&start, &stop);
+  
+  if(start == stop)       // only 1 thing to evaluate
+    {
+      return simple_evaluate(start);
+    }
+  
+  // go through each operator in order of precedence
+  
+  for(i=0; i<num_operators; i++)
+    {
+      // check backwards for the token. it has to be
+      // done backwards for left-to-right reading: eg so
+      // 5-3-2 is (5-3)-2 not 5-(3-2)
 
-        if(killscript) return nullvar;  // killing the script
+      if( -1 != (n = (operators[i].direction==forward ?
+		find_operator_backwards : find_operator)
+		 (start, stop, operators[i].string)) )
+	{
+	  // C_Printf("operator %s, %i-%i-%i\n", operators[count].string, start, n, stop);
 
-                // possible pointless brackets
-        if(tokentype[start] == operator && tokentype[stop] == operator)
-                pointless_brackets(&start, &stop);
+	  // call the operator function and evaluate this chunk of tokens
 
-        if(start == stop)       // only 1 thing to evaluate
-        {
-                return simple_evaluate(start);
-        }
-
-        // go through each operator in order of precedence
-
-        for(i=0; i<num_operators; i++)
-        {
-                // check backwards for the token. it has to be
-                // done backwards for left-to-right reading: eg so
-                // 5-3-2 is (5-3)-2 not 5-(3-2)
-           if( -1 != (n =
-                (operators[i].direction==forward ?
-                        find_operator_backwards : find_operator)
-                (start, stop, operators[i].string)) )
-           {
-//                C_Printf("operator %s, %i-%i-%i\n", operators[count].string, start, n, stop);
-                        // call the operator function
-                        // and evaluate this chunk of code
-                return operators[i].handler(start, n, stop);
-           }
-        }
-
-        if(tokentype[start] == function)
-                return evaluate_function(start, stop);
-
-        // error ?
-        {        
-                char tempstr[128]="";
-
-                for(i=start; i<=stop; i++)
-                  sprintf(tempstr,"%s %s", tempstr, tokens[i]);
-                script_error("couldnt evaluate expression: %s\n",tempstr);
-                return nullvar;
-        }
-
+	  return operators[i].handler(start, n, stop);
+	}
+    }
+  
+  if(tokentype[start] == function)
+    return evaluate_function(start, stop);
+  
+  // error ?
+  {        
+    char tempstr[128]="";
+    
+    for(i=start; i<=stop; i++)
+      sprintf(tempstr,"%s %s", tempstr, tokens[i]);
+    script_error("couldnt evaluate expression: %s\n",tempstr);
+    return nullvar;
+  }
+  
 }
 
 void script_error(char *s, ...)
 {
-        va_list args;
-        char tempstr[128];
-
-        va_start(args, s);
-
-        if(killscript) return;  //already killing script
-
-        if(current_script->scriptnum == -1)
-             C_Printf("global");
-        else
-             C_Printf("%i", current_script->scriptnum);
-
-                // find the line number
-        if(rover>=current_script->data &&
-           rover<=current_script->data+current_script->len)
-        {
-                int linenum = 1;
-                char *temp;
-                for(temp = current_script->data; temp<linestart; temp++)
-                        if(*temp == '\n') linenum++;    // count EOLs
-                C_Printf(", %i", linenum);
-        }
-
-                // print the error
-        vsprintf(tempstr, s, args);
-        C_Printf(": %s", tempstr);
-
-        // make a noise
-        S_StartSound(NULL, sfx_pldeth);
-
-        killscript = 1;
+  va_list args;
+  char tempstr[128];
+  
+  va_start(args, s);
+  
+  if(killscript) return;  //already killing script
+  
+  if(current_script->scriptnum == -1)
+    C_Printf("global");
+  else
+    C_Printf("%i", current_script->scriptnum);
+  
+  // find the line number
+  
+  if(rover >= current_script->data &&
+     rover <= current_script->data+current_script->len)
+    {
+      int linenum = 1;
+      char *temp;
+      for(temp = current_script->data; temp<linestart; temp++)
+	if(*temp == '\n') linenum++;    // count EOLs
+      C_Printf(", %i", linenum);
+    }
+  
+  // print the error
+  vsprintf(tempstr, s, args);
+  C_Printf(": %s", tempstr);
+  
+  // make a noise
+  S_StartSound(NULL, sfx_pldeth);
+  
+  killscript = true;
 }

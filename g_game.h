@@ -22,6 +22,7 @@
 #include "doomdef.h"
 #include "d_event.h"
 #include "d_ticcmd.h"
+#include "d_player.h"
 
 //
 // GAME
@@ -55,6 +56,7 @@ void G_WorldDone(void);
 void G_Ticker(void);
 void G_ScreenShot(void);
 void G_ReloadDefaults(void);     // killough 3/1/98: loads game defaults
+void G_SaveCurrentLevel(char *filename, char *description); // sf
 void G_SaveGameName(char *,int); // killough 3/22/98: sets savegame filename
 void G_SetFastParms(int);        // killough 4/10/98: sets -fast parameters
 void G_DoNewGame(void);
@@ -68,7 +70,10 @@ void G_DoVictory(void);
 unsigned long long G_Signature(void);      // killough 12/98
 
 // killough 1/18/98: Doom-style printf;   killough 4/25/98: add gcc attributes
-void dprintf(const char *, ...) __attribute__((format(printf,1,2)));
+void doom_printf(const char *, ...) __attribute__((format(printf,1,2)));
+
+        // sf: player_printf
+void player_printf(player_t *player, const char *s, ...);
 
 // killough 5/2/98: moved from m_misc.c:
 
@@ -167,6 +172,7 @@ extern int cpars[];     // hardcoded array size
 #define NUMKEYS   256
 
 extern int cooldemo;
+extern boolean hub_changelevel;
 
 #endif
 
@@ -183,7 +189,7 @@ extern int cooldemo;
 // Add all external declarations in g_game.c
 //
 // Revision 1.7  1998/04/27  02:00:53  killough
-// Add gcc __attribute__ to check dprintf() format string
+// Add gcc __attribute__ to check doom_printf() format string
 //
 // Revision 1.6  1998/04/10  06:34:35  killough
 // Fix -fast parameter bugs

@@ -29,7 +29,7 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 #include "doomstat.h"
 #include "m_argv.h"
 #include "g_game.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 #include "am_map.h"
 #include "w_wad.h"
 #include "i_system.h"
@@ -71,8 +71,8 @@ extern int mouseSensitivity_horiz,mouseSensitivity_vert;  // killough
 extern int realtic_clock_rate;         // killough 4/13/98: adjustable timer
 extern int leds_always_off;            // killough 3/6/98
 extern int tran_filter_pct;            // killough 2/21/98
-extern int screenblocks;
 extern int showMessages;
+extern int screenSize;
 
 extern char *chat_macros[], *wad_files[], *deh_files[];  // killough 10/98
 
@@ -83,7 +83,8 @@ extern int hud_overlaystyle;  // sf: overlay style
 extern int hud_enabled;       // sf: fullscreen hud on/off
 extern int hud_hidestatus;      // sf
 extern int message_timer;   // killough 11/98: timer used for normal messages
-int show_vpo = 0;
+extern int show_scores;
+extern int show_vpo;
 
 extern int textmode_startup;
 
@@ -122,6 +123,8 @@ default_t defaults[] = {
     "selects default skill 1=TYTD 2=NTR 3=HMP 4=UV 5=NM"
   },
 
+#ifdef DJGPP
+
   { // jff 1/18/98 allow Allegro drivers to be set,  -1 = autodetect
     "sound_card",
     &snd_card, NULL,
@@ -136,20 +139,22 @@ default_t defaults[] = {
     "code used by Allegro to select music driver, -1 is autodetect"
   },
 
+#endif
+
   {
     "s_precache",
     &s_precache, NULL,
     0, {0,1}, dt_number, ss_gen, wad_no,
     "precache sounds at startup"
   },
-
+#ifdef DJGPP
   { // jff 3/4/98 detect # voices
     "detect_voices",
     &detect_voices, NULL,
     1, {0,1}, dt_number, ss_gen, wad_no,
     "1 enables voice detection prior to calling install sound"
   },
-
+#endif
   {
     "v_mode",
     &v_mode, NULL,
@@ -163,28 +168,28 @@ default_t defaults[] = {
     0, {0,1}, dt_number, ss_gen, wad_no,
     "start up SMMU in text mode"
   },
-
+#ifdef DJGPP
   {
     "use_vsync",
     &use_vsync, NULL,
     1, {0,1}, dt_number, ss_gen, wad_no,
     "1 to enable wait for vsync to avoid display tearing"
   },
-
+#endif
   {
     "realtic_clock_rate",
     &realtic_clock_rate, NULL,
     100, {10,1000}, dt_number, ss_gen, wad_no,
     "Percentage of normal speed (35 fps) realtic clock runs at"
   },
-
+#ifdef DJGPP
   { // killough 10/98
     "disk_icon",
     &disk_icon, NULL,
     1, {0,1}, dt_number, ss_gen, wad_no,
     "1 to enable flashing icon during disk IO"
   },
-
+#endif
   { // killough 2/21/98
     "pitched_sounds",
     &pitched_sounds, NULL,
@@ -251,8 +256,15 @@ default_t defaults[] = {
   {             //sf
     "crosshair",
     &crosshairnum, NULL,
-    0, {0,CROSSHAIRS}, dt_number, ss_weap, wad_yes,
+    0, {0,CROSSHAIRS}, dt_number, ss_gen, wad_yes,
     "0 - none, 1 - cross, 2 - angle"
+  },
+
+  {             // sf
+    "show_scores",
+    &show_scores, NULL,
+    0, {0,1}, dt_number, ss_gen, wad_yes,
+    "show scores in deathmatch"
   },
 
   {
@@ -369,14 +381,14 @@ default_t defaults[] = {
     1, {0,1}, dt_number, ss_stat, wad_yes,
     "1 to disable doubled card and skull key display on status bar"
   },
-
+/*
   { // killough 4/17/98
     "traditional_menu",
     &traditional_menu, NULL,
     1, {0,1}, dt_number, ss_none, wad_yes,
     "1 to use Doom's main menu ordering"
   },
-
+*/
   { // killough 3/6/98
     "leds_always_off",
     &leds_always_off, NULL,
@@ -434,9 +446,11 @@ default_t defaults[] = {
   },
 
   { // killough 2/21/98: default to 10
-    "screenblocks",
-    &screenblocks, NULL,
-    10, {3,11}, dt_number, ss_none, wad_no,
+    // sf: removed screenblocks, screensize only now
+    // changed values down 3
+    "screensize",
+    &screenSize, NULL,
+    7, {0,8}, dt_number, ss_none, wad_no,
     "initial play screen size"
   },
 
@@ -473,6 +487,13 @@ default_t defaults[] = {
     (int *) &deh_files[1], NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "DEH/BEX file preloaded at program startup"
+  },
+
+  {
+    "use_startmap",
+    &use_startmap, NULL,
+    -1, {-1, 1}, dt_number, ss_comp, wad_yes,
+    "use start map instead of menu"
   },
 
   // killough 10/98: compatibility vector:
@@ -1371,7 +1392,7 @@ default_t defaults[] = {
   { // dk gray
     "mapcolor_unsn",
     &mapcolor_unsn, NULL,
-    0, {0,255}, dt_number, ss_auto, wad_yes,
+    96, {0,255}, dt_number, ss_auto, wad_yes,
     "color used for lines not seen without computer map"
   },
 
@@ -1470,13 +1491,6 @@ default_t defaults[] = {
     &hud_msg_scrollup, NULL,
     1, {0,1}, dt_number, ss_mess, wad_yes,
     "1 enables message review list scrolling upward"
-  },
-
-  { // killough 11/98
-    "hud_msg_timer",
-    &hud_msg_timer, NULL,
-    4000, {0,UL}, 0, ss_mess, wad_yes,
-    "Duration of temporary message review list (ms)"
   },
 
   { // killough 11/98
@@ -1887,8 +1901,8 @@ boolean M_ParseOption(const char *p, boolean wad)
 	}
     }
 
-  if (wad && dp->setup_menu)
-    dp->setup_menu->m_flags |= S_SKIP;
+//  if (wad && dp->setup_menu)
+//    dp->setup_menu->m_flags |= S_SKIP;
 
   return 0;                          // Success
 }
@@ -1924,8 +1938,8 @@ void M_LoadOptions(void)
       Z_ChangeTag(options, PU_CACHE);
     }
 
-  M_Trans();           // reset translucency in case of change
-  M_ResetMenu();       // reset menu in case of change
+//  M_Trans();           // reset translucency in case of change
+  MN_ResetMenu();       // reset menu in case of change
 }
 
 //
@@ -2351,7 +2365,7 @@ void M_ScreenShot (void)
   // players[consoleplayer].message = "screen shot"
 
   // killough 10/98: print error message and change sound effect if error
-  S_StartSound(NULL, !success ? dprintf(errno ? strerror(errno) :
+  S_StartSound(NULL, !success ? doom_printf(errno ? strerror(errno) :
 					"Could not take screenshot"), sfx_oof :
                sfx_tink);        // just tink, no radio
 				// tink is in doom2 too

@@ -24,7 +24,10 @@
 #define __I_SOUND__
 
 #include <stdio.h>
-#include <allegro.h>
+
+#ifdef DJGPP
+  #include <allegro.h>
+#endif
 
 #include "sounds.h"
 
@@ -99,10 +102,12 @@ void I_StopSong(int handle);
 // See above (register), then think backwards
 void I_UnRegisterSong(int handle);
 
-// Allegro card support jff 1/18/98
-extern  int snd_card, default_snd_card;  // killough 10/98: add default_*
-extern  int mus_card, default_mus_card;
-extern  int detect_voices; // jff 3/4/98 option to disable voice detection
+#ifdef DJGPP
+  // Allegro card support jff 1/18/98
+  extern  int snd_card, default_snd_card;  // killough 10/98: add default_*
+  extern  int mus_card, default_mus_card;
+  extern  int detect_voices; // jff 3/4/98 option to disable voice detection
+#endif
 
 #endif
 

@@ -30,7 +30,7 @@ rcsid[] = "$Id: r_draw.c,v 1.16 1998/05/03 22:41:46 killough Exp $";
 #include "r_draw.h"
 #include "r_main.h"
 #include "v_video.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 
 #define MAXWIDTH  MAX_SCREENWIDTH          /* kilough 2/8/98 */
 #define MAXHEIGHT MAX_SCREENHEIGHT
@@ -305,6 +305,9 @@ static int fuzzpos = 0;
 //
 
 // sf: restored original fuzz effect (changed in mbf)
+// sf: changed to use vis->colormap not fullcolormap
+//     for coloured lighting and SHADOW now done with
+//     flags not NULL colormap
 
 void R_DrawFuzzColumn(void) 
 { 
@@ -313,15 +316,15 @@ void R_DrawFuzzColumn(void)
   fixed_t  frac;
   fixed_t  fracstep;     
 
-  // Adjust borders. Low... 
+  // Adjust borders. Low...
   if (!dc_yl) 
     dc_yl = 1;
 
   // .. and high.
   if (dc_yh == viewheight-1) 
     dc_yh = viewheight - 2; 
-                 
-  count = dc_yh - dc_yl; 
+
+  count = dc_yh - dc_yl;
 
   // Zero length.
   if (count < 0) 
@@ -355,18 +358,18 @@ void R_DrawFuzzColumn(void)
       //  left or right of the current one.
       // Add index from colormap to index.
       // killough 3/20/98: use fullcolormap instead of colormaps
+      // sf: use dc_colormap for coloured lighting
 
                 //sf : hires
-      *dest = fullcolormap[6*256+dest[
-      fuzzoffset[fuzzpos] ? SCREENWIDTH<<hires : -(SCREENWIDTH<<hires)
-      ]];
+      *dest = dc_colormap[6*256+dest[
+      fuzzoffset[fuzzpos] ? SCREENWIDTH<<hires : -(SCREENWIDTH<<hires)]];
 
 
       // Clamp table lookup index.
       if (++fuzzpos == FUZZTABLE) 
         fuzzpos = 0;
         
-      dest += SCREENWIDTH<<hires;
+      dest += SCREENWIDTH << hires;
 
       frac += fracstep; 
     } while (count--); 
@@ -439,38 +442,44 @@ void R_DrawTranslatedColumn (void)
 
 typedef struct
 {
-        int start;      // start of the sequence of colours
-        int number;     // number of colours
+  int start;      // start of the sequence of colours
+  int number;     // number of colours
 } translat_t;
 
-translat_t translations[] = {
+translat_t translations[] =
+{
   {96,  16},     // indigo
   {64,  16},     // brown
   {32,  16},     // red
-  {16,  16},     // pink                 /*** NEW COLOURS ***/
+                 /*** NEW COLOURS ***/
   {176, 16},     // tomato
-  {56,  8},      // cream
-  {88,  8},      // white
   {128, 16},     // dirt
   {200, 8},      // blue
+  {160, 8},      // gold
+  {152, 8},      // felt?
+  {0,   1},      // bleeacckk!!
+  {250, 5},      // purple
+  //  {168, 8}, // bright pink, kinda
   {216, 8},      // vomit yellow
-  {0,   1}       // bleeacckk!!
+  {16,  16},     // pink
+  {56,  8},      // cream
+  {88,  8},      // white
 };
         // sf : rewritten
 
 void R_InitTranslationTables (void)
 {
   int i, c;
-        
+  
   translationtables = Z_Malloc(256 * TRANSLATIONCOLOURS, PU_STATIC, 0);
-
+  
   for(i=0; i<TRANSLATIONCOLOURS; i++)
-  {
-        for(c=0; c<256; c++)
-           translationtables[i*256 + c] =
-            (c < 0x70 || c > 0x7f) ? c : translations[i].start +
-                ((c & 0xf) * (translations[i].number-1))/15;
-  }
+    {
+      for(c=0; c<256; c++)
+	translationtables[i*256 + c] =
+	  (c < 0x70 || c > 0x7f) ? c : translations[i].start +
+	  ((c & 0xf) * (translations[i].number-1))/15;
+    }
 }
 
 //
@@ -655,7 +664,7 @@ void R_InitBuffer(int width, int height)
 { 
   int i; 
 
-  linesize = SCREENWIDTH << hires;    // killough 11/98
+  linesize = (SCREENWIDTH << hires);    // killough 11/98
 
   // Handle resize,
   //  e.g. smaller view windows
@@ -698,7 +707,7 @@ void R_FillBackScreen (void)
     return;
 
   // killough 11/98: use the function in m_menu.c
-  M_DrawBackground(gamemode==commercial ? "GRNROCK" : "FLOOR7_2", screens[1]);
+  MN_DrawBackground(gamemode==commercial ? "GRNROCK" : "FLOOR7_2", screens[1]);
         
   patch = W_CacheLumpName("brdr_t", PU_CACHE);
 

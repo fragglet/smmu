@@ -25,12 +25,12 @@
 
 static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough Exp $";
 
+#include <stdio.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <conio.h>
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -46,7 +46,7 @@ static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough E
 #include "f_wipe.h"
 #include "m_argv.h"
 #include "m_misc.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 #include "i_system.h"
 #include "i_sound.h"
 #include "i_video.h"
@@ -89,7 +89,8 @@ char **wadfiles;
 char *wad_files[MAXLOADFILES], *deh_files[MAXLOADFILES];
 
 int textmode_startup = 0;  // sf: textmode_startup for old-fashioned people
-boolean devparm;        // started game with -devparm
+int use_startmap = -1;     // default to -1 for asking in menu
+boolean devparm;           // started game with -devparm
 
 // jff 1/24/98 add new versions of these variables to remember command line
 boolean clnomonsters;   // checkparm of -nomonsters
@@ -115,6 +116,7 @@ extern boolean inhelpscreens;
 skill_t startskill;
 int     startepisode;
 int     startmap;
+char    *startlevel;
 boolean autostart;
 FILE    *debugfile;
 
@@ -128,7 +130,8 @@ char    basedefault[PATH_MAX+1];   // default file
 char    baseiwad[PATH_MAX+1];      // jff 3/23/98: iwad directory
 char    basesavegame[PATH_MAX+1];  // killough 2/16/98: savegame directory
 
-char    startlevel[9] = "";     // set from iwad
+// set from iwad: level to start new games from
+char firstlevel[9] = "";     
 
 //jff 4/19/98 list of standard IWAD names
 const char *const standard_iwads[]=
@@ -175,11 +178,11 @@ void D_PostEvent(event_t *ev)
 void D_ProcessEvents (void)
 {
   // IF STORE DEMO, DO NOT ACCEPT INPUT
-  // sf: I don't think SMMU is going to be player in any store any
+  // sf: I don't think SMMU is going to be played in any store any
   //     time soon =)
 //  if (gamemode != commercial || W_CheckNumForName("map01") >= 0)
     for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
-      if (!M_Responder(events+eventtail))
+      if (!MN_Responder(events+eventtail))
 	if(!C_Responder(events+eventtail))
 	  G_Responder(events+eventtail);
 }
@@ -190,72 +193,52 @@ void D_ProcessEvents (void)
 //
 
 // wipegamestate can be set to -1 to force a wipe on the next draw
+
+gamestate_t    oldgamestate = -1;  // sf: globaled
 gamestate_t    wipegamestate = GS_DEMOSCREEN;
-extern boolean setsizeneeded;
-extern int     showMessages;
 void           R_ExecuteSetViewSize(void);
 camera_t       *camera;
-gamestate_t oldgamestate = -1;  // sf: globaled
+extern boolean setsizeneeded;
 boolean        redrawsbar;      // sf: globaled
+boolean        redrawborder;    // sf: cleaned up border redraw
 
 void D_Display (void)
 {
-  static boolean viewactivestate = false;
-  static boolean menuactivestate = false;
-  static boolean inhelpscreensstate = false;
-  static boolean fullscreen = false;
-  static int borderdrawcount;
-  boolean wipe;
-
   if (nodrawers)                    // for comparative timing / profiling
     return;
 
   if (setsizeneeded)                // change the view size if needed
     {
       R_ExecuteSetViewSize();
-      oldgamestate = -1;            // force background redraw
-      borderdrawcount = 3;
+      R_FillBackScreen();       // redraw backscreen
     }
 
-  // save the current screen if about to wipe
-  if ((wipe = gamestate != wipegamestate && wipegamestate != GS_CONSOLE))
-    wipe_StartScreen();
-
-  // see if the border needs to be initially drawn
-  if (gamestate == GS_LEVEL &&
-        (oldgamestate != GS_LEVEL || inwipe || c_moving) )
+        // save the current screen if about to wipe
+        // no melting consoles
+  if (gamestate != wipegamestate && wipegamestate != GS_CONSOLE)
     {
-      viewactivestate = false;        // view was not active
-      R_FillBackScreen ();    // draw the pattern into the back screen
+      Wipe_StartScreen();
     }
 
-  // see if the border needs to be updated to the screen
-  if (gamestate == GS_LEVEL && !automapactive && scaledviewwidth != 320)
-    {
-      if (menuactive || menuactivestate || !viewactivestate || c_moving)
-	borderdrawcount = 3;
-      if (borderdrawcount)
-	{
-	  R_DrawViewBorder ();    // erase old menu stuff
-	  borderdrawcount--;
-	}
-    }
+  if (inwipe || c_moving || menuactive)
+    redrawsbar = redrawborder = true;   // redraw status bar and border
 
   switch (gamestate)                // do buffered drawing
     {
     case GS_LEVEL:
-      if (!gametic)
-	break;
+          // see if the border needs to be initially drawn
+      if(oldgamestate != GS_LEVEL)
+          R_FillBackScreen ();    // draw the pattern into the back screen
       HU_Erase();
-      if (inwipe || wipe || (scaledviewheight != 200 && fullscreen) // killough 11/98
-          || (inhelpscreensstate && !inhelpscreens) || c_moving)
-	redrawsbar = true;              // just put away the help screen
-      fullscreen = scaledviewheight == 200;               // killough 11/98
 
       if (automapactive)
           AM_Drawer();
       else
-          R_RenderPlayerView (players+displayplayer, camera);
+      {
+          // see if the border needs to be updated to the screen
+          if(redrawborder) R_DrawViewBorder ();    // redraw border
+          R_RenderPlayerView (&players[displayplayer], camera);
+      }
 
       ST_Drawer(scaledviewheight == 200, redrawsbar );    // killough 11/98
       HU_Drawer ();
@@ -274,14 +257,12 @@ void D_Display (void)
     }
 
   redrawsbar = false; // reset this now
+  redrawborder = false;
 
   // clean up border stuff
   if (gamestate != oldgamestate && gamestate != GS_LEVEL)
     I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 
-  menuactivestate = menuactive;
-  viewactivestate = viewactive;
-  inhelpscreensstate = inhelpscreens;
   oldgamestate = wipegamestate = gamestate;
 
   // draw pause pic
@@ -294,19 +275,20 @@ void D_Display (void)
 			y,0,W_CacheLumpName ("M_PAUSE", PU_CACHE));
     }
 
-  if (wipe || inwipe)
-  {
-    wipe_Drawer();
-  }
+  if (inwipe)
+      Wipe_Drawer();
 
   C_Drawer();
   // menus go directly to the screen
-  M_Drawer();          // menu is drawn even on top of everything
+  MN_Drawer();         // menu is drawn even on top of everything
   NetUpdate();         // send out any new accumulation
 
     //sf : now system independent
   if(v_ticker)
     V_FPSDrawer();
+
+        // sf: wipe changed: runs alongside the rest of the game rather
+        //     than in its own loop
 
   I_FinishUpdate ();              // page flip or blit buffer
 }
@@ -348,68 +330,68 @@ void D_640PageDrawer(char *key);
 void D_PageDrawer(void)
 {
   if (pagename)
-  {
-        int l = W_CheckNumForName(pagename);
-        if(l == -1)
+    {
+      int l = W_CheckNumForName(pagename);
+      if(l == -1)
         {
-                M_DrawCredits();        // just draw the credits instead
-                return;
+	  MN_DrawCredits();        // just draw the credits instead
+	  return;
         }
-
-        if(hires)               // check for original title screen
+      
+      if(hires)               // check for original title screen
         {
-                long checksum = W_LumpCheckSum(l);
-                if(checksum == DOOM1TITLEPIC)
-                {
-                        D_640PageDrawer("UDTTL");
-                        return;
-                }
-                if(checksum == DOOM2TITLEPIC)
-                {
-                        D_640PageDrawer("D2TTL");
-                        return;
-                }
+	  long checksum = W_LumpCheckSum(l);
+	  if(checksum == DOOM1TITLEPIC)
+	    {
+	      D_640PageDrawer("UDTTL");
+	      return;
+	    }
+	  if(checksum == DOOM2TITLEPIC)
+	    {
+	      D_640PageDrawer("D2TTL");
+	      return;
+	    }
         }
-                // otherwise draw simple 320x200 pic
-                // sf: removed useless crap (purpose ???)
-        {
-                byte *t = W_CacheLumpNum(l, PU_CACHE);
-                V_DrawPatch(0, 0, 0, (patch_t *) t);
+      // otherwise draw simple 320x200 pic
+      // sf: removed useless crap (purpose ???)
+      {
+	byte *t = W_CacheLumpNum(l, PU_CACHE);
+	V_DrawPatch(0, 0, 0, (patch_t *) t);
         }
-  }
+    }
   else
-        M_DrawCredits();
-
-   
-/*  {
+    MN_DrawCredits();
+  
+  
+  /*  {
       char tempstr[100];
       sprintf(tempstr, "titlepic checksum: %i", (int)W_LumpCheckSum(
-                W_GetNumForName("TITLEPIC")) );
+      W_GetNumForName("TITLEPIC")) );
       V_WriteText(tempstr, 0, 0);
-  }*/
+      }*/
 }
 
         // sf: 640x400 title screens at satori's request
 void D_640PageDrawer(char *key)
 {
-        char tempstr[10];
-
-        // draw the patches
-
-        sprintf(tempstr, "%s00", key);
-        V_DrawPatchUnscaled(0, 0, 0, W_CacheLumpName(tempstr, PU_CACHE));
-        
-        sprintf(tempstr, "%s01", key);
-        V_DrawPatchUnscaled(0, SCREENHEIGHT, 0,
-                        W_CacheLumpName(tempstr, PU_CACHE));
-
-        sprintf(tempstr, "%s10", key);
-        V_DrawPatchUnscaled(SCREENWIDTH, 0, 0,
-                        W_CacheLumpName(tempstr, PU_CACHE));
-
-        sprintf(tempstr, "%s11", key);
-        V_DrawPatchUnscaled(SCREENWIDTH, SCREENHEIGHT, 0,
-                        W_CacheLumpName(tempstr, PU_CACHE));
+  char tempstr[10];
+  
+  // draw the patches
+  
+  sprintf(tempstr, "%s00", key);
+  V_DrawPatchUnscaled(0, 0, 0, W_CacheLumpName(tempstr, PU_CACHE));
+  
+  sprintf(tempstr, "%s01", key);
+  V_DrawPatchUnscaled(0, SCREENHEIGHT, 0,
+		      W_CacheLumpName(tempstr, PU_CACHE));
+  
+  sprintf(tempstr, "%s10", key);
+  V_DrawPatchUnscaled(SCREENWIDTH, 0, 0,
+		      W_CacheLumpName(tempstr, PU_CACHE));
+  
+  sprintf(tempstr, "%s11", key);
+  V_DrawPatchUnscaled(SCREENWIDTH, SCREENHEIGHT, 0,
+		      W_CacheLumpName(tempstr, PU_CACHE));
 }
 
 //
@@ -576,11 +558,11 @@ void D_AddFile(char *file)
         //sf: console command to list loaded files
 void D_ListWads()
 {
-        int i;
-        C_Printf(FC_GRAY "Loaded WADs:\n" FC_RED);
-
-        for(i=0; i<numwadfiles; i++)
-                C_Printf("%s\n",wadfiles[i]);
+  int i;
+  C_Printf(FC_GRAY "Loaded WADs:\n" FC_RED);
+  
+  for(i=0; i<numwadfiles; i++)
+    C_Printf("%s\n",wadfiles[i]);
 }
 
 // Return the path where the executable lies -- Lee Killough
@@ -882,6 +864,8 @@ char *FindIWADFile(void)
 //
 // jff 4/19/98 rewritten to use a more advanced search algorithm
 
+char *game_name = "unknown game";        // description of iwad
+
 void IdentifyVersion (void)
 {
   int         i;    //jff 3/24/98 index of args on commandline
@@ -916,19 +900,18 @@ void IdentifyVersion (void)
 		&gamemission,   // joel 10/16/98 gamemission added
 		&haswolflevels);
 
-#ifdef GAMEBAR
       switch(gamemode)
 	{
 	case retail:
-	  puts("Ultimate DOOM version");  // killough 8/8/98
+	  game_name = "Ultimate DOOM version";  // killough 8/8/98
 	  break;
 
 	case registered:
-	  puts("DOOM Registered version");
+	  game_name = "DOOM Registered version";
 	  break;
 
 	case shareware:
-	  puts("DOOM Shareware version");
+	  game_name = "DOOM Shareware version";
 	  break;
 
 	case commercial:
@@ -937,11 +920,11 @@ void IdentifyVersion (void)
 	  switch (gamemission)
 	    {
 	    case pack_tnt:
-	      puts ("Final DOOM: TNT - Evilution version");
+	      game_name = "Final DOOM: TNT - Evilution version";
 	      break;
 
 	    case pack_plut:
-	      puts ("Final DOOM: The Plutonia Experiment version");
+	      game_name = "Final DOOM: The Plutonia Experiment version";
 	      break;
 
 	    case doom2:
@@ -951,11 +934,11 @@ void IdentifyVersion (void)
 	      if (i>=10 && !strnicmp(iwad+i-10,"doom2f.wad",10))
 		{
 		  language=french;
-		  puts("DOOM II version, French language");  // killough 8/8/98
+		  game_name = "DOOM II version, French language";
 		}
 	      else
-		puts(haswolflevels ? "DOOM II version" :  // killough 10/98
-		     "DOOM II version, german edition, no wolf levels");
+		game_name = haswolflevels ? "DOOM II version" :
+		     "DOOM II version, german edition, no wolf levels";
 	      break;
 	    }
 	  // joel 10/16/88 end Final DOOM fix
@@ -963,7 +946,8 @@ void IdentifyVersion (void)
 	default:
 	  break;
 	}
-#endif
+
+      puts(game_name);
 
       if (gamemode == indetermined)
 	puts("Unknown Game Version, may not work");  // killough 8/8/98
@@ -1181,9 +1165,9 @@ static void D_ProcessDehInWad(int i)
         //sf:
 void startupmsg(char *func, char *desc)
 {
-        usermsg(in_textmode ? "%s: %s"  // add colours in console mode
-                            : FC_GRAY "%s: " FC_RED "%s",
-                            func, desc);
+  // add colours in console mode
+  usermsg(in_textmode ? "%s: %s" : FC_GRAY "%s: " FC_RED "%s",
+	  func, desc);
 }
 
         // sf: this is really part of D_DoomMain but I made it into
@@ -1194,16 +1178,16 @@ void D_SetGraphicsMode()
 {
    DEBUGMSG("** set graphics mode\n");
 
-   I_InitKeyboard(); // last chance for ctrl-c
-
              // set graphics mode
    I_InitGraphics();
 
+   DEBUGMSG("done\n");
           // set up the console to display startup messages
    gamestate = GS_CONSOLE; 
    current_height = SCREENHEIGHT;
    c_showprompt = false;
-        
+
+   C_Puts(game_name);    // display description of gamemode
    D_ListWads();         // list wads to the console
    C_Printf("\n");       // leave a gap
 }
@@ -1219,9 +1203,9 @@ void D_DoomMain(void)
 
   setbuf(stdout,NULL);
 
-  devparm = !!M_CheckParm ("-devparm");         //sf: move up here
-
   FindResponseFile();         // Append response file arguments to command-line
+
+  devparm = !!M_CheckParm ("-devparm");         //sf: move up here
 
   // killough 10/98: set default savename based on executable's name
   sprintf(savegamename = malloc(16), "%.4ssav", D_DoomExeName());
@@ -1251,12 +1235,6 @@ void D_DoomMain(void)
     deathmatch = 3;     
 
 #ifdef GAMEBAR
-  clrscr();
-
-  textbackground(RED); textcolor(WHITE);
-  cprintf("                                   SMMU                                         ");
-  gotoxy(41,1); cprintf("v%i.%02i\n",VERSION/100,VERSION%100);
-  textbackground(BLACK); textcolor(LIGHTGRAY);
 
   switch ( gamemode )
     {
@@ -1294,9 +1272,8 @@ void D_DoomMain(void)
       sprintf (title, "Public DOOM");
       break;
     }
-    gotoxy(40-strlen(title)/2,2); puts(title);
-
-//  printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
+    printf("%s\n", title);
+    printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
 #endif /* GAMEBAR */
 
   if (devparm)
@@ -1333,16 +1310,14 @@ void D_DoomMain(void)
       sidemove[0] = sidemove[0]*turbo_scale/100;
       sidemove[1] = sidemove[1]*turbo_scale/100;
     }
-
-  // sf: add smmu.wad only if predefines not being used
-#ifndef USEPREDEFINES
-    {
-        char filestr[128];
-                // get smmu.wad from the same directory as smmu.exe
-        sprintf(filestr, "%ssmmu.wad", D_DoomExeDir());
-        D_AddFile(filestr);
-    }
-#endif
+  
+  {
+    char filestr[128];
+    // get smmu.wad from the same directory as smmu.exe
+    // 25/10/99: use same name as exe
+    sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
+    D_AddFile(filestr);
+  }
 
   modifiedgame = false;         // reset, ignoring smmu.wad etc.
 
@@ -1400,14 +1375,37 @@ void D_DoomMain(void)
       autostart = true;
     }
 
+        // sf: moved back timer code
   if ((p = M_CheckParm ("-timer")) && p < myargc-1 && deathmatch)
     {
       int time = atoi(myargv[p+1]);
+      extern int levelTimeLimit;
+
       usermsg("Levels will end after %d minute%s.\n", time, time>1 ? "s" : "");
+      levelTimeLimit = time;
+    }
+        // sf: moved from p_spec.c
+
+  // See if -frags has been used
+
+  p = M_CheckParm("-frags");
+  if (p && deathmatch)
+    {
+      int frags;
+      extern int levelFragLimit;
+
+      frags = atoi(myargv[p+1]);
+      if (frags <= 0) frags = 10;  // default 10 if no count provided
+      levelFragLimit = frags;
     }
 
   if ((p = M_CheckParm ("-avg")) && p < myargc-1 && deathmatch)
+  {
+    extern int levelTimeLimit;
+
+    levelTimeLimit = 20 * 60 * TICRATE;
     puts("Austin Virtual Gaming: Levels will end after 20 minutes");
+  }
 
   if (((p = M_CheckParm ("-warp")) ||      // killough 5/2/98
        (p = M_CheckParm ("-wart"))) && p < myargc-1)
@@ -1435,10 +1433,6 @@ void D_DoomMain(void)
   // killough 3/2/98: allow -nodraw -noblit generally
   nodrawers = !!M_CheckParm ("-nodraw");
   noblit = !!M_CheckParm ("-noblit");
-
-  // jff 4/21/98 allow writing predefined lumps out as a wad
-  if ((p = M_CheckParm("-dumplumps")) && p < myargc-1)
-    WritePredefinedLumpWad(myargv[p+1]);
 
   if (M_CheckParm ("-debugfile"))       // sf: debugfile check earlier
     {
@@ -1517,15 +1511,16 @@ void D_DoomMain(void)
   startupmsg("I_Init","Setting up machine state.");
   I_Init();
 
- /************************************************************************/
+  /************************************************************************/
+  
+  // devparm override of early set graphics mode
 
-        // devparm override of early set graphics mode
   if(!textmode_startup && !devparm)
-  {
-     startupmsg("D_SetGraphicsMode", "Set graphics mode");
-     D_SetGraphicsMode();
-  }
-
+    {
+      startupmsg("D_SetGraphicsMode", "Set graphics mode");
+      D_SetGraphicsMode();
+    }
+  
   startupmsg("R_Init","Init DOOM refresh daemon");
   R_Init();
 
@@ -1538,8 +1533,8 @@ void D_DoomMain(void)
   startupmsg("ST_Init","Init status bar.");
   ST_Init();
 
-  startupmsg("M_Init","Init miscellaneous info.");
-  M_Init();
+  startupmsg("MN_Init","Init menu.");
+  MN_Init();
 
   startupmsg("T_Init", "Init FraggleScript.");
   T_Init();
@@ -1551,11 +1546,11 @@ void D_DoomMain(void)
   D_CheckNetGame();
 
   if(devparm)   // we wait if in devparm so the user can see the messages
-  {
-        printf("devparm: press a key..\n");
-        getch();
-  }
-
+    {
+      printf("devparm: press a key..\n");
+      getchar();
+    }
+  
  /****************** Must be in graphics mode by now! *********************/
 
         // check
@@ -1564,11 +1559,12 @@ void D_DoomMain(void)
   C_Printf("\n");
   C_Seperator();
   C_Printf(	
-	"\n"
-        FC_GRAY "SMMU" FC_RED " by Simon Howard 'Fraggle'\n"
-        "http://fraggle.tsx.org/ \n"
-        "version %i.%02i '%s' \n\n",
-                VERSION/100, VERSION%100, version_name);
+	   "\n"
+	   FC_GRAY "SMMU" FC_RED " by Simon Howard 'Fraggle'\n"
+	   "http://fraggle.tsx.org/ \n"
+	   "version %i.%02i '%s' \n\n",
+	   VERSION/100, VERSION%100, version_name);
+  
   if(!textmode_startup && !devparm)
     C_Update();
 
@@ -1628,7 +1624,9 @@ void D_DoomMain(void)
 
   DEBUGMSG("start gamestate: title screen or whatever\n");
 
-// killough 12/98: inlined D_DoomLoop
+  startlevel = Z_Strdup(G_GetNameForMap(startepisode, startmap), PU_STATIC, 0);
+
+  // killough 12/98: inlined D_DoomLoop
 
   if (slot && ++slot < myargc)
     {
@@ -1642,17 +1640,17 @@ void D_DoomMain(void)
       if (demorecording)
 	  G_BeginRecording();
       if(netgame)
-      {
+	{
           C_SendNetData();
-      }
+	}
       else if(autostart)
-      {
-	  G_InitNewNum(startskill, startepisode, startmap);
-      }
+	{
+	  G_InitNew(startskill, startlevel);
+	}
       else
-      {
+	{
           D_StartTitle();                 // start up intro loop
-      }
+	}
     }
 
   // this fixes a strange bug, don't know why but it works
@@ -1661,6 +1659,8 @@ void D_DoomMain(void)
           C_Update();
 
   DEBUGMSG("start main loop\n");
+
+  oldgamestate = wipegamestate = gamestate;
 
   while(1)
     {
@@ -1695,68 +1695,67 @@ void D_DoomMain(void)
 
 void D_ReInitWadfiles()
 {
-    R_FreeData();
-    R_Init();
-    P_Init();
+  R_FreeData();
+  R_Init();
+  P_Init();
 }
 
 void D_NewWadLumps(int handle)
 {
-        int i;
-        char firstlevel[9] = "";
+  int i;
+  char wad_firstlevel[9] = "";
+  
+  for(i=0; i<numlumps; i++)
+    {
+      if(lumpinfo[i]->handle != handle) continue;
+      
+      if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
+	{
+	  char *name = lumpinfo[i-1]->name; // previous lump
+	  
+	  // 'ExMy'
+	  if(isExMy(name) && isExMy(wad_firstlevel))
+	    {
+	      if(name[1] < wad_firstlevel[1] ||       // earlier episode?
+		 // earlier level in the same episode?
+                 (name[1] == wad_firstlevel[1] && name[3] < wad_firstlevel[3]) )
+		strncpy(wad_firstlevel, name, 8);
+	    }
+	  if(isMAPxy(name) && isMAPxy(wad_firstlevel))
+	    {
+	      if(name[3] < wad_firstlevel[3] || // earlier 10 levels
+		 // earlier in the same 10 levels?
+                 (name[3] == wad_firstlevel[3] && name[4] < wad_firstlevel[4]))
+		strncpy(wad_firstlevel, name, 8);
+	    }
 
-        for(i=0; i<numlumps; i++)
-        {
-            if(lumpinfo[i]->handle != handle) continue;
-
-            if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
-            {
-                char *name = lumpinfo[i-1]->name; // previous lump
-                    
-                        // 'ExMy'
-                if(isExMy(name) && isExMy(firstlevel))
-                {
-                    if(name[1] < firstlevel[1] ||       // earlier episode?
-                        // earlier level in the same episode?
-                      (name[1] == firstlevel[1] && name[3] < firstlevel[3]) )
-                            strncpy(firstlevel, name, 8);
-                }
-                if(isMAPxy(name) && isMAPxy(firstlevel))
-                {
-                    if(name[3] < firstlevel[3] || // earlier 10 levels
-                        // earlier in the same 10 levels?
-                       (name[3] == firstlevel[3] && name[4] < firstlevel[4]))
-                            strncpy(firstlevel, name, 8);
-                }
-                        // none set yet
-                        // ignore ones called 'start' as these are checked
-                        // elsewhere (m_menu.c)
-                if(!*firstlevel && strcmp(name, "START") )
-                        strncpy(firstlevel, name, 8);
-            }
-                
-                // new sound
-            if(!strncmp(lumpinfo[i]->name, "DSCHGUN",8)) // chaingun sound
-            {
-                    S_Chgun();
-            }
-            if(!strncmp(lumpinfo[i]->name, "DS", 2))
-            {
-                    S_UpdateSound(i);
-            }
+	  // none set yet
+	  // ignore ones called 'start' as these are checked
+	  // elsewhere (m_menu.c)
+	  if(!*wad_firstlevel && strcmp(name, "START") )
+	    strncpy(wad_firstlevel, name, 8);
+	}
+      
+      // new sound
+      if(!strncmp(lumpinfo[i]->name, "DSCHGUN",8)) // chaingun sound
+	S_Chgun();
+      if(!strncmp(lumpinfo[i]->name, "DS", 2))
+	{
+	  S_UpdateSound(i);
+	}
                 // skins
-            if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
-            {
-                    P_ParseSkin(i);
-            }
-            if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
-            {
-                    D_ProcessDehInWad(i);
-            }
-        } 
-
-        if(*firstlevel) // a new first level?
-                strcpy(startlevel, firstlevel);
+      if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
+	{
+	  P_ParseSkin(i);
+	}
+      if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
+	{
+	  D_ProcessDehInWad(i);
+	}
+    } 
+  
+  if(*wad_firstlevel) // a new first level?
+    strcpy(firstlevel, wad_firstlevel);
 }
 
 void usermsg(char *s, ...)
@@ -1782,13 +1781,13 @@ void usermsg(char *s, ...)
         // returns 1 if successfully loaded
 int D_AddNewFile(char *s)
 {
-        c_showprompt = false;
-        if(W_AddNewFile(c_argv[0])) return 0;
-        modifiedgame = true;
-        D_AddFile(c_argv[0]);   // add to the list of wads
-        C_SetConsole();
-        D_ReInitWadfiles();
-        return 1;
+  c_showprompt = false;
+  if(W_AddNewFile(c_argv[0])) return false;
+  modifiedgame = true;
+  D_AddFile(c_argv[0]);   // add to the list of wads
+  C_SetConsole();
+  D_ReInitWadfiles();
+  return true;
 }
 
 //----------------------------------------------------------------------------

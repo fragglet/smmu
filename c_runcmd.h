@@ -1,3 +1,7 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+
 #ifndef __C_RUNCMD_H__
 #define __C_RUNCMD_H__
 
@@ -11,6 +15,13 @@ typedef struct variable_s variable_t;
 #define CMDCHAINS 16
 
 // zdoom _inspired_:
+
+// create a new console command, eg.
+//        CONSOLE_COMMAND(say_something, cf_notnet)
+//        {
+//              C_Printf("hello!\n");
+//        }
+
 #define CONSOLE_COMMAND(name, flags)                    \
         void Handler_ ## name();                        \
         command_t Cmd_ ## name = { # name, ct_command,  \
@@ -18,13 +29,23 @@ typedef struct variable_s variable_t;
                        0 };                             \
         void Handler_ ## name()
 
-        // variable
+		 
+// console variable. you must define the range of values etc. for
+//      the variable using the other macros below.
+//      You must also provide a handler function even
+//      if it is just {}
+
 #define CONSOLE_VARIABLE(name, variable, flags)                         \
         void Handler_ ## name();                                        \
         command_t Cmd_ ## name = { # name, ct_variable,                 \
                         flags, &var_ ## variable, Handler_ ## name,     \
                         0 };                                            \
         void Handler_ ## name()
+
+// Same as CONSOLE_COMMAND, but sync-ed across network. When
+//      this command is executed, it is run on all computers.
+//      You must assign your variable a unique netgame
+//      variable (list in c_net.h)
 
 #define CONSOLE_NETCMD(name, flags, netcmd)             \
         void Handler_ ## name();                        \
@@ -33,6 +54,8 @@ typedef struct variable_s variable_t;
                        Handler_ ## name, netcmd };      \
         void Handler_ ## name()
 
+// As for CONSOLE_VARIABLE, but for net, see above
+
 #define CONSOLE_NETVAR(name, variable, flags, netcmd)                   \
         void Handler_ ## name();                                        \
         command_t Cmd_ ## name = { # name, ct_variable,                 \
@@ -40,25 +63,47 @@ typedef struct variable_s variable_t;
                         Handler_ ## name, netcmd };                     \
         void Handler_ ## name()
 
+// Create a constant. You must declare the variable holding
+//      the constant using the variable macros below.
+
 #define CONSOLE_CONST(name, variable)                           \
         command_t Cmd_ ## name = { # name, ct_constant, 0,      \
-                &var_ ## variable, NULL, 0 };           
+                &var_ ## variable, NULL, 0 };
+
+        /*********** variable macros *************/
+
+// Each console variable has a corresponding C variable.
+// It also has a variable_t which contains data such as,
+// a pointer to the variable, the range of values it can
+// take, etc. These macros allow you to define variable_t's
+// more easily.
+
+// basic VARIABLE macro. You must specify all the data needed
 
 #define VARIABLE(name, defaultvar, type, min, max, strings)  \
         variable_t var_ ## name = { &name, defaultvar,       \
                         type, min, max, strings};
 
+// simpler macro for int. You do not need to specify the type
+
 #define VARIABLE_INT(name, defaultvar, min, max, strings)    \
         variable_t var_ ## name = { &name, defaultvar,       \
                         vt_int, min, max, strings};
+
+// Simplified to create strings: 'max' is the maximum string length
 
 #define VARIABLE_STRING(name, defaultvar, max)               \
         variable_t var_ ## name = { &name, defaultvar,       \
                         vt_string, 0, max, NULL};
 
+// Boolean. Note that although the name here is boolean, the
+// actual type is int.
+
 #define VARIABLE_BOOLEAN(name, defaultvar, strings)          \
         variable_t var_ ## name = { &name, defaultvar,       \
                         vt_int, 0, 1, strings };
+
+// basic variable_t creators for constants.
 
 #define CONST_INT(name)                                      \
         variable_t var_ ## name = { &name, NULL,             \
@@ -73,76 +118,79 @@ typedef struct variable_s variable_t;
 
 /********************************* ENUMS **********************************/
 
-enum    // cmdsrc values
+enum    // cmdtype values
 {
-        c_typed,        // typed at console
-        c_script,  // called by someone crossing a linedef
-        c_netcmd,
-        C_CMDTYPES
+  c_typed,        // typed at console
+  c_menu,
+  c_netcmd,
+  C_CMDTYPES
 };
 
 enum    // command type
 {
-        ct_command,
-        ct_variable,
-        ct_constant,
-        ct_end
+  ct_command,
+  ct_variable,
+  ct_constant,
+  ct_end
 };
 
 enum    // command flag
 {
-        cf_notnet       =1,     // not in netgames
-        cf_netonly      =2,     // only in netgames
-        cf_server       =4,     // server only 
-        cf_handlerset   =8,     // if set, the handler sets the variable,
-                                // not c_runcmd.c itself
-        cf_netvar       =16,    // sync with other pcs
-        cf_level        =32,    // only works in levels
-        cf_hidden       =64,    // hidden in cmdlist
+  cf_notnet       =1,     // not in netgames
+  cf_netonly      =2,     // only in netgames
+  cf_server       =4,     // server only 
+  cf_handlerset   =8,     // if set, the handler sets the variable,
+                          // not c_runcmd.c itself
+  cf_netvar       =16,    // sync with other pcs
+  cf_level        =32,    // only works in levels
+  cf_hidden       =64,    // hidden in cmdlist
+  cf_buffered     =128,   // buffer command: wait til all screen
+                          // rendered before running command
 };
 
 enum    // variable type
 {
-        vt_int,                // normal integer 
-        vt_float,              // decimal               NOT IMPLEMENTED
-        vt_string,             // string
-        vt_toggle              // on/off value          NOT IMPLEMENTED
+  vt_int,                // normal integer 
+  vt_float,              // decimal               NOT IMPLEMENTED
+  vt_string,             // string
+  vt_toggle              // on/off value          NOT IMPLEMENTED
 };
 
 /******************************** STRUCTS ********************************/
 
 struct variable_s
 {
-                // NB: for strings, this points to a char*, not a char
-        void *variable;
-        void *v_default;         // the default 
-        int type;       // vt_?? variable type: int, string
-        int min;        // minimum value or string length
-        int max;        // maximum value/length
-        char **defines;  // strings representing the value: eg "on" not "1"
+  // NB: for strings, this is char ** not char *
+  void *variable;
+  void *v_default;         // the default 
+  int type;       // vt_?? variable type: int, string
+  int min;        // minimum value or string length
+  int max;        // maximum value/length
+  char **defines;  // strings representing the value: eg "on" not "1"
 };
 
 struct command_s
 {
-        char *name;
-        int type;               // ct_?? command type
-        int flags;              // cf_??
-        variable_t *variable;
-        void (*handler)();       // handler
-        int netcmd;     // network command number
-        command_t *next;        // for hashing
+  char *name;
+  int type;               // ct_?? command type
+  int flags;              // cf_??
+  variable_t *variable;
+  void (*handler)();       // handler
+  int netcmd;     // network command number
+  command_t *next;        // for hashing
 };
 
 typedef struct
 {
-        char *name;
-        char *command;
+  char *name;
+  char *command;
 } alias_t;
 
 /************************** PROTOTYPES/EXTERNS ****************************/
 
 /***** command running ****/
 
+extern command_t *c_command;
 extern int cmdtype;
 extern char c_argv[MAXTOKENS][MAXTOKENLENGTH];
 extern int c_argc;
@@ -151,8 +199,8 @@ extern char c_args[128];
 void C_RunCommand(command_t *command, char *options);
 void C_RunTextCmd(char *cmdname);
 
-char *C_VariableValue(command_t *command);
-char *C_VariableStringValue(command_t *command);
+char *C_VariableValue(variable_t *command);
+char *C_VariableStringValue(variable_t *command);
 
 /**** tab completion ****/
 

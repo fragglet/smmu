@@ -84,13 +84,14 @@ void Z_ReInit();
 #define strdup(s)          Z_Strdup(s,PU_STATIC,0)
 
 // Doom-style printf
-void dprintf(const char *, ...) __attribute__((format(printf,1,2)));
+void doom_printf(const char *, ...) __attribute__((format(printf,1,2)));
 
 void Z_ZoneHistory(char *);
 
 #ifdef INSTRUMENTED
 extern int printstats;        // killough 8/23/98
-void Z_PrintStats(void);      // killough 8/23/98
+//void Z_PrintStats(void);      // killough 8/23/98
+char *Z_PrintStats(void);     // haleyjd 1/13/00:  wtf??
 #endif
 
 #endif
@@ -111,7 +112,7 @@ void Z_PrintStats(void);      // killough 8/23/98
 // Make Z_CheckHeap() more diagnostic
 //
 // Revision 1.3  1998/02/02  13:28:06  killough
-// Add dprintf
+// Add doom_printf
 //
 // Revision 1.2  1998/01/26  19:28:04  phares
 // First rev with no ^Ms

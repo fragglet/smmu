@@ -23,15 +23,12 @@
 static const char
 rcsid[] = "$Id: i_main.c,v 1.8 1998/05/15 00:34:03 killough Exp $";
 
-#include "doomdef.h"
-#include "m_argv.h"
-#include "d_main.h"
-#include "i_system.h"
+#include "../doomdef.h"
+#include "../m_argv.h"
+#include "../d_main.h"
+#include "../i_system.h"
 
 #include <signal.h>
-#include <sys/nearptr.h>  /* needed for __djgpp_nearptr_enable() -- stan */
-#include <dpmi.h>
-#include <allegro.h>
 
 // cleanup handling -- killough:
 static void handler(int s)
@@ -79,10 +76,9 @@ int main(int argc, char **argv)
      left in an unstable state.
   */
 
-  allegro_init();
   Z_Init();                  // 1/18/98 killough: start up memory stuff first
   atexit(I_Quit);
-//  signal(SIGSEGV, handler);
+  signal(SIGSEGV, handler);
   signal(SIGTERM, handler);
   signal(SIGILL,  handler);
   signal(SIGFPE,  handler);
@@ -90,13 +86,7 @@ int main(int argc, char **argv)
   signal(SIGINT,  handler);  // killough 3/6/98: allow CTRL-BRK during init
   signal(SIGABRT, handler);
 
-  // 2/2/98 Stan
-  // Must call this here.  It's required by both netgames and i_video.c.
-
-  if (__djgpp_nearptr_enable())  //handle nearptr now
-    D_DoomMain ();
-  else
-    printf ("Failed trying to allocate DOS near pointers.\n");
+  D_DoomMain ();
 
   return 0;
 }

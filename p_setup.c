@@ -35,6 +35,7 @@ rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 #include "m_argv.h"
 #include "g_game.h"
 #include "w_wad.h"
+#include "p_hubs.h"
 #include "r_main.h"
 #include "r_things.h"
 #include "r_sky.h"
@@ -941,17 +942,17 @@ void P_RemoveSlimeTrails(void)                // killough 10/98
 
 char *levellumps[] =
 {
-        "label",        // ML_LABEL,    A separator, name, ExMx or MAPxx
-        "THINGS",       // ML_THINGS,   Monsters, items..
-        "LINEDEFS",     // ML_LINEDEFS, LineDefs, from editing
-        "SIDEDEFS",     // ML_SIDEDEFS, SideDefs, from editing
-        "VERTEXES",     // ML_VERTEXES, Vertices, edited and BSP splits generated
-        "SEGS",         // ML_SEGS,     LineSegs, from LineDefs split by BSP
-        "SSECTORS",     // ML_SSECTORS, SubSectors, list of LineSegs
-        "NODES",        // ML_NODES,    BSP nodes
-        "SECTORS",      // ML_SECTORS,  Sectors, from editing
-        "REJECT",       // ML_REJECT,   LUT, sector-sector visibility
-        "BLOCKMAP"      // ML_BLOCKMAP  LUT, motion clipping, walls/grid element
+  "label",        // ML_LABEL,    A separator, name, ExMx or MAPxx
+  "THINGS",       // ML_THINGS,   Monsters, items..
+  "LINEDEFS",     // ML_LINEDEFS, LineDefs, from editing
+  "SIDEDEFS",     // ML_SIDEDEFS, SideDefs, from editing
+  "VERTEXES",     // ML_VERTEXES, Vertices, edited and BSP splits generated
+  "SEGS",         // ML_SEGS,     LineSegs, from LineDefs split by BSP
+  "SSECTORS",     // ML_SSECTORS, SubSectors, list of LineSegs
+  "NODES",        // ML_NODES,    BSP nodes
+  "SECTORS",      // ML_SECTORS,  Sectors, from editing
+  "REJECT",       // ML_REJECT,   LUT, sector-sector visibility
+  "BLOCKMAP"      // ML_BLOCKMAP  LUT, motion clipping, walls/grid element
 };
 
 boolean P_CheckLevel(int lumpnum)
@@ -998,25 +999,25 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   players[consoleplayer].viewz = 1;
 
   if(debugfile)
-  {
-     fprintf(debugfile, "P_SetupLevel: got here\n mapname: %s\n",mapname);
-     fflush(debugfile);
-  }
+    {
+      fprintf(debugfile, "P_SetupLevel: got here\n mapname: %s\n",mapname);
+      fflush(debugfile);
+    }
 
       // get the map name lump number
   if((lumpnum = W_CheckNumForName(mapname)) == -1)
   {
-        C_Printf("Map not found: '%s'\n", mapname);
-	C_SetConsole();
-	return;
+    C_Printf("Map not found: '%s'\n", mapname);
+    C_SetConsole();
+    return;
   }
 
   if(!P_CheckLevel(lumpnum))     // not a level
-  {
-        C_Printf("Not a level: '%s'\n", mapname);
-        C_SetConsole();
-        return;
-  }
+    {
+      C_Printf("Not a level: '%s'\n", mapname);
+      C_SetConsole();
+      return;
+    }
 
   strncpy(levelmapname, mapname, 8);
   leveltime = 0;
@@ -1038,9 +1039,9 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   WI_StopCamera();      // reset the intermissions camera
 
-        // if this and the other v_loadingincrease's are uncommented,
-        // a 'loading' box will appear when loading a level
-//        V_SetLoading(8, "loading");
+  // when loading a hub level, display a 'loading' box
+  if(hub_changelevel)
+    V_SetLoading(4, "loading");
 
   DEBUGMSG("hu_newlevel\n");
   newlevel = lumpinfo[lumpnum]->handle != iwadhandle;
@@ -1068,28 +1069,28 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   P_LoadVertexes  (lumpnum+ML_VERTEXES);
   P_LoadSectors   (lumpnum+ML_SECTORS);
-//        V_LoadingIncrease();  // update loading box
   P_LoadSideDefs  (lumpnum+ML_SIDEDEFS);             // killough 4/4/98
   P_LoadLineDefs  (lumpnum+ML_LINEDEFS);             //       |
-//        V_LoadingIncrease();  // update loading box
+
+  V_LoadingIncrease();  // update
+
   P_LoadSideDefs2 (lumpnum+ML_SIDEDEFS);             //       |
   P_LoadLineDefs2 (lumpnum+ML_LINEDEFS);             // killough 4/4/98
-//        V_LoadingIncrease();  // update loading box
 
   if(level_error)       // drop to the console
   {             
-	C_SetConsole();
-	return;
+    C_SetConsole();
+    return;
   }
 
   P_LoadBlockMap  (lumpnum+ML_BLOCKMAP);             // killough 3/1/98
   P_LoadSubsectors(lumpnum+ML_SSECTORS);
-//         V_LoadingIncrease();  // update loading box
   P_LoadNodes     (lumpnum+ML_NODES);
   P_LoadSegs      (lumpnum+ML_SEGS);
-//         V_LoadingIncrease();  // update loading box
 
   DEBUGMSG("loaded level\n");
+
+  V_LoadingIncrease();    // update
 
   rejectmatrix = W_CacheLumpNum(lumpnum+ML_REJECT,PU_LEVEL);
   P_GroupLines();
@@ -1102,8 +1103,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   bodyqueslot = 0;
   deathmatch_p = deathmatchstarts;
   P_LoadThings(lumpnum+ML_THINGS);
-
-//        V_LoadingIncrease();  // update loading box
 
   DEBUGMSG("ok, things loaded, spawn players\n");
 
@@ -1128,29 +1127,24 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   // set up world state
   P_SpawnSpecials();
 
+  V_LoadingIncrease();      // update
+
   // preload graphics
   if (precache)
     R_PrecacheLevel();
 
-//        V_LoadingIncrease();  // update loading box
-
   // psprites
-//  showpsprites = default_psprites;
-
-	// clear script command buffer
-  C_ClearBuffer(c_script);
-
   HU_FragsUpdate();     // reset frag counter
 
-  R_SetViewSize (screenblocks); //sf
+  R_SetViewSize (screenSize+3); //sf
 
   T_PreprocessScripts();        // preprocess FraggleScript scripts
+
+  V_LoadingIncrease();
 
   DEBUGMSG("P_SetupLevel: finished\n");
   if(doom1level && gamemode == commercial)
           C_Printf("doom 1 level\n");
-
-//      V_LoadingIncrease();  // update loading box
 
   camera = NULL;        // camera off
 }
@@ -1163,6 +1157,7 @@ void P_Init (void)
   P_InitSwitchList();
   P_InitPicAnims();
   R_InitSprites(spritelist);
+  P_InitHubs();
 }
 
 //
@@ -1180,33 +1175,34 @@ int olo_loaded = false;
 
 void P_LoadOlo()
 {
-	int lumpnum;
-	char *lump;
+  int lumpnum;
+  char *lump;
 
-        if((lumpnum = W_CheckNumForName("OLO")) == -1)
-		return;
+  if((lumpnum = W_CheckNumForName("OLO")) == -1)
+    return;
 
-	lump = W_CacheLumpNum(lumpnum, PU_CACHE);
-
-	if(strncmp(lump, "OLO", 3))
-		return;
-
-	memcpy(&olo, lump, sizeof(olo_t));
-
-	olo_loaded = true;
+  lump = W_CacheLumpNum(lumpnum, PU_CACHE);
+  
+  if(strncmp(lump, "OLO", 3))
+    return;
+  
+  memcpy(&olo, lump, sizeof(olo_t));
+  
+  olo_loaded = true;
 }
 
 // test thingy
 
 void C_DumpThings()
 {
-        int i;
-
-        for(i=0; i<numthings; i++)
-        {
-                C_Printf("%i\n", spawnedthings[i]);
-        }
-        C_Printf(FC_GRAY"(%i)\n", numthings);
+  int i;
+  
+  for(i=0; i<numthings; i++)
+    {
+      C_Printf("%i\n", spawnedthings[i]);
+    }
+  
+  C_Printf(FC_GRAY"(%i)\n", numthings);
 }
 
 

@@ -170,6 +170,8 @@ void D_KickPlayer (int playernum);
 void TryRunTics (void);
 void Tickers();
 
+extern void (*netdisconnect)();  // function ptr for disconnect function
+
 void ResetNet();
 
 extern int isconsoletic;        // is the current tic a gametic

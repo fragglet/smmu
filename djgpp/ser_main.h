@@ -76,27 +76,16 @@ typedef enum {ANSWER, DIAL, CONNECT} connect_t;
 #define DIVISOR_LATCH_LOW                    0x00
 #define DIVISOR_LATCH_HIGH                   0x01
 
-
-
 #define	QUESIZE	2048
 
 typedef struct
 {
-	long	head, tail;		// bytes are put on head and pulled from tail
-	unsigned char	data[QUESIZE];
+  long	head, tail;		// bytes are put on head and pulled from tail
+  unsigned char	data[QUESIZE];
 } que_t;
 
-void Ser_Start();
+void Ser_Init();
 
-void InitPort (void);
-void ShutdownPort (void);
-
-int read_byte( void );
-void write_byte( int c );
-
-
-void Ser_Error (char *error, ...);
-void Ser_Disconnect();
 extern int ser_active;
 
 extern int comport;

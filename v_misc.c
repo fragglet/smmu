@@ -1,10 +1,11 @@
-/******************************** Video ************************************/
-                // Copyright(C) 1999 Simon Howard 'Fraggle' //
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
 //
 // Misc Video stuff.
 //
 // Font. Loading box. FPS ticker, etc
 //
+//---------------------------------------------------------------------------
 
 #include <stdio.h>
 #include "c_io.h"
@@ -32,29 +33,30 @@ int prevmode = 0;
 
 int NumModes()
 {
-        int count=0;
+  int count=0;
 
-        while(videomodes[count].description)
-                 count++;
+  while(videomodes[count].description)
+    count++;
 
-        return count;
+  return count;
 }
 
 // v_resetmode is called after changing vid mode
 
 void V_ResetMode()
 {
-                // check for invalid mode
-        if(v_mode >= NumModes() || v_mode < 0)
-        {
-                C_Printf("invalid mode %i", v_mode);
-                v_mode = prevmode;
-                return;
-        }
+  // check for invalid mode
 
-        prevmode = v_mode;
-
-        I_SetMode(v_mode);
+  if(v_mode >= NumModes() || v_mode < 0)
+    {
+      C_Printf("invalid mode %i", v_mode);
+      v_mode = prevmode;
+      return;
+    }
+  
+  prevmode = v_mode;
+  
+  I_SetMode(v_mode);
 }
 
 /******************
@@ -66,23 +68,22 @@ patch_t *bgp[9];        // background for boxes
 
 void V_LoadFont()
 {
-        int i, j;
-        char tempstr[10];
+  int i, j;
+  char tempstr[10];
 
-                // init to NULL first
-        for(i=0; i<V_FONTSIZE; i++)
-          v_font[i] = NULL;
+  // init to NULL first
+  for(i=0; i<V_FONTSIZE; i++)
+    v_font[i] = NULL;
 
-        for(i=0, j=V_FONTSTART; i<V_FONTSIZE; i++, j++)
-        {
-                if(j>96 && j!=121 && j!=123 && j!=124 && j!=125) continue;
-                sprintf(tempstr, "STCFN%.3d",j);
-                v_font[i] = W_CacheLumpName(tempstr, PU_STATIC);
-        }
+  for(i=0, j=V_FONTSTART; i<V_FONTSIZE; i++, j++)
+    {
+      if(j>96 && j!=121 && j!=123 && j!=124 && j!=125) continue;
+      sprintf(tempstr, "STCFN%.3d",j);
+      v_font[i] = W_CacheLumpName(tempstr, PU_STATIC);
+    }
 }
 
  // sf: write a text line to x, y
-
 void V_WriteText(unsigned char *s, int x, int y)
 {
   int   w;
@@ -118,7 +119,7 @@ void V_WriteText(unsigned char *s, int x, int y)
           cy += 8;
 	  continue;
 	}
-  
+      
       c = toupper(c) - V_FONTSTART;
       if (c < 0 || c>= V_FONTSIZE)
 	{
@@ -139,20 +140,70 @@ void V_WriteText(unsigned char *s, int x, int y)
     }
 }
 
+// write text in a particular colour
+
+void V_WriteTextColoured(unsigned char *s, int colour, int x, int y)
+{
+  static char *tempstr = NULL;
+  static int allocedsize=0;
+
+  // if string bigger than allocated, realloc bigger
+  if(strlen(s) > allocedsize)
+    {
+      if(tempstr)       // already alloced?
+        tempstr = Z_Realloc(tempstr, strlen(s) + 3, PU_STATIC, 0);
+      else
+        tempstr = Z_Malloc(strlen(s) + 3, PU_STATIC, 0);
+      
+      allocedsize = strlen(s);  // save for next time
+    }
+  
+  sprintf(tempstr, "%c%s", 128+colour, s);
+  
+  V_WriteText(tempstr, x, y);
+}
+
+// find height(in pixels) of a string 
+
+int V_StringHeight(unsigned char *s)
+{
+  int height = 8;  // always at least 8
+
+  // add an extra 8 for each newline found
+
+  while(*s)
+    {
+      if(*s == '\n') height += 8;
+      s++;
+    }
+
+  return height;
+}
+
 int V_StringWidth(unsigned char *s)
 {
-        int length = 0;
-        unsigned char c;
+  int length = 0; // current line width
+  int longest_width = 0; // line with longest width so far
+  unsigned char c;
+  
+  for(; *s; s++)
+    {
+      c = *s;
+      if(c >= 128)         // colour
+	continue;
+      if(c == '\n')        // newline
+	{
+	  if(length > longest_width) longest_width = length;
+	  length = 0; // next line;
+	  continue;	  
+	}
+      c = toupper(c) - V_FONTSTART;
+      length += c >= V_FONTSIZE ? 4 : SHORT(v_font[c]->width);
+    }
 
-        for(; *s; s++)
-        {
-           c = *s;
-           if(c >= 128)         // colour
-                continue;
-           c = toupper(c) - V_FONTSTART;
-           length += c >= V_FONTSIZE ? 4 : SHORT(v_font[c]->width);
-        }
-        return length;
+  if(length > longest_width) longest_width = length; // check last line
+
+  return longest_width;
 }
 
 
@@ -192,15 +243,15 @@ void V_DrawBox(int x, int y, int w, int h)
 
 void V_InitBox()
 {
-        bgp[0] = (patch_t *) W_CacheLumpName("BOXUL", PU_STATIC);
-        bgp[1] = (patch_t *) W_CacheLumpName("BOXUC", PU_STATIC);
-        bgp[2] = (patch_t *) W_CacheLumpName("BOXUR", PU_STATIC);
-        bgp[3] = (patch_t *) W_CacheLumpName("BOXCL", PU_STATIC);
-        bgp[4] = (patch_t *) W_CacheLumpName("BOXCC", PU_STATIC);
-        bgp[5] = (patch_t *) W_CacheLumpName("BOXCR", PU_STATIC);
-        bgp[6] = (patch_t *) W_CacheLumpName("BOXLL", PU_STATIC);
-        bgp[7] = (patch_t *) W_CacheLumpName("BOXLC", PU_STATIC);
-        bgp[8] = (patch_t *) W_CacheLumpName("BOXLR", PU_STATIC);
+  bgp[0] = (patch_t *) W_CacheLumpName("BOXUL", PU_STATIC);
+  bgp[1] = (patch_t *) W_CacheLumpName("BOXUC", PU_STATIC);
+  bgp[2] = (patch_t *) W_CacheLumpName("BOXUR", PU_STATIC);
+  bgp[3] = (patch_t *) W_CacheLumpName("BOXCL", PU_STATIC);
+  bgp[4] = (patch_t *) W_CacheLumpName("BOXCC", PU_STATIC);
+  bgp[5] = (patch_t *) W_CacheLumpName("BOXCR", PU_STATIC);
+  bgp[6] = (patch_t *) W_CacheLumpName("BOXLL", PU_STATIC);
+  bgp[7] = (patch_t *) W_CacheLumpName("BOXLC", PU_STATIC);
+  bgp[8] = (patch_t *) W_CacheLumpName("BOXLR", PU_STATIC);
 }
 
 
@@ -209,74 +260,79 @@ void V_InitBox()
         'LOADING' PIC
  ***********************/
 
-int loading_amount;
-int loading_total;
-char *loading_message;
+static int loading_amount = 0;
+static int loading_total = -1;
+static char *loading_message;
 
 void V_DrawLoading()
 {
-        int x, y;
-        char *dest;
-        int linelen;
+  int x, y;
+  char *dest;
+  int linelen;
 
-        V_DrawBox((SCREENWIDTH/2)-50, (SCREENHEIGHT/2)-30, 100, 40);
+  if(!loading_message) return;
+  
+  V_DrawBox((SCREENWIDTH/2)-50, (SCREENHEIGHT/2)-30, 100, 40);
+  
+  V_WriteText(loading_message, (SCREENWIDTH/2)-30, (SCREENHEIGHT/2)-20);
+  
+  x = ((SCREENWIDTH/2)-45);
+  y = (SCREENHEIGHT/2);
+  dest = screens[0] + ((y<<hires)*(SCREENWIDTH<<hires)) + (x<<hires);
+  linelen = (90*loading_amount) / loading_total;
 
-        V_WriteText(loading_message, (SCREENWIDTH/2)-30, (SCREENHEIGHT/2)-20);
+  // white line
+  memset(dest, 4, linelen<<hires);
+  // black line (unfilled)
+  memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
 
-        x = ((SCREENWIDTH/2)-45);
-        y = (SCREENHEIGHT/2);
-        dest = screens[0] + ((y<<hires)*(SCREENWIDTH<<hires)) + (x<<hires);
-        linelen = (90*loading_amount) / loading_total;
-
-                // white line
-        memset(dest, 4, linelen<<hires);
-                // black line (unfilled)
-        memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
-
-        if(hires)
-        {
-                dest += SCREENWIDTH<<hires;
-                memset(dest, 4, linelen<<hires);
-                memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
-        }
-
-        I_FinishUpdate();
+  if(hires)
+    {
+      dest += SCREENWIDTH<<hires;
+      memset(dest, 4, linelen<<hires);
+      memset(dest+(linelen<<hires), 0, (90-linelen)<<hires);
+    }
+  
+  I_FinishUpdate();
 }
 
 void V_SetLoading(int total, char *mess)
 {
-        loading_total = total ? total : 1;
-        loading_amount = 0;
-        loading_message = mess;
-        if(in_textmode)
-        {
-                int i;
-                printf(" %s ", mess);
-                putchar('[');
-                for(i=0; i<total; i++) putchar(' ');     // gap
-                putchar(']');
-                for(i=0; i<=total; i++) putchar('\b');    // backspace
-        }
-        else
-                V_DrawLoading();
+  loading_total = total ? total : 1;
+  loading_amount = 0;
+  loading_message = mess;
+
+  if(in_textmode)
+    {
+      int i;
+      printf(" %s ", mess);
+      putchar('[');
+      for(i=0; i<total; i++) putchar(' ');     // gap
+      putchar(']');
+      for(i=0; i<=total; i++) putchar('\b');    // backspace
+    }
+  else
+    V_DrawLoading();
 }
 
 void V_LoadingIncrease()
 {
-        loading_amount++;
-        if(in_textmode)
-        {
-                putchar('.');
-                if(loading_amount == loading_total) putchar('\n');
-        }
-        else
-                V_DrawLoading();
+  loading_amount++;
+  if(in_textmode)
+    {
+      putchar('.');
+      if(loading_amount == loading_total) putchar('\n');
+    }
+  else
+    V_DrawLoading();
+
+  if(loading_amount == loading_total) loading_message = NULL;
 }
 
 void V_LoadingSetTo(int amount)
 {
-        loading_amount = amount;
-        if(!in_textmode) V_DrawLoading();
+  loading_amount = amount;
+  if(!in_textmode) V_DrawLoading();
 }
 
 /************************
@@ -299,73 +355,83 @@ int v_ticker = false;
 static int history[FPS_HISTORY];
 int current_count = 0;
 
+void V_ClassicFPSDrawer();
+
 void V_FPSDrawer()
 {
-      int i;
-      int x,y;          // screen x,y
-      int cx, cy;       // chart x,y
+  int i;
+  int x,y;          // screen x,y
+  int cx, cy;       // chart x,y
 
-      current_count++;
-
-      // render the chart
-      for(cx=0, x = X_OFFSET; cx<FPS_HISTORY; x++, cx++)
-         for(cy=0, y = Y_OFFSET; cy<CHART_HEIGHT; y++, cy++)
-         {
-            i = cy > (CHART_HEIGHT-history[cx]) ? BLACK : WHITE;
-            screens[0][y*(SCREENWIDTH<<hires) +x] = i;
-         }
+  if(v_ticker == 2)
+    {
+      V_ClassicFPSDrawer();
+      return;
+    }
+  
+  current_count++;
+ 
+  // render the chart
+  for(cx=0, x = X_OFFSET; cx<FPS_HISTORY; x++, cx++)
+    for(cy=0, y = Y_OFFSET; cy<CHART_HEIGHT; y++, cy++)
+      {
+	i = cy > (CHART_HEIGHT-history[cx]) ? BLACK : WHITE;
+	screens[0][y*(SCREENWIDTH<<hires) +x] = i;
+      }
 }
 
 void V_FPSTicker()
 {
-        static int lasttic;
-        int thistic;
-        int i;
+  static int lasttic;
+  int thistic;
+  int i;
 
-        thistic = I_GetTime()/7;
-
-        if(lasttic != thistic)
-        {
-                lasttic = thistic;
-
-                for(i=0; i<FPS_HISTORY-1; i++)
-                   history[i] = history[i+1];
-
-                history[FPS_HISTORY-1] = current_count;
-                current_count = 0;
-        }
+  thistic = I_GetTime()/7;
+  
+  if(lasttic != thistic)
+    {
+      lasttic = thistic;
+      
+      for(i=0; i<FPS_HISTORY-1; i++)
+	history[i] = history[i+1];
+      
+      history[FPS_HISTORY-1] = current_count;
+      current_count = 0;
+    }
 }
 
-#if 0
-void V_FPSTicker()
+// sf: classic fps ticker kept seperate
+
+void V_ClassicFPSDrawer()
 {
-      static int lasttic;
-      byte *s = screens[0];
+  static int lasttic;
+  byte *s = screens[0];
+  
+  int i = I_GetTime();
+  int tics = i - lasttic;
+  lasttic = i;
+  if (tics > 20)
+    tics = 20;
 
-      int i = I_GetTime();
-      int tics = i - lasttic;
-      lasttic = i;
-      if (tics > 20)
-	tics = 20;
-      if (hires)    // killough 11/98: hires support
-        {           // sf: rewritten so you can distinguish between dots
-
-          for(i=0 ; i<tics; i++)
-            s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4] =
-            s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4 + 1] = 0xff;
-          for(; i<20; i++)
-            s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4] =
-            s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4 + 1] = 0x0;
-	}
-      else
-	{
-	  for (i=0 ; i<tics*2 ; i+=2)
-	    s[(SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
-	  for ( ; i<20*2 ; i+=2)
-	    s[(SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
-	}
+  if (hires)    // killough 11/98: hires support
+    {           // sf: rewritten so you can distinguish between dots
+      
+      for(i=0 ; i<tics; i++)
+	s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4] =
+	  s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4 + 1] = 0xff;
+      for(; i<20; i++)
+	s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4] =
+	  s[(SCREENHEIGHT*2-1)*SCREENWIDTH*2 + i*4 + 1] = 0x0;
+    }
+  else
+    {
+      for (i=0 ; i<tics*2 ; i+=2)
+	s[(SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
+      for ( ; i<20*2 ; i+=2)
+	s[(SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
+    }
 }
-#endif
+
 
 //
 // V_Init
@@ -375,26 +441,34 @@ void V_FPSTicker()
 //
 // killough 11/98: rewritten to support hires
 
+
 void V_Init(void)
 {
   int size = hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
   static byte *s;
 
+#ifdef DJGPP
   if (s)
     free(s), destroy_bitmap(screens0_bitmap);
+#endif
 
   screens[3] = (screens[2] = (screens[1] = s = calloc(size,3)) + size) + size;
 
+#ifdef DJGPP
   screens0_bitmap = 
     create_bitmap_ex(8, SCREENWIDTH << hires, SCREENHEIGHT << hires);
-
   memset(screens[0] = screens0_bitmap->line[0], 0, size);
+#else
+  screens[0] = malloc(size);
+#endif
+
 }
+
 
 void V_InitMisc()
 {
-        V_LoadFont();
-        V_InitBox();
+  V_LoadFont();
+  V_InitBox();
 }
 
 /*************************
@@ -402,30 +476,34 @@ void V_InitMisc()
  *************************/
 
 VARIABLE_INT(v_mode, NULL,              0, 10, NULL);
-VARIABLE_INT(v_ticker, NULL,            0, 1, onoff);
 
-CONSOLE_VARIABLE(v_mode, v_mode, 0)
+char *str_ticker[]={"off", "chart", "classic"};
+VARIABLE_INT(v_ticker, NULL,            0, 2, str_ticker);
+
+CONSOLE_VARIABLE(v_mode, v_mode, cf_buffered)
 {
-     V_ResetMode();
+  V_ResetMode();
 }
 
 CONSOLE_COMMAND(v_modelist, 0)
 {
-     videomode_t* videomode = videomodes;
-
-     while(videomode->description)
-     {
-         C_Printf("%i: %s\n",(int)(videomode-videomodes),
-                                   videomode->description);
-         videomode++;
-     }
+  videomode_t* videomode = videomodes;
+  
+  C_Printf(FC_GRAY "video modes:\n" FC_RED);
+  
+  while(videomode->description)
+    {
+      C_Printf("%i: %s\n",(int)(videomode-videomodes),
+	       videomode->description);
+      videomode++;
+    }
 }
 
 CONSOLE_VARIABLE(v_ticker, v_ticker, 0) {}
 
 void V_AddCommands()
 {
-        C_AddCommand(v_mode);
-        C_AddCommand(v_modelist);
-        C_AddCommand(v_ticker);
+  C_AddCommand(v_mode);
+  C_AddCommand(v_modelist);
+  C_AddCommand(v_ticker);
 }

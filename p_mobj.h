@@ -241,123 +241,123 @@ typedef struct
 
 struct mobj_s
 {
-    // List: thinker links.
-    thinker_t           thinker;
+  // List: thinker links.
+  thinker_t           thinker;
+  
+  // Info for drawing: position.
+  fixed_t             x;
+  fixed_t             y;
+  fixed_t             z;
+  
+  // More list: links in sector (if needed)
+  struct mobj_s*      snext;
+  struct mobj_s**     sprev; // killough 8/10/98: change to ptr-to-ptr
 
-    // Info for drawing: position.
-    fixed_t             x;
-    fixed_t             y;
-    fixed_t             z;
+  //More drawing info: to determine current sprite.
+  angle_t             angle;  // orientation
+  spritenum_t         sprite; // used to find patch_t and flip value
+  int                 frame;  // might be ORed with FF_FULLBRIGHT
 
-    // More list: links in sector (if needed)
-    struct mobj_s*      snext;
-    struct mobj_s**     sprev; // killough 8/10/98: change to ptr-to-ptr
+  // Interaction info, by BLOCKMAP.
+  // Links in blocks (if needed).
+  struct mobj_s*      bnext;
+  struct mobj_s**     bprev; // killough 8/11/98: change to ptr-to-ptr
+  
+  struct subsector_s* subsector;
+  
+  // The closest interval over all contacted Sectors.
+  fixed_t             floorz;
+  fixed_t             ceilingz;
 
-    //More drawing info: to determine current sprite.
-    angle_t             angle;  // orientation
-    spritenum_t         sprite; // used to find patch_t and flip value
-    int                 frame;  // might be ORed with FF_FULLBRIGHT
+  // killough 11/98: the lowest floor over all contacted Sectors.
+  fixed_t             dropoffz;
 
-    // Interaction info, by BLOCKMAP.
-    // Links in blocks (if needed).
-    struct mobj_s*      bnext;
-    struct mobj_s**     bprev; // killough 8/11/98: change to ptr-to-ptr
-    
-    struct subsector_s* subsector;
+  // For movement checking.
+  fixed_t             radius;
+  fixed_t             height; 
+  
+  // Momentums, used to update position.
+  fixed_t             momx;
+  fixed_t             momy;
+  fixed_t             momz;
 
-    // The closest interval over all contacted Sectors.
-    fixed_t             floorz;
-    fixed_t             ceilingz;
+  // If == validcount, already checked.
+  int                 validcount;
 
-    // killough 11/98: the lowest floor over all contacted Sectors.
-    fixed_t             dropoffz;
+  mobjtype_t          type;
+  mobjinfo_t*         info;   // &mobjinfo[mobj->type]
 
-    // For movement checking.
-    fixed_t             radius;
-    fixed_t             height; 
+  int colour; // sf: the sprite colour
 
-    // Momentums, used to update position.
-    fixed_t             momx;
-    fixed_t             momy;
-    fixed_t             momz;
+  union
+  {
+    long           bfgcount;
+    backpack_t*    backpack;       // for if its a backpack
+  } extradata;
 
-    // If == validcount, already checked.
-    int                 validcount;
+  int                 tics;   // state tic counter
+  state_t*            state;
+  unsigned long       flags;
+  int                 intflags;  // killough 9/15/98: internal flags
+  int                 health;
 
-    mobjtype_t          type;
-    mobjinfo_t*         info;   // &mobjinfo[mobj->type]
+  // Movement direction, movement generation (zig-zagging).
+  short               movedir;        // 0-7
+  short               movecount;      // when 0, select a new dir
+  short               strafecount;    // killough 9/8/98: monster strafing
+  
+  // Thing being chased/attacked (or NULL),
+  // also the originator for missiles.
+  struct mobj_s*      target;
 
-    int colour; // sf: the sprite colour
+  // Reaction time: if non 0, don't attack yet.
+  // Used by player to freeze a bit after teleporting.
+  short               reactiontime;   
 
-    union
-    {
-            long           bfgcount;
-            backpack_t*    backpack;       // for if its a backpack
-    } extradata;
+  // If >0, the current target will be chased no
+  // matter what (even if shot by another object)
+  short               threshold;
 
-    int                 tics;   // state tic counter
-    state_t*            state;
-    unsigned long       flags;
-    int                 intflags;  // killough 9/15/98: internal flags
-    int                 health;
+  // killough 9/9/98: How long a monster pursues a target.
+  short               pursuecount;
+  
+  short               gear; // killough 11/98: used in torque simulation
+  
+  // Additional info record for player avatars only.
+  // Only valid if type == MT_PLAYER
+  struct player_s*    player;
+  skin_t *           skin;   //sf: skin
+  
+  // Player number last looked for.
+  short               lastlook;       
+  
+  // For nightmare respawn.
+  mapthing_t          spawnpoint;     
+  
+  // Thing being chased/attacked for tracers.
+  struct mobj_s*      tracer; 
+  
+  // new field: last known enemy -- killough 2/15/98
+  struct mobj_s*      lastenemy;
+  
+  // Are we above a Thing? above_thing points to the Thing        // phares
+  // if so, otherwise it's zero.                                  //   |
+                                                                  //   V
+  struct mobj_s* above_thing;
+  
+  // Are we below a Thing? below_thing points to the Thing
+  // if so, otherwise it's zero.
+                                                                  //   ^
+  struct mobj_s* below_thing;                                     //   |
+                                                                  // phares
 
-    // Movement direction, movement generation (zig-zagging).
-    short               movedir;        // 0-7
-    short               movecount;      // when 0, select a new dir
-    short               strafecount;    // killough 9/8/98: monster strafing
-
-    // Thing being chased/attacked (or NULL),
-    // also the originator for missiles.
-    struct mobj_s*      target;
-
-    // Reaction time: if non 0, don't attack yet.
-    // Used by player to freeze a bit after teleporting.
-    short               reactiontime;   
-
-    // If >0, the current target will be chased no
-    // matter what (even if shot by another object)
-    short               threshold;
-
-    // killough 9/9/98: How long a monster pursues a target.
-    short               pursuecount;
-
-    short               gear; // killough 11/98: used in torque simulation
-
-    // Additional info record for player avatars only.
-    // Only valid if type == MT_PLAYER
-    struct player_s*    player;
-    skin_t *           skin;   //sf: skin
-
-    // Player number last looked for.
-    short               lastlook;       
-
-    // For nightmare respawn.
-    mapthing_t          spawnpoint;     
-
-    // Thing being chased/attacked for tracers.
-    struct mobj_s*      tracer; 
-
-    // new field: last known enemy -- killough 2/15/98
-    struct mobj_s*      lastenemy;
-
-    // Are we above a Thing? above_thing points to the Thing        // phares
-    // if so, otherwise it's zero.                                  //   |
-                                                                    //   V
-    struct mobj_s* above_thing;
-
-    // Are we below a Thing? below_thing points to the Thing
-    // if so, otherwise it's zero.
-                                                                    //   ^
-    struct mobj_s* below_thing;                                     //   |
-                                                                    // phares
-
-    // killough 8/2/98: friction properties part of sectors,
-    // not objects -- removed friction properties from here
-
-    // a linked list of sectors where this object appears
-    struct msecnode_s* touching_sectorlist;                 // phares 3/14/98
-
-    // SEE WARNING ABOVE ABOUT POINTER FIELDS!!!
+  // killough 8/2/98: friction properties part of sectors,
+  // not objects -- removed friction properties from here
+  
+  // a linked list of sectors where this object appears
+  struct msecnode_s* touching_sectorlist;                 // phares 3/14/98
+  
+  // SEE WARNING ABOVE ABOUT POINTER FIELDS!!!
 };
 
         // put it here, it works, ok?

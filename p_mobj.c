@@ -95,7 +95,7 @@ boolean P_SetMobjState(mobj_t* mobj,statenum_t state)
   while (!mobj->tics && !seenstate[state]);   // killough 4/9/98
 
   if (ret && !mobj->tics)  // killough 4/9/98: detect state cycles
-    dprintf("Warning: State Cycle Detected");
+    doom_printf("Warning: State Cycle Detected");
 
   if (!--recursion)
     for (;(state=seenstate[i]);i=state-1)
@@ -726,7 +726,6 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
   P_AddThinker(&mobj->thinker);
 
   mobj->colour = (info->flags & MF_TRANSLATION) >> MF_TRANSSHIFT;
-  mobj->colour = 0;
 
   return mobj;
 }
@@ -1073,7 +1072,7 @@ mobj_t *P_SpawnMapThing (mapthing_t* mthing)
 
   if (i == NUMMOBJTYPES)
     {
-      dprintf("Unknown Thing type %i at (%i, %i)",
+      doom_printf("Unknown Thing type %i at (%i, %i)",
 	      mthing->type, mthing->x, mthing->y);
       return NULL;  // sf
     }

@@ -24,7 +24,7 @@
 
 #include "r_defs.h"
 
-#define TRANSLATIONCOLOURS 12
+#define TRANSLATIONCOLOURS 15
 
 extern lighttable_t *dc_colormap;
 extern int      dc_x;

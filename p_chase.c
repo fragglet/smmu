@@ -104,11 +104,15 @@ void P_ChaseTicker()
         chasecam.updownangle = players[displayplayer].updownangle;
         chasecam.angle =
 
+/*
+
             // point to the player if in a demo
                 demoplayback ?
         R_PointToAngle2(chasecam.x, chasecam.y, playermobj->x,
                         playermobj->y)
                 :
+
+*/
             // use player angle otherwise because its hard to control (icy)
                 playerangle;
 }

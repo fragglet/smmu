@@ -1,5 +1,15 @@
-        SMMU Console Commands
-        =====================
+
+              ,s$$$s, ,$$$s    $$$$ $$$$     $$$,,%$$s   s$$%,
+             sSS' `S'  $$$`    $%$$ $$$$     $$$ `$$$$   $$$$
+             $S$,      $$$$   ,$$$' `$$$,   ,$$$  $$$$   $$S$
+              T$$ls,   S%S$$_,$$S$   $S$$,_$$S$S  %$$S   %$$$
+             ,  `~SS|  $$$`$$$'$$S   $$S`$$$'$$$  $$S$, ,$S$$
+             $$, .$$)  $$$  ^  $$$   $$$  ^  $$%  `%$$$%$$$$'
+             `$$$$$'  ,$$$$    $$$. .MWS    $$$$,  `%%$$$$%'
+
+                          "Smack My Marine Up"
+
+                        Console commands (out of date)
 
 Multiplayer commands
 --------------------
@@ -43,6 +53,7 @@ c_speed         -- console speed
 c_height        -- console height
 echo            -- display a message in the console
 flood           -- flood the console with crap
+delay           -- wait a number of tics                  
 
 Game Commands
 -------------
@@ -77,12 +88,6 @@ mon_distfriend  -- MBF friends: distance for friends
 Editing Commands
 ----------------
 
-centremsg       -- display a message in the middle of the screen.
-                   NB: There is also a 'centermsg' alias for Americans.
-playermsg       -- display a message in the HUD text.
-spawn           -- spawn an object. see smmuedit.txt
-linetrigger     -- activate a line trigger. see smmuedit.txt
-delay           -- wait a number of tics                  
 t_dump          -- dump the contents of a script
 t_run           -- run a script
 
