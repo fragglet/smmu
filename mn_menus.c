@@ -1299,74 +1299,44 @@ CONSOLE_COMMAND(mn_misc, 0)
 // computer on demo2. When you finish you are presented with
 // this menu
 
-// test framerates
-int framerates[] = {2462, 1870, 2460, 698, 489};
-int this_framerate;
-void MN_FrameRateDrawer();
-
 menu_t menu_framerate = 
-{
   {
-    {it_title,    FC_GOLD "framerate"},
-    {it_gap},
-    {it_info,     "this graph shows your framerate against that"},
-    {it_info,     "of a fast modern computer (using the same"},
-    {it_info,     "vidmode)"},
-    {it_gap},
-    {it_runcmd,   "ok",          "mn_prevmenu"},
-    {it_gap},
-    {it_end},
-  },
-  15, 15,                                // x, y
-  mf_background | mf_leftaligned,        // align left
-  MN_FrameRateDrawer,
-};
-
-#define BARCOLOR 208
-
-void MN_FrameRateDrawer()
-{
-  int x, y;
-  int scrwidth = SCREENWIDTH << hires;
-  int linelength;
-  char tempstr[50];
-  
-  // fast computers framerate is always 3/4 of screen
-
-  sprintf(tempstr, "your computer: %i.%i fps",
-	  this_framerate/10, this_framerate%10);
-  MN_WriteText(tempstr, 50, 80);
-  
-  y = 93 << hires;
-  linelength = (3 * scrwidth * this_framerate) / (4 * framerates[v_mode]);
-  if(linelength > scrwidth) linelength = scrwidth-2;
- 
-  // draw your computers framerate
-  for(x=0; x<linelength; x++)
     {
-      *(screens[0] + y*scrwidth + x) = BARCOLOR;
-      if(hires)
-	*(screens[0] + (y+1)*scrwidth + x) = BARCOLOR;
-    }
-
-  sprintf(tempstr, "fast computer (k6-2 450): %i.%i fps",
-	  framerates[v_mode]/10, framerates[v_mode]%10);
-  MN_WriteText(tempstr, 50, 110);
-
-  y = 103 << hires;
-
-  // draw my computers framerate
-  for(x=0; x<(scrwidth*3)/4; x++)
-    {
-      *(screens[0] + y*scrwidth + x) = BARCOLOR;
-      if(hires)
-	*(screens[0] + (y+1)*scrwidth + x) = BARCOLOR;
-    }
-}
+      {it_title,    FC_GOLD "framerate"},
+      {it_gap},
+      {it_info,    "your video mode is:"},
+      {it_gap},
+      {it_info},
+      {it_gap},
+      {it_info,     "your computer achieved the following framerate playing"},
+      {it_info,     "dooms demo2:"},
+      {it_gap},
+      {it_info},
+      {it_gap},
+      {it_runcmd,   "time demo again",  "timedemo demo2; mn_clearmenus"},
+      {it_runcmd,   "<- back",          "mn_prevmenu"},
+      {it_gap},
+      {it_end},
+    },
+    15, 15,                                // x, y
+    mf_background | mf_leftaligned,        // align left
+  };
 
 void MN_ShowFrameRate(int framerate)
 {
-  this_framerate = framerate;
+  
+  static char fps[50];
+  
+  // hack the framerate menu to display the appropriate details
+  
+  menu_framerate.menuitems[4].description = modenames[v_mode];
+  
+  sprintf(fps, "%i.%i frames per second", framerate/10, framerate%10);
+  
+  menu_framerate.menuitems[9].description = fps;
+  
+  // open menu  
+
   MN_StartMenu(&menu_framerate);
   D_StartTitle();      // user does not need to see the console
 }
@@ -1416,7 +1386,10 @@ void MN_AddMenus()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-19 14:58:55  fraggle
+// Revision 1.3  2001-01-13 00:33:55  fraggle
+// fix/change fps menu
+//
+// Revision 1.2  2000/06/19 14:58:55  fraggle
 // cygwin (win32) support
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

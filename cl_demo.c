@@ -88,6 +88,9 @@ void CL_StopDemo()
 	  
 	  timingdemo = singletics = false;
 
+	  if(realtics <= 0)     // catch div-by-zero?
+	    realtics = 1;
+
 	  if(timedemo_menuscreen)
 	    MN_ShowFrameRate((gametics * TICRATE * 10) / realtics);
 	  else
@@ -114,6 +117,7 @@ void CL_StopDemo()
 
 void G_StopDemo()
 {
+  CL_StopDemo();
 }
 
 //===========================================================================
@@ -815,7 +819,10 @@ void G_StopDemo()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-10 13:11:37  fraggle
+// Revision 1.3  2001-01-13 00:33:55  fraggle
+// fix/change fps menu
+//
+// Revision 1.2  2000/05/10 13:11:37  fraggle
 // fix demos
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
