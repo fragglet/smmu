@@ -271,19 +271,20 @@ int I_CheckAbort()
  *************************/
 
 extern void I_Sound_AddCommands();
-extern void I_Video_AddCommands();
         // add system specific commands
 void I_AddCommands()
 {
-  I_Video_AddCommands();
   I_Sound_AddCommands();
 }
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-04-30 19:38:33  fraggle
+// fix linux build
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
