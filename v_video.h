@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: v_video.h,v 1.9 1998/05/06 11:12:54 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -93,6 +93,8 @@ void V_CopyRect(int srcx,  int srcy,  int srcscrn, int width, int height,
 // killough 11/98: Consolidated V_DrawPatch and V_DrawPatchFlipped
 
 void V_DrawPatchGeneral(int x,int y,int scrn,patch_t *patch, boolean flipped);
+        //sf: unscaled drawpatch
+void V_DrawPatchUnscaled(int x,int y,int scrn,patch_t *patch);
 
 #define V_DrawPatch(x,y,s,p)        V_DrawPatchGeneral(x,y,s,p,false)
 #define V_DrawPatchFlipped(x,y,s,p) V_DrawPatchGeneral(x,y,s,p,true)
@@ -101,6 +103,7 @@ void V_DrawPatchGeneral(int x,int y,int scrn,patch_t *patch, boolean flipped);
 
 void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch, char *outr,
                            int cm);
+void V_DrawPatchTL(int x, int y, int scrn, patch_t *patch, unsigned char *outr);
 
 // Draw a linear block of pixels into the view buffer.
 
@@ -112,14 +115,13 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest);
 
 #define V_MarkRect(x,y,width,height)  /* killough 11/98: unused */
 
+#include "v_misc.h"
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: v_video.h,v $
 // Revision 1.9  1998/05/06  11:12:54  jim
 // Formattted v_video.*
 //

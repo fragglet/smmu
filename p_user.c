@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_user.c,v 1.14 1998/05/12 12:47:25 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,10 +23,12 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_user.c,v 1.14 1998/05/12 12:47:25 phares Exp $";
 
 #include "doomstat.h"
 #include "d_event.h"
+#include "c_net.h"
+#include "g_game.h"
 #include "r_main.h"
 #include "p_map.h"
 #include "p_spec.h"
@@ -100,7 +102,7 @@ void P_CalcHeight (player_t* player)
   player->bob = player_bobbing ? (FixedMul(player->momx,player->momx) + 
 				  FixedMul(player->momy,player->momy))>>2 : 0;
 
-  if (player->bob > MAXBOB)                             
+  if (player->bob > MAXBOB)
     player->bob = MAXBOB;
 
   if (!onground || player->cheats & CF_NOMOMENTUM)
@@ -309,8 +311,26 @@ void P_PlayerThink (player_t* player)
   if (player->mo->reactiontime)
     player->mo->reactiontime--;
   else
+  {
     P_MovePlayer (player);
+    if (cmd->updownangle)      // wait til teleport finishes to look around
+       player->updownangle += cmd->updownangle;
+  }
 
+        // looking up/down checks
+  if(player->updownangle < -50) player->updownangle = -50;
+  if(player->updownangle > 50) player->updownangle = 50;
+  if(!allowmlook) player->updownangle = 0;
+
+  if(player->readyweapon == wp_bfg)
+  {
+       if(bfglook == 0) player->updownangle = 0;
+       if(bfglook == 2 && player->updownangle < -10)
+              player->updownangle = -10;
+  }
+
+        // sf: do this in p_tick.c now for hyperlift-jumping fix
+        // feels different: put pack
   P_CalcHeight (player); // Determines view height and bobbing
 
   // Determine if there's anything about the sector you're in that's
@@ -407,8 +427,19 @@ void P_PlayerThink (player_t* player)
     player->powers[pw_invulnerability]--;
 
   if (player->powers[pw_invisibility] > 0)    // killough
-    if (! --player->powers[pw_invisibility] )
-      player->mo->flags &= ~MF_SHADOW;
+  {
+    player->mo->flags &= ~MF_SHADOW;    //sf: flash the invisibility like
+    player->powers[pw_invisibility]--;  // in the psprites
+    player->mo->flags |=               
+      player->powers[pw_invisibility] &&
+      (player->powers[pw_invisibility] > 4*32 ||
+        player->powers[pw_invisibility] & 8)
+        ? MF_SHADOW : 0;
+  }
+
+//      old code
+//    if (! --player->powers[pw_invisibility] )
+//      player->mo->flags &= ~MF_SHADOW;
 
   if (player->powers[pw_infrared] > 0)        // killough
     player->powers[pw_infrared]--;
@@ -425,22 +456,9 @@ void P_PlayerThink (player_t* player)
   // Handling colormaps.
   // killough 3/20/98: reformat to terse C syntax
 
-  // killough 7/11/98: beta version had invisibility, instead of
-  // invulernability, and the light amp visor used the last colormap.
-  // But white flashes occurred when invulnerability wore off.
-
   player->fixedcolormap = 
 
-#ifdef BETA
-    beta_emulation ?    /* Beta Emulation */
-    player->powers[pw_infrared] > 4*32 ||
-    player->powers[pw_infrared] & 8 ? 32 :
-    player->powers[pw_invisibility] > 4*32 ||
-    player->powers[pw_invisibility] & 8 ||
-    (player->powers[pw_invulnerability] < 4*32 &&
-     player->powers[pw_invulnerability] > 0 &&
-     player->powers[pw_invulnerability] & 8) ? 33 : 0 :
-#endif
+        // sf: removed MBF beta stuff
 
     player->powers[pw_invulnerability] > 4*32 ||    /* Regular Doom */
     player->powers[pw_invulnerability] & 8 ? INVERSECOLORMAP :
@@ -449,10 +467,7 @@ void P_PlayerThink (player_t* player)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_user.c,v $
 // Revision 1.14  1998/05/12  12:47:25  phares
 // Removed OVER_UNDER code
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_draw.h,v 1.5 1998/05/03 22:42:23 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,6 +23,8 @@
 #define __R_DRAW__
 
 #include "r_defs.h"
+
+#define TRANSLATIONCOLOURS 12
 
 extern lighttable_t *dc_colormap;
 extern int      dc_x;
@@ -68,6 +70,7 @@ extern byte *dc_translation;
 
 // Span blitting for rows, floor/ceiling. No Spectre effect needed.
 void R_DrawSpan(void);
+void R_DrawTLSpan(void);
 
 void R_InitBuffer(int width, int height);
 
@@ -90,10 +93,7 @@ extern byte *ylookup[];       // killough 11/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_draw.h,v $
 // Revision 1.5  1998/05/03  22:42:23  killough
 // beautification, extra declarations
 //

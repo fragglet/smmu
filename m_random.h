@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_random.h,v 1.9 1998/05/01 14:20:31 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -111,9 +111,9 @@ typedef enum {
   pr_dropoff,                 // #60
   pr_randomjump,              // #61
   pr_defect,                  // #62
-
+  pr_script,                  // #63: FraggleScript
   // End of new entries
-  NUMPRCLASS               // MUST be last item in list
+  NUMPRCLASS                  // MUST be last item in list
 } pr_class_t;
 
 // The random number generator's state.
@@ -139,10 +139,7 @@ void M_ClearRandom(void);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_random.h,v $
 // Revision 1.9  1998/05/01  14:20:31  killough
 // beautification
 //

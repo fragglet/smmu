@@ -1,0 +1,148 @@
+                          SMMU 'Smack My Marine Up'
+                    an MBF Port by Simon Howard 'Fraggle'
+           http://fraggle.tsx.org/  || sfraggle@sfrag.free-online.co.uk
+
+                version 3.02 'birthday beta' 25/7/99
+
+NB: This Version is a *BETA*. Some of the new features are incomplete
+    and/or do not work properly. Please bear this in mind and recognise
+    the fact that I am *NOT* responsible for any damage done by this
+    program
+
+Editing
+~~~~~~~
+There are several new editing features in smmu. Look in smmuedit.txt for
+more details.
+
+Batman Doom Support
+~~~~~~~~~~~~~~~~~~~
+The Batman Doom Port is notoriously unreliable on certain ports, particularly
+ZDoom. I had some problem running it under SMMU at first, but I was later
+able to fix the problem and it now runs apparently fine. If you have any
+problem, please contact me!
+
+Netgame support
+~~~~~~~~~~~~~~~
+There are some new netgame options:
+ * Deathmatch III: add -trideath parameter to command line
+ * ability to set name, colour
+ * 'server' computer is green player (not actually client-server
+   network model... yet)
+ * built in serial communications with console commands:
+        - nullmodem: connect over a null-modem cable
+        - answer: tell the modem to wait for a call
+        - dial <number> : dial someone else waiting for a call
+        - com <port> : set the comport used
+ * map changable from console, server computer can set certain
+   'server' variables: sv_bfglook, sv_allowmlook 
+ * built in pop-up frag counter
+ * One computer crashing does not slow all the others to a crawl:
+   the console and menu still run even if the game itself does not
+ * Support for Doom Legacy skins
+ * Obituaries
+ * WORKING netgames with this version
+
+New stuff
+~~~~~~~~~
+ * Chasecam: use the chasecam console command
+ * Load Doom I wads under Doom II through mapping Doom I textures to Doom II
+   textures
+ * Walk-cam allows you to walk around in demos which are running
+ * Half-life style crosshair which lights up when pointed at enemies
+ * Swirling quake-style water effect.
+ * Support for doom legacy skins (use 'listskins' command to list skins,
+   'skin' to change your skin)
+ * Left handedness
+ * Fully functional and reliable (I think) 'addfile' command to dynamically
+   load wads
+ * Walkcam: walk around in demos
+
+How to try out the new stuff
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * At the console, type 'chasecam on' to see the new chasecam. Wander
+   around a bit, then type 'chasecam off' again to turn it off (see how
+   it moves back into the player.. wow!)
+ * Half-life style crosshair. Type 'crosshair 1' at the console. A red
+   crosshair should appear. Now point the crosshair at an enemy. It
+   goes green. Useful in the dark =).
+ * Find a spot of water somewhere (eg. the outdoor bit in MAP01).
+   Now go to the console, type 'r_swirl 1'. The water changes to a swirling
+   effect similar to Quake. Developers can also use this in their wads.
+   See smmuedit.txt.
+ * Get a skins wad off the Internet (eg. The Imp Skin available from my
+   page -- http://fraggle.tsx.org/). Now, run 'smmu -file <wad file name>'
+   Go into a level and turn on the chasecam (type 'map map01; chasecam on')
+   Now, at the console type 'listskins'. If you have done things right,
+   you should see a list of skins: 'marine' followed by 'imp' or whatever.
+   Pick a skin (other than 'marine') and type 'skin <skin name>'. Your
+   player should change to an imp (or whatever you chose)
+ * Make sure the chasecam is off, then type 'lefthanded 1' at the console.
+   Your gun should flip the other way and appear left handed!
+ * Pick a wad file from the dos prompt. Now run smmu. When the title screen
+   appears, activate the console and type 'addfile <wad file name>'. A
+   loading box appears, and a few seconds later you are returned to the
+   console. Now press escape to bring up the menu, and start a new game.
+   The new wad has been loaded and you should start on the first level of the
+   new wad.
+ * Load a wad, get a demo playing. Now at the console type 'walkcam 1'. You
+   can walk around inside the demo while it plays!
+
+Problems with netgames
+~~~~~~~~~~~~~~~~~~~~~~
+There is a slight possibility that netgames may not work properly. If
+you have a problem, you may find that reliability of the netgame will
+improve if you copy the same smmu.cfg file onto both (or all) computers
+you are playing it on.
+
+*PLEASE NOTE*
+At the start of smmu netgames, you will see a message
+'please wait: sending game data' or 'please wait: receiving game data'.
+Your game has *NOT* crashed. It make take quite a long time to transfer
+the game data, possibly up to 20 seconds. Please be patient. I have a
+solution to this which can significantly speed up the transfer, but it
+is rather unstable at the moment.
+
+How to play with a modem
+~~~~~~~~~~~~~~~~~~~~~~~~
+The serial/modem support is still rather dodgy, but it does actually
+work now. However, you are more likely to get consistancy failures
+than if an external program is used. If you have problems, try the
+following checklist:
+
+ * Make sure you have selected the right com port (use the console
+        'com' variable)
+ * Try following guidelines from the previous section 'problems with
+        netgames'
+ * Make sure you have not started any new games or allowed any demos to
+   start. Start SMMU, and when the title screen appears, bring down the
+   console and type 'endgame' to drop to a full-screen console. Now proceed
+   with starting the game.
+ * If even the previous point does not cure it, go one step further and do
+   not even bring down the console. Quickly type the commands to establish
+   the game (be careful not to leave it too long or a demo will start)
+
+Console
+~~~~~~~
+A list is available in smmu by typing 'cmdlist': i'm sure you can
+figure most of them out. Alternatively, try smmucons.txt
+
+Sources
+~~~~~~~
+The sources are available from my site: http://fraggle.tsx.org/
+under the 'stuff' section
+
+Copyright
+~~~~~~~~~
+The files distributed are Copyright(C) 1999 Simon Howard. I am not
+responsible for any damage done by any means through using this program
+and I cannot guarantee that it will work properly. You run this at your
+own risk. Don't blame me if your PC explodes after you run this. I am not
+responsible for any illegal activities regarding this software.
+
+SMMU is based upon the MBF sources, which are based on the BOOM sources,
+which are based on the Chi Hoang DOSDOOM sources, which are based on the
+original Linux Doom sources released by id software. This is not endorsed
+by any of the above, don't bug them about it. If you have a problem,
+tell me!
+
+

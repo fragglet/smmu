@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_map.c,v 1.35 1998/05/12 12:47:16 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_map.c,v 1.35 1998/05/12 12:47:16 phares Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -35,6 +35,7 @@ rcsid[] = "$Id$";
 #include "sounds.h"
 #include "p_inter.h"
 #include "m_random.h"
+#include "r_segs.h"
 #include "m_bbox.h"
 
 static mobj_t    *tmthing;
@@ -76,6 +77,8 @@ static int    tmunstuck;     // killough 8/1/98: whether to allow unsticking
 // 1/11/98 killough: removed limit on special lines crossed
 line_t **spechit;                // new code -- killough
 static int spechit_max;          // killough
+
+mobj_t *hitthing;       //sf
 
 int numspechit;
 
@@ -243,7 +246,7 @@ boolean P_TeleportMove(mobj_t *thing, fixed_t x, fixed_t y, boolean boss)
   for (bx=xl ; bx<=xh ; bx++)
     for (by=yl ; by<=yh ; by++)
       if (!P_BlockThingsIterator(bx,by,PIT_StompThing))
-        return false;
+	return false;
 
   // the move is ok,
   // so unlink from the old position & link into the new position
@@ -404,6 +407,8 @@ static boolean PIT_CheckThing(mobj_t *thing) // killough 3/26/98: make static
   fixed_t blockdist;
   int damage;
 
+  hitthing = tmthing;
+
   // killough 11/98: add touchy things
   if (!(thing->flags & (MF_SOLID|MF_SPECIAL|MF_SHOOTABLE|MF_TOUCHY)))
     return true;
@@ -488,8 +493,8 @@ static boolean PIT_CheckThing(mobj_t *thing) // killough 3/26/98: make static
 	if (thing == tmthing->target)
 	  return true;                // Don't hit same species as originator.
 	else
-	  if (thing->type != MT_PLAYER)	// Explode, but do no damage.
-	    return false;	        // Let players missile other players.
+	  if (thing->type != MT_PLAYER) // Explode, but do no damage.
+	    return false;               // Let players missile other players.
       
       // killough 8/10/98: if moving thing is not a missile, no damage
       // is inflicted, and momentum is reduced if object hit is solid.
@@ -537,7 +542,7 @@ static boolean PIT_CheckThing(mobj_t *thing) // killough 3/26/98: make static
   // killough 4/11/98: Treat no-clipping things as not blocking
 
   return !((thing->flags & MF_SOLID && !(thing->flags & MF_NOCLIP))
-           && (tmthing->flags & MF_SOLID || demo_compatibility));
+	   && (tmthing->flags & MF_SOLID || demo_compatibility));
 
   // return !(thing->flags & MF_SOLID);   // old code -- killough
 }
@@ -585,7 +590,7 @@ boolean Check_Sides(mobj_t *actor, int x, int y)
   for (bx = xl ; bx <= xh ; bx++)
     for (by = yl ; by <= yh ; by++)
       if (!P_BlockLinesIterator(bx,by,PIT_CrossLine))
-        return true;                                                //   ^
+	return true;                                                //   ^
   return(false);                                                    //   |
 }                                                                 // phares
 
@@ -669,7 +674,7 @@ boolean P_CheckPosition(mobj_t *thing, fixed_t x, fixed_t y)
   for (bx=xl ; bx<=xh ; bx++)
     for (by=yl ; by<=yh ; by++)
       if (!P_BlockThingsIterator(bx,by,PIT_CheckThing))
-        return false;
+	return false;
 
   // check lines
 
@@ -681,7 +686,7 @@ boolean P_CheckPosition(mobj_t *thing, fixed_t x, fixed_t y)
   for (bx=xl ; bx<=xh ; bx++)
     for (by=yl ; by<=yh ; by++)
       if (!P_BlockLinesIterator(bx,by,PIT_CheckLine))
-        return false; // doesn't fit
+	return false; // doesn't fit
 
   return true;
 }
@@ -820,8 +825,8 @@ static boolean PIT_ApplyTorque(line_t *ld)
       if (dist < 0 ?                               // dropoff direction
 	  ld->frontsector->floorheight < mo->z &&
 	  ld->backsector->floorheight >= mo->z :
-          ld->backsector->floorheight < mo->z &&
-          ld->frontsector->floorheight >= mo->z)
+	  ld->backsector->floorheight < mo->z &&
+	  ld->frontsector->floorheight >= mo->z)
 	{
 	  // At this point, we know that the object straddles a two-sided
 	  // linedef, and that the object's center of mass is above-ground.
@@ -1250,11 +1255,11 @@ static mobj_t *shootthing;
 
 static int aim_flags_mask; // killough 8/2/98: for more intelligent autoaiming
 
-static fixed_t shootz;  // Height if not aiming up or down
+fixed_t shootz;  // Height if not aiming up or down
 static int la_damage;
 fixed_t attackrange;
 
-static fixed_t   aimslope;
+fixed_t   aimslope;
 
 // slopes to top and bottom of target
 // killough 4/20/98: make static instead of using ones in p_sight.c
@@ -1489,6 +1494,9 @@ fixed_t P_AimLineAttack(mobj_t *t1,angle_t angle,fixed_t distance,int mask)
   if (linetarget)
     return aimslope;
 
+  if (t1->player)
+    return t1->player->updownangle * LOOKSLOPE;
+
   return 0;
 }
 
@@ -1626,9 +1634,10 @@ static boolean PIT_RadiusAttack(mobj_t *thing)
       thing->type == MT_CYBORG || thing->type == MT_SPIDER)
     return true;
 
+
+
   dx = abs(thing->x - bombspot->x);
   dy = abs(thing->y - bombspot->y);
-
   dist = dx>dy ? dx : dy;
   dist = (dist - thing->radius) >> FRACBITS;
 
@@ -1698,6 +1707,8 @@ static boolean PIT_ChangeSector(mobj_t *thing)
 
   if (thing->health <= 0)
     {
+      thing->skin = NULL;       // sf: clear the skin which will mess things
+                                // up
       P_SetMobjState(thing, S_GIBS);
       thing->flags &= ~MF_SOLID;
       thing->height = thing->radius = 0;
@@ -1804,12 +1815,12 @@ boolean P_CheckSector(sector_t *sector,boolean crunch)
   do
     for (n=sector->touching_thinglist; n; n=n->m_snext)  // go through list
       if (!n->visited)               // unprocessed thing found
-        {
+	{
 	  n->visited  = true;          // mark thing as processed
 	  if (!(n->m_thing->flags & MF_NOBLOCKMAP)) //jff 4/7/98 don't do these
 	    PIT_ChangeSector(n->m_thing);    // process it
 	  break;                 // exit and start over
-        }
+	}
   while (n);  // repeat from scratch until all things left are marked valid
 
   return nofit;
@@ -1821,6 +1832,25 @@ boolean P_CheckSector(sector_t *sector,boolean crunch)
 
 msecnode_t *headsecnode = NULL;
 
+// sf: fix annoying crash on restarting levels
+//
+//      This crash occurred because the msecnode_t's are allocated as
+//      PU_LEVEL. This meant that these were freed whenever a new level
+//      was loaded or the level restarted. However, the actual list was
+//      not emptied. As a result, msecnode_t's were being used that had
+//      been freed back to the zone memory. I really do not understand
+//      why boom or MBF never got this bug- or am I missing something?
+//
+//      additional comment 5/7/99
+//      There _is_ code to free the list in g_game.c. But this is called
+//      too late: some msecnode_t's are used during the loading of the
+//      level. 
+
+void P_FreeSecNodeList()
+{
+        headsecnode = NULL;       // this is all thats needed to fix the bug
+}
+
 // P_GetSecnode() retrieves a node from the freelist. The calling routine
 // should make sure it sets all fields properly.
 //
@@ -1829,10 +1859,10 @@ msecnode_t *headsecnode = NULL;
 static msecnode_t *P_GetSecnode(void)
 {
   msecnode_t *node;
-
+  
   return headsecnode ?
     node = headsecnode, headsecnode = node->m_snext, node :
-    Z_Malloc(sizeof *node, PU_LEVEL, NULL);
+    Z_Malloc(sizeof *node, PU_LEVEL, NULL); 
 }
 
 // P_PutSecnode() returns a node to the freelist.
@@ -2047,10 +2077,7 @@ void P_CreateSecNodeList(mobj_t *thing,fixed_t x,fixed_t y)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: p_map.c,v $
 // Revision 1.35  1998/05/12  12:47:16  phares
 // Removed OVER_UNDER code
 //

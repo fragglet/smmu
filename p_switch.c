@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_switch.c,v 1.25 1998/06/01 14:48:19 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,15 +20,16 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_switch.c,v 1.25 1998/06/01 14:48:19 jim Exp $";
 
 #include "doomstat.h"
-#include "w_wad.h"
-#include "r_main.h"
-#include "p_spec.h"
 #include "g_game.h"
+#include "p_spec.h"
+#include "r_main.h"
 #include "s_sound.h"
 #include "sounds.h"
+#include "t_script.h"
+#include "w_wad.h"
 
 // killough 2/8/98: Remove switch limit
 
@@ -552,6 +553,22 @@ P_UseSpecialLine
       if (EV_DoFloor(line,raiseFloor512))
         P_ChangeSwitchTexture(line,0);
       break;
+
+      // sf: scripting
+
+    case 274:
+    case 275:
+       t_trigger = thing;
+       T_RunScript(line->tag);
+       if(line->special == 275)
+       {
+         line->special = 0;         // clear tag
+         P_ChangeSwitchTexture(line,0);
+       }
+       else
+         P_ChangeSwitchTexture(line,1);
+       break;
+
 
       // killough 1/31/98: factored out compatibility check;
       // added inner switch, relaxed check to demo_compatibility
@@ -1127,10 +1144,7 @@ P_UseSpecialLine
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: p_switch.c,v $
 // Revision 1.25  1998/06/01  14:48:19  jim
 // Fix switch use from back side
 //

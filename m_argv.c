@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_argv.c,v 1.5 1998/05/03 22:51:40 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: m_argv.c,v 1.5 1998/05/03 22:51:40 killough Exp $";
 
 #include <string.h>
 
@@ -46,10 +46,7 @@ int M_CheckParm(const char *check)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_argv.c,v $
 // Revision 1.5  1998/05/03  22:51:40  killough
 // beautification
 //

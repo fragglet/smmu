@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_plats.c,v 1.16 1998/05/08 17:44:18 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_plats.c,v 1.16 1998/05/08 17:44:18 jim Exp $";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -58,7 +58,7 @@ void T_PlatRaise(plat_t* plat)
       if (plat->type == raiseAndChange
           || plat->type == raiseToNearestAndChange)
       {
-        if (!(leveltime&7))
+        if (!(leveltime&7) && !silentmove(plat->sector)) // sf: silentmove
           S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_stnmov);
       }
       
@@ -67,7 +67,8 @@ void T_PlatRaise(plat_t* plat)
       {
         plat->count = plat->wait;
         plat->status = down;
-        S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_pstart);
+        if(!silentmove(plat->sector))    // sf: silentmove
+           S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_pstart);
       }
       else  // else handle reaching end of up stroke
       {
@@ -78,7 +79,8 @@ void T_PlatRaise(plat_t* plat)
           {
             plat->count = plat->wait;
             plat->status = waiting;
-            S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_pstop);
+            if(!silentmove(plat->sector)) // sf: silentmove
+               S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_pstop);
           }
           else // else go into stasis awaiting next toggle activation
           {
@@ -114,7 +116,8 @@ void T_PlatRaise(plat_t* plat)
         {                           // is silent, instant, no waiting
           plat->count = plat->wait;
           plat->status = waiting;
-          S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstop);
+          if(!silentmove(plat->sector)) // sf: silentmove
+             S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstop);
         }
         else // instant toggles go into stasis awaiting next activation
         {
@@ -150,7 +153,8 @@ void T_PlatRaise(plat_t* plat)
           plat->status = down;   // if at top, start down
 
         // make plat start sound
-        S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstart);
+        if(!silentmove(plat->sector))    // sf: silentmove
+            S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstart);
       }
       break; //jff 1/27/98 don't pickup code added later to in_stasis
 
@@ -237,7 +241,8 @@ int EV_DoPlat
         //jff 3/14/98 clear old field as well
         sec->oldspecial = 0;               
 
-        S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov);
+        if(!silentmove(sec)) //sf: silentmove
+                S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov);
         break;
           
       case raiseAndChange:
@@ -247,7 +252,8 @@ int EV_DoPlat
         plat->wait = 0;
         plat->status = up;
 
-        S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov);
+        if(!silentmove(sec)) //sf: silentmove
+                S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov);
         break;
           
       case downWaitUpStay:
@@ -260,7 +266,8 @@ int EV_DoPlat
         plat->high = sec->floorheight;
         plat->wait = 35*PLATWAIT;
         plat->status = down;
-        S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+        if(!silentmove(sec))    // sf: silentmove
+                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
           
       case blazeDWUS:
@@ -273,7 +280,8 @@ int EV_DoPlat
         plat->high = sec->floorheight;
         plat->wait = 35*PLATWAIT;
         plat->status = down;
-        S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+        if(!silentmove(sec))    // sf: silentmove
+                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
           
       case perpetualRaise:
@@ -291,7 +299,8 @@ int EV_DoPlat
         plat->wait = 35*PLATWAIT;
         plat->status = P_Random(pr_plats)&1;
 
-        S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+        if(!silentmove(sec))    // sf: silentmove
+                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
 
       case toggleUpDn: //jff 3/14/98 add new type to support instant toggle
@@ -429,10 +438,7 @@ void P_RemoveAllActivePlats(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_plats.c,v $
 // Revision 1.16  1998/05/08  17:44:18  jim
 // formatted/documented p_plats
 //

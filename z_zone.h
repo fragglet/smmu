@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: z_zone.h,v 1.7 1998/05/08 20:32:12 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -66,6 +66,7 @@ void *(Z_Realloc)(void *p, size_t n, int tag, void **user, const char *, int);
 char *(Z_Strdup)(const char *s, int tag, void **user, const char *, int);
 void (Z_CheckHeap)(const char *,int);   // killough 3/22/98: add file/line info
 void Z_DumpHistory(char *);
+void Z_ReInit();
 
 #define Z_Free(a)          (Z_Free)     (a,      __FILE__,__LINE__)
 #define Z_FreeTags(a,b)    (Z_FreeTags) (a,b,    __FILE__,__LINE__)
@@ -96,10 +97,7 @@ void Z_PrintStats(void);      // killough 8/23/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: z_zone.h,v $
 // Revision 1.7  1998/05/08  20:32:12  killough
 // fix __attribute__ redefinition
 //

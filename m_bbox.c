@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_bbox.c,v 1.4 1998/05/05 19:55:56 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,7 +24,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: m_bbox.c,v 1.4 1998/05/05 19:55:56 phares Exp $";
 
 #include "m_bbox.h"
 
@@ -51,10 +51,7 @@ void M_AddToBox(fixed_t* box,fixed_t x,fixed_t y)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_bbox.c,v $
 // Revision 1.4  1998/05/05  19:55:56  phares
 // Formatting and Doc changes
 //

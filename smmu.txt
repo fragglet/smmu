@@ -1,0 +1,189 @@
+
+                  _____________________________________
+                 /                                     \ 
+                /                                       \
+               |        S       M       M       U        |
+                \                                       /
+                 \_____________________________________/ 
+
+                          "Smack My Marine Up"
+
+                            An MBF-based port
+	sfraggle@sfrag.free-online.co.uk || http://fraggle.tsx.org/
+
+            Coding by Simon Howard 'Fraggle'
+            Start Map/demo map by Derek MacDonald 'Afterglow'
+            Graphics by Bob Satori
+
+                 version 3.10 'FraggleScript Beta' 16/10/99
+
+[1] What is SMMU ?
+------------------
+SMMU is based on the 'MBF' port by Lee Killough. It includes all the
+features of normal Doom, plus 'Boom' additions and also all the main
+features of 'MBF'. In addition to these, SMMU includes its own
+unique features which have been added.
+
+The original philosophy behind SMMU was to provide better multiplayer
+options for doom on top of the backbone of MBF. However, I now see
+the main aim of SMMU as being to add new and original features to
+the game, including multiplayer features, while maintaining original
+compatibility and retaining the 'fun and flavour' of the original
+doom.
+
+[1-1] List of features
+----------------------
+New features added in SMMU:
+
+        * FraggleScript -- fully featured programming language for
+                level authors
+        * Dynamic loading of WAD files once the game has begun.
+        * Inbuilt serial communications: you no longer need to exit
+                the game to start a new game over a serial link.
+                Similarly built-in TCP/IP networking to come soon.
+        * Level 'lumps' to define names of levels, par times etc.
+        * Walkcam to let you walk around inside playing demos,
+                even when paused.
+        * Game / Environment seperation: if a netgame freezes, the
+          menu and console will still run at the same speed.
+        * Support for 'unfinished' boom sound flags - kill all
+          sound in sector, kill sound in sector due to moving
+        * 'Half-life style' lightup crosshair
+        * 'Rippling' quake-style water effect for level creators
+        * Extra multiplayer options: player name, player colour
+                (including new colours), deathmatch 3
+        * Chasecam
+        * Fully functional command console: change game variables,
+                activate features etc.
+        * Support for Doom Legacy skins.
+        * Y-shearing look up/down -- NO JUMPING
+        * Zooming
+
+
+[2] FraggleScript
+-----------------
+FraggleScript has begun to be implemented. In fact its more-or-less finished.
+Try smmutest.wad or look thru smmutest.fs to see it in action :)
+
+        [... smmu.txt to be completed ...]
+
+[3] Netgames
+------------
+
+[3-1] How do I play netgames ?
+------------------------------
+To play over a network (ie. IPX), you need ipxboom.exe which comes with the
+BOOM distribution. Then just type:
+
+        ipxboom -exe smmu ... [other options]
+
+To play over a serial link is different (and still rather experimental).
+SMMU has built in serial comms. To use this, first go to the console and
+type 'endgame' to get a full-screen console. Then type the following:
+
+        com (com port to use)
+        nullmodem
+
+Do this on both computers and it should start right into a netgame. Also,
+you can play using a modem in a similar way:
+
+    on the computer to be called:
+        com (com port of modem)
+        answer
+    on the computer to call the person:
+        com (com port of modem)
+        dial (phone number)
+
+The 
+
+in-built TCP/IP comms is to come soon.
+
+[3-2] "Sending game data" message
+---------------------------------
+At the start of smmu netgames, you will see a message
+'please wait: sending game data' or 'please wait: receiving game data'.
+Your game has *NOT* crashed. It make take quite a long time to transfer
+the game data, possibly up to 20 seconds. Please be patient. I have a
+solution to this which can significantly speed up the transfer, but it
+is rather unstable at the moment, and so is not included.
+
+[3-3] What extra netgame features does SMMU add?
+------------------------------------------------
+Loads!
+
+ * Deathmatch III: add -trideath parameter to command line
+ * ability to set name, colour
+ * 'server' computer is green player (not actually client-server
+   network model... yet)
+ * map changable from console, server computer can set certain
+   'server' variables: bfglook, allowmlook 
+ * pop-up frag counter
+ * One computer crashing does not slow all the others to a crawl:
+   the console and menu still run even if the game itself does not
+ * Support for Doom Legacy skins
+ * Obituaries
+ * WORKING netgames with this version
+
+[4] Frequently asked questions
+------------------------------
+Q. Uh? Where are all these new options I've heard about? I dont see any of
+   them in the menus? Is it all a lie?
+A. The SMMU menu system is behind the rest of the developments brought by
+   SMMU. A new menu will be coming soon which should allow access to all
+   the new features. Until now, you can do most of what you want to do
+   through the console.
+
+Q. What are all these new editing features I've heard about and what the
+   hell is "FraggleScript"?
+A. SMMU adds many new editing features. Some of these are shown in
+   smmutest.wad. FraggleScript is the fully-featured built-in language
+   that developers can use in their levels.
+
+Q. Couldn't you be bothered to make a proper demo map?
+A. I'm not a level editor. The level smmutest.wad which is included is
+   simply the level I've been using to develop FraggleScript in. Afterglow
+   should be making a proper demo map soon.
+
+Q. Your port rocks me down! Where can I get the sources?
+A. The sources are avaiable from my website at http://fraggle.tsx.org/
+
+Q. Does batman doom run under SMMU?
+A. It should do. I had some initial problems trying to run batman doom under
+   SMMU but quickly fixed these.
+
+Q. Why isn't SMMU GPL yet?
+A. I will make it GPL as soon as I can. SMMU is based on MBF by Lee
+   Killough, so I can't make SMMU GPL until MBF is too. Lee has suggested
+   that he probably will make it GPL, so it shouldnt be long.
+
+Q. This is a nice port, but what more are you going to do with it?
+A. Here is a short list of things to be done in the future with SMMU:
+        * Proper graphics for console backdrop etc.
+        * Start map (Afterglow is working on it, should be in soon)
+        * A new menu
+        * TCP/IP netgames
+        * Client-server networking
+        * Linux port
+
+[5] Credits
+-----------
+I would like to thank the following people for SMMU:
+
+      - id for Doom, John Carmack for releasing the sources
+      - TeamTNT for Boom
+      - Lee Killough for the amazing MBF
+      - Derek MacDonald 'Afterglow' for the Start and Demo maps
+      - Bob Satori for graphics
+      - Zokum for the name :)
+      - Mystican for persuading me to use the MBF source.
+      - Dosdoom team - original y-shearing based on what I saw in
+                the dosdoom source. And Chi Hoang for the original
+                dosdoom which started everything.
+      - VESA mode detection from Doom legacy
+      - All the people who sent in bug reports, suggestions etc.
+      - Everyone who has encouraged me both on irc and publicly
+                on the web - prower, hakx, etc. .. you know who
+                you are.
+      - All the bands I've listened to whilst coding: Korn,
+                The Smashing Pumpkins, Sepultura, Soulfly...
+

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_plane.c,v 1.8 1998/05/03 23:09:53 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -36,15 +36,19 @@
 #include "z_zone.h"  /* memory allocation wrappers -- killough */
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: r_plane.c,v 1.8 1998/05/03 23:09:53 killough Exp $";
 
 #include "doomstat.h"
+
+#include "c_io.h"
 #include "w_wad.h"
 #include "r_main.h"
 #include "r_draw.h"
 #include "r_things.h"
 #include "r_sky.h"
+#include "r_ripple.h"
 #include "r_plane.h"
+#include "v_video.h"
 
 #define MAXVISPLANES 128    /* must be a power of 2 */
 
@@ -52,6 +56,9 @@ static visplane_t *visplanes[MAXVISPLANES];   // killough
 static visplane_t *freetail;                  // killough
 static visplane_t **freehead = &freetail;     // killough
 visplane_t *floorplane, *ceilingplane;
+visplane_t *floorplane2, *ceilingplane2; //sf
+
+int num_visplanes;      // sf: count visplanes
 
 // killough -- hash function for visplanes
 // Empirically verified to be fairly uniform:
@@ -69,6 +76,7 @@ short openings[MAXOPENINGS],*lastopening;
 //  ceilingclip starts out -1
 
 short floorclip[MAX_SCREENWIDTH], ceilingclip[MAX_SCREENWIDTH];
+short floorclip2[MAX_SCREENWIDTH], ceilingclip2[MAX_SCREENWIDTH]; //sf
 
 // spanstart holds the start of a plane span; initialized to 0 at start
 
@@ -89,8 +97,12 @@ static fixed_t cacheddistance[MAX_SCREENHEIGHT];
 static fixed_t cachedxstep[MAX_SCREENHEIGHT];
 static fixed_t cachedystep[MAX_SCREENHEIGHT];
 static fixed_t xoffs,yoffs;    // killough 2/28/98: flat offsets
+static boolean trans;
 
-fixed_t yslope[MAX_SCREENHEIGHT], distscale[MAX_SCREENWIDTH];
+fixed_t *yslope;
+fixed_t origyslope[MAX_SCREENHEIGHT*2];
+fixed_t distscale[MAX_SCREENWIDTH];
+int     visplane_view=0;
 
 //
 // R_InitPlanes
@@ -160,7 +172,23 @@ static void R_MapPlane(int y, int x1, int x2)
   ds_x1 = x1;
   ds_x2 = x2;
 
-  R_DrawSpan();
+  if(trans)
+    R_DrawTLSpan();
+  else
+    R_DrawSpan();
+
+
+                // visplane viewing
+  if(visplane_view)      //sf
+  {
+        if(ds_y >=0 && ds_y < viewheight)
+        {
+                if(ds_x1 >= 0 && ds_x1<=viewwidth)
+                        *(screens[0]+y*(SCREENWIDTH<<hires)+x1)=0;
+                if(ds_x2 >= 0 && ds_x2<=viewwidth)
+                        *(screens[0]+y*(SCREENWIDTH<<hires)+x2)=0;
+        }
+  }
 }
 
 //
@@ -170,12 +198,18 @@ static void R_MapPlane(int y, int x1, int x2)
 
 void R_ClearPlanes(void)
 {
-  int i;
+  int i, a;
   angle_t angle;
+
+  a = consoleactive ?
+      (current_height-viewwindowy) < 0 ? -1: current_height-viewwindowy
+                    : -1;
+  a = -1;
 
   // opening / clipping determination
   for (i=0 ; i<viewwidth ; i++)
-    floorclip[i] = viewheight, ceilingclip[i] = -1;
+         floorclip[i] = viewheight,
+         ceilingclip[i] = a;
 
   for (i=0;i<MAXVISPLANES;i++)    // new code -- killough
     for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )
@@ -189,8 +223,10 @@ void R_ClearPlanes(void)
   // left to right mapping
   angle = (viewangle-ANG90)>>ANGLETOFINESHIFT;
   // scale will be unit scale at SCREENWIDTH/2 distance
-  basexscale = FixedDiv (finecosine[angle],centerxfrac);
-  baseyscale = -FixedDiv (finesine[angle],centerxfrac);
+  basexscale = FixedDiv (finecosine[angle],centerxfrac*zoom);
+  baseyscale = -FixedDiv (finesine[angle],centerxfrac*zoom);
+
+  num_visplanes = 0;    // reset
 }
 
 // New function, by Lee Killough
@@ -205,6 +241,9 @@ static visplane_t *new_visplane(unsigned hash)
       freehead = &freetail;
   check->next = visplanes[hash];
   visplanes[hash] = check;
+
+  num_visplanes++;      // keep track of how many for counter
+
   return check;
 }
 
@@ -214,7 +253,7 @@ static visplane_t *new_visplane(unsigned hash)
 // killough 2/28/98: Add offsets
 
 visplane_t *R_FindPlane(fixed_t height, int picnum, int lightlevel,
-                        fixed_t xoffs, fixed_t yoffs)
+                fixed_t xoffs, fixed_t yoffs)
 {
   visplane_t *check;
   unsigned hash;                      // killough
@@ -230,7 +269,8 @@ visplane_t *R_FindPlane(fixed_t height, int picnum, int lightlevel,
         picnum == check->picnum &&
         lightlevel == check->lightlevel &&
         xoffs == check->xoffs &&      // killough 2/28/98: Add offset checks
-        yoffs == check->yoffs)
+        yoffs == check->yoffs &&
+        zlight == check->colormap)
       return check;
 
   check = new_visplane(hash);         // killough
@@ -242,6 +282,8 @@ visplane_t *R_FindPlane(fixed_t height, int picnum, int lightlevel,
   check->maxx = -1;
   check->xoffs = xoffs;               // killough 2/28/98: Save offsets
   check->yoffs = yoffs;
+  check->colormap = zlight;
+  check->trans = 0;
 
   memset (check->top, 0xff, sizeof check->top);
 
@@ -278,8 +320,10 @@ visplane_t *R_CheckPlane(visplane_t *pl, int start, int stop)
       new_pl->height = pl->height;
       new_pl->picnum = pl->picnum;
       new_pl->lightlevel = pl->lightlevel;
+      new_pl->colormap = pl->colormap;
       new_pl->xoffs = pl->xoffs;           // killough 2/28/98
       new_pl->yoffs = pl->yoffs;
+      new_pl->trans = pl->trans;
       pl = new_pl;
       pl->minx = start;
       pl->maxx = stop;
@@ -310,6 +354,7 @@ static void R_MakeSpans(int x, int t1, int b1, int t2, int b2)
 static void do_draw_plane(visplane_t *pl)
 {
   register int x;
+
   if (pl->minx <= pl->maxx)
     if (pl->picnum == skyflatnum || pl->picnum & PL_SKYFLAT)  // sky flat
       {
@@ -355,9 +400,9 @@ static void do_draw_plane(visplane_t *pl)
 	  }
 	else 	 // Normal Doom sky, only one allowed per level
 	  {
-	    dc_texturemid = skytexturemid;    // Default y-offset
-	    texture = skytexture;             // Default texture
-	    flip = 0;                         // Doom flips it
+            dc_texturemid = skytexturemid;    // Default y-offset
+            texture = skytexture;             // Default texture
+            flip = 0;                         // Doom flips it
 	  }
 
         // Sky is always drawn full bright, i.e. colormaps[0] is used.
@@ -368,29 +413,36 @@ static void do_draw_plane(visplane_t *pl)
 	if (comp[comp_skymap] || !(dc_colormap = fixedcolormap))
 	  dc_colormap = fullcolormap;          // killough 3/20/98
 
-        dc_texheight = textureheight[texture]>>FRACBITS; // killough
-        dc_iscale = pspriteiscale;
+        dc_texheight = (textureheight[texture])>>FRACBITS; // killough
+
+        dc_iscale = pspriteiscale>>stretchsky;
 
 	// killough 10/98: Use sky scrolling offset, and possibly flip picture
         for (x = pl->minx; (dc_x = x) <= pl->maxx; x++)
           if ((dc_yl = pl->top[x]) <= (dc_yh = pl->bottom[x]))
-            {
-              dc_source = R_GetColumn(texture, ((an + xtoviewangle[x])^flip) >>
-				      ANGLETOSKYSHIFT);
-              colfunc();
-            }
+          {
+            dc_source = R_GetColumn(texture,
+             ((an + xtoviewangle[x])^flip) >> (ANGLETOSKYSHIFT));
+            colfunc();
+          }
       }
     else      // regular flat
       {
         int stop, light;
+        int swirling = 0;
 
-        ds_source = W_CacheLumpNum(firstflat + flattranslation[pl->picnum],
+        swirling = flattranslation[pl->picnum] == -1;
+        ds_source =  swirling ?
+                R_DistortedFlat(pl->picnum):
+         W_CacheLumpNum(firstflat + flattranslation[pl->picnum],
                                    PU_STATIC);
+        trans = swirling;
 
         xoffs = pl->xoffs;  // killough 2/28/98: Add offsets
         yoffs = pl->yoffs;
         planeheight = abs(pl->height-viewz);
         light = (pl->lightlevel >> LIGHTSEGSHIFT) + extralight;
+        trans = pl->trans;
 
         if (light >= LIGHTLEVELS)
           light = LIGHTLEVELS-1;
@@ -399,36 +451,50 @@ static void do_draw_plane(visplane_t *pl)
           light = 0;
 
         stop = pl->maxx + 1;
-        planezlight = zlight[light];
         pl->top[pl->minx-1] = pl->top[stop] = 0xffff;
+        planezlight = pl->colormap[light];//zlight[light];
 
         for (x = pl->minx ; x <= stop ; x++)
           R_MakeSpans(x,pl->top[x-1],pl->bottom[x-1],pl->top[x],pl->bottom[x]);
 
-        Z_ChangeTag (ds_source, PU_CACHE);
+        if(!swirling) Z_ChangeTag (ds_source, PU_CACHE);
       }
 }
 
 //
-// RDrawPlanes
+// R_DrawPlanes
 // At the end of each frame.
 //
 
-void R_DrawPlanes (void)
+void R_DrawTLPlanes (void)
 {
   visplane_t *pl;
   int i;
   for (i=0;i<MAXVISPLANES;i++)
     for (pl=visplanes[i]; pl; pl=pl->next)
-      do_draw_plane(pl);
+      if(pl->trans)
+        do_draw_plane(pl);
+}
+
+void R_DrawPlanes (void)
+{
+  visplane_t *pl;
+  int i;
+
+  for (i=0;i<MAXVISPLANES;i++)
+    for (pl=visplanes[i]; pl; pl=pl->next)
+    {
+      if(!pl->trans)
+        do_draw_plane(pl);
+    }
+#ifdef TRANWATER
+  R_DrawTLPlanes();
+#endif
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_plane.c,v $
 // Revision 1.8  1998/05/03  23:09:53  killough
 // Fix #includes at the top
 //

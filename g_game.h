@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: g_game.h,v 1.10 1998/05/16 09:17:02 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -30,19 +30,25 @@
 // killough 5/2/98: number of bytes reserved for saving options
 #define GAME_OPTION_SIZE 64
 
+char *G_GetNameForMap(int episode, int map);
+int G_GetMapForName(char *name);
+
 boolean G_Responder(event_t *ev);
 boolean G_CheckDemoStatus(void);
 boolean G_CheckDemoStatus(void);
 void G_DeathMatchSpawnPlayer(int playernum);
-void G_InitNew(skill_t skill, int episode, int map);
-void G_DeferedInitNew(skill_t skill, int episode, int map);
+void G_DeferedInitNewNum(skill_t skill, int episode, int map);
+void G_DeferedInitNew(skill_t skill, char *levelname);
 void G_DeferedPlayDemo(char *demo);
+void G_TimeDemo(char *name);
 void G_LoadGame(char *name, int slot, boolean is_command); // killough 5/15/98
 void G_ForcedLoadGame(void);           // killough 5/15/98: forced loadgames
 void G_SaveGame(int slot, char *description); // Called by M_Responder.
 void G_RecordDemo(char *name);              // Only called by startup code.
 void G_BeginRecording(void);
 void G_PlayDemo(char *name);
+void G_StopDemo();
+void G_ScrambleRand();
 void G_ExitLevel(void);
 void G_SecretExitLevel(void);
 void G_WorldDone(void);
@@ -56,7 +62,8 @@ void G_DoReborn(int playernum);
 byte *G_ReadOptions(byte *demo_p);         // killough 3/1/98
 byte *G_WriteOptions(byte *demo_p);        // killough 3/1/98
 void G_PlayerReborn(int player);
-void G_InitNew(skill_t skill, int episode, int map);
+void G_InitNewNum(skill_t skill, int episode, int map);
+void G_InitNew(skill_t skill, char*);
 void G_DoVictory(void);
 unsigned long long G_Signature(void);      // killough 12/98
 
@@ -126,6 +133,7 @@ extern int  key_map_down;
 extern int  key_map_zoomin;
 extern int  key_map_zoomout;
 extern int  key_map;
+extern int  key_frags;
 extern int  key_map_gobig;
 extern int  key_map_follow;
 extern int  key_map_mark;                                           //    ^
@@ -133,27 +141,38 @@ extern int  key_map_clear;                                          //    |
 extern int  key_map_grid;                                           // phares
 extern int  key_screenshot;    // killough 2/22/98 -- add key for screenshot
 extern int  key_setup;         // killough 10/98: shortcut to setup menu
+extern int  key_mlook;
+extern int  key_lookup;
+extern int  key_lookdown;
+extern int  key_centerview;
 extern int  autorun;           // always running?                   // phares
+extern int  automlook;
+extern int  invert_mouse;
+extern int  bfglook;
+
+extern angle_t consoleangle;
 
 extern int  defaultskill;      //jff 3/24/98 default skill
 extern boolean haswolflevels;  //jff 4/18/98 wolf levels present
 extern boolean demorecording;  // killough 12/98
 
 extern int  bodyquesize, default_bodyquesize; // killough 2/8/98, 10/98
+extern int  animscreenshot;       // animated screenshots
 
 // killough 5/2/98: moved from d_deh.c:
 // Par times (new item with BOOM) - from g_game.c
 extern int pars[][10];  // hardcoded array size
 extern int cpars[];     // hardcoded array size
 
+#define NUMKEYS   256
+
+extern int cooldemo;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: g_game.h,v $
 // Revision 1.10  1998/05/16  09:17:02  killough
 // Make loadgame checksum friendlier
 //

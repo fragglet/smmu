@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_spec.h,v 1.30 1998/05/04 02:22:23 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -46,11 +46,7 @@
 
 #define PLATWAIT    3
 
-#ifdef BETA         // killough 10/98:
-#define PLATSPEED   (beta_emulation ? FRACUNIT/3 : FRACUNIT)
-#else
 #define PLATSPEED   FRACUNIT
-#endif
 
 // p_switch
 
@@ -567,6 +563,14 @@ typedef struct
 
 } glow_t;
 
+typedef struct          // sf 13/10/99
+{
+  thinker_t thinker;
+  sector_t *sector;
+  int destlevel;
+  int speed;
+} lightlevel_t;
+
 // p_plats
 
 typedef struct
@@ -729,6 +733,16 @@ typedef struct {
   int affectee;        // Number of affected sector
 } pusher_t;
 
+// sf: direction plat moving
+
+enum
+{
+  plat_stop     = 0,
+  plat_up       = 1,
+  plat_down     = -1,
+};
+
+
 //////////////////////////////////////////////////////////////////
 //
 // external data declarations
@@ -788,6 +802,8 @@ int P_FindSectorFromLineTag(const line_t *line, int start); // killough 4/17/98
 
 int P_FindLineFromLineTag(const line_t *line, int start);   // killough 4/17/98
 
+int P_FindSectorFromTag(const int tag, int start);        // sf
+
 int P_FindMinSurroundingLight(sector_t *sector, int max);
 
 sector_t *getNextSector(line_t *line, sector_t *sec);
@@ -819,6 +835,8 @@ void T_StrobeFlash(strobe_t *flash);
 void T_Glow(glow_t *g);
 
 void T_FireFlicker(fireflicker_t *flick);  // killough 10/4/98
+
+void T_LightFade(lightlevel_t *ll);     // sf 13/10/99
 
 // p_plats
 
@@ -964,6 +982,8 @@ void P_SpawnStrobeFlash(sector_t *sector, int fastOrSlow, int inSync);
 
 void P_SpawnGlowingLight(sector_t *sector);
 
+void P_FadeLight(int tag, int destvalue, int speed);
+
 // p_plats
 
 void P_AddActivePlat(plat_t *plat);
@@ -998,10 +1018,7 @@ mobj_t *P_GetPushThing(int);                                // phares 3/23/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_spec.h,v $
 // Revision 1.30  1998/05/04  02:22:23  jim
 // formatted p_specs, moved a coupla routines to p_floor
 //

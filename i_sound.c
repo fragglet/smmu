@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,17 +21,21 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 
 #include <stdio.h>
 #include <allegro.h>
 
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "mmus2mid.h"   //jff 1/16/98 declarations for MUS->MIDI converter
 #include "i_sound.h"
+#include "i_system.h"
 #include "w_wad.h"
 #include "g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
 #include "d_main.h"
+
+void I_CacheSound(sfxinfo_t *sound);
 
 // Needed for calling the actual sound output.
 #define SAMPLECOUNT             512
@@ -39,11 +43,13 @@ rcsid[] = "$Id$";
 // Factor volume is increased before sending to allegro
 #define VOLSCALE                16
 
+        // sf: adjust temp when changing gamespeed
+extern int realtic_clock_rate;
+
 int snd_card;   // default.cfg variables for digi and midi drives
 int mus_card;   // jff 1/18/98
 
-int default_snd_card;  // killough 10/98: add default_ versions
-int default_mus_card;
+        // sf: default_snd_card and default_mus_card removed (purpose?)
 
 int detect_voices; //jff 3/4/98 enables voice detection prior to install_sound
 //jff 1/22/98 make these visible here to disable sound/music on install err
@@ -192,7 +198,7 @@ static SAMPLE channel[NUM_CHANNELS];
 // active sounds, which is maintained as a given number
 // of internal channels. Returns a handle.
 
-int I_StartSound(int sfx, int   vol, int sep, int pitch, int pri)
+int I_StartSound(sfxinfo_t *sound, int vol, int sep, int pitch, int pri)
 {
   static int handle;
 
@@ -203,11 +209,14 @@ int I_StartSound(int sfx, int   vol, int sep, int pitch, int pri)
   // destroy anything still in the slot
   stop_sample(&channel[handle]);
 
+  if(!sound->data) I_CacheSound(sound);
+
   // Copy the sound's data into the sound sample slot
-  memcpy(&channel[handle], S_sfx[sfx].data, sizeof(SAMPLE));
+  memcpy(&channel[handle], sound->data, sizeof(SAMPLE));
 
   // Start the sound
-  play_sample(&channel[handle],vol*VOLSCALE+VOLSCALE-1,256-sep,PITCH(pitch),0);
+  play_sample(&channel[handle],vol*VOLSCALE+VOLSCALE-1,256-sep,
+          PITCH(pitch),0);
 
   // Reference for s_sound.c to use when calling functions below
   return handle;
@@ -270,13 +279,20 @@ void I_ShutdownSound(void)
   remove_sound();
 }
 
+// sf: dynamic sound resource loading
+void I_CacheSound(sfxinfo_t *sound)
+{
+    if(sound->data) return;     // already cached
+
+                // sf: changed
+    if(sound->link) I_CacheSound(sound->link);
+    else
+    sound->data = getsfx(sound->name, &sound->length);
+}
+
 void I_InitSound(void)
 {
-  int lengths[NUMSFX];  // The actual lengths of all sound effects. -- killough
-  int i;  // killough 10/98: eliminate snd_c since we use default_snd_card now
-
   // Secure and configure sound device first.
-  fputs("I_InitSound: ", stdout);
 
   if (detect_voices && snd_card>=0 && mus_card>=0)
     {
@@ -295,7 +311,8 @@ void I_InitSound(void)
 
   if (install_sound(snd_card, mus_card, "none")==-1) //jff 1/18/98 autodect MIDI
     {
-      printf("ALLEGRO SOUND INIT ERROR!!!!\n%s\n", allegro_error); // killough 8/8/98
+      usermsg("\tSound init error. Assuming no sound");
+      usermsg("\t%s",allegro_error); // killough 8/8/98
       //jff 1/22/98 on error, disable sound this invocation
       //in future - nice to detect if either sound or music might be ok
       nosfxparm = true;
@@ -304,26 +321,13 @@ void I_InitSound(void)
     }
   else //jff 1/22/98 don't register I_ShutdownSound if errored
     {
-      puts(" configured audio device\n");  // killough 8/8/98
+      usermsg("\tConfigured audio device");  // killough 8/8/98
       LOCK_VARIABLE(channel);  // killough 2/7/98: prevent VM swapping of sfx
       atexit(I_ShutdownSound); // killough
     }
 
-  // Initialize external data (all sounds) at start, keep static.
-  fputs("I_InitSound: ",stdout); // killough 8/8/98
-
-  for (i=1; i<NUMSFX; i++)
-    if (!S_sfx[i].link)   // Load data from WAD file.
-      S_sfx[i].data = getsfx(S_sfx[i].name, &lengths[i]);
-    else
-      { // Alias? Example is the chaingun sound linked to pistol.
-        // Previously loaded already?
-        S_sfx[i].data = S_sfx[i].link->data;
-        lengths[i] = lengths[(S_sfx[i].link - S_sfx)/sizeof(sfxinfo_t)];
-      }
-
   // Finished initialization.
-  puts("I_InitSound: sound module ready");    // killough 8/8/98
+
 }
 
 ///
@@ -405,7 +409,8 @@ int I_RegisterSong(void *data)
   if    //jff 02/08/98 add native midi support
     (
      (err=MidiToMIDI(data, &mididata)) &&       // try midi first
-     (err=mmus2mid(data, &mididata, 89, 1))     // now try mus
+              // now try mus    sf: change tempo with gamespeed
+     (err=mmus2mid(data, &mididata, 89*realtic_clock_rate/100, 1))
      )
     {
       handle=-1;
@@ -426,12 +431,38 @@ int I_QrySongPlaying(int handle)
   return 0;
 }
 
+/************************
+        CONSOLE COMMANDS
+ ************************/
+
+// system specific sound console commands
+
+char *sndcardstr[] =
+   {"autodetect","none", "SB", "SB 1.0", "SB 1.5",
+     "SB 2.0", "SB Pro", "SB16", "GUS"};
+char *muscardstr[] =
+   {"autodetect","none", "adlib", "OPL2", "2xOPL2",
+   "OPL3", "SB MIDI", "MPU-401", "GUS","DIGMID", "AWE32"};
+
+VARIABLE_INT(snd_card, NULL,            -1, 7, sndcardstr);
+VARIABLE_INT(mus_card, NULL,            -1, 9, muscardstr);
+VARIABLE_INT(detect_voices, NULL,       0, 1, yesno);
+
+CONSOLE_VARIABLE(snd_card, snd_card, 0) {}
+CONSOLE_VARIABLE(mus_card, mus_card, 0) {}
+CONSOLE_VARIABLE(detect_voices, detect_voices, 0) {}
+
+void I_Sound_AddCommands()
+{
+    C_AddCommand(snd_card);
+    C_AddCommand(mus_card);
+    C_AddCommand(detect_voices);
+}
+
+
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_sound.c,v $
 // Revision 1.15  1998/05/03  22:32:33  killough
 // beautification, use new headers/decls
 //

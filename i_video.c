@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,8 +20,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 
 #include "z_zone.h"  /* memory allocation wrappers -- killough */
 
@@ -30,8 +29,12 @@ rcsid[] = "$Id$";
 #include <allegro.h>
 #include <dpmi.h>
 #include <sys/nearptr.h>
+#include <sys/farptr.h>
 #include <dos.h>
+#include <go32.h>
 
+#include "c_io.h"
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "v_video.h"
 #include "d_main.h"
@@ -43,158 +46,7 @@ rcsid[] = "$Id$";
 #include "am_map.h"
 #include "m_menu.h"
 #include "wi_stuff.h"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// JOYSTICK                                                  // phares 4/3/98
-//
-/////////////////////////////////////////////////////////////////////////////
-
-extern int usejoystick;
-extern int joystickpresent;
-extern int joy_x,joy_y;
-extern int joy_b1,joy_b2,joy_b3,joy_b4;
-
-void poll_joystick(void);
-
-// I_JoystickEvents() gathers joystick data and creates an event_t for
-// later processing by G_Responder().
-
-void I_JoystickEvents()
-{
-  event_t event;
-
-  if (!joystickpresent || !usejoystick)
-    return;
-  poll_joystick(); // Reads the current joystick settings
-  event.type = ev_joystick;
-  event.data1 = 0;
-
-  // read the button settings
-
-  if (joy_b1)
-    event.data1 |= 1;
-  if (joy_b2)
-    event.data1 |= 2;
-  if (joy_b3)
-    event.data1 |= 4;
-  if (joy_b4)
-    event.data1 |= 8;
-
-  // Read the x,y settings. Convert to -1 or 0 or +1.
-
-  if (joy_x < 0)
-    event.data2 = -1;
-  else if (joy_x > 0)
-    event.data2 = 1;
-  else
-    event.data2 = 0;
-  if (joy_y < 0)
-    event.data3 = -1;
-  else if (joy_y > 0)
-    event.data3 = 1;
-  else
-    event.data3 = 0;
-
-  // post what you found
-
-  D_PostEvent(&event);
-}
-
-
-//
-// I_StartFrame
-//
-void I_StartFrame (void)
-{
-  I_JoystickEvents(); // Obtain joystick data                 phares 4/3/98
-}
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// END JOYSTICK                                              // phares 4/3/98
-//
-/////////////////////////////////////////////////////////////////////////////
-
-//
-// Keyboard routines
-// By Lee Killough
-// Based only a little bit on Chi's v0.2 code
-//
-
-int I_ScanCode2DoomCode (int a)
-{
-  switch (a)
-    {
-    default:   return key_ascii_table[a]>8 ? key_ascii_table[a] : a+0x80;
-    case 0x7b: return KEYD_PAUSE;
-    case 0x0e: return KEYD_BACKSPACE;
-    case 0x48: return KEYD_UPARROW;
-    case 0x4d: return KEYD_RIGHTARROW;
-    case 0x50: return KEYD_DOWNARROW;
-    case 0x4b: return KEYD_LEFTARROW;
-    case 0x38: return KEYD_LALT;
-    case 0x79: return KEYD_RALT;
-    case 0x1d:
-    case 0x78: return KEYD_RCTRL;
-    case 0x36:
-    case 0x2a: return KEYD_RSHIFT;
-  }
-}
-
-// Automatic caching inverter, so you don't need to maintain two tables.
-// By Lee Killough
-
-int I_DoomCode2ScanCode (int a)
-{
-  static int inverse[256], cache;
-  for (;cache<256;cache++)
-    inverse[I_ScanCode2DoomCode(cache)]=cache;
-  return inverse[a];
-}
-
-// killough 3/22/98: rewritten to use interrupt-driven keyboard queue
-
-void I_GetEvent()
-{
-  extern int usemouse;   // killough 10/98
-  event_t event;
-  int tail;
-
-  while ((tail=keyboard_queue.tail) != keyboard_queue.head)
-    {
-      int k = keyboard_queue.queue[tail];
-      keyboard_queue.tail = (tail+1) & (KQSIZE-1);
-      event.type = k & 0x80 ? ev_keyup : ev_keydown;
-      event.data1 = I_ScanCode2DoomCode(k & 0x7f);
-      D_PostEvent(&event);
-    }
-
-  if (mousepresent!=-1 && usemouse) // killough 10/98
-    {
-      static int lastbuttons;
-      int xmickeys,ymickeys,buttons=mouse_b;
-      get_mouse_mickeys(&xmickeys,&ymickeys);
-      if (xmickeys || ymickeys || buttons!=lastbuttons)
-        {
-          lastbuttons=buttons;
-          event.data1=buttons;
-          event.data3=-ymickeys;
-          event.data2=xmickeys;
-          event.type=ev_mouse;
-          D_PostEvent(&event);
-        }
-    }
-}
-
-//
-// I_StartTic
-//
-
-void I_StartTic()
-{
-  I_GetEvent();
-}
+#include "i_video.h"
 
 //
 // I_UpdateNoBlit
@@ -214,6 +66,7 @@ extern void ppro_blast(void *destin, void *src);  // same but for PPro CPU
 int use_vsync;     // killough 2/8/98: controls whether vsync is called
 int page_flip;     // killough 8/15/98: enables page flipping
 int hires;
+int vesamode;
 BITMAP *screens0_bitmap;
 boolean noblit;
 
@@ -227,41 +80,6 @@ void I_FinishUpdate(void)
 {
   if (noblit || !in_graphics_mode)
     return;
-
-  // draws little dots on the bottom of the screen
-  if (devparm)
-    {
-      static int lasttic;
-      byte *s = screens[0];
-
-      int i = I_GetTime();
-      int tics = i - lasttic;
-      lasttic = i;
-      if (tics > 20)
-        tics = 20;
-      if (in_hires)    // killough 11/98: hires support
-        {
-          for (i=0 ; i<tics*2 ; i+=2)
-            s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i] =
-              s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i+1] =
-              s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i+SCREENWIDTH*2] =
-              s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i+SCREENWIDTH*2+1] =
-              0xff;
-          for ( ; i<20*2 ; i+=2)
-            s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i] =
-              s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i+1] =
-              s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i+SCREENWIDTH*2] =
-              s[(SCREENHEIGHT-1)*SCREENWIDTH*4+i+SCREENWIDTH*2+1] =
-              0x0;
-        }
-      else
-        {
-          for (i=0 ; i<tics*2 ; i+=2)
-            s[(SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
-          for ( ; i<20*2 ; i+=2)
-            s[(SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
-        }
-    }
 
   if (in_page_flip)
     if (!in_hires)
@@ -289,7 +107,7 @@ void I_FinishUpdate(void)
 	// page flip 
 	outportw(0x3d4, destscreen | 0x0c); 
 
-        return;
+	return;
       }
     else       // hires hardware page-flipping (VBE 2.0)
       scroll_offset = scroll_offset ? 0 : 400;
@@ -299,19 +117,19 @@ void I_FinishUpdate(void)
 
   if (!linear)  // Banked mode is slower. But just in case it's needed...
     blit(screens0_bitmap, screen, 0, 0, 0, scroll_offset,
-         SCREENWIDTH << hires, SCREENHEIGHT << hires);
+	 SCREENWIDTH << hires, SCREENHEIGHT << hires);
   else
     {   // 1/16/98 killough: optimization based on CPU type
       int size =
-        in_hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
+	in_hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
       byte *dascreen = screen_base_addr + screen->line[scroll_offset];
       if (cpu_family >= 6)     // PPro, PII
-        ppro_blit(dascreen,size);
+	ppro_blit(dascreen,size);
       else
-        if (cpu_family >= 5)   // Pentium
-          pent_blit(dascreen,size);
-        else                   // Others
-          memcpy(dascreen,*screens,size);
+	if (cpu_family >= 5)   // Pentium
+	  pent_blit(dascreen,size);
+	else                   // Others
+	  memcpy(dascreen,*screens,size);
     }
 
   if (in_page_flip)  // hires hardware page-flipping (VBE 2.0)
@@ -354,14 +172,15 @@ static void I_InitDiskFlash(void)
       destroy_bitmap(old_data);
     }
 
-  diskflash = create_bitmap_ex(8, 16<<hires, 16<<hires);
-  old_data = create_bitmap_ex(8, 16<<hires, 16<<hires);
+        //sf : disk is actually 16x15
+  diskflash = create_bitmap_ex(8, 16<<hires, 15<<hires);
+  old_data = create_bitmap_ex(8, 16<<hires, 15<<hires);
 
-  V_GetBlock(0, 0, 0, 16, 16, temp);
-  V_DrawPatchDirect(0, 0, 0, W_CacheLumpName(M_CheckParm("-cdrom") ?
-                                             "STCDROM" : "STDISK", PU_CACHE));
-  V_GetBlock(0, 0, 0, 16, 16, diskflash->line[0]);
-  V_DrawBlock(0, 0, 0, 16, 16, temp);
+  V_GetBlock(0, 0, 0, 16, 15, temp);
+  V_DrawPatchDirect(0, -1, 0, W_CacheLumpName(M_CheckParm("-cdrom") ?
+					     "STCDROM" : "STDISK", PU_CACHE));
+  V_GetBlock(0, 0, 0, 16, 15, diskflash->line[0]);
+  V_DrawBlock(0, 0, 0, 16, 15, temp);
 }
 
 //
@@ -375,11 +194,11 @@ void I_BeginRead(void)
 
   blit(screen, old_data,
        (SCREENWIDTH-16) << hires,
-       scroll_offset + ((SCREENHEIGHT-16)<<hires),
-       0, 0, 16 << hires, 16 << hires);
+       scroll_offset + ((SCREENHEIGHT-15)<<hires),
+       0, 0, 16 << hires, 15 << hires);
 
   blit(diskflash, screen, 0, 0, (SCREENWIDTH-16) << hires,
-       scroll_offset + ((SCREENHEIGHT-16)<<hires), 16 << hires, 16 << hires);
+       scroll_offset + ((SCREENHEIGHT-15)<<hires), 16 << hires, 15 << hires);
 }
 
 //
@@ -392,7 +211,7 @@ void I_EndRead(void)
     return;
 
   blit(old_data, screen, 0, 0, (SCREENWIDTH-16) << hires,
-       scroll_offset + ((SCREENHEIGHT-16)<<hires), 16 << hires, 16 << hires);
+       scroll_offset + ((SCREENHEIGHT-15)<<hires), 16 << hires, 15 << hires);
 }
 
 void I_SetPalette(byte *palette)
@@ -424,6 +243,7 @@ void I_ShutdownGraphics(void)
       set_gfx_mode(GFX_TEXT, 0, 0, 0, 0);
 
       in_graphics_mode = 0;
+      in_textmode = true;
     }
 }
 
@@ -435,6 +255,11 @@ extern boolean setsizeneeded;
 
 static void I_InitGraphicsMode(void)
 {
+  int gfx_type = GFX_AUTODETECT;
+
+  if(vesamode && !hires && page_flip) vesamode = 0;
+  if(vesamode) gfx_type = GFX_VESA2L;
+
   scroll_offset = 0;
 
   if (hires || !page_flip)
@@ -442,28 +267,28 @@ static void I_InitGraphicsMode(void)
       set_color_depth(8);     // killough 2/7/98: use allegro set_gfx_mode
 
       if (hires)
-        {
-          if (page_flip)
-            if (set_gfx_mode(GFX_AUTODETECT, 640, 400, 640, 800))
-              {
-                warn_about_changes(S_BADVID);      // Revert to no pageflipping
-                page_flip = 0;
-              }
-            else
-              set_clip(screen, 0, 0, 640, 800);    // Allow full access
+	{
+	  if (page_flip)
+	    if (set_gfx_mode(gfx_type, 640, 400, 640, 800))
+	      {
+		warn_about_changes(S_BADVID);      // Revert to no pageflipping
+		page_flip = 0;
+	      }
+	    else
+	      set_clip(screen, 0, 0, 640, 800);    // Allow full access
 
-          if (!page_flip && set_gfx_mode(GFX_AUTODETECT, 640, 400, 0, 0))
-            {
-              hires = 0;                           // Revert to lowres
-              page_flip = in_page_flip;            // Restore orig pageflipping
-              warn_about_changes(S_BADVID);
-              I_InitGraphicsMode();                // Start all over
-              return;
-            }
-        }
+	  if (!page_flip && set_gfx_mode(gfx_type, 640, 400, 0, 0))
+	    {
+	      hires = 0;                           // Revert to lowres
+	      page_flip = in_page_flip;            // Restore orig pageflipping
+	      warn_about_changes(S_BADVID);
+	      I_InitGraphicsMode();                // Start all over
+	      return;
+	    }
+	}
 
       if (!hires)
-        set_gfx_mode(GFX_AUTODETECT, 320, 200, 0, 0);
+	set_gfx_mode(gfx_type, 320, 200, 0, 0);
 
       linear = is_linear_bitmap(screen);
 
@@ -524,6 +349,7 @@ static void I_InitGraphicsMode(void)
     }
 
   in_graphics_mode = 1;
+  in_textmode = false;
   in_page_flip = page_flip;
   in_hires = hires;
 
@@ -563,12 +389,12 @@ void I_ResetScreen(void)
 
 void I_InitGraphics(void)
 {
-  static int firsttime=1;
+  static int firsttime = true;
 
   if (!firsttime)
     return;
 
-  firsttime=0;
+  firsttime = false;
 
   check_cpu();    // 1/16/98 killough -- sets cpu_family based on CPU
 
@@ -591,17 +417,135 @@ void I_InitGraphics(void)
 
   in_page_flip = page_flip;
 
-  I_InitGraphicsMode();    // killough 10/98
+  V_ResetMode();
 
   Z_CheckHeap();
 }
 
+        // the list of video modes is stored here in i_video.c
+        // the console commands to change them are in v_misc.c,
+        // so that all the platform-specific stuff is in here.
+        // v_misc.c does not care about the format of the videomode_t,
+        // all it asks is that it contains a text value 'description'
+        // which describes the mode
+        
+videomode_t videomodes[]=
+{
+        {0,0,0,"320x200 VGA"},
+        {0,1,0,"320x200 VGA (pageflipped)"},
+        {0,0,1,"320x200 VESA"},
+        {1,0,1,"640x400 VESA"},
+        {1,1,1,"640x400 VESA (pageflipped)"},
+        {0,0,0, NULL}  // last one has NULL description
+};
+
+void I_SetMode(int i)
+{
+        static int firsttime = true;    // the first time to set mode
+
+        hires = videomodes[i].hires;
+        page_flip = videomodes[i].pageflip;
+        vesamode = videomodes[i].vesa;
+
+        if(firsttime)
+                I_InitGraphicsMode();
+        else
+                I_ResetScreen();
+
+        firsttime = false;
+}
+        
+     /*****************************************************************
+         check for VESA and reduce the number of modes if neccesary
+                         swiped from legacy
+      *****************************************************************/
+
+// VESA information block structure
+typedef struct vbeinfoblock_s
+{
+    unsigned char  VESASignature[4]   __attribute__ ((packed));
+    unsigned short VESAVersion	      __attribute__ ((packed));
+    unsigned long  OemStringPtr       __attribute__ ((packed));
+    byte    Capabilities[4];
+    unsigned long  VideoModePtr       __attribute__ ((packed));
+    unsigned short TotalMemory	      __attribute__ ((packed));
+    byte    OemSoftwareRev[2];
+    byte    OemVendorNamePtr[4];
+    byte    OemProductNamePtr[4];
+    byte    OemProductRevPtr[4];
+    byte    Reserved[222];
+    byte    OemData[256];
+} vbeinfoblock_t;
+
+static vbeinfoblock_t vesainfo;
+
+        // some #defines used
+#define RM_OFFSET(addr)       (addr & 0xF)
+#define RM_SEGMENT(addr)      ((addr >> 4) & 0xFFFF)
+#define MASK_LINEAR(addr)     (addr & 0x000FFFFF)
+#define VBEVERSION	2	// we need vesa2 or higher
+
+void I_CheckVESA()
+{
+    int i;
+    __dpmi_regs     regs;
+
+    return;
+
+    // new ugly stuff...
+    for (i=0; i<sizeof(vbeinfoblock_t); i++)
+       _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
+
+    dosmemput("VBE2", 4, MASK_LINEAR(__tb));
+
+    // see if VESA support is available
+    regs.x.ax = 0x4f00;
+    regs.x.di = RM_OFFSET(__tb);
+    regs.x.es = RM_SEGMENT(__tb);
+    __dpmi_int(0x10, &regs);
+
+    if (regs.h.ah) goto no_vesa;
+
+    dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
+
+    if (strncmp(vesainfo.VESASignature, "VESA", 4))
+        goto no_vesa;
+
+    if (vesainfo.VESAVersion < (VBEVERSION<<8))
+        goto no_vesa;
+
+        // note: does not actually check to see if any of the available
+        //       vesa modes can be used in the game. Assumes all work.
+
+    return;
+
+    no_vesa:
+    videomodes[2].description = NULL;       // cut off VESA modes
+
+}
+
+/************************
+        CONSOLE COMMANDS
+ ************************/
+
+VARIABLE_BOOLEAN(use_vsync, NULL,  yesno);
+VARIABLE_BOOLEAN(disk_icon, NULL,  onoff);
+
+CONSOLE_VARIABLE(v_diskicon, disk_icon, 0) {}
+CONSOLE_VARIABLE(v_retrace, use_vsync, 0)
+{
+    V_ResetMode();
+}
+
+void I_Video_AddCommands()
+{
+    C_AddCommand(v_diskicon);
+    C_AddCommand(v_retrace);
+}
+
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_video.c,v $
 // Revision 1.12  1998/05/03  22:40:35  killough
 // beautification
 //

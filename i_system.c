@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $";
 
 #include <stdio.h>
 
@@ -30,8 +30,10 @@ extern void (*keyboard_lowlevel_callback)(int);  // should be in <allegro.h>
 #include <gppconio.h>
 #include <sys/nearptr.h>
 
+#include "c_runcmd.h"
 #include "i_system.h"
 #include "i_sound.h"
+#include "i_video.h"
 #include "doomstat.h"
 #include "m_misc.h"
 #include "g_game.h"
@@ -68,12 +70,22 @@ int  I_GetTime_RealTime (void)
   return realtic;
 }
 
+void I_SetTime(int newtime)
+{
+        asm("cli");
+        realtic = newtime;
+        asm("sti");
+}
+
+        //sf: made a #define, changed to 16
+#define CLOCK_BITS 16
+
 // killough 4/13/98: Make clock rate adjustable by scale factor
 int realtic_clock_rate = 100;
-static long long I_GetTime_Scale = 1<<24;
+static long long I_GetTime_Scale = 1<<CLOCK_BITS;
 int I_GetTime_Scaled(void)
 {
-  return (long long) realtic * I_GetTime_Scale >> 24;
+  return (long long) realtic * I_GetTime_Scale >> CLOCK_BITS;
 }
 
 static int  I_GetTime_FastDemo(void)
@@ -104,6 +116,7 @@ static END_OF_FUNCTION(keyboard_handler);
 int mousepresent;
 int joystickpresent;                                         // phares 4/3/98
 
+int keyboard_installed = 0;
 static int orig_key_shifts;  // killough 3/6/98: original keyboard shift state
 extern int autorun;          // Autorun state
 int leds_always_off;         // Tells it not to update LEDs
@@ -117,6 +130,7 @@ void I_Shutdown(void)
   key_shifts = orig_key_shifts;
 
   remove_keyboard();
+  keyboard_installed = false;
 
   remove_timer();
 }
@@ -131,39 +145,15 @@ void I_ResetLEDs(void)
   set_leds(leds_always_off ? 0 : -1);
 }
 
-void I_Init(void)
+void I_InitKeyboard()
 {
-  extern int key_autorun;
-  int clock_rate = realtic_clock_rate, p;
-
-  if ((p = M_CheckParm("-speed")) && p < myargc-1 &&
-      (p = atoi(myargv[p+1])) >= 10 && p <= 1000)
-    clock_rate = p;
-    
-  //init timer
-  LOCK_VARIABLE(realtic);
-  LOCK_FUNCTION(I_timer);
-  install_timer();
-  install_int_ex(I_timer,BPS_TO_TIMER(TICRATE));
-
-  // killough 4/14/98: Adjustable speedup based on realtic_clock_rate
-  if (fastdemo)
-    I_GetTime = I_GetTime_FastDemo;
-  else
-    if (clock_rate != 100)
-      {
-        I_GetTime_Scale = ((long long) clock_rate << 24) / 100;
-        I_GetTime = I_GetTime_Scaled;
-      }
-    else
-      I_GetTime = I_GetTime_RealTime;
-
   // killough 3/21/98: Install handler to handle interrupt-driven keyboard IO
   LOCK_VARIABLE(keyboard_queue);
   LOCK_FUNCTION(keyboard_handler);
   keyboard_lowlevel_callback = keyboard_handler;
 
   install_keyboard();
+  keyboard_installed = true;
 
   // killough 3/6/98: save keyboard state, initialize shift state and LEDs:
 
@@ -186,6 +176,35 @@ void I_Init(void)
       }
 
   I_ResetLEDs();
+}
+
+
+void I_Init(void)
+{
+  extern int key_autorun;
+  int clock_rate = realtic_clock_rate, p;
+
+  if ((p = M_CheckParm("-speed")) && p < myargc-1 &&
+      (p = atoi(myargv[p+1])) >= 10 && p <= 1000)
+    clock_rate = p;
+    
+  //init timer
+  LOCK_VARIABLE(realtic);
+  LOCK_FUNCTION(I_timer);
+  install_timer();
+  install_int_ex(I_timer,BPS_TO_TIMER(TICRATE));
+
+  // killough 4/14/98: Adjustable speedup based on realtic_clock_rate
+  if (fastdemo)
+    I_GetTime = I_GetTime_FastDemo;
+  else
+    if (clock_rate != 100)
+      {
+        I_GetTime_Scale = ((long long) clock_rate << CLOCK_BITS) / 100;
+        I_GetTime = I_GetTime_Scaled;
+      }
+    else
+      I_GetTime = I_GetTime_RealTime;
 
   // killough 3/6/98: end of keyboard / autorun state changes
 
@@ -211,6 +230,8 @@ void I_Init(void)
     if (!(nomusicparm && nosfxparm))
       I_InitSound();
   }
+
+  I_CheckVESA();
 }
 
 //
@@ -223,16 +244,18 @@ static int has_exited;
 
 void I_Quit (void)
 {
-  has_exited=1;   /* Prevent infinitely recursive exits -- killough */
+  has_exited = 1;   /* Prevent infinitely recursive exits -- killough */
 
   if (demorecording)
     G_CheckDemoStatus();
-  M_SaveDefaults ();
 
+        // sf : rearrange this so the errmsg doesn't get messed up
   if (*errmsg)
     puts(errmsg);   // killough 8/8/98
   else
     I_EndDoom();
+
+  M_SaveDefaults ();
 }
 
 //
@@ -266,16 +289,82 @@ void I_EndDoom(void)
     {  // killough 8/19/98: simplify
       memcpy(0xb8000 + (byte *) __djgpp_conventional_base,
 	     W_CacheLumpNum(lump, PU_CACHE), 0xf00);
-      gotoxy(0,24);
+      gotoxy(1,24);
     }
+}
+
+        // check for ESC button pressed, regardless of keyboard handler
+int I_CheckAbort()
+{
+        if(keyboard_installed)
+        {
+           event_t *ev;
+
+           I_StartTic ();       // build events
+
+                // use the keyboard handler
+           for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
+           { 
+              ev = &events[eventtail]; 
+              if (ev->type == ev_keydown && ev->data1 == key_escape)      // phares
+              {                   // abort
+                return true;
+              }
+           }
+        }
+        else
+        {
+                // check normal keyboard handler
+           while(kbhit()) if(getch() == 27) return true;
+        }
+        return false;
+}
+
+/*************************
+        CONSOLE COMMANDS
+ *************************/
+
+VARIABLE_BOOLEAN(leds_always_off, NULL,     yesno);
+VARIABLE_INT(realtic_clock_rate, NULL,  0, 500, NULL);
+
+CONSOLE_VARIABLE(i_gamespeed, realtic_clock_rate, 0)
+{
+    if (realtic_clock_rate != 100)
+      {
+        I_GetTime_Scale = ((long long) realtic_clock_rate << CLOCK_BITS) / 100;
+        I_GetTime = I_GetTime_Scaled;
+      }
+    else
+      I_GetTime = I_GetTime_RealTime;
+
+    ResetNet();         // reset the timers and stuff
+}
+
+CONSOLE_VARIABLE(i_ledsoff, leds_always_off, 0)
+{
+   I_ResetLEDs();
+}
+
+extern void I_Sound_AddCommands();
+extern void I_Video_AddCommands();
+extern void I_Input_AddCommands();
+extern void Ser_AddCommands();
+
+        // add system specific commands
+void I_AddCommands()
+{
+        C_AddCommand(i_ledsoff);
+        C_AddCommand(i_gamespeed);
+
+        I_Video_AddCommands();
+        I_Sound_AddCommands();
+        I_Input_AddCommands();
+        Ser_AddCommands();
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_system.c,v $
 // Revision 1.14  1998/05/03  22:33:13  killough
 // beautification
 //

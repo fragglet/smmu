@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_menu.c,v 1.54 1998/05/28 05:27:13 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -25,7 +25,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: m_menu.c,v 1.54 1998/05/28 05:27:13 killough Exp $";
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -40,21 +40,19 @@ rcsid[] = "$Id$";
 #include "w_wad.h"
 #include "r_main.h"
 #include "hu_stuff.h"
+#include "hu_over.h"
 #include "g_game.h"
 #include "s_sound.h"
 #include "sounds.h"
 #include "m_menu.h"
 #include "d_deh.h"
 #include "m_misc.h"
+#include "c_io.h"
 
-extern patch_t* hu_font[HU_FONTSIZE];
-extern boolean  message_dontfuckwithme;
+extern patch_t* v_font[V_FONTSIZE];
           
-extern boolean chat_on;          // in heads-up code
-extern int     hud_active;       // in heads-up code
-extern int     hud_displayed;    // in heads-up code
-extern int     hud_distributed;  // in heads-up code
-extern int     HU_MoveHud(void); // jff 3/9/98 avoid glitch in HUD display
+extern boolean chat_active;
+#define chat_on chat_active /* sf: new heads up code uses chat_active */
 
 //
 // defaulted values
@@ -63,8 +61,8 @@ extern int     HU_MoveHud(void); // jff 3/9/98 avoid glitch in HUD display
 int mouseSensitivity_horiz; // has default   //  killough
 int mouseSensitivity_vert;  // has default
 
-int showMessages;    // Show messages has default, 0 = off, 1 = on
-  
+extern int showMessages;
+
 int traditional_menu;
 
 int hide_setup=1; // killough 5/15/98
@@ -159,7 +157,9 @@ extern int defaultskill; // config file specified skill
 
 // killough 3/6/98: preserve autorun across games
 extern int autorun;      // always running?
-extern int key_right;                                              
+extern int key_mlook;
+extern int key_centerview;
+extern int key_right;
 extern int key_left;
 extern int key_up;
 extern int key_down;
@@ -194,6 +194,7 @@ extern int key_endgame;
 extern int key_messages;
 extern int key_quickload;
 extern int key_quit;
+extern int key_frags;
 extern int key_gamma;
 extern int key_spy;
 extern int key_pause;
@@ -239,7 +240,7 @@ extern int joybuse;
 extern int joybspeed;                                     
 extern int default_weapon_recoil;   // weapon recoil        
 extern int weapon_recoil;           // weapon recoil           
-extern int default_player_bobbing;  // whether player bobs or not         
+//extern int default_player_bobbing;  // whether player bobs or not         
 extern int player_bobbing;          // whether player bobs or not       
 extern int weapon_preferences[2][NUMWEAPONS+1];                   
 extern int health_red;    // health amount less than which status is red
@@ -252,7 +253,6 @@ extern int ammo_red;      // ammo percent less than which status is red
 extern int ammo_yellow;   // ammo percent less is yellow more green
 extern int sts_always_red;// status numbers do not change colors
 extern int sts_pct_always_gray;// status percents do not change colors
-extern int hud_nosecrets; // status does not list secrets/items/kills
 extern int sts_traditional_keys;  // display keys the traditional way
 extern int hud_list_bgon; // solid window background for list of messages
 extern int hud_msg_lines; // number of message lines in window up to 16
@@ -278,11 +278,6 @@ extern int mapcolor_sprt; // general sprite color
 extern int mapcolor_hair; // crosshair color
 extern int mapcolor_sngl; // single player arrow color
 extern int mapcolor_plyr[4];// colors for player arrows in multiplayer
-extern int hudcolor_titl; // color range of automap level title
-extern int hudcolor_xyco; // color range of new coords on automap
-extern int hudcolor_mesg; // color range of scrolling messages
-extern int hudcolor_chat; // color range of chat lines
-extern int hudcolor_list; // color of list of past messages
 
 extern int mapcolor_frnd;  // friends colors  // killough 8/8/98
 extern int default_monsters_remember;                     
@@ -718,9 +713,21 @@ void M_NewGame(int choice)
 		     NULL, false); // killough 5/26/98: not externalized
       return;
     }
-  
+
   if ( gamemode == commercial )
-    M_SetupNextMenu(&NewDef);
+  {
+        // use start map if there is one                
+        // only if the game has not been modified
+
+    if(!modifiedgame && W_CheckNumForName("START") != -1)
+    {
+            G_DeferedInitNew(defaultskill, "START");    // start on the start
+                                                        // map
+            M_ClearMenus ();
+    }
+    else 
+            M_SetupNextMenu(&NewDef);   // else use menus
+  }
   else
     M_SetupNextMenu(&EpiDef);
 }
@@ -734,7 +741,12 @@ void M_VerifyNightmare(int ch)
   // killough 10/98 moved to here
   defaultskill = nightmare+1;
 
-  G_DeferedInitNew(nightmare,epi+1,1);
+  G_DeferedInitNew(nightmare, startlevel);
+
+//  if(gamemode == commercial)
+//  else
+//          G_DeferedInitNewNum(nightmare,epi+1,1);
+
   M_ClearMenus ();
 }
 
@@ -750,7 +762,12 @@ void M_ChooseSkill(int choice)
   // killough 10/98 moved to here
   defaultskill = choice+1;
 
-  G_DeferedInitNew(choice,epi+1,1);
+  G_DeferedInitNew(choice, startlevel);
+
+//  if(gamemode == commercial)
+//  else
+//          G_DeferedInitNewNum(choice,epi+1,1);
+
   M_ClearMenus ();
 }
 
@@ -1026,7 +1043,6 @@ void M_SaveGame (int choice)
 
 enum
 {
-  general, // killough 10/98
   // killough 4/6/98: move setup to be a sub-menu of OPTIONs
   setup,                                                    // phares 3/21/98
   endgame,
@@ -1045,7 +1061,6 @@ enum
 menuitem_t OptionsMenu[]=
 {
   // killough 4/6/98: move setup to be a sub-menu of OPTIONs
-  {1,"M_GENERL", M_General, 'g'},      // killough 10/98
   {1,"M_SETUP",  M_Setup,   's'},                          // phares 3/21/98
   {1,"M_ENDGAM", M_EndGame,'e'},
   {1,"M_MESSG",  M_ChangeMessages,'m'},
@@ -1145,17 +1160,18 @@ void M_QuitResponse(int ch)
 
 void M_QuitDOOM(int choice)
 {
-  static char endstring[160];
-
+     static char endstring[100];
+     
   // We pick index 0 which is language sensitive,
-  // or one at random, between 1 and maximum number.
-  // Ty 03/27/98 - externalized DOSY as a string s_DOSY that's in the sprintf
-  if (language != english)
-    sprintf(endstring,"%s\n\n%s",s_DOSY, endmsg[0] );
-  else         // killough 1/18/98: fix endgame message calculation:
-    sprintf(endstring,"%s\n\n%s", endmsg[gametic%(NUM_QUITMESSAGES-1)+1], s_DOSY);
-  
-  M_StartMessage(endstring,M_QuitResponse,true);
+  //  or one at random, between 1 and maximum number.
+  if (0/*language != english*/ )
+    sprintf(endstring,"%s\n\n"DOSY, endmsg[0] );
+  else
+    sprintf(endstring,"%s\n\n"DOSY, endmsg[ (gametic%7)+15 ]);
+
+//    sprintf(endstring,"%s\n\n"DOSY, endmsg[ (gametic%(NUM_QUITMESSAGES-2))+1 ]);
+
+      M_StartMessage(endstring,M_QuitResponse,true);
 }
 
 /////////////////////////////
@@ -1465,14 +1481,10 @@ void M_ChangeMessages(int choice)
 {
   // warning: unused parameter `int choice'
   choice = 0;
-  showMessages = 1 - showMessages;
+  showMessages = !showMessages;
   
-  if (!showMessages)
-    players[consoleplayer].message = s_MSGOFF; // Ty 03/27/98 - externalized
-  else
-    players[consoleplayer].message = s_MSGON ; // Ty 03/27/98 - externalized
-
-  message_dontfuckwithme = true;
+        // sf: dprintf
+  dprintf(showMessages ? s_MSGON : s_MSGOFF);
 }
 
 /////////////////////////////
@@ -1480,9 +1492,6 @@ void M_ChangeMessages(int choice)
 // CHANGE DISPLAY SIZE
 //
 // jff 2/23/98 restored to pre-HUD state
-// hud_active controlled soley by F5=key_detail (key_hud)
-// hud_displayed is toggled by + or = in fullscreen
-// hud_displayed is cleared by -
 
 void M_SizeDisplay(int choice)
 {
@@ -1493,7 +1502,6 @@ void M_SizeDisplay(int choice)
 	{
 	  screenblocks--;
 	  screenSize--;
-	  hud_displayed = 0;
 	}
       break;
     case 1:
@@ -1502,11 +1510,12 @@ void M_SizeDisplay(int choice)
 	  screenblocks++;
 	  screenSize++;
 	}
-      else
-	hud_displayed = !hud_displayed;
+        else
+          HU_ToggleHUD();         //sf
       break;
     }
-  R_SetViewSize (screenblocks /*, detailLevel obsolete -- killough */);
+  if(gamestate == GS_LEVEL)     // only in levels: avoid hom in intercam
+    R_SetViewSize (screenblocks /*, detailLevel obsolete -- killough */);
 }
 
 //
@@ -1577,6 +1586,7 @@ static char menu_buffer[64];
 
 enum
 {
+  set_general, // sf: moved here
   set_compat,
   set_key_bindings,                                     
   set_weapons,                                           
@@ -1600,6 +1610,7 @@ int setup_screen; // the current setup screen. takes values from setup_e
 
 menuitem_t SetupMenu[]=
 {
+  {1,"M_GENERL",M_General,    'g'},      // sf moved here
   {1,"M_COMPAT",M_Compat,     'p'},
   {1,"M_KEYBND",M_KeyBindings,'k'},
   {1,"M_WEAP"  ,M_Weapons,    'w'},
@@ -1760,6 +1771,8 @@ menu_t CompatDef =                                           // killough 10/98
 //
 // killough 11/98: rewritten to support hires
 
+char *R_DistortedFlat(int);
+
 void M_DrawBackground(char* patchname, byte *back_dest)
 {
   int x,y;
@@ -1771,14 +1784,16 @@ void M_DrawBackground(char* patchname, byte *back_dest)
     W_CacheLumpNum(firstflat+R_FlatNumForName(patchname),PU_CACHE);
 
   if (hires)       // killough 11/98: hires support
-#if 0              // this tiles it in hires
+#if 0              // this tiles it in hires:
     for (y = 0 ; y < SCREENHEIGHT*2 ; src = ((++y & 63)<<6) + back_src)
       for (x = 0 ; x < SCREENWIDTH*2/64 ; x++)
 	{
 	  memcpy (back_dest,back_src+((y & 63)<<6),64);
 	  back_dest += 64;
 	}
-#else              // while this pixel-doubles it
+#endif
+
+              // while this pixel-doubles it
       for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src,
 	     back_dest += SCREENWIDTH*2)
 	for (x = 0 ; x < SCREENWIDTH/64 ; x++)
@@ -1790,7 +1805,6 @@ void M_DrawBackground(char* patchname, byte *back_dest)
 	    while (--i>=0);
 	    back_dest += 128;
 	  }
-#endif
   else
     for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src)
       for (x = 0 ; x < SCREENWIDTH/64 ; x++)
@@ -1800,13 +1814,55 @@ void M_DrawBackground(char* patchname, byte *back_dest)
 	}
 }
 
+        // sf:
+void M_DrawDistortedBackground(char* patchname, byte *back_dest)
+{
+  int x,y;
+  byte *back_src, *src;
+
+  V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+  src = back_src = R_DistortedFlat(R_FlatNumForName(patchname));
+
+  if (hires)       // killough 11/98: hires support
+#if 0              // this tiles it in hires:
+    for (y = 0 ; y < SCREENHEIGHT*2 ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH*2/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}
+#endif
+
+              // while this pixel-doubles it
+      for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src,
+	     back_dest += SCREENWIDTH*2)
+	for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+	  {
+	    int i = 63;
+	    do
+	      back_dest[i*2] = back_dest[i*2+SCREENWIDTH*2] =
+		back_dest[i*2+1] = back_dest[i*2+SCREENWIDTH*2+1] = src[i];
+	    while (--i>=0);
+	    back_dest += 128;
+	  }
+  else
+    for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}
+}
+
+
 /////////////////////////////
 //
 // Draws the Title for the main Setup screen
 
 void M_DrawSetup(void)
 {
-  V_DrawPatchDirect(124,15,0,W_CacheLumpName("M_SETUP",PU_CACHE));
+  V_DrawPatchDirect(124,5,0,W_CacheLumpName("M_SETUP",PU_CACHE));
 }
 
 /////////////////////////////
@@ -2348,15 +2404,11 @@ setup_menu_t keys_settings1[] =  // Key Binding screen strings
   {"AUTORUN"     ,S_KEY       ,m_scrn,KB_X,KB_Y+9*8,{&key_autorun}},
   {"180 TURN"    ,S_KEY       ,m_scrn,KB_X,KB_Y+10*8,{&key_reverse}},
   {"USE"         ,S_KEY       ,m_scrn,KB_X,KB_Y+11*8,{&key_use},&mousebforward,&joybuse},
-
-  {"MENUS"       ,S_SKIP|S_TITLE,m_null,KB_X,KB_Y+12*8},
-  {"NEXT ITEM"   ,S_KEY       ,m_menu,KB_X,KB_Y+13*8,{&key_menu_down}},
-  {"PREV ITEM"   ,S_KEY       ,m_menu,KB_X,KB_Y+14*8,{&key_menu_up}},
-  {"LEFT"        ,S_KEY       ,m_menu,KB_X,KB_Y+15*8,{&key_menu_left}},
-  {"RIGHT"       ,S_KEY       ,m_menu,KB_X,KB_Y+16*8,{&key_menu_right}},
-  {"BACKSPACE"   ,S_KEY       ,m_menu,KB_X,KB_Y+17*8,{&key_menu_backspace}},
-  {"SELECT ITEM" ,S_KEY       ,m_menu,KB_X,KB_Y+18*8,{&key_menu_enter}},
-  {"EXIT"        ,S_KEY       ,m_menu,KB_X,KB_Y+19*8,{&key_menu_escape}},
+  {"FIRE"        ,S_KEY       ,m_scrn,KB_X,KB_Y+12*8,{&key_fire},&mousebfire,&joybfire},
+  {"MLOOK"       ,S_KEY       ,m_scrn,KB_X,KB_Y+13*8,{&key_mlook}},
+  {"LOOK UP"     ,S_KEY       ,m_scrn,KB_X,KB_Y+14*8,{&key_lookup}},
+  {"LOOK DOWN"   ,S_KEY       ,m_scrn,KB_X,KB_Y+15*8,{&key_lookdown}},
+  {"CENTER VIEW" ,S_KEY       ,m_scrn,KB_X,KB_Y+16*8,{&key_centerview}},
 
   // Button for resetting to defaults
   {0,S_RESET,m_null,X_BUTTON,Y_BUTTON},
@@ -2396,13 +2448,17 @@ setup_menu_t keys_settings2[] =  // Key Binding screen strings
   {"LARGER VIEW" ,S_KEY       ,m_scrn,KB_X,KB_Y+ 9*8,{&key_zoomin}},
   {"SMALLER VIEW",S_KEY       ,m_scrn,KB_X,KB_Y+10*8,{&key_zoomout}},
   {"SCREENSHOT"  ,S_KEY       ,m_scrn,KB_X,KB_Y+11*8,{&key_screenshot}},
-  {"GAME"        ,S_SKIP|S_TITLE,m_null,KB_X,KB_Y+12*8},
-  {"SAVE"        ,S_KEY       ,m_scrn,KB_X,KB_Y+13*8,{&key_savegame}},
-  {"LOAD"        ,S_KEY       ,m_scrn,KB_X,KB_Y+14*8,{&key_loadgame}},
-  {"QUICKSAVE"   ,S_KEY       ,m_scrn,KB_X,KB_Y+15*8,{&key_quicksave}},
-  {"QUICKLOAD"   ,S_KEY       ,m_scrn,KB_X,KB_Y+16*8,{&key_quickload}},
-  {"END GAME"    ,S_KEY       ,m_scrn,KB_X,KB_Y+17*8,{&key_endgame}},
-  {"QUIT"        ,S_KEY       ,m_scrn,KB_X,KB_Y+18*8,{&key_quit}},
+
+  {"MENUS"       ,S_SKIP|S_TITLE,m_null,KB_X,KB_Y+12*8},
+  {"NEXT ITEM"   ,S_KEY       ,m_menu,KB_X,KB_Y+13*8,{&key_menu_down}},
+  {"PREV ITEM"   ,S_KEY       ,m_menu,KB_X,KB_Y+14*8,{&key_menu_up}},
+  {"LEFT"        ,S_KEY       ,m_menu,KB_X,KB_Y+15*8,{&key_menu_left}},
+  {"RIGHT"       ,S_KEY       ,m_menu,KB_X,KB_Y+16*8,{&key_menu_right}},
+  {"BACKSPACE"   ,S_KEY       ,m_menu,KB_X,KB_Y+17*8,{&key_menu_backspace}},
+  {"SELECT ITEM" ,S_KEY       ,m_menu,KB_X,KB_Y+18*8,{&key_menu_enter}},
+  {"EXIT"        ,S_KEY       ,m_menu,KB_X,KB_Y+19*8,{&key_menu_escape}},
+
+
   {"<- PREV", S_SKIP|S_PREV,m_null,KB_PREV,KB_Y+20*8, {keys_settings1}},
   {"NEXT ->", S_SKIP|S_NEXT,m_null,KB_NEXT,KB_Y+20*8, {keys_settings3}},
 
@@ -2424,7 +2480,15 @@ setup_menu_t keys_settings3[] =  // Key Binding screen strings
   {"CHAINSAW",S_KEY       ,m_scrn,KB_X,KB_Y+ 8*8,{&key_weapon8}},
   {"SSG"     ,S_KEY       ,m_scrn,KB_X,KB_Y+ 9*8,{&key_weapon9}},
   {"BEST"    ,S_KEY       ,m_scrn,KB_X,KB_Y+10*8,{&key_weapontoggle}},
-  {"FIRE"    ,S_KEY       ,m_scrn,KB_X,KB_Y+11*8,{&key_fire},&mousebfire,&joybfire},
+
+  {"GAME"        ,S_SKIP|S_TITLE,m_null,KB_X,KB_Y+12*8},
+  {"SAVE"        ,S_KEY       ,m_scrn,KB_X,KB_Y+13*8,{&key_savegame}},
+  {"LOAD"        ,S_KEY       ,m_scrn,KB_X,KB_Y+14*8,{&key_loadgame}},
+  {"QUICKSAVE"   ,S_KEY       ,m_scrn,KB_X,KB_Y+15*8,{&key_quicksave}},
+  {"QUICKLOAD"   ,S_KEY       ,m_scrn,KB_X,KB_Y+16*8,{&key_quickload}},
+  {"END GAME"    ,S_KEY       ,m_scrn,KB_X,KB_Y+17*8,{&key_endgame}},
+  {"QUIT"        ,S_KEY       ,m_scrn,KB_X,KB_Y+18*8,{&key_quit}},
+  {"SCORES/FRAGS",S_KEY       ,m_scrn,KB_X,KB_Y+19*8,{&key_frags}},
 
   {"<- PREV",S_SKIP|S_PREV,m_null,KB_PREV,KB_Y+20*8, {keys_settings2}},
   {"NEXT ->",S_SKIP|S_NEXT,m_null,KB_NEXT,KB_Y+20*8, {keys_settings4}},
@@ -2556,10 +2620,12 @@ setup_menu_t weap_settings1[] =  // Weapons Settings screen
   {"ENABLE RECOIL", S_YESNO,m_null,WP_X, WP_Y+ weap_recoil*8, {"weapon_recoil"}},
   {"ENABLE BOBBING",S_YESNO,m_null,WP_X, WP_Y+weap_bobbing*8, {"player_bobbing"}},
 
-#ifdef BETA
+#ifdef 0
   {"CLASSIC BFG"      ,S_YESNO,m_null,WP_X,  // killough 8/8/98
    WP_Y+ weap_bfg*8, {"classic_bfg"}},
 #endif
+                // sf
+  {"BFG TYPE",         S_NUM, m_null,WP_X,WP_Y+weap_bfg*8, {"bfgtype"}},
 
   {"1ST CHOICE WEAPON",S_WEAP,m_null,WP_X,WP_Y+weap_pref1*8, {"weapon_choice_1"}},
   {"2nd CHOICE WEAPON",S_WEAP,m_null,WP_X,WP_Y+weap_pref2*8, {"weapon_choice_2"}},
@@ -2627,8 +2693,8 @@ void M_DrawWeapons(void)
 //
 // The Status Bar / HUD tables.
 
-#define ST_X 203
-#define ST_Y  31
+#define MST_X 203
+#define MST_Y  31
 
 // Screen table definitions
 
@@ -2642,23 +2708,23 @@ setup_menu_t* stat_settings[] =
 
 setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings screen       
 {
-  {"STATUS BAR"        ,S_SKIP|S_TITLE,m_null,ST_X,ST_Y+ 1*8 },
+  {"STATUS BAR"        ,S_SKIP|S_TITLE,m_null,MST_X,MST_Y+ 1*8 },
 
-  {"USE RED NUMBERS"   ,S_YESNO, m_null,ST_X,ST_Y+ 2*8, {"sts_always_red"}},
-  {"GRAY %"            ,S_YESNO, m_null,ST_X,ST_Y+ 3*8, {"sts_pct_always_gray"}},
-  {"SINGLE KEY DISPLAY",S_YESNO, m_null,ST_X,ST_Y+ 4*8, {"sts_traditional_keys"}},
+  {"USE RED NUMBERS"   ,S_YESNO, m_null,MST_X,MST_Y+ 2*8, {"sts_always_red"}},
+  {"GRAY %"            ,S_YESNO, m_null,MST_X,MST_Y+ 3*8, {"sts_pct_always_gray"}},
+  {"SINGLE KEY DISPLAY",S_YESNO, m_null,MST_X,MST_Y+ 4*8, {"sts_traditional_keys"}},
 
-  {"HEADS-UP DISPLAY"  ,S_SKIP|S_TITLE,m_null,ST_X,ST_Y+ 6*8},
+  {"HEADS-UP DISPLAY"  ,S_SKIP|S_TITLE,m_null,MST_X,MST_Y+ 6*8},
 
-  {"HIDE SECRETS"      ,S_YESNO     ,m_null,ST_X,ST_Y+ 7*8, {"hud_nosecrets"}},
-  {"HEALTH LOW/OK"     ,S_NUM       ,m_null,ST_X,ST_Y+ 8*8, {"health_red"}},
-  {"HEALTH OK/GOOD"    ,S_NUM       ,m_null,ST_X,ST_Y+ 9*8, {"health_yellow"}},
-  {"HEALTH GOOD/EXTRA" ,S_NUM       ,m_null,ST_X,ST_Y+10*8, {"health_green"}},
-  {"ARMOR LOW/OK"      ,S_NUM       ,m_null,ST_X,ST_Y+11*8, {"armor_red"}},
-  {"ARMOR OK/GOOD"     ,S_NUM       ,m_null,ST_X,ST_Y+12*8, {"armor_yellow"}},
-  {"ARMOR GOOD/EXTRA"  ,S_NUM       ,m_null,ST_X,ST_Y+13*8, {"armor_green"}},
-  {"AMMO LOW/OK"       ,S_NUM       ,m_null,ST_X,ST_Y+14*8, {"ammo_red"}},
-  {"AMMO OK/GOOD"      ,S_NUM       ,m_null,ST_X,ST_Y+15*8, {"ammo_yellow"}},
+  {"HIDE STATUS"       ,S_YESNO     ,m_null,MST_X,MST_Y+ 7*8, {"hud_hidestatus"}},
+  {"HEALTH LOW/OK"     ,S_NUM       ,m_null,MST_X,MST_Y+ 8*8, {"health_red"}},
+  {"HEALTH OK/GOOD"    ,S_NUM       ,m_null,MST_X,MST_Y+ 9*8, {"health_yellow"}},
+  {"HEALTH GOOD/EXTRA" ,S_NUM       ,m_null,MST_X,MST_Y+10*8, {"health_green"}},
+  {"ARMOR LOW/OK"      ,S_NUM       ,m_null,MST_X,MST_Y+11*8, {"armor_red"}},
+  {"ARMOR OK/GOOD"     ,S_NUM       ,m_null,MST_X,MST_Y+12*8, {"armor_yellow"}},
+  {"ARMOR GOOD/EXTRA"  ,S_NUM       ,m_null,MST_X,MST_Y+13*8, {"armor_green"}},
+  {"AMMO LOW/OK"       ,S_NUM       ,m_null,MST_X,MST_Y+14*8, {"ammo_red"}},
+  {"AMMO OK/GOOD"      ,S_NUM       ,m_null,MST_X,MST_Y+15*8, {"ammo_yellow"}},
 
   // Button for resetting to defaults
   {0,S_RESET,m_null,X_BUTTON,Y_BUTTON},
@@ -2744,12 +2810,11 @@ setup_menu_t auto_settings1[] =  // 1st AutoMap Settings screen
   {"blue door"                          ,S_COLOR,m_null,AU_X,AU_Y+10*8, {"mapcolor_bdor"}},
   {"yellow door"                        ,S_COLOR,m_null,AU_X,AU_Y+11*8, {"mapcolor_ydor"}},
 
-  {"AUTOMAP LEVEL TITLE COLOR"      ,S_CRITEM,m_null,AU_X,AU_Y+13*8, {"hudcolor_titl"}},
-  {"AUTOMAP COORDINATES COLOR"      ,S_CRITEM,m_null,AU_X,AU_Y+14*8, {"hudcolor_xyco"}},
+        //sf: removed unused variables
 
-  {"Show Secrets only after entering",S_YESNO,m_null,AU_X,AU_Y+15*8, {"map_secret_after"}},
+  {"Show Secrets only after entering",S_YESNO,m_null,AU_X,AU_Y+12*8, {"map_secret_after"}},
 
-  {"Show coordinates of automap pointer",S_YESNO,m_null,AU_X,AU_Y+16*8, {"map_point_coord"}},  // killough 10/98
+  {"Show coordinates of automap pointer",S_YESNO,m_null,AU_X,AU_Y+13*8, {"map_point_coord"}},  // killough 10/98
 
   // Button for resetting to defaults
   {0,S_RESET,m_null,X_BUTTON,Y_BUTTON},
@@ -3013,14 +3078,14 @@ setup_menu_t* gen_settings[] =
 };
 
 enum {
-  general_hires,  
-  general_pageflip,
+  general_vidmode,
   general_vsync,
   general_trans,
   general_transpct,
   general_pcx,
   general_diskicon,
-  general_hom
+  general_hom,
+  general_textmode
 };
 
 enum {
@@ -3033,7 +3098,7 @@ enum {
 
 #define G_X 250
 #define G_Y  44
-#define G_Y2 (G_Y+82)
+#define G_Y2 (G_Y+90)
 #define G_Y3 (G_Y+44)
 #define G_Y4 (G_Y3+52)
 #define GF_X 76
@@ -3042,14 +3107,11 @@ setup_menu_t gen_settings1[] = { // General Settings screen1
 
   {"Video"       ,S_SKIP|S_TITLE, m_null, G_X, G_Y - 12},
 
-  {"High Resolution", S_YESNO, m_null, G_X, G_Y + general_hires*8,
-   {"hires"}, 0, 0, I_ResetScreen},
-
-  {"Use Page-Flipping", S_YESNO, m_null, G_X, G_Y + general_pageflip*8,
-   {"page_flip"}, 0, 0, I_ResetScreen},
+  {"Graphics mode",S_NUM,m_null, G_X, G_Y+general_vidmode*8,
+   {"v_mode"}, 0, 0, V_ResetMode},
 
   {"Wait for Vertical Retrace", S_YESNO, m_null, G_X,
-   G_Y + general_vsync*8, {"use_vsync"}, 0, 0, I_ResetScreen},
+   G_Y + general_vsync*8, {"use_vsync"}, 0, 0, V_ResetMode},
 
   {"Enable Translucency", S_YESNO, m_null, G_X,
    G_Y + general_trans*8, {"translucency"}, 0, 0, M_Trans},
@@ -3065,6 +3127,9 @@ setup_menu_t gen_settings1[] = { // General Settings screen1
 
   {"Flashing HOM indicator", S_YESNO, m_null, G_X,
    G_Y + general_hom*8, {"flashing_hom"}},
+
+  {"start in text mode", S_YESNO, m_null, G_X,
+   G_Y + general_textmode*8, {"textmode_startup"}},
 
   {"Sound & Music", S_SKIP|S_TITLE, m_null, G_X, G_Y2 - 12},
 
@@ -3370,16 +3435,13 @@ void M_DrawCompat(void)
 // killough 11/98: enumerated
 
 enum {
-  mess_color_play,
   mess_timer,
-  mess_color_chat,
-  mess_chat_timer,
-  mess_color_review,
-  mess_timed,
   mess_hud_timer,
   mess_lines,
   mess_scrollup,
-  mess_background,
+  mess_messcolour,
+  mess_obituaries,
+  mess_obcolour
 };
 
 setup_menu_t mess_settings1[];
@@ -3392,23 +3454,8 @@ setup_menu_t* mess_settings[] =
 
 setup_menu_t mess_settings1[] =  // Messages screen       
 {
-  {"Message Color During Play", S_CRITEM, m_null, M_X,
-   M_Y + mess_color_play*8, {"hudcolor_mesg"}},
-
   {"Message Duration During Play (ms)", S_NUM, m_null, M_X,
    M_Y  + mess_timer*8, {"message_timer"}},
-
-  {"Chat Message Color", S_CRITEM, m_null, M_X,
-   M_Y + mess_color_chat*8, {"hudcolor_chat"}},
-
-  {"Chat Message Duration (ms)", S_NUM, m_null, M_X,
-   M_Y  + mess_chat_timer*8, {"chat_msg_timer"}},
-
-  {"Message Review Color", S_CRITEM, m_null, M_X,
-   M_Y + mess_color_review*8, {"hudcolor_list"}},
-
-  {"Message Listing Review is Temporary",  S_YESNO,  m_null,  M_X,
-   M_Y + mess_timed*8, {"hud_msg_timed"}},
 
   {"Message Review Duration (ms)", S_NUM, m_null, M_X,
    M_Y  + mess_hud_timer*8, {"hud_msg_timer"}},
@@ -3419,8 +3466,14 @@ setup_menu_t mess_settings1[] =  // Messages screen
   {"Message Listing Scrolls Upwards",  S_YESNO,  m_null,  M_X,
    M_Y + mess_scrollup*8, {"hud_msg_scrollup"}},
 
-  {"Message Background",  S_YESNO,  m_null,  M_X,  
-   M_Y + mess_background*8, {"hud_list_bgon"}},
+  {"message colour", S_CRITEM, m_null, M_X,
+   M_Y + mess_messcolour*8, {"mess_colour"}},
+
+  {"show obituaries", S_YESNO, m_null, M_X,
+   M_Y + mess_obituaries*8, {"obituaries"}},
+
+  {"obituary colour", S_CRITEM, m_null, M_X,
+   M_Y + mess_obcolour*8, {"obcolour"}},
 
   // Button for resetting to defaults
   {0,S_RESET,m_null,X_BUTTON,Y_BUTTON},
@@ -4018,20 +4071,20 @@ void M_DrawMenuString(int cx, int cy, int color)
   while (*ch)
     {
       c = *ch++;         // get next char
-      c = toupper(c) - HU_FONTSTART;
-      if (c < 0 || c> HU_FONTSIZE)
+      c = toupper(c) - V_FONTSTART;
+      if (c < 0 || c> V_FONTSIZE)
 	{
 	  cx += SPACEWIDTH;    // space
 	  continue;
 	}
-      w = SHORT (hu_font[c]->width);
+      w = SHORT (v_font[c]->width);
       if (cx + w > SCREENWIDTH)
 	break;
     
       // V_DrawpatchTranslated() will draw the string in the
       // desired color, colrngs[color]
     
-      V_DrawPatchTranslated(cx,cy,0,hu_font[c],colrngs[color],0);
+      V_DrawPatchTranslated(cx,cy,0,v_font[c],colrngs[color],0);
 
       // The screen is cramped, so trim one unit from each
       // character so they butt up against each other.
@@ -4050,13 +4103,13 @@ int M_GetPixelWidth(char* ch)
   while (*ch)
     {
       c = *ch++;    // pick up next char
-      c = toupper(c) - HU_FONTSTART;
-      if (c < 0 || c > HU_FONTSIZE)
+      c = toupper(c) - V_FONTSTART;
+      if (c < 0 || c > V_FONTSIZE)
 	{
 	  len += SPACEWIDTH;   // space
 	  continue;
 	}
-      len += SHORT (hu_font[c]->width);
+      len += SHORT (v_font[c]->width);
       len--; // adjust so everything fits
     }
   len++; // replace what you took away on the last char only
@@ -4101,50 +4154,31 @@ enum {
   cr_special,
 };
 
-#define CR_S 9
-#define CR_X 152
-#define CR_X2 (CR_X+8)
-#define CR_Y 31
-#define CR_SH 2
-
-setup_menu_t cred_settings[]={
-
-  {"Programmer",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*prog + CR_SH*cr_prog},
-  {"Lee Killough",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*prog + CR_SH*cr_prog},
-
-  {"Artist",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*art + CR_SH*cr_art},
-  {"Len Pitre",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*art + CR_SH*cr_art},
-
-  {"PlayTesters",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*test + CR_SH*cr_test},
-  {"Ky (Rez) Moffet",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*test + CR_SH*cr_test},
-  {"Len Pitre",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(test+1) + CR_SH*cr_test},
-  {"James (Quasar) Haley",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(test+2) + CR_SH*cr_test},
-
-  {"Canine Consulting",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*canine + CR_SH*cr_canine},
-  {"Longplain Kennels, Reg'd",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*canine + CR_SH*cr_canine},
-
-  {"Sound Code",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*musicsfx + CR_SH*cr_musicsfx},
-  {"Shawn Hargreaves\n& Allegro Team",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*musicsfx + CR_SH*cr_musicsfx},
-
-  {"Additional Credit To",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*adcr + CR_SH*cr_adcr},
-  {"id Software",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*adcr+CR_SH*cr_adcr},
-  {"TeamTNT",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(adcr+1)+CR_SH*cr_adcr},
-
-  {"Special Thanks To",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*special + CR_SH*cr_special},
-  {"John Romero",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(special+0)+CR_SH*cr_special},
-  {"Joel Murdoch",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(special+1)+CR_SH*cr_special},
-
-  {0,S_SKIP|S_END,m_null}
-};
-
 void M_DrawCredits(void)     // killough 10/98: credit screen
 {
   inhelpscreens = true;
-  M_DrawBackground(gamemode==shareware ? "CEIL5_1" : "MFLR8_4", screens[0]);
-  V_DrawPatchTranslated(42,9,0, W_CacheLumpName("MBFTEXT",PU_CACHE),
-			colrngs[CR_GOLD],0);
-  V_MarkRect(0,0,SCREENWIDTH,SCREENHEIGHT);
-  M_DrawScreenItems(cred_settings);
+
+  M_DrawDistortedBackground(gamemode==commercial ? "SLIME05" : "LAVA1",
+                                screens[0]);
+
+        // sf: SMMU credits
+  V_WriteText(
+        FC_GRAY "SMMU:" FC_RED " \"Smack my marine up\"\n"
+        "\n"
+        "Port by Simon Howard 'Fraggle'\n"
+        "\n"
+        "Based on the MBF port by Lee Killough\n"
+        "\n"
+        FC_GRAY "Programming:" FC_RED " Simon Howard\n"
+        FC_GRAY "Graphics:" FC_RED " Bob Satori\n"
+        FC_GRAY "Level editing/start map:" FC_RED " Derek MacDonald\n"
+        "\n"
+        "\n"
+        "Copyright(C) 1999 Simon Howard\n"
+        FC_GRAY"         http://fraggle.tsx.org/",
+        10, 60);
+
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -4333,7 +4367,7 @@ boolean M_Responder (event_t* ev)
 #if 0
 	  // killough 11/98: removed useless code
 	  if (ch != 32)
-	    if (ch-HU_FONTSTART < 0 || ch-HU_FONTSTART >= HU_FONTSIZE)
+            if (ch-V_FONTSTART < 0 || ch-V_FONTSTART >= V_FONTSIZE)
 	      ; // if true, do nothing
 #endif
 	  if (ch >= 32 && ch <= 127 &&
@@ -4365,6 +4399,8 @@ boolean M_Responder (event_t* ev)
       return true;
     }
 
+  if(chat_on) return false; //sf
+
   // killough 2/22/98: add support for screenshot key:
 
   if ((devparm && ch == key_help) || ch == key_screenshot)
@@ -4376,13 +4412,8 @@ boolean M_Responder (event_t* ev)
   // If there is no active menu displayed...
 
   if (!menuactive)                                            // phares
-    {                                                               //  |
-      if (ch == key_autorun)      // Autorun                          //  V
-	{
-	  autorun = !autorun;
-	  return true;
-	}
-
+    {                                                         //  |
+                                                              //  V
       if (ch == key_help)      // Help key
 	{
 	  M_StartControlPanel ();
@@ -4459,12 +4490,12 @@ boolean M_Responder (event_t* ev)
 	  usegamma++;
 	  if (usegamma > 4)
 	    usegamma = 0;
-	  players[consoleplayer].message =
+          dprintf(
 	    usegamma == 0 ? s_GAMMALVL0 :
 	    usegamma == 1 ? s_GAMMALVL1 :
 	    usegamma == 2 ? s_GAMMALVL2 :
 	    usegamma == 3 ? s_GAMMALVL3 :
-	    s_GAMMALVL4;
+            s_GAMMALVL4);
 	  I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 	  return true;                      
 	}
@@ -4472,7 +4503,7 @@ boolean M_Responder (event_t* ev)
 
       if (ch == key_zoomout)     // zoom out
 	{
-	  if (automapactive || chat_on)
+          if (consoleactive || automapactive)
 	    return false;
 	  M_SizeDisplay(0);
 	  S_StartSound(NULL,sfx_stnmov);
@@ -4481,29 +4512,23 @@ boolean M_Responder (event_t* ev)
     
       if (ch == key_zoomin)               // zoom in
 	{                                 // jff 2/23/98
-	  if (automapactive || chat_on)     // allow 
+          if (consoleactive ||automapactive)     // allow 
 	    return false;                   // key_hud==key_zoomin
-	  M_SizeDisplay(1);                                             //  ^
-	  S_StartSound(NULL,sfx_stnmov);                                //  |
+          M_SizeDisplay(1);                                       //  ^
+          S_StartSound(NULL,sfx_stnmov);                          //  |
 	  return true;                                            // phares
 	}
                                   
       if (ch == key_hud)   // heads-up mode       
 	{                    
-	  if (automapactive || chat_on)    // jff 2/22/98
+          if (automapactive)    // jff 2/22/98
 	    return false;                  // HUD mode control
 	  if (screenSize<8)                // function on default F5
-	    while (screenSize<8 || !hud_displayed) // make hud visible
+            while (screenSize<8) // make hud visible
 	      M_SizeDisplay(1);            // when configuring it
 	  else
 	    {
-	      hud_displayed = 1;               //jff 3/3/98 turn hud on
-	      hud_active = (hud_active+1)%3;   // cycle hud_active
-	      if (!hud_active)                 //jff 3/4/98 add distributed
-		{
-		  hud_distributed = !hud_distributed; // to cycle
-		  HU_MoveHud(); //jff 3/9/98 move it now to avoid glitch
-		}
+              HU_OverlayStyle();
 	    }
 	  return true;
 	}
@@ -5318,7 +5343,7 @@ void M_Drawer (void)
 	    p++;
 	  *p = 0;
 	  M_WriteText(160 - M_StringWidth(string)/2, y, string);
-	  y += SHORT(hu_font[0]->height);
+          y += SHORT(v_font[0]->height);
 	  if ((*p = c))
 	    p++;
 	}
@@ -5467,25 +5492,25 @@ void M_DrawSelCell (menu_t* menu,int item)
 //
 
 //
-// Find string width from hu_font chars
+// Find string width from v_font chars
 //
 
 int M_StringWidth(char* string)
 {
   int i, c, w = 0;
   for (i = 0;i < strlen(string);i++)
-    w += (c = toupper(string[i]) - HU_FONTSTART) < 0 || c >= HU_FONTSIZE ?
-      4 : SHORT(hu_font[c]->width);
+    w += (c = toupper(string[i]) - V_FONTSTART) < 0 || c >= V_FONTSIZE ?
+      4 : SHORT(v_font[c]->width);
   return w;
 }
 
 //
-//    Find string height from hu_font chars
+//    Find string height from v_font chars
 //
 
 int M_StringHeight(char* string)
 {
-  int i, h, height = h = SHORT(hu_font[0]->height);
+  int i, h, height = h = SHORT(v_font[0]->height);
   for (i = 0;string[i];i++)            // killough 1/31/98
     if (string[i] == '\n')
       h += height;
@@ -5493,45 +5518,12 @@ int M_StringHeight(char* string)
 }
 
 //
-//    Write a string using the hu_font
+//    Write a string using the v_font
 //
 void M_WriteText (int x,int y,char* string)
 {
-  int   w;
-  char* ch;
-  int   c;
-  int   cx;
-  int   cy;
-  
-  ch = string;
-  cx = x;
-  cy = y;
-  
-  while(1)
-    {
-      c = *ch++;
-      if (!c)
-	break;
-      if (c == '\n')
-	{
-	  cx = x;
-	  cy += 12;
-	  continue;
-	}
-  
-      c = toupper(c) - HU_FONTSTART;
-      if (c < 0 || c>= HU_FONTSIZE)
-	{
-	  cx += 4;
-	  continue;
-	}
-  
-      w = SHORT (hu_font[c]->width);
-      if (cx+w > SCREENWIDTH)
-	break;
-      V_DrawPatchDirect(cx, cy, 0, hu_font[c]);
-      cx+=w;
-    }
+        // sf: use v_writetext now
+        V_WriteText(string, x, y);
 }
 
 /////////////////////////////
@@ -5641,10 +5633,7 @@ void M_ResetMenu(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_menu.c,v $
 // Revision 1.54  1998/05/28  05:27:13  killough
 // Fix some load / save / end game handling r.w.t. demos
 //

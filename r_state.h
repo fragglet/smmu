@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_state.h,v 1.6 1998/05/01 14:49:12 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,6 +24,7 @@
 
 // Need data structure definitions.
 #include "d_player.h"
+#include "p_chase.h"
 #include "r_data.h"
 
 //
@@ -86,6 +87,9 @@ extern line_t           *lines;
 extern int              numsides;
 extern side_t           *sides;
 
+        // sf: for scripting
+extern int              numthings;
+extern mobj_t           **spawnedthings;
 
 //
 // POV data.
@@ -95,6 +99,7 @@ extern fixed_t          viewy;
 extern fixed_t          viewz;
 extern angle_t          viewangle;
 extern player_t         *viewplayer;
+extern camera_t         *viewcamera;
 extern angle_t          clipangle;
 extern int              viewangletox[FINEANGLES/2];
 extern angle_t          xtoviewangle[MAX_SCREENWIDTH+1];  // killough 2/8/98
@@ -110,14 +115,14 @@ extern int              sscount;
 extern visplane_t       *floorplane;
 extern visplane_t       *ceilingplane;
 
+extern visplane_t       *floorplane2; //sf
+extern visplane_t       *ceilingplane2;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_state.h,v $
 // Revision 1.6  1998/05/01  14:49:12  killough
 // beautification
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_mobj.c,v 1.26 1998/05/16 00:24:12 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_mobj.c,v 1.26 1998/05/16 00:24:12 phares Exp $";
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -36,7 +36,11 @@ rcsid[] = "$Id$";
 #include "s_sound.h"
 #include "info.h"
 #include "g_game.h"
+#include "p_chase.h"
 #include "p_inter.h"
+#include "wi_stuff.h"
+
+int gravity=FRACUNIT;
 
 //
 // P_SetMobjState
@@ -69,10 +73,13 @@ boolean P_SetMobjState(mobj_t* mobj,statenum_t state)
 	  break;                 // killough 4/9/98
 	}
 
-      st = &states[state];
+      st = states + state;
       mobj->state = st;
       mobj->tics = st->tics;
-      mobj->sprite = st->sprite;
+
+                // sf: skins
+      mobj->sprite = mobj->skin ? mobj->skin->sprite : st->sprite;
+
       mobj->frame = st->frame;
 
       // Modified handling.
@@ -117,6 +124,8 @@ void P_ExplodeMissile (mobj_t* mo)
   if (mo->info->deathsound)
     S_StartSound (mo, mo->info->deathsound);
 }
+
+extern mobj_t *hitthing;
 
 //
 // P_XYMovement
@@ -225,7 +234,9 @@ void P_XYMovement (mobj_t* mo)
 		    }
 		}
 	      else
+              {
 		mo->momx = mo->momy = 0;
+              }
 	    }
 	  else
 	    if (player)   // try to slide along it
@@ -251,7 +262,9 @@ void P_XYMovement (mobj_t* mo)
 		  P_ExplodeMissile (mo);
 		}
 	      else // whatever else it is, it is now standing still in (x,y)
-		mo->momx = mo->momy = 0;
+              {
+                mo->momx = mo->momy = 0;
+              }
 	}
     }
   while (xmove | ymove);
@@ -369,7 +382,7 @@ static void P_ZMovement (mobj_t* mo)
 		    FixedMul(mo->momz, (fixed_t)(FRACUNIT*.45)) ;
 		  
 		  // Bring it to rest below a certain speed
-		  if (abs(mo->momz) <= mo->info->mass*(GRAVITY*4/256))
+                  if (abs(mo->momz) <= mo->info->mass*(gravity*4/256))
 		    mo->momz = 0;
 		}
 
@@ -407,7 +420,7 @@ static void P_ZMovement (mobj_t* mo)
 	else
 	  {
 	    if (!(mo->flags & MF_NOGRAVITY))      // free-fall under gravity
-	      mo->momz -= mo->info->mass*(GRAVITY/256);
+              mo->momz -= mo->info->mass*(gravity/256);
 	    if (mo->flags & MF_FLOAT && sentient(mo))
 	      goto floater;
 	    return;
@@ -476,7 +489,7 @@ floater:
 	  else
 	    if (mo->player && // killough 5/12/98: exclude voodoo dolls
 		mo->player->mo == mo &&
-		mo->momz < -GRAVITY*8)
+                mo->momz < -gravity*8)
 	      {
 		// Squat down.
 		// Decrease viewheight for a moment
@@ -484,7 +497,7 @@ floater:
 		// and utter appropriate sound.
 
 		mo->player->deltaviewheight = mo->momz>>3;
-		S_StartSound (mo, sfx_oof);
+                S_StartSound (mo, sfx_oof);
 	      }
 	  mo->momz = 0;
 	}
@@ -501,8 +514,8 @@ floater:
     if (!(mo->flags & MF_NOGRAVITY))
       {
 	if (!mo->momz)
-	  mo->momz = -GRAVITY;
-        mo->momz -= GRAVITY;
+          mo->momz = -gravity;
+        mo->momz -= gravity;
       }
 
   if (mo->z + mo->height > mo->ceilingz)
@@ -573,7 +586,8 @@ void P_NightmareRespawn(mobj_t* mobj)
 
   mo = P_SpawnMobj (x,y,z, mobj->type);
   mo->spawnpoint = mobj->spawnpoint;
-  mo->angle = ANG45 * (mthing->angle/45);
+                // sf: use R_WadToAngle
+  mo->angle = R_WadToAngle(mthing->angle);
 
   if (mthing->options & MTF_AMBUSH)
     mo->flags |= MF_AMBUSH;
@@ -664,13 +678,16 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
   mobj->radius = info->radius;
   mobj->height = info->height;                                      // phares
   mobj->flags  = info->flags;
+  mobj->skin = NULL;
 
   // killough 8/23/98: no friends, bouncers, or touchy things in old demos
   if (demo_version < 203)
     mobj->flags &= ~(MF_BOUNCES | MF_FRIEND | MF_TOUCHY); 
-  else
-    if (type == MT_PLAYER)         // Except in old demos, players
-      mobj->flags |= MF_FRIEND;    // are always friends.
+  else          // sf: not friends in deathmatch!
+                // extra version check for old (mbf) demos
+    if (demo_version < 303 || !deathmatch)
+      if (type == MT_PLAYER)         // Except in old demos, players
+        mobj->flags |= MF_FRIEND;    // are always friends.
 
   mobj->health = info->spawnhealth;
 
@@ -708,12 +725,16 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
 
   P_AddThinker(&mobj->thinker);
 
+  mobj->colour = (info->flags & MF_TRANSLATION) >> MF_TRANSSHIFT;
+  mobj->colour = 0;
+
   return mobj;
 }
 
 static mapthing_t itemrespawnque[ITEMQUESIZE];
 static int itemrespawntime[ITEMQUESIZE];
 int iquehead, iquetail;
+int respawnsuper=0;
 
 //
 // P_RemoveMobj
@@ -722,12 +743,25 @@ int iquehead, iquetail;
 void P_RemoveMobj (mobj_t *mobj)
 {
   if (!((mobj->flags ^ MF_SPECIAL) & (MF_SPECIAL | MF_DROPPED))
-      && mobj->type != MT_INV && mobj->type != MT_INS)
+		|| mobj->type==MT_BARREL)
     {
-      itemrespawnque[iquehead] = mobj->spawnpoint;
-      itemrespawntime[iquehead++] = leveltime;
-      if ((iquehead &= ITEMQUESIZE-1) == iquetail)   // lose one off the end?
-	iquetail = (iquetail+1)&(ITEMQUESIZE-1);
+      if((mobj->type == MT_INV || mobj->type == MT_INS) && !respawnsuper)
+      { // sf: respawning super-powerups
+      }
+      else
+      {
+	if(mobj->type==MT_BARREL && deathmatch!=3)
+	{       // deathmatch 3: barrels respawn
+	}
+	else
+	{
+	  itemrespawnque[iquehead] = mobj->spawnpoint;
+	  itemrespawntime[iquehead++] = leveltime;
+	  if ((iquehead &= ITEMQUESIZE-1) == iquetail)
+			   // lose one off the end?
+	     iquetail = (iquetail+1)&(ITEMQUESIZE-1);
+	}
+      }
     }
 
   // unlink from sector and block lists
@@ -810,7 +844,7 @@ void P_RespawnSpecials (void)
   mapthing_t*   mthing;
   int           i;
 
-  if (deathmatch != 2 ||       // only respawn items in deathmatch
+  if (deathmatch < 2 ||       // only respawn items in deathmatch
       iquehead == iquetail ||  // nothing left to respawn?
       leveltime - itemrespawntime[iquetail] < 30*35) // wait 30 seconds
     return;
@@ -836,7 +870,8 @@ void P_RespawnSpecials (void)
 
   mo = P_SpawnMobj(x,y,z, i);
   mo->spawnpoint = *mthing;
-  mo->angle = ANG45 * (mthing->angle/45);
+                // sf
+  mo->angle = R_WadToAngle(mthing->angle);
 
   // pull it from the queue
 
@@ -874,22 +909,24 @@ void P_SpawnPlayer (mapthing_t* mthing)
 
   // set color translations for player sprites
 
-  if (mthing->type > 1)
-    mobj->flags |= (mthing->type-1)<<MF_TRANSSHIFT;
-  
-  mobj->angle      = ANG45 * (mthing->angle/45);
+//  if (mthing->type > 1)
+  mobj->colour = players[mthing->type-1].colormap; //sf
+
+  mobj->angle      = R_WadToAngle(mthing->angle);
   mobj->player     = p;
   mobj->health     = p->health;
+  mobj->skin       = p->skin;
+  mobj->sprite     = p->skin->sprite;
 
   p->mo            = mobj;
   p->playerstate   = PST_LIVE;
   p->refire        = 0;
-  p->message       = NULL;
   p->damagecount   = 0;
   p->bonuscount    = 0;
   p->extralight    = 0;
   p->fixedcolormap = 0;
   p->viewheight    = VIEWHEIGHT;
+  p->viewz         = mobj->z + VIEWHEIGHT;
 
   p->momx = p->momy = 0;   // killough 10/98: initialize bobbing to 0.
 
@@ -904,10 +941,13 @@ void P_SpawnPlayer (mapthing_t* mthing)
       p->cards[i] = true;
 
   if (mthing->type-1 == consoleplayer)
-    {
+  {
       ST_Start(); // wake up the status bar
       HU_Start(); // wake up the heads up text
-    }
+  }
+  if(mthing->type-1 == displayplayer)
+      P_ResetChasecam(); //sf
+
 }
 
 
@@ -916,8 +956,9 @@ void P_SpawnPlayer (mapthing_t* mthing)
 // The fields of the mapthing should
 // already be in host byte order.
 //
+// sf: made to return mobj_t* spawned
 
-void P_SpawnMapThing (mapthing_t* mthing)
+mobj_t *P_SpawnMapThing (mapthing_t* mthing)
 {
   int    i;
   mobj_t *mobj;
@@ -930,7 +971,7 @@ void P_SpawnMapThing (mapthing_t* mthing)
     case DEN_PLAYER6:
     case DEN_PLAYER7:
     case DEN_PLAYER8:
-      return;
+      return NULL;
     }
 
   // killough 11/98: clear flags unused by Doom
@@ -963,8 +1004,15 @@ void P_SpawnMapThing (mapthing_t* mthing)
 	  deathmatch_p = deathmatchstarts + offset;
 	}
       memcpy(deathmatch_p++, mthing, sizeof*mthing);
-      return;
+      return NULL; //sf
     }
+
+  if(mthing->type == 5003)
+  {
+        // save for intermissions
+        WI_AddCamera(mthing);
+        return NULL;
+  }
 
   // check for players specially
 
@@ -989,30 +1037,30 @@ void P_SpawnMapThing (mapthing_t* mthing)
       if (!deathmatch)
 	P_SpawnPlayer (mthing);
 
-      return;
+      return NULL; //sf
     }
 
   // check for apropriate skill level
 
   if (!netgame && mthing->options & MTF_NOTSINGLE)//jff "not single" thing flag
-    return;
+    return NULL; //sf
 
   //jff 3/30/98 implement "not deathmatch" thing flag
 
   if (netgame && deathmatch && mthing->options & MTF_NOTDM)
-    return;
+    return NULL; //sf
 
   //jff 3/30/98 implement "not cooperative" thing flag
 
   if (netgame && !deathmatch && mthing->options & MTF_NOTCOOP)
-    return;
+    return NULL;  // sf
 
   // killough 11/98: simplify
   if (gameskill == sk_baby || gameskill == sk_easy ? 
       !(mthing->options & MTF_EASY) :
       gameskill == sk_hard || gameskill == sk_nightmare ?
       !(mthing->options & MTF_HARD) : !(mthing->options & MTF_NORMAL))
-    return;
+    return NULL;  // sf
 
   // find which type to spawn
 
@@ -1027,18 +1075,18 @@ void P_SpawnMapThing (mapthing_t* mthing)
     {
       dprintf("Unknown Thing type %i at (%i, %i)",
 	      mthing->type, mthing->x, mthing->y);
-      return;
+      return NULL;  // sf
     }
 
   // don't spawn keycards and players in deathmatch
 
   if (deathmatch && mobjinfo[i].flags & MF_NOTDMATCH)
-    return;
+    return NULL;        // sf
 
   // don't spawn any monsters if -nomonsters
 
   if (nomonsters && (i == MT_SKULL || (mobjinfo[i].flags & MF_COUNTKILL)))
-    return;
+    return NULL;        // sf
 
 #ifdef DOGS
   // spawn it
@@ -1071,9 +1119,11 @@ spawnit:
   if (mobj->flags & MF_COUNTITEM)
     totalitems++;
 
-  mobj->angle = ANG45 * (mthing->angle/45);
+  mobj->angle = R_WadToAngle(mthing->angle);
   if (mthing->options & MTF_AMBUSH)
     mobj->flags |= MF_AMBUSH;
+
+  return mobj;
 }
 
 //
@@ -1130,6 +1180,33 @@ void P_SpawnBlood(fixed_t x,fixed_t y,fixed_t z,int damage)
       P_SetMobjState(th,S_BLOOD3);
 }
 
+void P_SpawnParticle(fixed_t x, fixed_t y, fixed_t z)
+{
+        P_SpawnMobj(x, y, z, MT_PARTICLE);
+}
+
+
+void P_ParticleLine(mobj_t *source, mobj_t *dest)
+{
+        fixed_t sourcex, sourcey, sourcez;
+        fixed_t destx, desty, destz;
+        int linedetail;
+        int j;
+
+        sourcex = source->x; sourcey = source->y;
+        destx = dest->x; desty = dest->y;
+        sourcez = source->z + (source->info->height/2);
+        destz = dest->z + (dest->info->height/2);
+        linedetail = P_AproxDistance(destx - sourcex, desty - sourcey)
+                                / FRACUNIT;
+
+                // make the line
+       for(j=0; j<linedetail; j++)
+         P_SpawnParticle(
+                sourcex + ((destx - source->x)*j)/linedetail,
+                sourcey + ((desty - source->y)*j)/linedetail,
+                sourcez + ((destz - source->z)*j)/linedetail);
+}
 
 //
 // P_CheckMissileSpawn
@@ -1195,19 +1272,17 @@ mobj_t* P_SpawnMissile(mobj_t* source,mobj_t* dest,mobjtype_t type)
 
   th->momz = (dest->z - source->z) / dist;
   P_CheckMissileSpawn(th);
+
   return th;
 }
-
-#ifdef BETA
-int autoaim = 0;  // killough 7/19/98: autoaiming was not in original beta
-#endif
 
 //
 // P_SpawnPlayerMissile
 // Tries to aim at a nearby monster
 //
+extern fixed_t *yslope;
 
-void P_SpawnPlayerMissile(mobj_t* source,mobjtype_t type)
+mobj_t *P_SpawnPlayerMissile(mobj_t* source, mobjtype_t type)
 {
   mobj_t *th;
   fixed_t x, y, z, slope = 0;
@@ -1217,9 +1292,8 @@ void P_SpawnPlayerMissile(mobj_t* source,mobjtype_t type)
   angle_t an = source->angle;
 
   // killough 7/19/98: autoaiming was not in original beta
-#ifdef BETA
-  if (!beta_emulation || autoaim)
-#endif
+        // sf: made a multiplayer option
+  if (autoaim)
     {
       // killough 8/2/98: prefer autoaiming at enemies
       int mask = demo_version < 203 ? 0 : MF_FRIEND;
@@ -1231,10 +1305,18 @@ void P_SpawnPlayerMissile(mobj_t* source,mobjtype_t type)
 	  if (!linetarget)
 	    slope = P_AimLineAttack(source, an -= 2<<26, 16*64*FRACUNIT, mask);
 	  if (!linetarget)
-	    an = source->angle, slope = 0;
+	  {
+	    an = source->angle;
+            if(source->player->readyweapon!=wp_bfg || bfglook==1)
+              slope = source->player->updownangle * LOOKSLOPE;
+	    else
+	      slope = 0;
+	  }
 	}
       while (mask && (mask=0, !linetarget));  // killough 8/2/98
     }
+    else
+        slope = source->player->updownangle * LOOKSLOPE;
 
   x = source->x;
   y = source->y;
@@ -1252,14 +1334,13 @@ void P_SpawnPlayerMissile(mobj_t* source,mobjtype_t type)
   th->momz = FixedMul(th->info->speed,slope);
 
   P_CheckMissileSpawn(th);
+
+  return th;    //sf
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_mobj.c,v $
 // Revision 1.26  1998/05/16  00:24:12  phares
 // Unknown things now flash warning msg instead of causing abort
 //

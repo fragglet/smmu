@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: hu_lib.h,v 1.9 1998/05/11 10:13:31 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -270,10 +270,7 @@ void HUlib_eraseIText(hu_itext_t* it);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: hu_lib.h,v $
 // Revision 1.9  1998/05/11  10:13:31  jim
 // formatted/documented hu_lib
 //

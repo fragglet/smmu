@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: am_map.h,v 1.7 1998/05/10 12:05:18 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -98,10 +98,7 @@ extern int map_point_coordinates;  // killough 10/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: am_map.h,v $
 // Revision 1.7  1998/05/10  12:05:18  jim
 // formatted/documented am_map
 //

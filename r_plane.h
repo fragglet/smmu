@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_plane.h,v 1.6 1998/04/27 01:48:34 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -31,7 +31,9 @@
 extern  short *lastopening;
 
 extern short floorclip[], ceilingclip[];
-extern fixed_t yslope[], distscale[];
+extern short floorclip2[], ceilingclip2[]; //sf
+extern fixed_t *yslope;
+extern fixed_t origyslope[], distscale[];
 
 void R_InitPlanes(void);
 void R_ClearPlanes(void);
@@ -42,19 +44,17 @@ visplane_t *R_FindPlane(
                         int picnum,
                         int lightlevel,
                         fixed_t xoffs,  // killough 2/28/98: add x-y offsets
-                        fixed_t yoffs
-                       );
+                        fixed_t yoffs );
 
 visplane_t *R_CheckPlane(visplane_t *pl, int start, int stop);
+
+extern int visplane_view;
 
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_plane.h,v $
 // Revision 1.6  1998/04/27  01:48:34  killough
 // Program beautification
 //

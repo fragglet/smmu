@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_lights.c,v 1.11 1998/05/18 09:04:41 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,7 +23,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_lights.c,v 1.11 1998/05/18 09:04:41 jim Exp $";
 
 #include "doomstat.h" //jff 5/18/98
 #include "doomdef.h"
@@ -148,6 +148,50 @@ void T_Glow(glow_t* g)
       break;
   }
 }
+
+// sf 13/10/99:
+//
+// T_LightFade()
+//
+// Just fade the light level in a sector to a new level
+//
+
+void T_LightFade(lightlevel_t *ll)
+{
+  if(ll->sector->lightlevel < ll->destlevel)
+  {
+      // increase the lightlevel
+    if(ll->sector->lightlevel + ll->speed >= ll->destlevel)
+    {
+          // stop changing light level
+       ll->sector->lightlevel = ll->destlevel;    // set to dest lightlevel
+
+       ll->sector->lightingdata = NULL;          // clear lightingdata
+       P_RemoveThinker(&ll->thinker);    // remove thinker       
+    }
+    else
+    {
+        ll->sector->lightlevel += ll->speed; // move lightlevel
+    }
+  }
+  else
+  {
+        // decrease lightlevel
+    if(ll->sector->lightlevel - ll->speed <= ll->destlevel)
+    {
+          // stop changing light level
+       ll->sector->lightlevel = ll->destlevel;    // set to dest lightlevel
+
+       ll->sector->lightingdata = NULL;          // clear lightingdata
+       P_RemoveThinker(&ll->thinker);            // remove thinker       
+    }
+    else
+    {
+        ll->sector->lightlevel -= ll->speed;      // move lightlevel
+    }
+  }
+}
+
 
 //////////////////////////////////////////////////////////
 //
@@ -277,6 +321,35 @@ void P_SpawnGlowingLight(sector_t*  sector)
   g->direction = -1;
 
   sector->special &= ~31; //jff 3/14/98 clear non-generalized sector type
+}
+
+// sf 13/10/99:
+//
+// P_FadeLight()
+//
+// Fade all the lights in sectors with a particular tag to a new value
+//
+
+void P_FadeLight(int tag, int destvalue, int speed)
+{
+  int i;
+  lightlevel_t *ll;
+
+  // search all sectors for ones with tag
+  for (i = -1; (i = P_FindSectorFromTag(tag,i)) >= 0;)
+  {
+      sector_t *sector = &sectors[i];
+      sector->lightingdata = sector;    // just set it to something
+
+      ll = Z_Malloc(sizeof(*ll), PU_LEVSPEC, 0);
+      ll->thinker.function = T_LightFade;
+
+      P_AddThinker(&ll->thinker);       // add thinker
+
+      ll->sector = sector;
+      ll->destlevel = destvalue;
+      ll->speed = speed;
+  }
 }
 
 //////////////////////////////////////////////////////////
@@ -431,10 +504,7 @@ int EV_LightTurnOnPartway(line_t *line, fixed_t level)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_lights.c,v $
 // Revision 1.11  1998/05/18  09:04:41  jim
 // fix compatibility decl
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: w_wad.h,v 1.10 1998/05/06 11:32:05 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,6 +21,8 @@
 
 #ifndef __W_WAD__
 #define __W_WAD__
+
+#include <stdio.h>
 
 //
 // TYPES
@@ -65,6 +67,7 @@ typedef struct
 
   int handle;
   int position;
+  void *cache;  //sf
 } lumpinfo_t;
 
 // killough 1/31/98: predefined lumps
@@ -72,10 +75,13 @@ extern const size_t num_predefined_lumps;
 extern const lumpinfo_t predefined_lumps[];
 
 extern void       **lumpcache;
-extern lumpinfo_t *lumpinfo;
+extern lumpinfo_t **lumpinfo;   //sf: ptr to ptr
 extern int        numlumps;
 
 void W_InitMultipleFiles(char *const*filenames);
+
+// sf: add a new wad file after the game has already begun
+int W_AddNewFile(char *filename);
 
 // killough 4/17/98: if W_CheckNumForName() called with only
 // one argument, pass ns_global as the default namespace
@@ -86,6 +92,7 @@ int     W_GetNumForName (const char* name);
 int     W_LumpLength (int lump);
 void    W_ReadLump (int lump, void *dest);
 void*   W_CacheLumpNum (int lump, int tag);
+long    W_LumpCheckSum (int lumpnum);
 
 #define W_CacheLumpName(name,tag) W_CacheLumpNum (W_GetNumForName(name),(tag))
 
@@ -93,20 +100,19 @@ void NormalizeSlashes(char *);                    // killough 11/98
 char *AddDefaultExtension(char *, const char *);  // killough 1/18/98
 void ExtractFileBase(const char *, char *);       // killough
 unsigned W_LumpNameHash(const char *s);           // killough 1/31/98
+void W_InitLumpHash(void);
 
 void I_BeginRead(void), I_EndRead(void); // killough 10/98
 
 // Function to write all predefined lumps to a PWAD if requested
 extern void WritePredefinedLumpWad(const char *filename); // jff 5/6/98
 
+extern int iwadhandle;
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: w_wad.h,v $
 // Revision 1.10  1998/05/06  11:32:05  jim
 // Moved predefined lump writer info->w_wad
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: doomstat.h,v 1.13 1998/05/12 12:47:28 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -35,9 +35,18 @@
 // We need the playr data structure as well.
 #include "d_player.h"
 
+typedef enum
+{
+        bfg_normal,
+        bfg_classic,
+        bfg_11k
+} bfg_t;
+
 // ------------------------
 // Command line parameters.
 //
+
+extern boolean in_textmode;
 
 extern  boolean nomonsters; // checkparm of -nomonsters
 extern  boolean respawnparm;  // checkparm of -respawn
@@ -75,7 +84,7 @@ extern int monkeys, default_monkeys;
 extern int pitched_sounds;
 
 extern int general_translucency;
-
+extern int tran_filter_pct;
 extern int demo_insurance, default_demo_insurance;      // killough 4/5/98
 
 // -------------------------------------------
@@ -183,6 +192,7 @@ extern  int     viewheight;
 extern  int     viewwidth;
 extern  int     scaledviewwidth;
 extern  int     scaledviewheight;         // killough 11/98
+extern  int     lefthanded; //sf
 
 // This one is related to the 3-screen display mode.
 // ANG90 = left side, ANG270 = right
@@ -251,6 +261,8 @@ extern wbstartstruct_t wminfo;
 // This doubles with BackPack powerup item.
 extern int maxammo[];
 
+extern angle_t consoleangle;
+
 //-----------------------------------------
 // Internal parameters, used for engine.
 //
@@ -258,6 +270,9 @@ extern int maxammo[];
 // File handling stuff.
 extern  char    basedefault[];
 extern  FILE   *debugfile;
+                // sf:
+#define DEBUGMSG(s) if(debugfile) { fprintf(debugfile, s);    \
+                                    fflush(debugfile); }
 
 // if true, load all graphics at level load
 extern  boolean precache;
@@ -314,13 +329,8 @@ extern int default_weapon_recoil;
 extern int player_bobbing;  // whether player bobs or not   // phares 2/25/98
 extern int default_player_bobbing;  // killough 3/1/98: make local to each game
 
-#ifdef BETA
 // killough 7/19/98: Classic Pre-Beta BFG
-extern int classic_bfg, default_classic_bfg;
-
-// killough 7/24/98: Emulation of Press Release version of Doom
-extern int beta_emulation;
-#endif
+extern bfg_t bfgtype, default_bfgtype;
 
 #ifdef DOGS
 extern int dogs, default_dogs;     // killough 7/19/98: Marine's best friend :)
@@ -342,6 +352,8 @@ extern int monster_friction, default_monster_friction;
 // killough 9/9/98: whether monsters help friends
 extern int help_friends, default_help_friends;
 
+extern int autoaim, default_autoaim;
+
 extern int flashing_hom; // killough 10/98
 
 extern int doom_weapon_toggles;   // killough 10/98
@@ -350,10 +362,7 @@ extern int doom_weapon_toggles;   // killough 10/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: doomstat.h,v $
 // Revision 1.13  1998/05/12  12:47:28  phares
 // Removed OVER_UNDER code
 //

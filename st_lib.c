@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: st_lib.c,v 1.8 1998/05/11 10:44:42 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: st_lib.c,v 1.8 1998/05/11 10:44:42 jim Exp $";
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -360,10 +360,7 @@ void STlib_updateBinIcon
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: st_lib.c,v $
 // Revision 1.8  1998/05/11  10:44:42  jim
 // formatted/documented st_lib
 //

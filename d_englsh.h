@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_englsh.h,v 1.5 1998/05/04 21:33:57 thldrmn Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -323,10 +323,10 @@
 // The following should NOT be changed unless it seems
 // just AWFULLY necessary
 
-#define HUSTR_PLRGREEN    "Green: "
-#define HUSTR_PLRINDIGO   "Indigo: "
-#define HUSTR_PLRBROWN    "Brown: "
-#define HUSTR_PLRRED      "Red: "
+#define HUSTR_PLRGREEN    "Green"
+#define HUSTR_PLRINDIGO   "Indigo"
+#define HUSTR_PLRBROWN    "Brown"
+#define HUSTR_PLRRED      "Red"
 
 #define HUSTR_KEYGREEN    'g'
 #define HUSTR_KEYINDIGO   'i'
@@ -713,10 +713,7 @@
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: d_englsh.h,v $
 // Revision 1.5  1998/05/04  21:33:57  thldrmn
 // commenting and reformatting
 //

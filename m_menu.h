@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_menu.h,v 1.4 1998/05/16 09:17:18 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -169,10 +169,7 @@ typedef struct setup_menu_s
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_menu.h,v $
 // Revision 1.4  1998/05/16  09:17:18  killough
 // Make loadgame checksum friendlier
 //

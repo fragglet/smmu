@@ -1,22 +1,22 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: version.c,v 1.2 1998/05/03 22:59:31 killough Exp $
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: version.c,v 1.2 1998/05/03 22:59:31 killough Exp $";
 
 #include "version.h"
 
+int VERSION = 310;        // sf: made int from define 
 const char version_date[] = __DATE__;
+const char version_name[] = "fs-beta";  // sf : version names
+                                        // at the suggestion of mystican
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: version.c,v $
 // Revision 1.2  1998/05/03  22:59:31  killough
 // beautification
 //

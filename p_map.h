@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_map.h,v 1.2 1998/05/07 00:53:07 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -52,6 +52,7 @@ boolean P_CheckPosition(mobj_t *thing, fixed_t x, fixed_t y);
 //jff 3/19/98 P_CheckSector(): new routine to replace P_ChangeSector()
 boolean P_CheckSector(sector_t *sector, boolean crunch);
 void    P_DelSeclist(msecnode_t*);                          // phares 3/16/98
+void    P_FreeSecNodeList();    // sf
 void    P_CreateSecNodeList(mobj_t*,fixed_t,fixed_t);       // phares 3/14/98
 boolean Check_Sides(mobj_t *, int, int);                    // phares
 
@@ -75,10 +76,7 @@ extern line_t *blockline;   // killough 8/11/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: p_map.h,v $
 // Revision 1.2  1998/05/07  00:53:07  killough
 // Add more external declarations
 //

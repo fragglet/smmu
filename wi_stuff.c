@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: wi_stuff.c,v 1.11 1998/05/04 21:36:02 thldrmn Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,17 +21,25 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: wi_stuff.c,v 1.11 1998/05/04 21:36:02 thldrmn Exp $";
 
 #include "doomstat.h"
 #include "m_random.h"
 #include "w_wad.h"
 #include "g_game.h"
 #include "r_main.h"
+#include "p_info.h"
+#include "r_main.h"
 #include "v_video.h"
 #include "wi_stuff.h"
 #include "s_sound.h"
 #include "sounds.h"
+#include "p_mobj.h"
+
+#include "st_stuff.h"
+#include "hu_stuff.h"
+#include "am_map.h"
+#include "p_tick.h"
 
 // Ty 03/17/98: flag that new par times have been loaded in d_deh
 extern boolean deh_pars;  
@@ -379,11 +387,85 @@ static patch_t*   bp[MAXPLAYERS];
 // Name graphics of each level (centered)
 static patch_t**  lnames;
 
-
 //
 // CODE
 //
 
+
+/**********************
+
+  INTERMISSION CAMERA
+
+***********************/
+
+// is this just some boring picture, or a view of the level?
+static int realbackdrop=1;
+camera_t        intercam;
+
+mapthing_t *camerathing[MAXCAMERAS];
+mapthing_t *wi_camera;
+int numcameraviews=0;
+
+void WI_StopCamera()
+{
+        numcameraviews = 0;
+        realbackdrop = 0;
+}
+                   
+void WI_TickerCamera()
+{
+        if(!realbackdrop) return;
+}
+
+void WI_AddCamera(mapthing_t *mthing)
+{
+        camerathing[numcameraviews] = mthing;
+        numcameraviews++;
+}
+
+// set up the intermissions camera
+
+void WI_StartCamera()
+{
+        int i;
+
+        if(numcameraviews)
+        {
+                realbackdrop = 1;
+                        // pick a camera at random
+                wi_camera = camerathing[M_Random() % numcameraviews];
+
+                // centre the view
+                players[displayplayer].updownangle = 0;
+
+                // remove the player mobjs (look silly in camera view)
+                for(i=0; i<MAXPLAYERS; i++)
+                {
+                        if(!playeringame[i]) continue;
+                                // this is strange. the monsters can still
+                                // see the player Mobj, (and even kill it!)
+                                // even tho it has been removed from the
+                                // level. I make it unshootable first so
+                                // they lose interest.
+                        players[i].mo->flags &= ~MF_SHOOTABLE;
+                        P_RemoveMobj(players[i].mo);
+                }
+
+
+                intercam.x = wi_camera->x*FRACUNIT;
+                intercam.y = wi_camera->y*FRACUNIT;
+                intercam.angle = R_WadToAngle(wi_camera->angle);
+                intercam.updownangle = 0;
+                intercam.z = R_PointInSubsector(intercam.x, intercam.y)
+                                ->sector->floorheight + 41*FRACUNIT;
+                R_SetViewSize (11);     // force fullscreen
+        }
+        else            // no camera, boring interpic
+        {
+                realbackdrop = 0;
+                wi_camera = NULL;
+        }
+}
 
 // ====================================================================
 // WI_slamBackground
@@ -393,7 +475,10 @@ static patch_t**  lnames;
 //
 static void WI_slamBackground(void)
 {
-  V_CopyRect(0, 0, 1, SCREENWIDTH, SCREENHEIGHT, 0, 0, 0);  // killough 11/98
+    if(realbackdrop)
+      R_RenderPlayerView (players+displayplayer, &intercam);
+    else
+      V_CopyRect(0, 0, 1, SCREENWIDTH, SCREENHEIGHT, 0, 0, 0);  // killough 11/98
 }
 
 // ====================================================================
@@ -419,16 +504,30 @@ boolean WI_Responder(event_t* ev)
 static void WI_drawLF(void)
 {
   int y = WI_TITLEY;
+  patch_t *patch=NULL;
 
-  // draw <LevelName> 
-  V_DrawPatch((SCREENWIDTH - SHORT(lnames[wbs->last]->width))/2,
-              y, FB, lnames[wbs->last]);
-
-  // draw "Finished!"
-  y += (5*SHORT(lnames[wbs->last]->height))/4;
+  if(wbs->last>=0)
+  {
+          patch=lnames[wbs->last];
+  }
+  else  // new level
+  {
+          if(*info_levelpic)
+          {
+              patch=W_CacheLumpName(info_levelpic,PU_CACHE);
+          }
+  }
+  if(patch)
+  {
+          // draw <LevelName> 
+      V_DrawPatch((SCREENWIDTH - SHORT(patch->width))/2,
+                      y, FB, patch);
+      y += (5*SHORT(patch->height))/4;
   
-  V_DrawPatch((SCREENWIDTH - SHORT(finished->width))/2,
+          // draw "Finished!"
+      V_DrawPatch((SCREENWIDTH - SHORT(finished->width))/2,
               y, FB, finished);
+  }
 }
 
 
@@ -442,15 +541,18 @@ static void WI_drawEL(void)
 {
   int y = WI_TITLEY;
 
-  // draw "Entering"
-  V_DrawPatch((SCREENWIDTH - SHORT(entering->width))/2,
-              y, FB, entering);
-
-  // draw level
-  y += (5*SHORT(lnames[wbs->next]->height))/4;
-
-  V_DrawPatch((SCREENWIDTH - SHORT(lnames[wbs->next]->width))/2,
-              y, FB, lnames[wbs->next]);
+  if(wbs->next>=0)
+  {
+      // draw "Entering"
+      V_DrawPatch((SCREENWIDTH - SHORT(entering->width))/2,
+                  y, FB, entering);
+       
+      // draw level
+      y += (5*SHORT(lnames[wbs->next]->height))/4;
+      
+      V_DrawPatch((SCREENWIDTH - SHORT(lnames[wbs->next]->width))/2,
+                  y, FB, lnames[wbs->next]);
+  }
 }
 
 
@@ -927,7 +1029,7 @@ static void WI_drawShowNextLoc(void)
     {
       if (wbs->epsd > 2)
         {
-          WI_drawEL();  // "Entering..." if not E1 or E2
+          WI_drawEL();  // "Entering..." if not E1 or E2 or E3
           return;
         }
   
@@ -1555,7 +1657,7 @@ static void WI_updateStats(void)
                        (plrs[me].ssecret * 100) / wbs->maxsecret : 100);
 
       cnt_time = plrs[me].stime / TICRATE;
-      cnt_par = wbs->partime / TICRATE;
+      cnt_par = wbs->partime==-1 ? 0 : wbs->partime/TICRATE;
       S_StartSound(0, sfx_barexp);
       sp_state = 10;
     }
@@ -1630,6 +1732,7 @@ static void WI_updateStats(void)
                     sp_state++;
                   }
               }
+            if(wbs->partime==-1) cnt_par=0;
           }
         else
           if (sp_state == 10)
@@ -1691,13 +1794,15 @@ static void WI_drawStats(void)
   // without deh patch
   // killough 2/22/98: skip drawing par times on pwads
   // Ty 03/17/98: unless pars changed with deh patch
+  // sf: cleverer: only skips on _new_ non-iwad levels
+  //   new logic in g_game.c
 
-  if (!modifiedgame || deh_pars)
+  if(wbs->partime!=-1)
     if (wbs->epsd < 3)
-      {
-	V_DrawPatch(SCREENWIDTH/2 + SP_TIMEX, SP_TIMEY, FB, par);
-	WI_drawTime(SCREENWIDTH - SP_TIMEX, SP_TIMEY, cnt_par);
-      }
+    {
+        V_DrawPatch(SCREENWIDTH/2 + SP_TIMEX, SP_TIMEY, FB, par);
+        WI_drawTime(SCREENWIDTH - SP_TIMEX, SP_TIMEY, cnt_par);
+    }
 }
 
 // ====================================================================
@@ -1751,6 +1856,8 @@ void WI_Ticker(void)
   // counter for general background animation
   bcnt++;  
 
+  if(debugfile) fprintf(debugfile,"wi_ticker\n");
+
   if (bcnt == 1)
     {
       // intermission music
@@ -1779,6 +1886,13 @@ void WI_Ticker(void)
       WI_updateNoState();
       break;
     }
+
+    if(realbackdrop)    // keep the level running
+    {
+        P_Ticker();
+    }
+
+    WI_TickerCamera();
 }
 
 // killough 11/98:
@@ -1789,7 +1903,7 @@ void WI_DrawBackground(void)
   char  name[9];  // limited to 8 characters
 
   if (gamemode == commercial || (gamemode == retail && wbs->epsd == 3))
-    strcpy(name, "INTERPIC");
+    strcpy(name, info_interpic);
   else 
     sprintf(name, "WIMAP%d", wbs->epsd);
 
@@ -2057,6 +2171,8 @@ static void WI_initVariables(wbstartstruct_t* wbstartstruct)
 //
 void WI_Start(wbstartstruct_t* wbstartstruct)
 {
+  WI_StartCamera();  //set up camera
+
   WI_initVariables(wbstartstruct);
   WI_loadData();
 
@@ -2069,13 +2185,9 @@ void WI_Start(wbstartstruct_t* wbstartstruct)
       WI_initStats();
 }
 
-
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: wi_stuff.c,v $
 // Revision 1.11  1998/05/04  21:36:02  thldrmn
 // commenting and reformatting
 //

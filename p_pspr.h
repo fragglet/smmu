@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_pspr.h,v 1.5 1998/05/03 22:54:44 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -63,10 +63,12 @@ typedef struct
   int     tics;
   fixed_t sx;
   fixed_t sy;
+  int trans;
 } pspdef_t;
 
 extern int weapon_preferences[2][NUMWEAPONS+1];      // killough 5/2/98
 int P_WeaponPreferred(int w1, int w2);
+extern int weapon_speed, default_weapon_speed;
 
 struct player_s;
 int P_SwitchWeapon(struct player_s *player);
@@ -79,10 +81,7 @@ void P_DropWeapon(struct player_s *player);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_pspr.h,v $
 // Revision 1.5  1998/05/03  22:54:44  killough
 // beautification, add external decls formerly in p_local.h
 //

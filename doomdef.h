@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: doomdef.h,v 1.23 1998/05/14 08:02:00 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -113,7 +113,8 @@ typedef enum {
   GS_LEVEL,
   GS_INTERMISSION,
   GS_FINALE,
-  GS_DEMOSCREEN
+  GS_DEMOSCREEN,
+  GS_CONSOLE
 } gamestate_t;
 
 //
@@ -134,6 +135,15 @@ typedef enum {
 #define MTF_NOTCOOP            64
 #define MTF_FRIEND            128
 #define MTF_RESERVED          256
+
+// sf: sector flags, not me =)
+                // kill all sound in sector
+#define SF_KILLSOUND          1024
+                // kill all sounds due to moving
+#define SF_KILLMOVESOUND      2048
+
+        // a macro to find out whether to make moving sounds in a sector
+#define silentmove(s) ((s)->special & SF_KILLMOVESOUND)
 
 typedef enum {
   sk_none=-1, //jff 3/24/98 create unpicked skill setting
@@ -278,14 +288,20 @@ typedef enum {
 #define ORIG_FRICTION          0xE800      // original value
 #define ORIG_FRICTION_FACTOR   2048        // original value
 
+        // sf: some useful macros
+
+#define isnumchar(c) ( (c) >= '0' && (c) <= '9')
+#define isExMy(s) ( (s)[0] == 'E' && (s)[2] == 'M'      \
+                && isnumchar((s)[1]) && isnumchar((s)[3]) \
+                        && (s)[4] == 0 )
+#define isMAPxy(s) ( (s)[0] == 'M' && (s)[1] == 'A' && (s)[2] == 'P'   \
+                && isnumchar((s)[3]) && isnumchar((s)[4]) && !(s)[5] )  
+
 #endif          // __DOOMDEF__
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: doomdef.h,v $
 // Revision 1.23  1998/05/14  08:02:00  phares
 // Added Player Starts 5-8 (4001-4004)
 //

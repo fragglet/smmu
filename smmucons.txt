@@ -1,0 +1,169 @@
+        SMMU Console Commands
+        =====================
+
+Multiplayer commands
+--------------------
+
+colour          -- your player colour. There is also a 'color' alias for all
+                        you americans =).
+deathmatch      -- choose deathmatch 0 (co-op), 1 (weapons stay),
+                      2 (all respawn) or 3(new, weapons stay,items respawn)
+                                  (SERVER)
+exitlevel       -- exit the current level, go to the intermission screen.
+                                        (SERVER)
+fast            -- fast monsters on/off (SERVER)
+kill            -- commit suicide
+map             -- change the level (SERVER)
+name            -- change your players name
+nomonsters      -- toggle monsters on/off (SERVER)
+nuke            -- kill all monsters in the level. Basically the boom
+                   'killem'/'tntem' cheat. Also useful in single-player.
+                        (SERVER)
+respawn         -- toggle respawning monsters SERVER)
+skill           -- set the skill level. NOTE: 0 = 'im too young to die' not 1
+                        (SERVER)
+listskins       -- list all loaded skins
+skin            -- change your skin
+sv_allowmlook   -- toggle whether players are allowed to look up and down
+                        (SERVER)
+sv_autoaim      -- toggle whether players autoaim or not (SERVER)
+sv_bfglook      -- toggle whether players can look up and down when using
+                   the BFG. 0 = no, 1 = yes, 2 = yes but shoot forward
+                                (SERVER)
+sv_bfgtype      -- select bfg type: 0 = BFG9000, 1 = Classic BFG
+                                    2 = Fair BFG        (SERVER)
+sv_recoil       -- toggle whether players recoil from shooting (SERVER)
+
+Console Commands
+----------------
+
+alias           -- create an alias, just like in Quake.
+cmdlist         -- list all commands
+c_speed         -- console speed
+c_height        -- console height
+echo            -- display a message in the console
+flood           -- flood the console with crap
+
+Game Commands
+-------------
+
+alwaysmlook     -- toggle whether moving the mouse up and down always makes
+                   you look up and down
+bobbing         -- toggle whether the view and weapons bob up and down while
+                   moving
+endgame         -- end the game, drop to the console
+frags           -- display the current frag count
+god             -- the classic degreelessness mode cheat
+invertmouse     -- whether moving the mouse up makes you look up, or down
+noclip          -- classic 'idclip' cheat
+pause           -- pause the game (SERVER)
+pushers         -- toggle boom pushers
+varfriction     -- toggle boom variable friction
+obituaries      -- show player obituaries
+obcolour        -- choose the colour of player obituaries
+starttitle      -- start the game title screen
+
+Monsters
+--------
+mon_remember    -- toggle monsters remember previous target
+mon_infight     -- monster infighting
+mon_backing     -- monster backing out
+mon_avoid       -- monsters avoiding hazards
+mon_friction    -- monsters affected by friction
+mon_climb       -- allow monsters to climb steep steps
+mon_helpfriends -- MBF friends: rescue dying friends
+mon_distfriend  -- MBF friends: distance for friends
+
+Editing Commands
+----------------
+
+centremsg       -- display a message in the middle of the screen.
+                   NB: There is also a 'centermsg' alias for Americans.
+playermsg       -- display a message in the HUD text.
+spawn           -- spawn an object. see smmuedit.txt
+linetrigger     -- activate a line trigger. see smmuedit.txt
+delay           -- wait a number of tics                  
+t_dump          -- dump the contents of a script
+t_run           -- run a script
+
+Demo playback
+-------------
+
+playdemo        -- play a demo. playdemo <demoname>
+stopdemo        -- stop the currently playing demo, drop to the console
+timedemo        -- time a demo. When the demo finishes it will give the
+                   speed it played at in frames per second (fps)
+
+Heads-up
+--------
+
+crosshair       -- Choose a crosshair: none, cross or angle currently.
+                   You should expect to see more in the future.
+show_vpo        -- Toggle whether a warning box is displayed when the number
+                   of visplanes displayed approaches the visplane limit for
+                   original doom
+
+Rendering
+---------
+
+chasecam        -- Toggle the chasecam on/off
+walkcam         -- Toggle the demo walkcam on/off
+lefthanded      -- Toggle whether to flip the player sprites, making the
+                   player appear left handed
+r_blockmap      -- Build a new blockmap for each level upon loading them
+r_flatskip      -- debug option
+r_homflash      -- whether the hom detector flashes or not
+r_planeview     -- (debug) display the visplanes
+r_precache      -- toggle the precaching of levels
+r_showgun       -- show the player weapon or not
+r_showhom       -- toggle the hom detector 
+r_stretchsky    -- stretch the sky for when using look up/down
+r_swirl         -- Use the new quake-style swirling water effect on
+                   animated floor textures.
+
+Video
+-----
+
+animshot        -- take an animated screenshot: animshot <n>
+                   to take n pictures
+i_diskicon      -- show the 'loading' disk icon at the bottom-right
+screensize      -- set the rendering screen size
+v_mode          -- change the mode to one descriped in v_modelist
+v_modelist      -- list the available modes
+v_ticker        -- display the 'ticker' at the bottom left (shows framerate)
+
+Netgames
+--------
+
+disconnect      -- leave the netgame
+playerinfo      -- list the players
+say             -- say something
+
+Sound
+-----
+
+s_pitched       -- Whether to use the v1.1 pitched sound effects
+s_precache      -- Whether to precache all the sounds at startup
+
+Serial Comms
+------------
+
+answer          -- put SMMU in answer mode, wait for a call
+com             -- set the comport
+dial            -- dial a number: syntax dial <number>
+nullmodem       -- connect via a null modem link
+
+Misc.
+-----
+
+addfile         -- load a .wad file
+wipe_speed      -- set the speed of screen wipes
+
+Constants
+---------
+creator         -- the name of the author of the current level
+opt             -- used for aliases etc. (internal)
+rndseed         -- (debug) the current random seed
+version         -- the version number
+ver_date        -- the date of compile
+ver_name        -- the name of this version

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $
 //
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
@@ -23,7 +23,7 @@
 
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $";
 
 #include "doomstat.h"
 #include "d_event.h"
@@ -34,6 +34,7 @@ rcsid[] = "$Id$";
 #include "dstrings.h"
 #include "m_menu.h"
 #include "d_deh.h"  // Ty 03/22/98 - externalizations
+#include "p_info.h"
 
 // Stage of animation:
 //  0 = text, 1 = art screen, 2 = character cast
@@ -164,7 +165,13 @@ void F_StartFinale (void)
          finaletext = s_C1TEXT;  // FIXME - other text, music?
          break;
   }
-  
+
+  if(info_intertext)
+  {
+        finaleflat = info_backdrop ? info_backdrop : "F_SKY1";
+        finaletext = info_intertext;
+  }
+
   finalestage = 0;
   finalecount = 0;
 }
@@ -256,8 +263,9 @@ void F_Ticker(void)
 // text can be increased, and there's still time to read what's     //   |
 // written.                                                         // phares
 
-#include "hu_stuff.h"
-extern  patch_t *hu_font[HU_FONTSIZE];
+        // sf: font is now in v_video.c
+#include "v_video.h"
+extern  patch_t *v_font[V_FONTSIZE];
 
 
 void F_TextWrite (void)
@@ -268,11 +276,22 @@ void F_TextWrite (void)
   int         c;
   int         cx;
   int         cy;
-  
+  int         lumpnum;
+
   // erase the entire screen to a tiled background
 
   // killough 11/98: the background-filling code was already in m_menu.c
-  M_DrawBackground(finaleflat, screens[0]);
+
+  lumpnum = W_CheckNumForName (finaleflat);
+  if(lumpnum == -1) // flat
+          M_DrawBackground(finaleflat, screens[0]);
+  else
+  {                     // normal picture
+        patch_t *pic;
+
+        pic = W_CacheLumpNum(lumpnum, PU_CACHE);
+        V_DrawPatch(0, 0, 0, pic);
+  }
 
   // draw some of the text onto the screen
   cx = 10;
@@ -295,17 +314,17 @@ void F_TextWrite (void)
       continue;
     }
               
-    c = toupper(c) - HU_FONTSTART;
-    if (c < 0 || c> HU_FONTSIZE)
+    c = toupper(c) - V_FONTSTART;
+    if (c < 0 || c> V_FONTSIZE)
     {
       cx += 4;
       continue;
     }
               
-    w = SHORT (hu_font[c]->width);
+    w = SHORT (v_font[c]->width);
     if (cx+w > SCREENWIDTH)
       break;
-    V_DrawPatch(cx, cy, 0, hu_font[c]);
+    V_DrawPatch(cx, cy, 0, v_font[c]);
     cx+=w;
   }
 }
@@ -420,7 +439,7 @@ void F_CastTicker (void)
       case S_FATT_ATK2:     sfx = sfx_firsht; break;
       case S_CPOS_ATK2:
       case S_CPOS_ATK3:
-      case S_CPOS_ATK4:     sfx = sfx_shotgn; break;
+      case S_CPOS_ATK4:     sfx = sfx_chgun; break; // shotgn now chaingun
       case S_TROO_ATK3:     sfx = sfx_claw; break;
       case S_SARG_ATK2:     sfx = sfx_sgtatk; break;
       case S_BOSS_ATK2:
@@ -498,7 +517,12 @@ boolean F_CastResponder (event_t* ev)
   castframes = 0;
   castattacking = false;
   if (mobjinfo[castorder[castnum].type].deathsound)
-    S_StartSound (NULL, mobjinfo[castorder[castnum].type].deathsound);
+  {
+    if(castorder[castnum].type == MT_PLAYER)
+      S_StartSoundName (NULL, players[displayplayer].skin->sounds[sk_pldeth]);
+    else
+      S_StartSound (NULL, mobjinfo[castorder[castnum].type].deathsound);
+  }
         
   return true;
 }
@@ -521,14 +545,14 @@ void F_CastPrint (char* text)
     c = *ch++;
     if (!c)
       break;
-    c = toupper(c) - HU_FONTSTART;
-    if (c < 0 || c> HU_FONTSIZE)
+    c = toupper(c) - V_FONTSTART;
+    if (c < 0 || c> V_FONTSIZE)
     {
       width += 4;
       continue;
     }
             
-    w = SHORT (hu_font[c]->width);
+    w = SHORT (v_font[c]->width);
     width += w;
   }
   
@@ -540,15 +564,15 @@ void F_CastPrint (char* text)
     c = *ch++;
     if (!c)
       break;
-    c = toupper(c) - HU_FONTSTART;
-    if (c < 0 || c> HU_FONTSIZE)
+    c = toupper(c) - V_FONTSTART;
+    if (c < 0 || c> V_FONTSIZE)
     {
       cx += 4;
       continue;
     }
               
-    w = SHORT (hu_font[c]->width);
-    V_DrawPatch(cx, 180, 0, hu_font[c]);
+    w = SHORT (v_font[c]->width);
+    V_DrawPatch(cx, 180, 0, v_font[c]);
     cx+=w;
   }
 }
@@ -572,7 +596,9 @@ void F_CastDrawer (void)
   F_CastPrint (castorder[castnum].name);
     
   // draw the current frame in the middle of the screen
-  sprdef = &sprites[caststate->sprite];
+  sprdef = sprites + caststate->sprite;
+  if(castorder[castnum].type == MT_PLAYER)
+        sprdef = sprites + players[displayplayer].skin->sprite;
   sprframe = &sprdef->spriteframes[ caststate->frame & FF_FRAMEMASK];
   lump = sprframe->lump[0];
   flip = (boolean)sprframe->flip[0];
@@ -723,10 +749,7 @@ void F_Drawer (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: f_finale.c,v $
 // Revision 1.16  1998/05/10  23:39:25  killough
 // Restore v1.9 demo sync on text intermission screens
 //

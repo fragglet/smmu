@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_genlin.c,v 1.18 1998/05/23 10:23:23 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_genlin.c,v 1.18 1998/05/23 10:23:23 jim Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -105,7 +105,7 @@ manual_floor:
     sec->floordata = floor;
     floor->thinker.function = T_MoveFloor;
     floor->crush = Crsh;
-    floor->direction = Dirn? 1 : -1;
+    floor->direction = Dirn? plat_up : plat_down;
     floor->sector = sec;
     floor->texture = sec->floorpic;
     floor->newspecial = sec->special;
@@ -308,7 +308,7 @@ manual_ceiling:
     sec->ceilingdata = ceiling; //jff 2/22/98
     ceiling->thinker.function = T_MoveCeiling;
     ceiling->crush = Crsh;
-    ceiling->direction = Dirn? 1 : -1;
+    ceiling->direction = Dirn? plat_up : plat_down;
     ceiling->sector = sec;
     ceiling->texture = sec->ceilingpic;
     ceiling->newspecial = sec->special;
@@ -587,7 +587,8 @@ manual_lift:
         break;
     }
 
-    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+    if(!silentmove(sec))        //sf: silentmove
+            S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
     P_AddActivePlat(plat); // add this plat to the list of active plats
 
     if (manual)
@@ -672,7 +673,7 @@ manual_stair:
     P_AddThinker (&floor->thinker);
     sec->floordata = floor;
     floor->thinker.function = T_MoveFloor;
-    floor->direction = Dirn? 1 : -1;
+    floor->direction = Dirn? plat_up : plat_down;
     floor->sector = sec;
 
     // setup speed of stair building
@@ -776,7 +777,7 @@ manual_stair:
 
         sec->floordata = floor;
         floor->thinker.function = T_MoveFloor;
-        floor->direction = Dirn? 1 : -1;
+        floor->direction = Dirn? plat_up : plat_down;
         floor->sector = sec;
         floor->speed = speed;
         floor->floordestheight = height;
@@ -859,7 +860,7 @@ manual_crusher:
     sec->ceilingdata = ceiling; //jff 2/22/98
     ceiling->thinker.function = T_MoveCeiling;
     ceiling->crush = true;
-    ceiling->direction = -1;
+    ceiling->direction = plat_down;
     ceiling->sector = sec;
     ceiling->texture = sec->ceilingpic;
     ceiling->newspecial = sec->special;
@@ -959,7 +960,7 @@ manual_locked:
     door->line = line;
     door->topheight = P_FindLowestCeilingSurrounding(sec);
     door->topheight -= 4*FRACUNIT;
-    door->direction = 1;
+    door->direction = plat_up;
 
     // killough 10/98: implement gradual lighting
     door->lighttag = !comp[comp_doorlight] && (line->special&6) == 6 && 
@@ -1109,7 +1110,7 @@ manual_door:
     switch(Kind)
     {
       case OdCDoor:
-        door->direction = 1;
+        door->direction = plat_up;
         door->topheight = P_FindLowestCeilingSurrounding(sec);
         door->topheight -= 4*FRACUNIT;
         if (door->topheight != sec->ceilingheight)
@@ -1117,7 +1118,7 @@ manual_door:
         door->type = Sped>=SpeedFast? genBlazeRaise : genRaise;
         break;
       case ODoor:
-        door->direction = 1;
+        door->direction = plat_up;
         door->topheight = P_FindLowestCeilingSurrounding(sec);
         door->topheight -= 4*FRACUNIT;
         if (door->topheight != sec->ceilingheight)
@@ -1126,14 +1127,14 @@ manual_door:
         break;
       case CdODoor:
         door->topheight = sec->ceilingheight;
-        door->direction = -1;
+        door->direction = plat_down;
         S_StartSound((mobj_t *)&door->sector->soundorg,sfx_dorcls);
         door->type = Sped>=SpeedFast? genBlazeCdO : genCdO;
         break;
       case CDoor:
         door->topheight = P_FindLowestCeilingSurrounding(sec);
         door->topheight -= 4*FRACUNIT;
-        door->direction = -1;
+        door->direction = plat_down;
         S_StartSound((mobj_t *)&door->sector->soundorg,sfx_dorcls);
         door->type = Sped>=SpeedFast? genBlazeClose : genClose;
         break;
@@ -1149,10 +1150,7 @@ manual_door:
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_genlin.c,v $
 // Revision 1.18  1998/05/23  10:23:23  jim
 // Fix numeric changer loop corruption
 //

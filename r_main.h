@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_main.h,v 1.7 1998/05/03 23:00:42 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,6 +24,8 @@
 
 #include "d_player.h"
 #include "r_data.h"
+#include "r_defs.h"
+#include "p_chase.h"
 
 //
 // POV related.
@@ -44,6 +46,8 @@ extern int      validcount;
 extern int      linecount;
 extern int      loopcount;
 
+extern boolean  showpsprites;
+
 //
 // Lighting LUT.
 // Used for z-depth cuing per column/row,
@@ -54,9 +58,7 @@ extern int      loopcount;
 
 #define LIGHTLEVELS       16
 #define LIGHTSEGSHIFT      4
-#define MAXLIGHTSCALE     48
 #define LIGHTSCALESHIFT   12
-#define MAXLIGHTZ        128
 #define LIGHTZSHIFT       20
 
 // killough 3/20/98: Allow colormaps to be dynamic (e.g. underwater)
@@ -91,12 +93,15 @@ angle_t R_PointToAngle(fixed_t x, fixed_t y);
 angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2);
 fixed_t R_ScaleFromGlobalAngle(angle_t visangle);
 subsector_t *R_PointInSubsector(fixed_t x, fixed_t y);
+void R_SectorColormap(sector_t *s);
 
 //
 // REFRESH - the actual rendering functions.
 //
 
-void R_RenderPlayerView(player_t *player);   // Called by G_Drawer.
+                // sf: camera point added
+void R_RenderPlayerView(player_t *player, camera_t *viewcamera); // Called by G_Drawer.
+                                // sf: G_Drawer???
 void R_Init(void);                           // Called by startup code.
 void R_SetViewSize(int blocks);              // Called by M_Responder.
 
@@ -105,14 +110,17 @@ void R_InitLightTables(void);                // killough 8/9/98
 extern boolean setsizeneeded;
 void R_ExecuteSetViewSize(void);
 
+angle_t R_WadToAngle(int wadangle);
+
+extern int flatskip;
+extern int viewdir;
+extern int zoom;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: r_main.h,v $
 // Revision 1.7  1998/05/03  23:00:42  killough
 // beautification
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_mobj.h,v 1.10 1998/05/03 23:45:09 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,6 +22,8 @@
 #ifndef __P_MOBJ__
 #define __P_MOBJ__
 
+typedef struct mobj_s mobj_t;   //sf: move up here
+
 // Basics.
 #include "tables.h"
 #include "m_fixed.h"
@@ -37,6 +39,11 @@
 //  tied to animation frames.
 // Needs precompiled tables/data structures.
 #include "info.h"
+
+// sf: skins
+#include "p_skin.h"
+
+
 
 //
 // NOTES: mobj_t
@@ -188,7 +195,7 @@ typedef enum
     // If 0x4 0x8 or 0xc,
     //  use a translation table for player colormaps
     MF_TRANSLATION      = 0xc000000,
-    // Hmm ???.
+    // Hmm ???.         -- well, what? sf
     MF_TRANSSHIFT       = 26,
 
     MF_TOUCHY = 0x10000000,        // killough 11/98: dies when solids touch it
@@ -208,6 +215,14 @@ enum {
   MIF_LINEDONE = 4,     // Object has activated W1 or S1 linedef via DEH frame
 };
 
+// ammo + weapon in a dropped backpack 
+
+typedef struct
+{
+        short ammo[NUMAMMO];
+        char weapon;
+} backpack_t;
+  
 // Map Object definition.
 //
 // killough 2/20/98:
@@ -224,7 +239,7 @@ enum {
 // killough 9/8/98: changed some fields to shorts,
 // for better memory usage (if only for cache).
 
-typedef struct mobj_s
+struct mobj_s
 {
     // List: thinker links.
     thinker_t           thinker;
@@ -271,10 +286,18 @@ typedef struct mobj_s
 
     mobjtype_t          type;
     mobjinfo_t*         info;   // &mobjinfo[mobj->type]
-    
+
+    int colour; // sf: the sprite colour
+
+    union
+    {
+            long           bfgcount;
+            backpack_t*    backpack;       // for if its a backpack
+    } extradata;
+
     int                 tics;   // state tic counter
     state_t*            state;
-    int                 flags;
+    unsigned long       flags;
     int                 intflags;  // killough 9/15/98: internal flags
     int                 health;
 
@@ -303,6 +326,7 @@ typedef struct mobj_s
     // Additional info record for player avatars only.
     // Only valid if type == MT_PLAYER
     struct player_s*    player;
+    skin_t *           skin;   //sf: skin
 
     // Player number last looked for.
     short               lastlook;       
@@ -334,14 +358,18 @@ typedef struct mobj_s
     struct msecnode_s* touching_sectorlist;                 // phares 3/14/98
 
     // SEE WARNING ABOVE ABOUT POINTER FIELDS!!!
-} mobj_t;
+};
+
+        // put it here, it works, ok?
+#include "d_player.h"
 
 // External declarations (fomerly in p_local.h) -- killough 5/2/98
 
 #define VIEWHEIGHT      (41*FRACUNIT)
 #define PLAYERRADIUS    (16*FRACUNIT)
 
-#define GRAVITY         FRACUNIT
+                // sf: gravity >>> defaultgravity
+#define DEFAULTGRAVITY  FRACUNIT
 #define MAXMOVE         (30*FRACUNIT)
 
 #define ONFLOORZ        MININT
@@ -352,6 +380,11 @@ typedef struct mobj_s
 
 #define FLOATSPEED      (FRACUNIT*4)
 #define STOPSPEED       (FRACUNIT/16)
+
+                // convert the looking up/down angle to a slope for firing
+                        // projectiles (slope=angle*LOOKSLOPE)
+// #define LOOKSLOPE 680
+#define LOOKSLOPE 800
 
 // killough 11/98:
 // For torque simulation:
@@ -367,6 +400,7 @@ extern mapthing_t itemrespawnque[];
 extern int itemrespawntime[];
 extern int iquehead;
 extern int iquetail;
+extern int gravity;
 
 void    P_RespawnSpecials(void);
 mobj_t  *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type);
@@ -376,18 +410,20 @@ void    P_MobjThinker(mobj_t *mobj);
 void    P_SpawnPuff(fixed_t x, fixed_t y, fixed_t z);
 void    P_SpawnBlood(fixed_t x, fixed_t y, fixed_t z, int damage);
 mobj_t  *P_SpawnMissile(mobj_t *source, mobj_t *dest, mobjtype_t type);
-void    P_SpawnPlayerMissile(mobj_t *source, mobjtype_t type);
-void    P_SpawnMapThing (mapthing_t*  mthing);
+mobj_t  *P_SpawnPlayerMissile(mobj_t *source, mobjtype_t type);
+mobj_t  *P_SpawnMapThing (mapthing_t*  mthing);
 void    P_CheckMissileSpawn(mobj_t*);  // killough 8/2/98
 void    P_ExplodeMissile(mobj_t*);    // killough
+
+// particles and lines: sf
+void P_SpawnParticle(fixed_t x, fixed_t y, fixed_t z);
+void P_ParticleLine(mobj_t *source, mobj_t *dest);
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: p_mobj.h,v $
 // Revision 1.10  1998/05/03  23:45:09  killough
 // beautification, fix headers, declarations
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_items.c,v 1.4 1998/05/04 21:34:09 thldrmn Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: d_items.c,v 1.4 1998/05/04 21:34:09 thldrmn Exp $";
 
 // We are referring to sprite numbers.
 #include "info.h"
@@ -125,10 +125,7 @@ weaponinfo_t    weaponinfo[NUMWEAPONS] =
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: d_items.c,v $
 // Revision 1.4  1998/05/04  21:34:09  thldrmn
 // commenting and reformatting
 //

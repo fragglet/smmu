@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_event.h,v 1.4 1998/05/05 19:55:53 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -118,10 +118,7 @@ extern gameaction_t gameaction;
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: d_event.h,v $
 // Revision 1.4  1998/05/05  19:55:53  phares
 // Formatting and Doc changes
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_user.h,v 1.2 1998/05/10 23:38:38 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -36,10 +36,7 @@ void P_Thrust(player_t *player, angle_t angle, fixed_t move);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_user.h,v $
 // Revision 1.2  1998/05/10  23:38:38  killough
 // Add more prototypes
 //

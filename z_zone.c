@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: z_zone.c,v 1.13 1998/05/12 06:11:55 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,9 @@
 // statistics and tunables.
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: z_zone.c,v 1.13 1998/05/12 06:11:55 killough Exp $";
+
+#include <stdio.h>
 
 #include "z_zone.h"
 #include "doomstat.h"
@@ -43,11 +45,11 @@ static const char rcsid[] = "$Id$";
 // Uncomment this to exhaustively run memory checks
 // while the game is running (this is EXTREMELY slow).
 // Only useful if INSTRUMENTED is also defined.
-//#define CHECKHEAP
+// #define CHECKHEAP
 
 // Uncomment this to perform id checks on zone blocks,
 // to detect corrupted and illegally freed blocks
-#define ZONEIDCHECK
+// #define ZONEIDCHECK
 
 // Tunables
 
@@ -214,13 +216,20 @@ void Z_Init(void)
 
    // Allocate the memory
 
+
   while (!(zonebase=(malloc)(zonebase_size=size + HEADER_SIZE + CACHE_ALIGN)))
     if (size < (MIN_RAM-LEAVE_ASIDE < RETRY_AMOUNT ? RETRY_AMOUNT :
                                                      MIN_RAM-LEAVE_ASIDE))
+    {
       I_Error("Z_Init: failed on allocation of %lu bytes",(unsigned long)
               zonebase_size);
+    }
     else
+    {
       size -= RETRY_AMOUNT;
+    }
+
+  printf("Z_Init: malloc'd %i\n", (int)zonebase_size);
 
   // Align on cache boundary
 
@@ -641,10 +650,7 @@ void (Z_CheckHeap)(const char *file, int line)
 
 //-----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: z_zone.c,v $
 // Revision 1.13  1998/05/12  06:11:55  killough
 // Improve memory-related error messages
 //

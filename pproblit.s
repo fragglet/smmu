@@ -538,13 +538,10 @@ L3p:
         ret
 
 //----------------------------------------------------------------------------
-// $Id$
+// $Id: pproblit.s,v 1.4 1998/02/23 04:53:25 killough Exp $
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: pproblit.s,v $
 // Revision 1.4  1998/02/23  04:53:25  killough
 // Performance tuning, add Pentium routine
 //

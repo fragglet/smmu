@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_net.h,v 1.8 1998/05/21 12:12:16 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -41,11 +41,11 @@
 // Networking and tick handling related.
 #define BACKUPTICS              12
 
-typedef enum
+enum
 {
     CMD_SEND    = 1,
     CMD_GET     = 2
-} command_t;
+};
 
 
 //
@@ -159,21 +159,30 @@ typedef struct
 // Create any new ticcmds and broadcast to other players.
 void NetUpdate (void);
 
+void D_InitNetGame();
+
 // Broadcasts special packets to other players
 //  to notify of game exit
 void D_QuitNetGame (void);
+void D_KickPlayer (int playernum);
 
 //? how many ticks to run?
 void TryRunTics (void);
+void Tickers();
+
+void ResetNet();
+
+extern int isconsoletic;        // is the current tic a gametic
+                                // or a list of console commands?
+extern boolean opensocket;
+extern doomcom_t singleplayer;
+extern int newtics, ticnum;     //sf
 
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: d_net.h,v $
 // Revision 1.8  1998/05/21  12:12:16  jim
 // Removed conditional from net code
 //

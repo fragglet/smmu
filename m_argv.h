@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_argv.h,v 1.3 1998/05/01 14:26:18 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -36,10 +36,7 @@ int M_CheckParm(const char *check);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_argv.h,v $
 // Revision 1.3  1998/05/01  14:26:18  killough
 // beautification
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,12 +21,20 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $";
 
 #include "doomstat.h"
+#include "c_io.h"
 #include "w_wad.h"
+#include "p_skin.h"
+#include "p_setup.h"
 #include "r_main.h"
 #include "r_sky.h"
+#include "v_video.h"
+
+static void R_LoadDoom1();
+static int R_Doom1Texture(const char *name);
+
 
 //
 // Graphics.
@@ -452,13 +460,13 @@ void R_InitTextures (void)
   char *names;
   char *name_p;
   int  *patchlookup;
-  int  totalwidth;
   int  nummappatches;
   int  offset;
   int  maxoff, maxoff2;
   int  numtextures1, numtextures2;
   int  *directory;
   int  errors = 0;
+        // sf: removed dumb texturewidth (?)
 
   // Load the patch names from pnames.lmp.
   name[8] = 0;
@@ -528,28 +536,24 @@ void R_InitTextures (void)
     Z_Malloc(numtextures*sizeof*texturewidthmask, PU_STATIC, 0);
   textureheight = Z_Malloc(numtextures*sizeof*textureheight, PU_STATIC, 0);
 
-  totalwidth = 0;
 
-  {  // Really complex printing shit...
+  {
+    // Really complex printing shit...
     int temp1 = W_GetNumForName("S_START");
     int temp2 = W_GetNumForName("S_END") - 1;
 
     // 1/18/98 killough:  reduce the number of initialization dots
     // and make more accurate
+        // sf: reorganised to use loading pic
+    int temp3 = 6+(temp2-temp1+255)/128 + (numtextures+255)/128;  // killough
 
-    int temp3 = 8+(temp2-temp1+255)/128 + (numtextures+255)/128;  // killough
-    putchar('[');
-    for (i = 0; i < temp3; i++)
-      putchar(' ');
-    putchar(']');
-    for (i = 0; i < temp3; i++)
-      putchar('\x8');
+    V_SetLoading(temp3, "r_init:");
   }
 
-  for (i=0 ; i<numtextures ; i++, directory++)
+    for (i=0 ; i<numtextures ; i++, directory++)
     {
-      if (!(i&127))          // killough
-        putchar('.');
+      if(!(i&127))          // killough
+        V_LoadingIncrease(); //sf
 
       if (i == numtextures1)
         {
@@ -566,10 +570,9 @@ void R_InitTextures (void)
 
       mtexture = (maptexture_t *) ( (byte *)maptex + offset);
 
-      texture = textures[i] =
-        Z_Malloc(sizeof(texture_t) +
-                 sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1),
-                 PU_STATIC, 0);
+
+      texture = textures[i] = Z_Malloc(  sizeof(texture_t) +
+         sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1), PU_STATIC, 0 );
 
       texture->width = SHORT(mtexture->width);
       texture->height = SHORT(mtexture->height);
@@ -604,8 +607,6 @@ void R_InitTextures (void)
         ;
       texturewidthmask[i] = j-1;
       textureheight[i] = texture->height<<FRACBITS;
-
-      totalwidth += texture->width;
     }
  
   free(patchlookup);         // killough
@@ -692,8 +693,9 @@ void R_InitSpriteLumps(void)
 
   for (i=0 ; i< numspritelumps ; i++)
     {
+        // sf: loading pic
       if (!(i&127))            // killough
-        putchar ('.');
+        V_LoadingIncrease();
 
       patch = W_CacheLumpNum(firstspritelump+i, PU_CACHE);
       spritewidth[i] = SHORT(patch->width)<<FRACBITS;
@@ -746,7 +748,8 @@ int R_ColormapNumForName(const char *name)
 // By Lee Killough 2/21/98
 //
 
-int tran_filter_pct = 66;       // filter percent
+        //sf: change to 50%
+int tran_filter_pct = 50;       // filter percent
 
 #define TSC 12        /* number of fixed point digits in filter percent */
 
@@ -816,7 +819,7 @@ void R_InitTranMap(int progress)
                 long b1 = pal[2][i] * w2;
 
                 if (!(i & 31) && progress)
-		  putchar('.');
+                    V_LoadingIncrease();        //sf 
 
 		if (!(~i & 15))
 		  if (i & 32)       // killough 10/98: display flashing disk
@@ -851,7 +854,11 @@ void R_InitTranMap(int progress)
         }
       else
 	if (progress)
-	  fputs("........",stdout);
+        {
+           int i;
+           for(i=0; i<8; i++)
+                V_LoadingIncrease();    // 8 '.'s
+        }
 
       if (cachefp)              // killough 11/98: fix filehandle leak
 	fclose(cachefp);
@@ -869,13 +876,17 @@ void R_InitTranMap(int progress)
 
 void R_InitData(void)
 {
+  P_InitSkins();
+  R_InitColormaps();                    // killough 3/20/98
   R_InitTextures();
   R_InitFlats();
   R_InitSpriteLumps();
   if (general_translucency)             // killough 3/1/98, 10/98
-    R_InitTranMap(1);                   // killough 2/21/98, 3/6/98
-  R_InitColormaps();                    // killough 3/20/98
+    R_InitTranMap(1);          // killough 2/21/98, 3/6/98
+  R_LoadDoom1();
 }
+
+int level_error = false;
 
 //
 // R_FlatNumForName
@@ -888,7 +899,14 @@ int R_FlatNumForName(const char *name)    // killough -- const added
 {
   int i = (W_CheckNumForName)(name, ns_flats);
   if (i == -1)
-    I_Error("R_FlatNumForName: %.8s not found", name);
+  {
+    if(!level_error)
+    {
+        C_Printf("R_FlatNumForName: %.8s not found\n", name);
+        level_error = true;
+    }
+    return -1;
+  }
   return i - firstflat;
 }
 
@@ -926,9 +944,20 @@ int R_TextureNumForName(const char *name)  // const added -- killough
 {
   int i = R_CheckTextureNumForName(name);
   if (i == -1)
-    I_Error("R_TextureNumForName: %.8s not found", name);
+  {
+    i = R_Doom1Texture(name);   // try doom I textures
+
+    if (i == -1)
+    {
+      C_Printf("R_TextureNumForName: %.8s not found\n", name);
+      level_error = true;
+      return -1;
+    }
+  }
   return i;
 }
+
+int r_precache = 1;     //sf: option not to precache the levels
 
 //
 // R_PrecacheLevel
@@ -943,6 +972,9 @@ void R_PrecacheLevel(void)
   register byte *hitlist;
 
   if (demoplayback)
+    return;
+
+  if(!r_precache)
     return;
 
   {
@@ -1014,12 +1046,135 @@ void R_PrecacheLevel(void)
   free(hitlist);
 }
 
+void R_FreeData()
+{
+        int i;
+
+//        for(i=0;i<numcolormaps;i++)
+  //              Z_Free(colormaps[i]);
+
+    //    Z_Free(colormaps);
+
+        for(i=0;i<numtextures;i++)
+        {
+                Z_Free(textures[i]);
+                Z_Free(texturecolumnofs[i]);
+                Z_Free(texturecolumnlump[i]);
+        }
+        Z_Free(textures);
+        Z_Free(texturecolumnofs);
+        Z_Free(texturecolumnlump);
+        Z_Free(texturecomposite);
+        Z_Free(texturecompositesize);
+        Z_Free(textureheight);
+        Z_Free(texturetranslation);
+        Z_Free(texturewidthmask);
+
+        Z_Free(spritewidth);
+        Z_Free(spriteoffset);
+        Z_Free(spritetopoffset);
+
+        Z_Free(flattranslation);
+
+        Z_Free(main_tranmap);
+}
+
+/********************************
+        Doom I texture conversion
+ *********************************/
+
+ // convert old doom I levels so they will
+ // work under doom II
+
+typedef struct
+{
+        char *doom1;
+        char *doom2;
+} doom1text_t;
+
+doom1text_t txtrconv[256];
+int numconvs = 0;
+
+#define RemoveEndSpaces(s)      \
+        while(*((s)+strlen(s)-1) == ' ') *((s)+strlen(s)-1) = 0;
+
+static void R_LoadDoom1Parse(char *line)
+{
+
+        while(*line == ' ') line++;
+        if(line[0] == ';') return;      // comment
+        if(!*line || *line<32) return;      // empty line
+
+        if(!txtrconv[numconvs].doom1)
+        {
+                memset(txtrconv[numconvs].doom1 = malloc(9), 0, 9);
+                memset(txtrconv[numconvs].doom2 = malloc(9), 0, 9);
+        }
+        strncpy(txtrconv[numconvs].doom1, line, 8);
+         RemoveEndSpaces(txtrconv[numconvs].doom1);
+        strncpy(txtrconv[numconvs].doom2, line+9, 8);
+         RemoveEndSpaces(txtrconv[numconvs].doom2);
+
+        numconvs++;
+}
+
+static void R_LoadDoom1()
+{
+        char *lump;
+        char *startofline, *rover;
+        int ll, lumpnum;
+
+        if((lumpnum = W_CheckNumForName("TXTRCONV")) == -1)
+                return;
+
+        lump = W_CacheLumpNum(lumpnum, PU_STATIC);
+
+        ll = W_LumpLength(lumpnum);
+
+        startofline = rover = lump;
+        numconvs = 0;
+
+        while(rover < lump+ll)
+        {
+                if(*rover == '\n') // newline
+                {
+                        *rover = 0;
+                        R_LoadDoom1Parse(startofline);
+                        *rover = '\n';
+                        startofline = rover+1;
+                }
+                        // replace control characters with spaces
+                if(*rover < ' ') *rover = ' ';
+                rover++;
+        }
+        R_LoadDoom1Parse(startofline);  // parse the last line
+
+        Z_Free(lump);   // _must_ be freed, not changetagged, as the
+                        // lump has changed slightly and may not work
+                        // if this has to be loaded again
+}
+
+static int R_Doom1Texture(const char *name)
+{
+        int i;
+
+        // slow i know; should be hash tabled
+
+        for(i=0; i<numconvs; i++)
+        {
+                if(!strncmp(name, txtrconv[i].doom1, 8))   // found it
+                {
+                   doom1level = true;
+                   return R_CheckTextureNumForName(txtrconv[i].doom2);
+                }
+        }
+
+        return -1;
+}
+
 //-----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: r_data.c,v $
 // Revision 1.23  1998/05/23  08:05:57  killough
 // Reformatting
 //

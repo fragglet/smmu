@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -15,20 +15,17 @@
 // for more details.
 //
 //
+// $Log:$
 //
 // DESCRIPTION:
-//   DOOM strings, by language.
-//   Note:  In BOOM, some new strings hav ebeen defined that are
-//          not found in the French version.  A better approach is 
-//          to create a BEX text-replacement file for other
-//          languages since any language can be supported that way
-//          without recompiling the program.
+//	DOOM strings, by language.
 //
 //-----------------------------------------------------------------------------
 
 
 #ifndef __DSTRINGS__
 #define __DSTRINGS__
+
 
 // All important printed strings.
 // Language selection (message strings).
@@ -40,11 +37,9 @@
 #include "d_englsh.h"
 #endif
 
-// Note this is not externally modifiable through DEH/BEX
 // Misc. other strings.
-// #define SAVEGAMENAME  "boomsav"      /* killough 3/22/98 */
-// Ty 05/04/98 - replaced with a modifiable string, see d_deh.c
-                                                               
+#define SAVEGAMENAME	"doomsav"
+
 
 //
 // File locations,
@@ -58,36 +53,30 @@
 // Not done in french?
 
 // QuitDOOM messages
+#define NUM_QUITMESSAGES   22
 
-// killough 1/18/98: 
-// replace hardcoded limit with extern var (silly hack, I know)
+extern char* endmsg[];
 
-#include <stddef.h>
 
-extern const size_t NUM_QUITMESSAGES;  // Calculated in dstrings.c
+#ifndef PD_BLUEC        // some files don't have boom-specific things
 
-extern const char* const endmsg[];   // killough 1/18/98 const added
-
+#define PD_BLUEC  PD_BLUEK
+#define PD_REDC   PD_REDK
+#define PD_YELLOWC  PD_YELLOWK
+#define PD_BLUES    "You need a blue skull to open this door"
+#define PD_REDS     "You need a red skull to open this door"
+#define PD_YELLOWS  "You need a yellow skull to open this door"
+#define PD_ANY      "Any key will open this door"
+#define PD_ALL3     "You need all three keys to open this door"
+#define PD_ALL6     "You need all six keys to open this door"
+#define STSTR_COMPON    "Compatibility Mode On"            // phares
+#define STSTR_COMPOFF   "Compatibility Mode Off"           // phares
 
 #endif
 
-//----------------------------------------------------------------------------
+#endif
+//-----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
+// $Log:$
 //
-// Revision 1.5  1998/05/04  22:00:43  thldrmn
-// savegamename globalization
-//
-// Revision 1.3  1998/03/23  03:12:58  killough
-// Rename doomsav to boomsav
-//
-// Revision 1.2  1998/01/26  19:26:45  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:51  rand
-// Lee's Jan 19 sources
-//
-//
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------

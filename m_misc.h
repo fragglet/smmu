@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_misc.h,v 1.4 1998/05/05 19:56:06 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -52,7 +52,8 @@ typedef struct default_s
   int  *const current;                      // possible nondefault variable
   int   const defaultvalue;                 // built-in default value
   struct {int min, max;} const limit;       // numerical limits
-  enum {number, string} const isstr;        // number or string
+        // sf: changed to dt_ for fragglescript
+  enum {dt_number, dt_string} const isstr;        // number or string
   ss_types const setupscreen;               // setup screen this appears on
   enum {wad_no, wad_yes} const wad_allowed; // whether it's allowed in wads
   const char *const help;                   // description of parameter
@@ -71,10 +72,7 @@ typedef struct default_s
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_misc.h,v $
 // Revision 1.4  1998/05/05  19:56:06  phares
 // Formatting and Doc changes
 //

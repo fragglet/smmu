@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: doomdef.c,v 1.3 1998/05/03 22:40:02 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: doomdef.c,v 1.3 1998/05/03 22:40:02 killough Exp $";
 
 #include "doomdef.h"
 
@@ -31,10 +31,7 @@ rcsid[] = "$Id$";
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: doomdef.c,v $
 // Revision 1.3  1998/05/03  22:40:02  killough
 // beautification
 //

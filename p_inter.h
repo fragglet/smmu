@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_inter.h,v 1.3 1998/05/03 23:08:57 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -34,6 +34,7 @@
 boolean P_GivePower(player_t *, int);
 void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher);
 void P_DamageMobj(mobj_t *target,mobj_t *inflictor,mobj_t *source,int damage);
+void P_KillMobj(mobj_t *target, mobj_t *source);
 
 // killough 5/2/98: moved from d_deh.c, g_game.c, m_misc.c, others:
 
@@ -64,10 +65,7 @@ extern int maxammo[], clipammo[];
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_inter.h,v $
 // Revision 1.3  1998/05/03  23:08:57  killough
 // beautification, add of the DEH parameter declarations
 //

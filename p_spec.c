@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_spec.c,v 1.56 1998/05/25 10:40:30 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_spec.c,v 1.56 1998/05/25 10:40:30 killough Exp $";
 
 #include "doomstat.h"
 #include "p_spec.h"
@@ -49,6 +49,11 @@ rcsid[] = "$Id$";
 #include "m_bbox.h"                                         // phares 3/20/98
 #include "d_deh.h"
 #include "r_plane.h"  // killough 10/98
+#include "p_info.h"
+#include "c_runcmd.h"
+#include "hu_stuff.h"
+#include "t_script.h"
+#include "r_ripple.h"
 
 //
 // Animating textures and planes
@@ -648,6 +653,18 @@ int P_FindLineFromLineTag(const line_t *line, int start)
   return start;
 }
 
+// sf: same thing but from just a number
+
+int P_FindSectorFromTag(const int tag, int start)
+{
+  start = start >= 0 ? sectors[start].nexttag :
+    sectors[(unsigned) tag % (unsigned) numsectors].firsttag;
+  while (start >= 0 && sectors[start].tag != tag)
+    start = sectors[start].nexttag;
+  return start;
+}
+
+
 // Hash the sector tags across the sectors and linedefs.
 static void P_InitTagLists(void)
 {
@@ -728,7 +745,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
           !player->cards[it_yellowcard] &&
           !player->cards[it_yellowskull])
         {
-          player->message = s_PD_ANY; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)  //sf
+                HU_centremsg(s_PD_ANY);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -737,7 +755,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_redcard] &&
           (!skulliscard || !player->cards[it_redskull]))
         {
-          player->message = skulliscard? s_PD_REDK : s_PD_REDC; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)     //sf
+                HU_centremsg(skulliscard? s_PD_REDK : s_PD_REDC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -746,7 +765,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_bluecard] &&
           (!skulliscard || !player->cards[it_blueskull]))
         {
-          player->message = skulliscard? s_PD_BLUEK : s_PD_BLUEC; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)  //sf
+                HU_centremsg(skulliscard? s_PD_BLUEK : s_PD_BLUEC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -755,7 +775,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_yellowcard] &&
           (!skulliscard || !player->cards[it_yellowskull]))
         {
-          player->message = skulliscard? s_PD_YELLOWK : s_PD_YELLOWC; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer) //sf
+                HU_centremsg(skulliscard? s_PD_YELLOWK : s_PD_YELLOWC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -764,7 +785,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_redskull] &&
           (!skulliscard || !player->cards[it_redcard]))
         {
-          player->message = skulliscard? s_PD_REDK : s_PD_REDS; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)  //sf
+                HU_centremsg(skulliscard? s_PD_REDK : s_PD_REDS);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -773,7 +795,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_blueskull] &&
           (!skulliscard || !player->cards[it_bluecard]))
         {
-          player->message = skulliscard? s_PD_BLUEK : s_PD_BLUES; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer) //sf
+                HU_centremsg(skulliscard? s_PD_BLUEK : s_PD_BLUES);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -782,7 +805,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_yellowskull] &&
           (!skulliscard || !player->cards[it_yellowcard]))
         {
-          player->message = skulliscard? s_PD_YELLOWK : s_PD_YELLOWS; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer) //sf
+                HU_centremsg(skulliscard? s_PD_YELLOWK : s_PD_YELLOWS);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -796,7 +820,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
            !player->cards[it_yellowcard] ||
            !player->cards[it_yellowskull]))
         {
-          player->message = s_PD_ALL6; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer) //sf
+                HU_centremsg(s_PD_ALL6);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -805,7 +830,8 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
            !(player->cards[it_bluecard] | player->cards[it_blueskull]) ||
            !(player->cards[it_yellowcard] | !player->cards[it_yellowskull])))
         {
-          player->message = s_PD_ALL3; // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer) //sf
+                HU_centremsg(s_PD_ALL3);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -906,6 +932,15 @@ int P_CheckTag(line_t *line)
     case 198:
     case 48:  // Scrolling walls
     case 85:
+        // sf: scripting
+    case 270:   // WR
+    case 271:
+    case 272:   // W1
+    case 273:
+    case 274:   // SR
+    case 275:   // S1
+    case 276:   // GR
+    case 277:   // G1
       return 1;
     }
 
@@ -978,10 +1013,8 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
       case MT_TROOPSHOT:
       case MT_HEADSHOT:
       case MT_BRUISERSHOT:
-#ifdef BETA
       case MT_PLASMA1:    // killough 8/28/98: exclude beta fireballs
       case MT_PLASMA2:
-#endif
         return;
       default:
         break;
@@ -1538,6 +1571,29 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
       EV_DoFloor(line,raiseFloorTurbo);
       break;
 
+        // scripting ld types
+
+        // repeatable
+
+    case 271:  // console command (1sided)
+      if(side) break;
+
+    case 270:  // console command (2sided)
+      t_trigger = thing;
+      T_RunScript(line->tag);
+      break;
+
+        // once-only triggers
+
+    case 273:  // console command (1sided)
+      if(side) break;
+
+    case 272:  // console command (2sided)
+      t_trigger = thing;
+      T_RunScript(line->tag);
+      line->special = 0;        // clear trigger
+      break;
+
       // Extended walk triggers
 
       // jff 1/29/98 added new linedef types to fill all functions out so that
@@ -1842,7 +1898,6 @@ void P_CrossSpecialLine(line_t *line, int side, mobj_t *thing)
               EV_SilentTeleport(line, side, thing);
             break;
             //jff 1/29/98 end of added WR linedef types
-
           }
       break;
     }
@@ -2004,6 +2059,14 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
 
       //jff 1/30/98 added new gun linedefs here
       // killough 1/31/98: added demo_compatibility check, added inner switch
+
+        // sf: scripting
+    case 276:
+    case 277:
+      t_trigger = thing;
+      T_RunScript(line->tag);
+      if(line->special == 277) line->special = 0;       // clear if G1
+      break;
 
     default:
       if (!demo_compatibility)
@@ -2210,8 +2273,10 @@ void P_UpdateSpecials (void)
         pic = anim->basepic + ( (leveltime/anim->speed + i)%anim->numpics );
         if (anim->istexture)
           texturetranslation[i] = pic;
-        else
-          flattranslation[i] = pic;
+        else                    // sf: swirly water hack
+          flattranslation[i] = r_swirl ? -1 : pic;
+                // sf: > 65535 : swirly
+        if(anim->speed >> 16) flattranslation[i] = -1;
       }
 
   // Check buttons (retriggerable switches) and change texture on timeout
@@ -3115,10 +3180,7 @@ static void P_SpawnPushers(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_spec.c,v $
 // Revision 1.56  1998/05/25  10:40:30  killough
 // Fix wall scrolling bug
 //

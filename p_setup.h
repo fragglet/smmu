@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_setup.h,v 1.3 1998/05/03 23:03:31 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,7 +24,7 @@
 
 #include "p_mobj.h"
 
-void P_SetupLevel(int episode, int map, int playermask, skill_t skill);
+void P_SetupLevel(char*, int playermask, skill_t skill);
 void P_Init(void);               // Called by startup code.
 
 extern byte     *rejectmatrix;   // for fast sight rejection
@@ -38,14 +38,36 @@ extern fixed_t  bmaporgx;
 extern fixed_t  bmaporgy;        // origin of block map
 extern mobj_t   **blocklinks;    // for thing chains
 
+extern int      newlevel;
+extern int      doom1level;
+extern char     levelmapname[10];
+
+typedef struct                          // Standard OLO stuff, put in WADs
+{       
+        unsigned char header[3];                 // Header
+        unsigned char space1;
+        unsigned char extend;
+        unsigned char space2;
+                                        // Standard
+        unsigned char levelwarp;
+        unsigned char lastlevel;
+        unsigned char deathmatch;
+        unsigned char skill_level;
+        unsigned char nomonsters;
+        unsigned char respawn;
+        unsigned char fast;
+
+        unsigned char levelname[32][32];
+} olo_t;
+
+extern olo_t olo;
+extern int olo_loaded;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_setup.h,v $
 // Revision 1.3  1998/05/03  23:03:31  killough
 // beautification, add external declarations for blockmap
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,11 +24,14 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $";
 
+#include "c_io.h"
 #include "doomdef.h"
+#include "doomstat.h"
 #include "r_main.h"
 #include "m_bbox.h"
+#include "r_draw.h"
 #include "w_wad.h"   /* needed for color translation lump lookup */
 #include "v_video.h"
 #include "i_video.h"
@@ -328,33 +331,35 @@ void V_DrawPatchGeneral(int x, int y, int scrn, patch_t *patch,
 		    register byte s0,s1;
 		    s0 = source[0];
 		    s1 = source[1];
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH*4] = s1;
 		    dest[SCREENWIDTH*2] = s0;
 		    dest[SCREENWIDTH*6] = s1;
-		    dest[1] = s0;
-		    dest[SCREENWIDTH*4+1] = s1;
-		    dest[SCREENWIDTH*2+1] = s0;
-		    dest[SCREENWIDTH*6+1] = s1;
-		    dest += SCREENWIDTH*8;
+                    dest++;
+                    *dest = s0;
+                    dest[SCREENWIDTH*4] = s1;
+                    dest[SCREENWIDTH*2] = s0;
+                    dest[SCREENWIDTH*6] = s1;
+                    dest += SCREENWIDTH*8 - 1;
 		    s0 = source[2];
 		    s1 = source[3];
 		    source += 4;
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH*4] = s1;
-		    dest[1] = s0;
-		    dest[SCREENWIDTH*4+1] = s1;
 		    dest[SCREENWIDTH*2] = s0;
 		    dest[SCREENWIDTH*6] = s1;
-		    dest[SCREENWIDTH*2+1] = s0;
-		    dest[SCREENWIDTH*6+1] = s1;
-		    dest += SCREENWIDTH*8;
+                    dest++;     // sf: remove a couple'a additions for speed
+                    *dest = s0;
+                    dest[SCREENWIDTH*4] = s1;
+                    dest[SCREENWIDTH*2] = s0;
+                    dest[SCREENWIDTH*6] = s1;
+                    dest += SCREENWIDTH*8 - 1;
 		  }
 		while ((count-=4)>=0);
 	      if (count+=4)
 		do
 		  {
-		    dest[0] = dest[SCREENWIDTH*2] = dest[1] =
+                    *dest = dest[SCREENWIDTH*2] = dest[1] =
 		      dest[SCREENWIDTH*2+1] = *source++;
 		    dest += SCREENWIDTH*4;
 		  }
@@ -387,15 +392,15 @@ void V_DrawPatchGeneral(int x, int y, int scrn, patch_t *patch,
 		    register byte s0,s1;
 		    s0 = source[0];
 		    s1 = source[1];
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH] = s1;
-		    dest += SCREENWIDTH*2;
+                    dest += SCREENWIDTH*2;
 		    s0 = source[2];
 		    s1 = source[3];
 		    source += 4;
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH] = s1;
-		    dest += SCREENWIDTH*2;
+                    dest += SCREENWIDTH*2;
 		  }
 		while ((count-=4)>=0);
 	      if (count+=4)
@@ -410,6 +415,122 @@ void V_DrawPatchGeneral(int x, int y, int scrn, patch_t *patch,
 	}
     }
 }
+
+        //sf: drawpatch but not scaled like drawpatch is
+
+void V_DrawPatchUnscaled(int x, int y, int scrn, patch_t *patch)
+{
+  int  w = SHORT(patch->width), col = 0, colstop = w, colstep = 1;
+
+  y -= SHORT(patch->topoffset);
+  x -= SHORT(patch->leftoffset);
+
+#ifdef RANGECHECK
+  if (x<0
+      ||x+SHORT(patch->width) >SCREENWIDTH
+      || y<0
+      || y+SHORT(patch->height)>SCREENHEIGHT
+      || (unsigned)scrn>4)
+      return;      // killough 1/19/98: commented out printfs
+#endif
+
+  if (!scrn)
+    V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height));
+
+  if (hires)       // killough 11/98: hires support (well, sorta :)
+    {
+      byte *desttop = screens[scrn]+y*(SCREENWIDTH*2)+x;
+
+      for ( ; col != colstop ; col += colstep, desttop++)
+	{
+	  const column_t *column = 
+	    (const column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+
+	  // step through the posts in a column
+	  while (column->topdelta != 0xff)
+	    {
+	      // killough 2/21/98: Unrolled and performance-tuned
+
+	      register const byte *source = (byte *) column + 3;
+              register byte *dest = desttop + column->topdelta*SCREENWIDTH*2;
+	      register int count = column->length;
+
+	      if ((count-=4)>=0)
+		do
+		  {
+		    register byte s0,s1;
+		    s0 = source[0];
+		    s1 = source[1];
+                    *dest = s0;
+                    dest[SCREENWIDTH*2] = s1;
+                    dest += SCREENWIDTH*4;
+		    s0 = source[2];
+		    s1 = source[3];
+		    source += 4;
+                    *dest = s0;
+                    dest[SCREENWIDTH*2] = s1;
+                    dest += SCREENWIDTH*4;
+		  }
+		while ((count-=4)>=0);
+	      if (count+=4)
+		do
+		  {
+		    *dest = *source++;
+                    dest += SCREENWIDTH*2;
+		  }
+		while (--count);
+	      column = (column_t *)(source+1); //killough 2/21/98 even faster
+	    }
+	}
+    }
+  else
+    {
+      byte *desttop = screens[scrn]+y*SCREENWIDTH+x;
+
+      for ( ; col != colstop ; col += colstep, desttop++)
+	{
+	  const column_t *column = 
+	    (const column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+
+	  // step through the posts in a column
+	  while (column->topdelta != 0xff)
+	    {
+	      // killough 2/21/98: Unrolled and performance-tuned
+
+	      register const byte *source = (byte *) column + 3;
+	      register byte *dest = desttop + column->topdelta*SCREENWIDTH;
+	      register int count = column->length;
+
+	      if ((count-=4)>=0)
+		do
+		  {
+		    register byte s0,s1;
+		    s0 = source[0];
+		    s1 = source[1];
+                    *dest = s0;
+		    dest[SCREENWIDTH] = s1;
+                    dest += SCREENWIDTH*2;
+		    s0 = source[2];
+		    s1 = source[3];
+		    source += 4;
+                    *dest = s0;
+		    dest[SCREENWIDTH] = s1;
+                    dest += SCREENWIDTH*2;
+		  }
+		while ((count-=4)>=0);
+	      if (count+=4)
+		do
+		  {
+		    *dest = *source++;
+		    dest += SCREENWIDTH;
+		  }
+		while (--count);
+	      column = (column_t *)(source+1); //killough 2/21/98 even faster
+	    }
+	}
+    }
+}
+
 
 //
 // V_DrawPatchTranslated
@@ -430,11 +551,13 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
   int col, w;
 
   //jff 2/18/98 if translation not needed, just use the old routine
+/*      sf: remove for tc's
   if (outr==cr_red)
     {
       V_DrawPatch(x,y,scrn,patch);
       return;                            // killough 2/21/98: add return
     }
+    */
 
   y -= SHORT(patch->topoffset);
   x -= SHORT(patch->leftoffset);
@@ -480,35 +603,37 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
 		    s1 = source[1];
 		    s0 = outr[s0];
 		    s1 = outr[s1];
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH*4] = s1;
 		    dest[SCREENWIDTH*2] = s0;
 		    dest[SCREENWIDTH*6] = s1;
-		    dest[1] = s0;
-		    dest[SCREENWIDTH*4+1] = s1;
-		    dest[SCREENWIDTH*2+1] = s0;
-		    dest[SCREENWIDTH*6+1] = s1;
-		    dest += SCREENWIDTH*8;
+                    dest++;
+                    *dest = s0;
+                    dest[SCREENWIDTH*4] = s1;
+                    dest[SCREENWIDTH*2] = s0;
+                    dest[SCREENWIDTH*6] = s1;
+                    dest += SCREENWIDTH*8 - 1;
 		    s0 = source[2];
 		    s1 = source[3];
 		    s0 = outr[s0];
 		    s1 = outr[s1];
 		    source += 4;
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH*4] = s1;
 		    dest[SCREENWIDTH*2] = s0;
 		    dest[SCREENWIDTH*6] = s1;
-		    dest[1] = s0;
-		    dest[SCREENWIDTH*4+1] = s1;
-		    dest[SCREENWIDTH*2+1] = s0;
-		    dest[SCREENWIDTH*6+1] = s1;
-		    dest += SCREENWIDTH*8;
+                    dest++;
+                    *dest = s0;
+                    dest[SCREENWIDTH*4] = s1;
+                    dest[SCREENWIDTH*2] = s0;
+                    dest[SCREENWIDTH*6] = s1;
+                    dest += SCREENWIDTH*8 - 1;
 		  }
 		while ((count-=4)>=0);
 	      if (count+=4)
 		do
 		  {
-		    dest[0] = dest[SCREENWIDTH*2] = dest[1] =
+                    *dest = dest[SCREENWIDTH*2] = dest[1] =
 		      dest[SCREENWIDTH*2+1] = outr[*source++];
 		    dest += SCREENWIDTH*4;
 		  }
@@ -547,7 +672,7 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
 
 		    s0 = outr[s0];
 		    s1 = outr[s1];
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH] = s1;
 		    dest += SCREENWIDTH*2;
 		    s0 = source[2];
@@ -555,7 +680,7 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
 		    s0 = outr[s0];
 		    s1 = outr[s1];
 		    source += 4;
-		    dest[0] = s0;
+                    *dest = s0;
 		    dest[SCREENWIDTH] = s1;
 		    dest += SCREENWIDTH*2;
 		  }
@@ -573,6 +698,242 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
 
     }
 }
+
+      // sf: translucent patch drawing routine
+      // based on drawpatchtranslated to allow translated translucent
+
+void V_DrawPatchTL(int x, int y, int scrn, patch_t *patch,
+                           unsigned char *outr)
+{
+  int col, w;
+
+  if(!general_translucency)
+  {
+        V_DrawPatchTranslated(x, y, scrn, patch, outr, 0);
+        return;
+  }
+
+
+  y -= SHORT(patch->topoffset);
+  x -= SHORT(patch->leftoffset);
+
+#ifdef RANGECHECK
+  if (x<0
+      ||x+SHORT(patch->width) >SCREENWIDTH
+      || y<0
+      || y+SHORT(patch->height)>SCREENHEIGHT
+      || (unsigned)scrn>4)
+    return;    // killough 1/19/98: commented out printfs
+#endif
+
+  if (!scrn)
+    V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height));
+
+  col = 0;
+  w = SHORT(patch->width);
+
+  if (hires)       // killough 11/98: hires support (well, sorta :)
+    {
+      byte *desttop = screens[scrn]+y*SCREENWIDTH*4+x*2;
+
+      for ( ; col<w ; col++, desttop+=2)
+	{
+	  const column_t *column =
+	    (const column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+
+	  // step through the posts in a column
+	  while (column->topdelta != 0xff)
+	    {
+	      // killough 2/21/98: Unrolled and performance-tuned
+
+	      register const byte *source = (byte *) column + 3;
+	      register byte *dest = desttop + column->topdelta*SCREENWIDTH*4;
+	      register int count = column->length;
+
+	      if ((count-=4)>=0)
+		do
+		  {
+		    register byte s0,s1;
+		    s0 = source[0];
+		    s1 = source[1];
+                    s0 = outr[s0];
+		    s1 = outr[s1];
+                        // doing it this way does not produce completely
+                        // 100% accurate results. Code below will do,
+                        // but this is faster
+                    s0 = main_tranmap[(*dest<<8) + s0];
+                    s1 = main_tranmap[(dest[SCREENWIDTH*4]<<8) + s1];
+                    *dest = s0;
+		    dest[SCREENWIDTH*4] = s1;
+		    dest[SCREENWIDTH*2] = s0;
+		    dest[SCREENWIDTH*6] = s1;
+                    dest++;
+                    *dest = s0;
+                    dest[SCREENWIDTH*4] = s1;
+                    dest[SCREENWIDTH*2] = s0;
+                    dest[SCREENWIDTH*6] = s1;
+                    dest += SCREENWIDTH*8 - 1;
+		    s0 = source[2];
+		    s1 = source[3];
+		    s0 = outr[s0];
+		    s1 = outr[s1];
+                    s0 = main_tranmap[(*dest<<8) + s0];
+                    s1 = main_tranmap[(dest[SCREENWIDTH*4]<<8) + s1];
+		    source += 4;
+                    *dest = s0;
+		    dest[SCREENWIDTH*4] = s1;
+		    dest[SCREENWIDTH*2] = s0;
+		    dest[SCREENWIDTH*6] = s1;
+                    dest++;
+                    *dest = s0;
+                    dest[SCREENWIDTH*4] = s1;
+                    dest[SCREENWIDTH*2] = s0;
+                    dest[SCREENWIDTH*6] = s1;
+                    dest += SCREENWIDTH*8 - 1;
+		  }
+		while ((count-=4)>=0);
+	      if (count+=4)
+		do
+		  {
+                    register byte s;
+                                // sf : some changes here for tranlucency
+                    s = outr[*source];
+                    *dest = main_tranmap[(*dest<<8) + s];
+                    dest[SCREENWIDTH*2] = main_tranmap[(dest[SCREENWIDTH*2]<<8) + s];
+                    dest[1] = main_tranmap[(dest[1]<<8) + s];
+                    dest[SCREENWIDTH*2+1] = main_tranmap[(dest[SCREENWIDTH*2+1]<<8) + s];
+                    source++; dest += SCREENWIDTH*4;
+		  }
+		while (--count);
+	      column = (column_t *)(source+1);
+	    }
+	}
+
+    }
+  else
+    {
+      byte *desttop = screens[scrn]+y*SCREENWIDTH+x;
+
+      for ( ; col<w ; col++, desttop++)
+	{
+	  const column_t *column =
+	    (const column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+
+	  // step through the posts in a column
+	  while (column->topdelta != 0xff)
+	    {
+	      // killough 2/21/98: Unrolled and performance-tuned
+
+              register const byte *source = (byte *) column + 3;
+              register byte *dest = desttop + column->topdelta*SCREENWIDTH;
+	      register int count = column->length;
+
+	      if ((count-=4)>=0)
+		do
+		  {
+		    register byte s0,s1;
+		    s0 = source[0];
+		    s1 = source[1];
+
+		    //jff 2/18/98 apply red->range color translation
+		    //2/18/98 don't brightness map for speed
+
+		    s0 = outr[s0];
+		    s1 = outr[s1];
+                    *dest = main_tranmap[(*dest<<8) + s0];
+                    dest[SCREENWIDTH] = main_tranmap[(dest[SCREENWIDTH]<<8) + s1];
+		    dest += SCREENWIDTH*2;
+		    s0 = source[2];
+		    s1 = source[3];
+		    s0 = outr[s0];
+		    s1 = outr[s1];
+		    source += 4;
+                    *dest = main_tranmap[(*dest<<8) + s0];
+                    dest[SCREENWIDTH] = main_tranmap[(dest[SCREENWIDTH]<<8) + s1];
+		    dest += SCREENWIDTH*2;
+		  }
+		while ((count-=4)>=0);
+	      if (count+=4)
+		do
+		  {
+                    *dest = main_tranmap[(*dest<<8) + outr[*source++]];
+		    dest += SCREENWIDTH;
+		  }
+		while (--count);
+	      column = (column_t *)(source+1);
+	    }
+	}
+    }
+}
+
+#if 0
+                // code to produce 100% accurate results in hires
+      for ( ; col<w ; col++, desttop+=2)
+	{
+	  const column_t *column =
+	    (const column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+
+	  // step through the posts in a column
+	  while (column->topdelta != 0xff)
+	    {
+	      // killough 2/21/98: Unrolled and performance-tuned
+
+              register const byte *source = (byte *) column + 3;
+              register byte *dest = desttop + column->topdelta*SCREENWIDTH*4;
+	      register int count = column->length;
+
+	      if ((count-=4)>=0)
+		do
+		  {
+		    register byte s0,s1;
+		    s0 = source[0];
+		    s1 = source[1];
+		    s0 = outr[s0];
+		    s1 = outr[s1];
+                    *dest = main_tranmap[(*dest<<8) + s0];
+                    dest[SCREENWIDTH*4] = main_tranmap[(dest[SCREENWIDTH*4]<<8) + s1];
+                    dest[SCREENWIDTH*2] = main_tranmap[(dest[SCREENWIDTH*2]<<8) + s0];
+                    dest[SCREENWIDTH*6] = main_tranmap[(dest[SCREENWIDTH*6]<<8) + s1];
+                    dest[1] = main_tranmap[(dest[1]<<8) + s0];
+                    dest[SCREENWIDTH*4+1] = main_tranmap[(dest[SCREENWIDTH*4+1]<<8) + s1];
+                    dest[SCREENWIDTH*2+1] = main_tranmap[(dest[SCREENWIDTH*2+1]<<8) + s0];
+                    dest[SCREENWIDTH*6+1] = main_tranmap[(dest[SCREENWIDTH*6+1]<<8) + s1];
+		    dest += SCREENWIDTH*8;
+		    s0 = source[2];
+		    s1 = source[3];
+		    s0 = outr[s0];
+		    s1 = outr[s1];
+		    source += 4;
+                    *dest = main_tranmap[(*dest<<8) + s0];
+                    dest[SCREENWIDTH*4] = main_tranmap[(dest[SCREENWIDTH*4]<<8) + s1];
+                    dest[SCREENWIDTH*2] = main_tranmap[(dest[SCREENWIDTH*2]<<8) + s0];
+                    dest[SCREENWIDTH*6] = main_tranmap[(dest[SCREENWIDTH*6]<<8) + s1];
+                    dest[1] = main_tranmap[(dest[1]<<8) + s0];
+                    dest[SCREENWIDTH*4+1] = main_tranmap[(dest[SCREENWIDTH*4+1]<<8) + s1];
+                    dest[SCREENWIDTH*2+1] = main_tranmap[(dest[SCREENWIDTH*2+1]<<8) + s0];
+                    dest[SCREENWIDTH*6+1] = main_tranmap[(dest[SCREENWIDTH*6+1]<<8) + s1];
+		    dest += SCREENWIDTH*8;
+		  }
+		while ((count-=4)>=0);
+	      if (count+=4)
+		do
+		  {
+                    register byte s;
+                                // sf : some changes here for tranlucency
+                    s = outr[*source];
+                    *dest = main_tranmap[(*dest<<8) + s];
+                    dest[SCREENWIDTH*2] = main_tranmap[(dest[SCREENWIDTH*2]<<8) + s];
+                    dest[1] = main_tranmap[(dest[1]<<8) + s];
+                    dest[SCREENWIDTH*2+1] = main_tranmap[(dest[SCREENWIDTH*2+1]<<8) + s];
+                    source++; dest += SCREENWIDTH*4;
+		  }
+		while (--count);
+	      column = (column_t *)(source+1);
+
+	    }
+	}
+
+#endif
 
 //
 // V_DrawBlock
@@ -663,36 +1024,11 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest)
     }
 }
 
-//
-// V_Init
-//
-// Allocates the 4 full screen buffers in low DOS memory
-// No return value
-//
-// killough 11/98: rewritten to support hires
 
-void V_Init(void)
-{
-  int size = hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
-  static byte *s;
-
-  if (s)
-    free(s), destroy_bitmap(screens0_bitmap);
-
-  screens[3] = (screens[2] = (screens[1] = s = calloc(size,3)) + size) + size;
-
-  screens0_bitmap = 
-    create_bitmap_ex(8, SCREENWIDTH << hires, SCREENHEIGHT << hires);
-
-  memset(screens[0] = screens0_bitmap->line[0], 0, size);
-}
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: v_video.c,v $
 // Revision 1.10  1998/05/06  11:12:48  jim
 // Formattted v_video.*
 //

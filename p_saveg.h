@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_saveg.h,v 1.5 1998/05/03 23:10:40 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -32,6 +32,8 @@ void P_ArchiveThinkers(void);
 void P_UnArchiveThinkers(void);
 void P_ArchiveSpecials(void);
 void P_UnArchiveSpecials(void);
+void P_ArchiveScripts(void);
+void P_UnArchiveScripts(void);
 
 // 1/18/98 killough: add RNG info to savegame
 void P_ArchiveRNG(void);
@@ -41,6 +43,10 @@ void P_UnArchiveRNG(void);
 void P_ArchiveMap(void);
 void P_UnArchiveMap(void);
 
+void P_FreeObjTable();
+void P_NumberObjects();
+void P_DeNumberObjects();
+
 extern byte *save_p;
 void CheckSaveGame(size_t);              // killough
 
@@ -48,10 +54,7 @@ void CheckSaveGame(size_t);              // killough
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_saveg.h,v $
 // Revision 1.5  1998/05/03  23:10:40  killough
 // beautification
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_tick.h,v 1.5 1998/05/15 00:36:22 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -47,14 +47,13 @@ typedef enum {
 
 extern thinker_t thinkerclasscap[];
 
+        // sf: jumping-viewz-on-hyperlift bug
+extern boolean reset_viewz;
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_tick.h,v $
 // Revision 1.5  1998/05/15  00:36:22  killough
 // Remove unnecessary crash hack
 //

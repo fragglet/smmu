@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: am_map.c,v 1.24 1998/05/10 12:05:24 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 static const char rcsid[] =
-  "$Id$";
+  "$Id: am_map.c,v 1.24 1998/05/10 12:05:24 jim Exp $";
 
 #include "doomstat.h"
 #include "st_stuff.h"
@@ -668,7 +668,6 @@ boolean AM_Responder
   int rc;
   static int cheatstate=0;
   static int bigstate=0;
-  static char buffer[20];
   int ch;                                                       // phares
 
   rc = false;
@@ -738,25 +737,25 @@ boolean AM_Responder
       followplayer = !followplayer;
       f_oldloc.x = MAXINT;
       // Ty 03/27/98 - externalized
-      plr->message = followplayer ? s_AMSTR_FOLLOWON : s_AMSTR_FOLLOWOFF;  
+      dprintf(followplayer ? s_AMSTR_FOLLOWON : s_AMSTR_FOLLOWOFF);
     }
     else if (ch == key_map_grid)
     {
       automap_grid = !automap_grid;      // killough 2/28/98
       // Ty 03/27/98 - *not* externalized
-      plr->message = automap_grid ? s_AMSTR_GRIDON : s_AMSTR_GRIDOFF;  
+      dprintf(automap_grid ? s_AMSTR_GRIDON : s_AMSTR_GRIDOFF);
     }
     else if (ch == key_map_mark)
     {
       // Ty 03/27/98 - *not* externalized     
-      sprintf(buffer, "%s %d", s_AMSTR_MARKEDSPOT, markpointnum);  
-      plr->message = buffer;
+        // sf: fixed this (buffer at start, presumably from an old sprintf
+      dprintf("%s %d", s_AMSTR_MARKEDSPOT, markpointnum);
       AM_addMark();
     }
     else if (ch == key_map_clear)
     {
       AM_clearMarks();  // Ty 03/27/98 - *not* externalized
-      plr->message = s_AMSTR_MARKSCLEARED;                      //    ^
+      dprintf(s_AMSTR_MARKSCLEARED);                            //    ^
     }                                                           //    |
     else                                                        // phares
     {
@@ -1563,7 +1562,7 @@ void AM_drawPlayers(void)
 
   for (i=0;i<MAXPLAYERS;i++)
   {
-    their_color++;
+    their_color=players[i].colormap;
     p = &players[i];
 
     // killough 9/29/98: use !demoplayback so internal demos are no different
@@ -1761,10 +1760,7 @@ void AM_Drawer (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: am_map.c,v $
 // Revision 1.24  1998/05/10  12:05:24  jim
 // formatted/documented am_map
 //

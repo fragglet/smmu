@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,7 +23,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -449,6 +449,13 @@ static boolean P_SmartMove(mobj_t *actor)
       P_Random(pr_dropoff) < 235)
     dropoff = 2;
 #endif
+                // sf: jumping for all monsters
+  if(0)
+  if(target && dog_jumping &&
+      P_AproxDistance(actor->x - target->x,
+                      actor->y - target->y) < FRACUNIT*384 &&
+      P_Random(pr_dropoff) < 235)
+    dropoff = 2;
 
   if (!P_Move(actor, dropoff))
     return false;
@@ -1237,7 +1244,7 @@ void A_CPosAttack(mobj_t *actor)
 
   if (!actor->target)
     return;
-  S_StartSound(actor, sfx_shotgn);
+  S_StartSound(actor, sfx_chgun); //shotgn
   A_FaceTarget(actor);
   bangle = actor->angle;
   slope = P_AimLineAttack(actor, bangle, MISSILERANGE, 0); // killough 8/2/98
@@ -1850,30 +1857,12 @@ void A_SkullAttack(mobj_t *actor)
   actor->momz = (dest->z+(dest->height>>1) - actor->z) / dist;
 }
 
-//
-// A_BetaSkullAttack()
-// killough 10/98: this emulates the beta version's lost soul attacks
-//
-
-#ifdef BETA
-
-void A_BetaSkullAttack(mobj_t *actor)
-{
-  int damage;
-  if (!actor->target || actor->target->type == MT_SKULL)
-    return;
-  S_StartSound(actor, actor->info->attacksound);
-  A_FaceTarget(actor);
-  damage = (P_Random(pr_skullfly)%8+1)*actor->info->damage;
-  P_DamageMobj(actor->target, actor, actor, damage);
-}
+// sf: removed beta lost soul
 
 void A_Stop(mobj_t *actor)
 {
   actor->momx = actor->momy = actor->momz = 0;
 }
-
-#endif
 
 //
 // A_PainShootSkull
@@ -2046,6 +2035,17 @@ void A_Explode(mobj_t *thingy)
 {
   P_RadiusAttack(thingy, thingy->target, 128);
 }
+
+void A_Nailbomb(mobj_t *thing)
+{
+  int i;
+
+  P_RadiusAttack(thing, thing->target, 128);
+
+  for(i=0; i<30; i++)
+     P_LineAttack(thing, i*(ANG180/15), MISSILERANGE, 0, 10);
+}
+
 
 //
 // A_Detonate
@@ -2559,10 +2559,7 @@ void A_LineEffect(mobj_t *mo)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: p_enemy.c,v $
 // Revision 1.22  1998/05/12  12:47:10  phares
 // Removed OVER_UNDER code
 //

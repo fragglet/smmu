@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_defs.h,v 1.18 1998/04/27 02:12:59 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,6 +21,8 @@
 
 #ifndef __R_DEFS__
 #define __R_DEFS__
+
+typedef struct patch_s patch_t;
 
 // sqrt, etc.-- killough
 #include <math.h>
@@ -47,6 +49,12 @@
 #define SIL_BOTH    3
 
 #define MAXDRAWSEGS   256
+
+        // sf: moved from r_main.h for coloured lighting
+#define MAXLIGHTZ        128
+#define MAXLIGHTSCALE     48
+
+extern int r_blockmap;
 
 //
 // INTERNAL MAP TYPES
@@ -293,6 +301,10 @@ typedef struct drawseg_s
   fixed_t bsilheight;                   // do not clip sprites above this
   fixed_t tsilheight;                   // do not clip sprites below this
 
+        // sf: colormap to be used when drawing the drawseg
+        // for coloured lighting
+  lighttable_t *(*colormap)[MAXLIGHTSCALE];
+
   // Pointers to lists for sprite clipping,
   // all three adjusted so [x1] is first value.
 
@@ -307,13 +319,13 @@ typedef struct drawseg_s
 // of patches.
 //
 
-typedef struct 
+struct patch_s
 { 
   short width, height;  // bounding box size 
   short leftoffset;     // pixels to the left of origin 
   short topoffset;      // pixels below the origin 
   int columnofs[8];     // only [width] used
-} patch_t;
+};
 
 //
 // A vissprite_t is a thing that will be drawn during a refresh.
@@ -333,8 +345,10 @@ typedef struct vissprite_s
   int mobjflags;
 
   // for color translation and shadow draw, maxbright frames as well
+        // sf: also coloured lighting
   lighttable_t *colormap;
-   
+  int colour;   //sf: translated colour
+
   // killough 3/27/98: height sector for underwater/fake ceiling support
   int heightsec;
 
@@ -392,7 +406,9 @@ typedef struct visplane
 {
   struct visplane *next;        // Next visplane in hash chain -- killough
   int picnum, lightlevel, minx, maxx;
+  boolean trans;        // translucent?
   fixed_t height;
+  lighttable_t *(*colormap)[MAXLIGHTZ];
   fixed_t xoffs, yoffs;         // killough 2/28/98: Support scrolling flats
   unsigned short pad1;          // leave pads for [minx-1]/[maxx+1]
   unsigned short top[MAX_SCREENWIDTH];
@@ -405,10 +421,7 @@ typedef struct visplane
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_defs.h,v $
 // Revision 1.18  1998/04/27  02:12:59  killough
 // Program beautification
 //

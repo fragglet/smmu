@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: info.h,v 1.10 1998/05/12 12:47:31 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -176,13 +176,11 @@ typedef enum
   SPR_DOGS, // killough 7/19/98: Marine's best friend :)
 #endif
 
-#ifdef BETA
   SPR_PLS1, // killough 7/19/98: first  of two plasma fireballs in the beta
   SPR_PLS2, // killough 7/19/98: second of two plasma fireballs in the beta
-  SPR_BON3, // killough 7/11/98: evil sceptre in beta version
-  SPR_BON4, // killough 7/11/98: unholy bible in beta version
-#endif
 
+        // sf: beta sprites removed
+  SPR_PART,
   NUMSPRITES  // counter of how many there are
 } spritenum_t;
 
@@ -1195,7 +1193,6 @@ typedef enum
   S_DOGS_RAISE6,
 #endif
 
-#ifdef BETA
   S_OLDBFG1,  // killough 7/11/98: the old BFG's 43 firing frames
   S_OLDBFG42 = S_OLDBFG1+41,
   S_OLDBFG43,
@@ -1213,32 +1210,11 @@ typedef enum
   S_PLS2BALLX1,
   S_PLS2BALLX2,
   S_PLS2BALLX3,
-  S_BON3, // killough 7/11/98: evil sceptre in beta version
-  S_BON4, // killough 7/11/98: unholy bible in beta version
 
-  // killough 10/98: beta lost souls were different from their modern cousins
-  S_BSKUL_STND,
-  S_BSKUL_RUN1,
-  S_BSKUL_RUN2,
-  S_BSKUL_RUN3,
-  S_BSKUL_RUN4,
-  S_BSKUL_ATK1,
-  S_BSKUL_ATK2,
-  S_BSKUL_ATK3,
-  S_BSKUL_PAIN1,
-  S_BSKUL_PAIN2,
-  S_BSKUL_PAIN3,
-  S_BSKUL_DIE1,
-  S_BSKUL_DIE2,
-  S_BSKUL_DIE3,
-  S_BSKUL_DIE4,
-  S_BSKUL_DIE5,
-  S_BSKUL_DIE6,
-  S_BSKUL_DIE7,
-  S_BSKUL_DIE8,
-#endif
+        // sf: removed MBF beta states
 
   S_MUSHROOM,  // killough 10/98: mushroom explosion effect
+  S_PART1,
 
   NUMSTATES  // Counter of how many there are
 } statenum_t;
@@ -1410,13 +1386,12 @@ typedef enum {
   MT_DOGS,    // killough 7/19/98: Marine's best friend
 #endif
 
-#ifdef BETA
   MT_PLASMA1, // killough 7/11/98: first  of alternating beta plasma fireballs
   MT_PLASMA2, // killough 7/11/98: second of alternating beta plasma fireballs
-  MT_SCEPTRE, // killough 7/11/98: evil sceptre in beta version
-  MT_BIBLE,   // killough 7/11/98: unholy bible in beta version
-#endif
 
+        // sf: beta things removed
+  MT_CAMERA,
+  MT_PARTICLE,
   NUMMOBJTYPES  // Counter of how many there are
 
 } mobjtype_t;
@@ -1482,10 +1457,7 @@ extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: info.h,v $
 // Revision 1.10  1998/05/12  12:47:31  phares
 // Removed OVER_UNDER code
 //

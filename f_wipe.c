@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: f_wipe.c,v 1.3 1998/05/03 22:11:24 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,203 +20,114 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id$";
+// rewritten by fraggle =p
 
+static const char rcsid[] = "$Id: f_wipe.c,v 1.3 1998/05/03 22:11:24 killough Exp $";
+
+#include "c_io.h"
 #include "doomdef.h"
+#include "d_main.h"
 #include "i_video.h"
 #include "v_video.h"
 #include "m_random.h"
 #include "f_wipe.h"
 
-//
-// SCREEN WIPE PACKAGE
-//
+char *start_screen[MAX_SCREENWIDTH] = {0};  // array of pointers to the
+                                       // column data for 'superfast' melt
+int worms[MAX_SCREENWIDTH];
+#define wipe_scrheight (SCREENHEIGHT<<hires)
+#define wipe_scrwidth (SCREENWIDTH<<hires)
+int            wipe_speed = 12;
+int            inwipe = 0;
+int            syncmove = 0;
+int            starting_height;
 
-static byte *wipe_scr_start;
-static byte *wipe_scr_end;
-static byte *wipe_scr;
-
-static void wipe_shittyColMajorXform(short *array, int width, int height)
+void wipe_Initwipe()
 {
-  short *dest = Z_Malloc(width*height*sizeof(short), PU_STATIC, 0);
-  int x, y;
+        int x;
 
-  for(y=0;y<height;y++)
-    for(x=0;x<width;x++)
-      dest[x*height+y] = array[y*width+x];
-  memcpy(array, dest, width*height*sizeof(short));
-  Z_Free(dest);
-}
+        inwipe = 1;
 
-static int wipe_initColorXForm(int width, int height, int ticks)
-{
-  memcpy(wipe_scr, wipe_scr_start, width*height);
-  return 0;
-}
-
-// killough 3/5/98: reformatted and cleaned up
-static int wipe_doColorXForm(int width, int height, int ticks)
-{
-  boolean unchanged = true;
-  byte *w   = wipe_scr;
-  byte *e   = wipe_scr_end;
-  byte *end = wipe_scr+width*height;
-  for (;w != end; w++, e++)
-    if (*w != *e)
-      {
-        int newval;
-        unchanged = false;
-        *w = *w > *e ?
-          (newval = *w - ticks) < *e ? *e : newval :
-          (newval = *w + ticks) > *e ? *e : newval ;
-      }
-  return unchanged;
-}
-
-static int wipe_exitColorXForm(int width, int height, int ticks)
-{
-  return 0;
-}
-
-static int *y;
-
-static int wipe_initMelt(int width, int height, int ticks)
-{
-  int i;
-
-  // copy start screen to main screen
-  memcpy(wipe_scr, wipe_scr_start, width*height);
-
-  // makes this wipe faster (in theory)
-  // to have stuff in column-major format
-  wipe_shittyColMajorXform((short*)wipe_scr_start, width/2, height);
-  wipe_shittyColMajorXform((short*)wipe_scr_end, width/2, height);
-
-  // setup initial column positions (y<0 => not ready to scroll yet)
-  y = (int *) Z_Malloc(width*sizeof(int), PU_STATIC, 0);
-  y[0] = -(M_Random()%16);
-  for (i=1;i<width;i++)
-    {
-      int r = (M_Random()%3) - 1;
-      y[i] = y[i-1] + r;
-      if (y[i] > 0)
-        y[i] = 0;
-      else
-        if (y[i] == -16)
-          y[i] = -15;
-    }
-  return 0;
-}
-
-static int wipe_doMelt(int width, int height, int ticks)
-{
-  boolean done = true;
-  int i;
-
-  width /= 2;
-
-  while (ticks--)
-    for (i=0;i<width;i++)
-      if (y[i]<0)
+        starting_height = current_height<<hires;       // use console height
+        for(x=0; x<wipe_scrwidth; x++)
         {
-          y[i]++;
-          done = false;
+                worms[x] = starting_height;
         }
-      else
-        if (y[i] < height)
-          {
-            short *s, *d;
-            int j, dy, idx;
 
-            dy = (y[i] < 16) ? y[i]+1 : 8;
-            if (y[i]+dy >= height)
-              dy = height - y[i];
-            s = &((short *)wipe_scr_end)[i*height+y[i]];
-            d = &((short *)wipe_scr)[y[i]*width+i];
-            idx = 0;
-            for (j=dy;j;j--)
-              {
-                d[idx] = *(s++);
-                idx += width;
-              }
-            y[i] += dy;
-            s = &((short *)wipe_scr_start)[i*height];
-            d = &((short *)wipe_scr)[y[i]*width+i];
-            idx = 0;
-            for (j=height-y[i];j;j--)
-              {
-                d[idx] = *(s++);
-                idx += width;
-              }
-            done = false;
-          }
-  return done;
+        syncmove = 0;
 }
 
-static int wipe_exitMelt(int width, int height, int ticks)
+void wipe_StartScreen()
 {
-  Z_Free(y);
-  return 0;
+        wipe_Initwipe();
+
+        if(!start_screen[0])
+        {
+              int x;
+              for(x=0;x<MAX_SCREENWIDTH;x++)
+                start_screen[x] = Z_Malloc(MAX_SCREENHEIGHT,PU_STATIC,0);
+        }
+
+        {
+                int x, y;
+                for(x=0; x<wipe_scrwidth; x++)
+                  for(y=0; y<wipe_scrheight-worms[x]; y++)
+                    *(start_screen[x] + y) =
+                        *(screens[0] + (y+worms[x]) * wipe_scrwidth + x);
+        }
+        return;
 }
 
-int wipe_StartScreen(int x, int y, int width, int height)
+void wipe_Drawer()
 {
-  I_ReadScreen(wipe_scr_start = screens[2]);
-  return 0;
+        int x;
+
+        for(x=0; x<wipe_scrwidth; x++)
+        {
+            char *dest;
+            char *src;
+            int y;
+
+            src = start_screen[x];
+            dest = screens[0] + wipe_scrwidth*worms[x] + x;
+
+            for(y=worms[x]; y<wipe_scrheight; y++)
+            {
+                  *dest = *src;
+                  dest += wipe_scrwidth; src++;
+            }
+        }
+        redrawsbar = true; // clean up status bar
 }
 
-int wipe_EndScreen(int x, int y, int width, int height)
+void wipe_Ticker()
 {
-  I_ReadScreen(wipe_scr_end = screens[3]);
-  V_DrawBlock(x, y, 0, width, height, wipe_scr_start); // restore start scr.
-  return 0;
+        int done, x;
+        int keepsyncmove = 0;
+        int moveamount = 0;
+
+        done = 1;
+
+        for(x=0; x<wipe_scrwidth; x++)
+        {
+            moveamount += (M_Random()%5) - 2;
+            if(moveamount < 0) moveamount = 0;
+            
+            if(worms[x] < wipe_scrheight)
+            {                // move the worm down
+                int dy;
+
+                dy = syncmove ? 12 : moveamount;
+                dy = (dy * wipe_speed) / 12;
+
+                worms[x] += dy << hires;
+                if(worms[x] > 20+starting_height) keepsyncmove = 1;
+                done = 0;
+            }
+        }
+
+        if(done)
+                inwipe = 0;
+        syncmove = keepsyncmove;
 }
 
-static int (*const wipes[])(int, int, int) = {
-  wipe_initColorXForm,
-  wipe_doColorXForm,
-  wipe_exitColorXForm,
-  wipe_initMelt,
-  wipe_doMelt,
-  wipe_exitMelt
-};
-
-// killough 3/5/98: reformatted and cleaned up
-int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
-{
-  static boolean go;                               // when zero, stop the wipe
-
-  if (hires)     // killough 11/98: hires support
-    width <<= 1, height <<= 1, ticks <<= 1;
-
-  if (!go)                                         // initial stuff
-    {
-      go = 1;
-      wipe_scr = screens[0];
-      wipes[wipeno*3](width, height, ticks);
-    }
-  V_MarkRect(0, 0, width, height);                 // do a piece of wipe-in
-  if (wipes[wipeno*3+1](width, height, ticks))     // final stuff
-    {
-      wipes[wipeno*3+2](width, height, ticks);
-      go = 0;
-    }
-  return !go;
-}
-
-//----------------------------------------------------------------------------
-//
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
-// Revision 1.3  1998/05/03  22:11:24  killough
-// beautification
-//
-// Revision 1.2  1998/01/26  19:23:16  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:54  rand
-// Lee's Jan 19 sources
-//
-//----------------------------------------------------------------------------
