@@ -992,54 +992,13 @@ CONSOLE_STRING(inet_server, server_location, NULL, 25, 0) {}
 // find servers on a particular netmodule, then display the
 // results in a menu
 
-CONSOLE_COMMAND(find_servers, 0)
-{
-  if(!c_argc)
-    {
-      C_Printf("usage: find_servers <interface>\n");
-      return;
-    }
-
-  // contact server and get ip list if internet
-  
-  if(!strcasecmp(c_argv[0], "internet"))
-    {
-      if(!Inet_GetServers())
-	{
-	  MN_ErrorMsg("unable to contact server");
-	  return;
-	}
-
-      // contact servers on list
-      
-      Inet_FingerServers();
-    }
-  else
-    {
-      netmodule_t *module;
-      
-      module = Net_ModuleForName(c_argv[0]);
-      if(!module)
-	{
-	  C_Printf("unknown module\n");
-	  return;
-	}
-
-      // broadcast finger packet
-      
-      CL_BroadcastFinger(module);
-    }
-
-  // display menu of results
-  
-  Finger_ServersMenu();
-}
-
 //==========================================================================
 //
 // Inet_Init
 //
 // Called at startup. Load smmuserv servers list
+//
+// UNUSED
 //
 //==========================================================================
 
@@ -1087,6 +1046,51 @@ void Inet_Init()
 
 #endif /* TCPIP */
 
+CONSOLE_COMMAND(find_servers, 0)
+{
+  if(!c_argc)
+    {
+      C_Printf("usage: find_servers <interface>\n");
+      return;
+    }
+
+  // contact server and get ip list if internet
+
+#ifdef TCPIP
+  if(!strcasecmp(c_argv[0], "internet"))
+    {
+      if(!Inet_GetServers())
+	{
+	  MN_ErrorMsg("unable to contact server");
+	  return;
+	}
+
+      // contact servers on list
+      
+      Inet_FingerServers();
+    }
+  else
+#endif
+    {
+      netmodule_t *module;
+      
+      module = Net_ModuleForName(c_argv[0]);
+      if(!module)
+	{
+	  C_Printf("unknown module\n");
+	  return;
+	}
+
+      // broadcast finger packet
+      
+      CL_BroadcastFinger(module);
+    }
+
+  // display menu of results
+  
+  Finger_ServersMenu();
+}
+
 //==========================================================================
 //
 // Console Commands
@@ -1109,7 +1113,10 @@ void Finger_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-04 17:19:02  fraggle
+// Revision 1.3  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.2  2000/06/04 17:19:02  fraggle
 // easier reliable-packet send interface
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle

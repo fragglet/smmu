@@ -640,6 +640,11 @@ void S_StopMusic(void)
 void S_StopSounds()
 {
   int cnum;
+
+  if(!sound_initted)
+    return;
+
+
   // kill all playing sounds at start of level
   //  (trust me - a good idea)
 
@@ -992,8 +997,11 @@ void S_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

@@ -39,6 +39,10 @@
 #define __lsck_gethostname gethostname
 #endif
 
+#ifdef _WIN32
+#include <sys/ioctl.h>
+#endif
+
 #include <fcntl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -309,8 +313,19 @@ static boolean UDP_Init()
   // set nonblocking mode
   // keep the game running if we have no new packets
   
+#ifdef _WIN32
+  // fix non-blocking mode in windows
+  // from legacy
+  {
+    int trueval=1;
+    ioctl(receive_socket, FIONBIO, &trueval);
+  }
+#else
   fcntl(receive_socket, F_SETFL, O_NONBLOCK);
- 
+#endif
+
+
+  
   // bind the socket to a port number
   // try up to 100 ports if one is taken
 
@@ -673,7 +688,10 @@ void UDP_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-05-06 14:05:39  fraggle
+// Revision 1.5  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.4  2000/05/06 14:05:39  fraggle
 // udp stats console cmd
 //
 // Revision 1.3  2000/05/03 16:02:27  fraggle

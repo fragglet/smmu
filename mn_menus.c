@@ -1002,7 +1002,7 @@ menu_t menu_mouse =
       {it_toggle,     "invert mouse",                 "invertmouse"},
       {it_toggle,     "smooth turning",               "smooth_turning"},
       {it_toggle,     "enable joystick",              "use_joystick"},
-#ifdef XWIN
+#if defined(XWIN) || defined(_WIN32)
       {it_toggle,     "keep mouse in window",         "v_grabmouse"},
 #endif
       {it_gap},
@@ -1416,8 +1416,11 @@ void MN_AddMenus()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------

@@ -336,6 +336,9 @@ extern viddriver_t xwin_driver;
 #ifdef SVGA    /* svgalib */
 extern viddriver_t svga_driver;
 #endif
+#ifdef _WIN32  /* windows driver */
+extern viddriver_t win32_driver;
+#endif
 
 static viddriver_t *drivers[] =
 {
@@ -347,6 +350,9 @@ static viddriver_t *drivers[] =
 #endif
 #ifdef SVGA
   &svga_driver,
+#endif
+#ifdef _WIN32
+  &win32_driver,
 #endif
 };
 
@@ -361,7 +367,7 @@ void V_InitGraphics(void)
       printf("devparm: press a key..\n");
       getchar();
     }
-
+  
   // check for cmd-line parameter override
 
   for(i=0; i<num_drivers; i++)
@@ -377,7 +383,7 @@ void V_InitGraphics(void)
 	   I_Error("V_InitGraphics: driver '%s' failed to init\n",
 		   drivers[i]->name);
        }
-	 
+  
   // go through drivers and try each one in turn until a
   // working one is found
   
@@ -397,9 +403,11 @@ void V_InitGraphics(void)
 	}
       
       if(!viddriver)
-	I_Error("V_InitGraphics: No working video driver!");
+	{
+	  I_Error("V_InitGraphics: No working video driver!");
+	}
     }
-
+  
   // found a working driver
 
   initted_driver = true;
@@ -446,7 +454,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-09 20:53:30  fraggle
+// Revision 1.3  2000-06-19 14:58:55  fraggle
+// cygwin (win32) support
+//
+// Revision 1.2  2000/06/09 20:53:30  fraggle
 // add I_StartFrame frame-syncronous stuff (joystick)
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
