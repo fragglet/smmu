@@ -38,7 +38,7 @@ static const char rcsid[] = "$Id$";
 
 //#define STANDALONE  /* uncomment this to make MMUS2MID.EXE */
 #ifndef STANDALONE
-#include "../z_zone.h"
+#include "z_zone.h"
 #endif
 
 // some macros to decode mus event bit fields
@@ -812,7 +812,10 @@ int main(int argc,char **argv)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2001-01-14 21:08:01  fraggle
+// Revision 1.2  2001-01-14 21:09:30  fraggle
+// fix headers
+//
+// Revision 1.1  2001/01/14 21:08:01  fraggle
 // Move mmus2mid to system-nonspecific so other platforms can use it
 //
 // Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
