@@ -60,9 +60,6 @@ LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
 # system-specific object files
 
 PLATOBJS =             \
-	i_main.o       \
-	i_system.o     \
-	i_sound.o      \
 	v_alleg.o      \
 	v_vga.o        \
 	v_text.o       \
@@ -164,13 +161,9 @@ LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
 
 # system-specific object files
 
-PLATOBJS =                     \
-	$(PLATFORM)/i_main.o   \
-	$(PLATFORM)/i_system.o \
-	$(PLATFORM)/i_sound.o  \
-	cygwin/v_win32.o       \
-	linux/v_svga.o         \
-	@asmfiles@
+PLATOBJS =         \
+	@platobjs@ \
+	@asmobjs@
 
 build : $(EXE)
 
@@ -191,6 +184,9 @@ endif
 # object files
 OBJS=   \
 	$(PLATOBJS)    \
+	i_main.o       \
+	i_sound.o      \
+	i_system.o     \
 	p_info.o       \
 	c_cmd.o	       \
 	c_io.o	       \

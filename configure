@@ -993,12 +993,12 @@ test "$host_alias" != "$target_alias" &&
 
 use_i386_asm=n
 case "$target" in 
-	i?86-*) use_i386_asm=y
+	i?86-*) use_i386_asm="yes"
 esac
 # Check whether --enable-i386-asm or --disable-i386-asm was given.
 if test "${enable_i386_asm+set}" = set; then
   enableval="$enable_i386_asm"
-  use_i386_asm=n
+  use_i386_asm="no"
 fi
 
 echo "checking whether to use x86 asm versions of some functions..."
@@ -1006,14 +1006,14 @@ echo $use_i386_asm
 
 
 
-if test "$use_i386_asm" = "y"; then
+if test "$use_i386_asm" = "yes"; then
         cat >> confdefs.h <<\EOF
 #define I386ASM 1
 EOF
 
-	asmfiles="drawcol.o drawspan.o"
+	asmobjs="drawcol.o drawspan.o"
 else
-	asmfiles=""
+	asmobjs=""
 fi
 
 echo $ac_n "checking for Cygwin environment""... $ac_c" 1>&6
@@ -1052,10 +1052,11 @@ test "$ac_cv_cygwin" = yes && CYGWIN=yes
 
 
 
+
 if test "$CYGWIN" = yes; then
 
 	echo $ac_n "checking for main in -lgdi32""... $ac_c" 1>&6
-echo "configure:1059: checking for main in -lgdi32" >&5
+echo "configure:1060: checking for main in -lgdi32" >&5
 ac_lib_var=`echo gdi32'_'main | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1063,14 +1064,14 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lgdi32  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1067 "configure"
+#line 1068 "configure"
 #include "confdefs.h"
 
 int main() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:1074: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1075: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1098,7 +1099,7 @@ else
 fi
 
 	echo $ac_n "checking for main in -lddraw""... $ac_c" 1>&6
-echo "configure:1102: checking for main in -lddraw" >&5
+echo "configure:1103: checking for main in -lddraw" >&5
 ac_lib_var=`echo ddraw'_'main | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1106,14 +1107,14 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lddraw  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1110 "configure"
+#line 1111 "configure"
 #include "confdefs.h"
 
 int main() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:1117: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1118: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1141,7 +1142,7 @@ else
 fi
 
 	echo $ac_n "checking for main in -ldsound""... $ac_c" 1>&6
-echo "configure:1145: checking for main in -ldsound" >&5
+echo "configure:1146: checking for main in -ldsound" >&5
 ac_lib_var=`echo dsound'_'main | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1149,14 +1150,14 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ldsound  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1153 "configure"
+#line 1154 "configure"
 #include "confdefs.h"
 
 int main() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:1160: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1161: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1185,10 +1186,11 @@ fi
 
 
 	platform=cygwin
+	platobjs="v_win32.o"
 else
 
 	echo $ac_n "checking for main in -lvga""... $ac_c" 1>&6
-echo "configure:1192: checking for main in -lvga" >&5
+echo "configure:1194: checking for main in -lvga" >&5
 ac_lib_var=`echo vga'_'main | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -1196,14 +1198,14 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lvga  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1200 "configure"
+#line 1202 "configure"
 #include "confdefs.h"
 
 int main() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:1207: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1209: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -1232,6 +1234,7 @@ fi
 
 
 	platform=linux
+	platobjs="v_svga.o"
 fi
 
 trap '' 1 2 15
@@ -1382,8 +1385,9 @@ s%@build_alias@%$build_alias%g
 s%@build_cpu@%$build_cpu%g
 s%@build_vendor@%$build_vendor%g
 s%@build_os@%$build_os%g
-s%@asmfiles@%$asmfiles%g
+s%@asmobjs@%$asmobjs%g
 s%@platform@%$platform%g
+s%@platobjs@%$platobjs%g
 
 CEOF
 EOF
