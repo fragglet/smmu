@@ -121,7 +121,7 @@ static void Finger_WaitReply(netmodule_t *module)
     {
       netpacket_t *packet;
       int node;
-
+      
       // update server for loopback reply
       
       SV_Update();
@@ -141,7 +141,7 @@ static void Finger_WaitReply(netmodule_t *module)
       
       servers[num_servers].node.netmodule = module;
       servers[num_servers].node.node = node;
-      servers[num_servers++].info = packet->data.fingerpacket;
+      servers[num_servers++].info = packet->data.u.fingerpacket;
     }
   
   // clean up -
@@ -201,7 +201,7 @@ static server_t *Finger_WaitSingle(netmodule_t *module)
 
       returndata.node.netmodule = module;
       returndata.node.node = node;
-      returndata.info = packet->data.fingerpacket;
+      returndata.info = packet->data.u.fingerpacket;
 
       servers[num_servers++] = returndata;
       
@@ -1109,8 +1109,11 @@ void Finger_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-04 17:19:02  fraggle
+// easier reliable-packet send interface
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------
