@@ -29,15 +29,6 @@
 #ifndef __M_FIXED__
 #define __M_FIXED__
 
-// sf 19/4/2000:
-// there have been some problems with compiling using the latest versions
-// of DJGPP. The problem seems to come from the changes made to the assembler
-// code by Lee Killough while he was writing MBF. I don't have any knowledge
-// of assembler but the old assembler code from boom apparently still
-// works. If you have any problems, uncomment the following #define:
-
-#define BOOM_ASM
-
 #ifndef __GNUC__
 #define __inline__
 #define __attribute__(x)
@@ -61,97 +52,78 @@ typedef int fixed_t;
 // killough 5/10/98: In djgpp, use inlined assembly for performance
 // killough 9/05/98: better code seems to be gotten from using inlined C
 
-#ifdef DJGPP
+#ifdef I386
 #define abs(x) ({fixed_t _t = (x), _s = _t >> (8*sizeof _t-1); (_t^_s)-_s;})
-#endif // DJGPP
+#endif // I386
 
 //
 // Fixed Point Multiplication
 //
 
-#ifdef DJGPP
-
+#ifdef I386
 
 // killough 5/10/98: In djgpp, use inlined assembly for performance
+// sf: code imported from lxdoom
 
-__inline__ static fixed_t FixedMul(fixed_t a, fixed_t b)
+inline static const fixed_t FixedMul(fixed_t a, fixed_t b)
 {
   fixed_t result;
+  int dummy;
 
-  asm("  imull %2 ;"
-      "  shrdl $16,%%edx,%0 ;"
-      : "=a,=a" (result)           // eax is always the result
-      : "0,0" (a),                 // eax is also first operand
-        "m,r" (b)                  // second operand can be mem or reg
-      : "%edx", "%cc"              // edx and condition codes clobbered
+  asm("  imull %3 ;"
+      "  shrdl $16,%1,%0 ;"
+      : "=a" (result),          /* eax is always the result */
+        "=d" (dummy)		/* cphipps - fix compile problem with gcc-2.95.1
+				   edx is clobbered, but it might be an input */
+      : "0" (a),                /* eax is also first operand */
+        "r" (b)                 /* second operand could be mem or reg before,
+				   but gcc compile problems mean i can only us reg */
+      : "%cc"                   /* edx and condition codes clobbered */
       );
 
   return result;
 }
 
-#else // DJGPP
+#else // I386
 
 __inline__ static fixed_t FixedMul(fixed_t a, fixed_t b)
 {
   return (fixed_t)((long long) a*b >> FRACBITS);
 }
 
-#endif // DJGPP
+#endif // I386
 
 //
 // Fixed Point Division
 //
 
-#ifdef DJGPP
+#ifdef I386
 
 // killough 5/10/98: In djgpp, use inlined assembly for performance
-
-#ifdef BOOM_ASM
-
-__inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
-{
-  fixed_t result;
-
-  if (abs(a) >> 14 >= abs(b))
-    return (a^b)<0 ? MININT : MAXINT;
-
-  asm(" movl %0, %%edx ;"
-      " sall $16,%%eax ;"
-      " sarl $16,%%edx ;"
-      " idivl %2 ;"
-      : "=a,=a" (result)    // eax is always the result
-      : "0,0" (a),          // eax is also the first operand
-        "m,r" (b)           // second operand can be mem or reg (not imm)
-      : "%edx", "%cc"       // edx and condition codes are clobbered
-      );
-
-  return result;
-}
-
-#else /* #ifdef BOOM_ASM */
-
 // killough 9/5/98: optimized to reduce the number of branches
+// sf: code imported from lxdoom
 
-__inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
+inline static const fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
   if (abs(a) >> 14 < abs(b))
     {
       fixed_t result;
-      asm(" idivl %3 ;"
-	  : "=a,=a" (result)
-	  : "0,0" (a<<16),
-	  "d,d" (a>>16),
-	  "m,r" (b)
-	  : "%edx", "%cc"
+      int dummy;
+      asm(" idivl %4 ;"
+	  : "=a" (result),
+	    "=d" (dummy)  /* cphipps - fix compile problems with gcc 2.95.1
+			     edx is clobbered, but also an input */
+	  : "0" (a<<16),
+	    "1" (a>>16),
+	    "r" (b)
+	  : "%cc"
 	  );
       return result;
     }
-  return ((a^b)>>31) ^ MAXINT;
+  return ((a^b)>>31) ^ INT_MAX;
 }
 
-#endif /* #ifdef BOOM_ASM */
-
-#else // DJGPP
+#else // I386
 
 __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
@@ -159,15 +131,18 @@ __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
     (fixed_t)(((long long) a << FRACBITS) / b);
 }
 
-#endif // DJGPP
+#endif // I386
 
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-09 20:51:09  fraggle
+// fix i386 asm for v2 djgpp
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
