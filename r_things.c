@@ -814,9 +814,8 @@ void R_DrawPlayerSprites(void)
 
 // killough 9/22/98: inlined memcpy of pointer arrays
 
-// sf: imported fix from lxdoom
-// CPhipps - added memory as modified
-#define bcopyp(d, s, n) asm(" cld; rep; movsl;" :: "D"(d), "S"(s), "c"(n) : "%cc", "%esi", "%edi", "%ecx", "memory")
+// sf: fixed asm in v2 djgpp, thanks to cph :)
+#define bcopyp(d, s, n) asm(" cld; rep; movsl;" :: "D"(d), "S"(s), "c"(n) : "%cc", "memory")
 
 
 #else
@@ -1066,7 +1065,10 @@ void R_DrawMasked(void)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-09 20:51:09  fraggle
+// Revision 1.4  2000-08-16 13:28:36  fraggle
+// fix asm
+//
+// Revision 1.3  2000/06/09 20:51:09  fraggle
 // fix i386 asm for v2 djgpp
 //
 // Revision 1.2  2000/05/02 15:43:41  fraggle
