@@ -45,12 +45,30 @@ rcsid[] = "$Id$";
 #include <mmsystem.h>
 //#endif
 #include "../doomtype.h"
+
 // proff 07/04/98: Added for CYGWIN32 compatibility
-#if defined (_MSC_VER) || defined (__MINGW32__)
-#define HAVE_LIBDSOUND
-#define MCI_MIDI    1
-#define STREAM_MIDI 2
+
+enum
+  {
+    NO_MUSIC=0,
+#ifdef USE_MCI_MIDI
+    MCI_MIDI,
 #endif
+#ifdef USE_STREAM_MIDI
+    STREAM_MIDI,
+#endif
+    NUM_MUSIC_TYPES,
+  };
+
+int mus_card =
+#ifdef USE_MCI_MIDI
+  MCI_MIDI;
+#elif defined(USE_STREAM_MIDI)
+  STREAM_MIDI;
+#else
+  NO_MUSIC;
+#endif
+
 #if defined (HAVE_LIBDSOUND) && !defined (__MINGW32__)
 //#define __BYTEBOOL__
 //#define false 0
@@ -64,22 +82,19 @@ rcsid[] = "$Id$";
 
 #include "../doomdef.h"
 #include "../doomstat.h"
-//#include "../mmus2mid.h"
 #include "../i_sound.h"
 #include "../w_wad.h"
 #include "../m_misc.h"
 // proff 11/21/98: Added DirectSound device selection
 #include "../m_argv.h"
 
-int snd_card = 1;
 int snd_freq = 1;
 int snd_bits;
 int snd_stereo;
 int snd_dsounddevice=0;
 int snd_mididevice=0;
-int mus_card;
+int snd_card = 1;
 extern boolean nosfxparm, nomusicparm;
-extern HWND ghWnd;
 int used_mus_card;
 
 void I_CheckMusic();
@@ -100,7 +115,73 @@ extern  int  default_numChannels;
 boolean noDSound = false; //true;
 
 // proff 07/04/98: Added for CYGWIN32 compatibility
+
 #ifdef HAVE_LIBDSOUND
+
+//------------------------------------------------------------------------
+//
+// sf:
+// Create a hidden window used for sound output
+// This keeps the sound code and video code seperate, so
+// we can run with sound in X, and also textmode startup works.
+//
+
+static const char windowName[] = "SoundWindow";
+
+extern HINSTANCE main_hInstance;
+static HWND soundWnd;
+
+// window callback function: do nothing
+
+static CALLBACK
+#ifdef CYGWIN    /* shut up compiler */
+int
+#endif
+WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {}
+
+static boolean OpenSoundWnd()
+{
+  HDC conDC;
+  WNDCLASS wndclass;
+  TEXTMETRIC metrics;
+  RECT cRect;
+  
+  // register frame class
+
+  wndclass.style         = CS_OWNDC;
+  wndclass.lpfnWndProc   = (WNDPROC)WndProc;
+  wndclass.cbClsExtra    = 0;
+  wndclass.cbWndExtra    = 0;
+  wndclass.hInstance     = main_hInstance;
+  wndclass.hIcon         = LoadIcon (main_hInstance, IDI_WINLOGO);
+  wndclass.hCursor       = LoadCursor(NULL, IDC_ARROW);
+  wndclass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+  wndclass.lpszMenuName  = 
+    wndclass.lpszClassName = windowName;
+  
+  if (!RegisterClass(&wndclass))
+    return false;
+  
+  soundWnd = CreateWindow(windowName, windowName, 
+			  WS_CAPTION | WS_POPUP,
+			  0, 0, 1, 1,
+			  NULL, NULL, main_hInstance, NULL);
+
+  if(!soundWnd)
+    {
+      printf("cant open SoundWindow!\n");
+      return false;
+    }
+
+  return true;
+}
+
+static void CloseSoundWnd()
+{
+  if(soundWnd)
+    DestroyWindow(soundWnd);
+}
+
 
 LPDIRECTSOUND lpDS;
 LPDIRECTSOUNDBUFFER lpPrimaryDSB;
@@ -118,6 +199,11 @@ typedef struct {
 } channel_info_t;
 
 channel_info_t *ChannelInfo;
+
+//--------------------------------------------------------------------------
+//
+// Buffers
+//
 
 static HRESULT CreateSecondaryBuffer(LPDIRECTSOUNDBUFFER *lplpDsb, int size)
 {
@@ -203,7 +289,13 @@ void I_CacheSound(sfxinfo_t *sound)
     //  in zone memory.
     sprintf(name, "ds%s", sound->name);
 
-    sfxlump = W_GetNumForName(name);
+    sfxlump = W_CheckNumForName(name);
+
+    // use dspistol for lumps that are not found
+    // fix bug with doom2 sounds in doom 1
+
+    if(sfxlump < 0)
+      sfxlump = W_GetNumForName("dspistol");
 
     sound->length = W_LumpLength(sfxlump);
     sound->data = W_CacheLumpNum(sfxlump, PU_STATIC);
@@ -396,6 +488,8 @@ void I_ShutdownSound(void)
       printf("released DirectSound\n");
     }
 #endif // HAVE_LIBDSOUND
+
+  CloseSoundWnd();
 }
 
 #ifdef HAVE_LIBDSOUND
@@ -457,9 +551,14 @@ void I_InitSound(void)
       noDSound = true;
       return;
     }
+
+  // open the hidden sound window we use to play sounds through
+
+  OpenSoundWnd();
+
   printf("created DirectSound. Selected Device: %i\n", DSoundDevice);
   atexit(I_ShutdownSound); 
-  error = IDirectSound_SetCooperativeLevel(lpDS, ghWnd, DSSCL_EXCLUSIVE);
+  error = IDirectSound_SetCooperativeLevel(lpDS, soundWnd , DSSCL_EXCLUSIVE);
   if (error != DS_OK)
     {
       noDSound = true;
@@ -468,6 +567,8 @@ void I_InitSound(void)
   printf("I_InitSound: ");
   printf("CooperativeLevel set\n");
   printf("I_InitSound: ");
+
+  // error is returned but it works ... ??
 
   error = CreatePrimaryBuffer();
   //  if (error != DS_OK)
@@ -518,13 +619,25 @@ void I_InitSound(void)
 #endif // HAVE_LIBDSOUND
 }
 
+//===========================================================================
+//
+// Music Code
+//
+//===========================================================================
+
+#if defined(USE_STREAM_MIDI) || defined(USE_MCI_MIDI)
+#include "../midi.h"
+#include "../mmus2mid.h"
+
+static MIDI mididata;
+
+#endif
+
 // proff: 07/26/98: changed to static
 static int MusicLoaded=0;
 static int MusicLoop=0;
 
-#ifdef STREAM_MIDI
-
-static MIDI mididata;
+#ifdef USE_STREAM_MIDI
 
 static UINT MidiDevice;
 static HMIDISTRM hMidiStream;
@@ -800,27 +913,32 @@ void CALLBACK MidiProc( HMIDIIN hMidi, UINT uMsg, DWORD dwInstance,
       break;
     }
 }
-#endif // STREAM_MIDI
+#endif // USE_STREAM_MIDI
 
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
 char *SafemciSendString(char *cmd)
 {
   static char errora[256];
   int err;
+  
+  printf("MCI: %s\n", cmd);
 
   err = mciSendString(cmd,errora,255,NULL);
+
+  printf("MCI: done\n");
+
   if (err)
-  {
-    mciGetErrorString(err,errora,256);
-        lprintf (LO_DEBUG, "%s\n",errora);
+    {
+      mciGetErrorString(err,errora,256);
+      //      lprintf (LO_DEBUG, "%s\n",errora);
     }
-    return errora;
+  return errora;
 }
-#endif // MCI_MIDI
+#endif // USE_MCI_MIDI
 
 void I_CheckMusic()
 {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   static int nexttic=0;
 
   if (used_mus_card!=MCI_MIDI)
@@ -831,10 +949,10 @@ void I_CheckMusic()
   {
     nexttic=gametic+150;
     if(MusicLoop)
-      if (_stricmp(SafemciSendString("status doommusic mode"),"stopped")==0)
+      if (strcasecmp(SafemciSendString("status doommusic mode"),"stopped")==0)
         SafemciSendString("play doommusic from 0");
   }
-#endif // MCI_MIDI
+#endif // USE_MCI_MIDI
 }
 
 void I_PlaySong(int handle, int looping)
@@ -843,18 +961,18 @@ void I_PlaySong(int handle, int looping)
     return;
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
     if ((handle>=0) & (MusicLoaded))
     {
-      if (_stricmp(SafemciSendString("status doommusic mode"),"playing")==0)
+      if (strcasecmp(SafemciSendString("status doommusic mode"), "playing")==0)
         return;
       SafemciSendString("play doommusic from 0");
       MusicLoop=looping;
     }
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     if (hMidiStream)
     {
@@ -873,7 +991,7 @@ void I_SetMusicVolume(int volume)
   snd_MusicVolume = volume;
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
     if (snd_MusicVolume == 0)
       I_StopSong(1);
@@ -885,7 +1003,7 @@ void I_SetMusicVolume(int volume)
     }
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     if (snd_MusicVolume == 0)
       I_StopSong(1);
@@ -908,13 +1026,13 @@ void I_PauseSong(int handle)
     return;
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
     if ((handle>=0) & (MusicLoaded))
       SafemciSendString("pause doommusic");
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     if (hMidiStream)
       midiStreamPause(hMidiStream);
@@ -931,13 +1049,13 @@ void I_ResumeSong(int handle)
     return;
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
     if ((handle>=0) & (MusicLoaded))
       SafemciSendString("resume doommusic");
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     if (hMidiStream)
       midiStreamRestart(hMidiStream);
@@ -952,13 +1070,13 @@ void I_StopSong(int handle)
 {
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
     if ((handle>=0) & (MusicLoaded))
       SafemciSendString("stop doommusic");
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     if (!hMidiStream)
       return;
@@ -976,13 +1094,13 @@ void I_UnRegisterSong(int handle)
 {
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
     MusicLoaded=0;
     SafemciSendString("close doommusic");
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     if (hMidiStream)
     {
@@ -1000,18 +1118,18 @@ void I_UnRegisterSong(int handle)
 
 int I_RegisterSong(void *data)
 {
-#ifdef MCI_MIDI
-  UBYTE *mid;
+#ifdef USE_MCI_MIDI
+  unsigned char *mid;
   int midlen;
   char fname[PATH_MAX+1];
   char mcistring[PATH_MAX+1];
   char *D_DoomExeDir(void);
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   MMRESULT merr;
   MIDIPROPTIMEDIV mptd;
 #endif
-  /*
+
   int err;
 
 //  SafemciSendString("close doommusic");
@@ -1021,23 +1139,25 @@ int I_RegisterSong(void *data)
      (err=mmus2mid(data, &mididata, 89, 0))     // now try mus
      )
     {
-    dprintf("Error loading midi: %d",err);
-    return -1;
+      printf("Error loading midi: %d", err);
+      return -1;
     }
-  */
+
   switch (used_mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
-    MIDIToMidi(&mididata,&mid,&midlen);
+    MIDIToMidi(&mididata, &mid, &midlen);
 // proff 07/01/98: Changed filename to prboom.mid
     M_WriteFile(strcat(strcpy(fname,D_DoomExeDir()),"prboom.mid"),mid,midlen);
     sprintf(mcistring,"open %s alias doommusic",fname);
+
     SafemciSendString(mcistring);
+
     free(mid);
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     memset(&MidiStreamHdr,0,sizeof(MIDIHDR));
     merr=midiStreamOpen(&hMidiStream,&MidiDevice,1,(DWORD)&MidiProc,0,CALLBACK_FUNCTION);
@@ -1066,7 +1186,7 @@ void I_ShutdownMusic(void)
 
 void I_InitMusic(void)
 {
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   int i;
   int MidiDeviceCount;
   MIDIOUTCAPS MidiOutCaps;
@@ -1074,13 +1194,13 @@ void I_InitMusic(void)
 
   switch (mus_card)
   {
-#ifdef MCI_MIDI
+#ifdef USE_MCI_MIDI
   case MCI_MIDI:
-    lprintf (LO_INFO, "I_InitMusic: Using MCI-MIDI Device\n");
+    printf ("I_InitMusic: Using MCI-MIDI Device\n");
     used_mus_card=MCI_MIDI;
     break;
 #endif
-#ifdef STREAM_MIDI
+#ifdef USE_STREAM_MIDI
   case STREAM_MIDI:
     printf ("I_InitMusic: Using Stream-MIDI Device\n");
     MidiDeviceCount=midiOutGetNumDevs();
@@ -1116,15 +1236,39 @@ void I_InitMusic(void)
   atexit(I_ShutdownMusic);
 }
 
+//-------------------------------------------------------------------------
+//
+// Console Stuff
+//
+
+#include "../c_runcmd.h"
+
+static char *muscardstr[] =
+   {
+     "none",
+#ifdef USE_MCI_MIDI
+     "MCI",
+#endif
+#ifdef USE_STREAM_MIDI
+     "Stream",
+#endif
+   };
+
+CONSOLE_INT(mus_card, mus_card, NULL, 0, NUM_MUSIC_TYPES-1, muscardstr, 0) {}
+
 void I_Sound_AddCommands()
 {
+  C_AddCommand(mus_card);
 }
 
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2001-01-13 14:50:53  fraggle
+// Revision 1.5  2001-01-15 01:30:41  fraggle
+// Windows music code!
+//
+// Revision 1.4  2001/01/13 14:50:53  fraggle
 // include config.h to check for appropriate libraries
 //
 // Revision 1.3  2001/01/13 02:31:16  fraggle

@@ -167,12 +167,6 @@ void I_Init(void)
       I_GetTime = I_GetTime_RealTime;
 
   atexit(I_Shutdown);
-
-  { // killough 2/21/98: avoid sound initialization if no sound & no music
-    extern boolean nomusicparm, nosfxparm;
-    if (!(nomusicparm && nosfxparm))
-      I_InitSound();
-  }
 }
 
 //
@@ -280,7 +274,10 @@ void I_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2001-01-13 02:33:26  fraggle
+// Revision 1.4  2001-01-15 01:30:41  fraggle
+// Windows music code!
+//
+// Revision 1.3  2001/01/13 02:33:26  fraggle
 // Fix log tags etc.
 //
 // Revision 1.2  2000/06/20 21:07:33  fraggle

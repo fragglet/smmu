@@ -18,6 +18,10 @@
 #undef HAVE_LIBDSOUND
 #undef HAVE_LIBDDRAW
 
+// Windows MIDI
+
+#undef USE_MCI_MIDI
+
 // X Libraries installed
 
 #undef HAVE_LIBX11
