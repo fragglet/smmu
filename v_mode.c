@@ -342,6 +342,7 @@ void V_ShutdownGraphics(void)
 #ifdef DJGPP  
 extern viddriver_t alleg_driver;
 extern viddriver_t vga_driver;
+extern viddriver_t text_driver;
 #endif
 #ifdef XWIN    /* X Window */
 extern viddriver_t xwin_driver;
@@ -358,6 +359,7 @@ static viddriver_t *drivers[] =
 #ifdef DJGPP
   &alleg_driver,
   &vga_driver,
+  &text_driver,
 #endif
 #ifdef XWIN
   &xwin_driver,
@@ -473,7 +475,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.6  2000-07-29 22:40:18  fraggle
+// Revision 1.7  2000-08-16 12:16:01  fraggle
+// text mode driver
+//
+// Revision 1.6  2000/07/29 22:40:18  fraggle
 // twiddle gamma correction stuff
 //
 // Revision 1.5  2000/06/22 18:29:38  fraggle
