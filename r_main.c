@@ -539,6 +539,7 @@ void R_SetupFrame (player_t *player, camera_t *camera)
       viewangle = camera->angle;
       viewcamera = camera;
       updownangle = camera->updownangle;
+      viewobj = NULL;
       extralight = 0;
     }
   else
@@ -802,7 +803,10 @@ void R_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:41  fraggle
+// Revision 1.3  2000-05-10 13:11:37  fraggle
+// fix demos
+//
+// Revision 1.2  2000/05/02 15:43:41  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

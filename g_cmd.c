@@ -147,11 +147,6 @@ CONSOLE_COMMAND(stopdemo, cf_notnet)
   G_StopDemo();
 }
 
-CONSOLE_COMMAND(timedemo, cf_notnet)
-{
-  G_TimeDemo(c_argv[0]);
-}
-
 // 'cool' demo
 
 VARIABLE_BOOLEAN(cooldemo, NULL,            onoff);
@@ -476,7 +471,6 @@ void G_AddCommands()
   C_AddCommand(sens_horiz);
   C_AddCommand(invertmouse);
   C_AddCommand(turbo);
-  C_AddCommand(timedemo);
   C_AddCommand(cooldemo);
   C_AddCommand(stopdemo);
   C_AddCommand(exitlevel);
@@ -506,8 +500,11 @@ void G_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-10 13:11:37  fraggle
+// fix demos
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //-----------------------------------------------------------------------------

@@ -38,6 +38,7 @@
 #include "g_game.h"
 #include "mn_engin.h"
 #include "m_misc.h"
+#include "w_wad.h"
 
 // action variables
 
@@ -614,52 +615,6 @@ void G_EditBinding(char *action)
 // default script:
 
 static char *cfg_file = NULL; 
-char *default_script =
-"name \"player\"\n"
-"skin \"marine\"\n"
-"c_speed 200\n"
-"inet_server \"62.252.3.24\"\n"
-"bind tab togglemap\n"
-"bind space use\n"
-"bind * screenshot\n"
-"bind < moveleft\n"
-"bind - \"screensize -\"\n"
-"bind > moveright\n"
-"bind / nextweapon\n"
-"bind 1 weapon1\n"
-"bind 2 weapon2\n"
-"bind 3 weapon3\n"
-"bind 4 weapon4\n"
-"bind 5 weapon5\n"
-"bind 6 weapon6\n"
-"bind 7 weapon7\n"
-"bind 8 weapon8\n"
-"bind 9 weapon9\n"
-"bind = \"screensize +\"\n"
-"bind ctrl attack\n"
-"bind leftarrow left\n"
-"bind uparrow forward\n"
-"bind rightarrow right\n"
-"bind downarrow backward\n"
-"bind shift speed\n"
-"bind alt strafe\n"
-"bind f1 help\n"
-"bind f2 mn_loadgame\n"
-"bind f3 mn_savegame\n"
-"bind f4 mn_sound\n"
-"bind f5 \"hu_overlay /\"\n"
-"bind f7 mn_endgame\n"
-"bind f8 \"messages /\"\n"
-"bind f10 mn_quit\n"
-"bind home center\n"
-"bind pgup lookup\n"
-"bind pgdn lookdown\n"
-"bind f11 \"gamma /\"\n"
-"bind f12 spy\n"
-"bind mouse1 attack\n"
-"bind mouse2 forward\n"
-"bind pause pause\n"
-;
 
 void G_LoadDefaults(char *file)
 {
@@ -669,13 +624,13 @@ void G_LoadDefaults(char *file)
   
   if(M_ReadFile(cfg_file, &cfg_data) <= 0)
     {
-      cfg_data = default_script;
+      C_Printf("cfg not found. using default\n");
+      cfg_data = W_CacheLumpName("DEFAULT", PU_STATIC);
     }
   
   C_RunScript(cfg_data);
   
-  //  if(cfg_file != default_script)
-  //    Z_Free(cfg_file);
+  //  Z_Free(cfg_data);
 }
 
 void G_SaveDefaults()
@@ -736,8 +691,11 @@ void G_Bind_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-10 13:11:37  fraggle
+// fix demos
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-----------------------------------------------------------------------------
