@@ -79,6 +79,8 @@ void V_StartTic()
 
 void V_StartFrame()
 {
+  if(in_graphics_mode)
+    viddriver->StartFrame();
 }
 
 //
@@ -444,8 +446,11 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-09 20:53:30  fraggle
+// add I_StartFrame frame-syncronous stuff (joystick)
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

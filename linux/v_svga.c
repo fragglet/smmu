@@ -541,6 +541,7 @@ viddriver_t svga_driver =
     SVGA_SetPalette,
 
     SVGA_StartTic,
+    SVGA_StartFrame,
     svga_modenames,
   };
 
@@ -549,8 +550,11 @@ viddriver_t svga_driver =
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-09 20:53:50  fraggle
+// add I_StartFrame frame-syncronous stuff (joystick)
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 // 
 //-----------------------------------------------------------------------------

@@ -39,6 +39,8 @@ static const char rcsid[] = "$Id$";
 #include <dos.h>
 #include <go32.h>
 
+#include "keyboard.h"
+
 #include "../doomdef.h"
 #include "../doomstat.h"
 
@@ -71,7 +73,8 @@ static int Alleg_ScanCode2DoomCode (int a)
 {
   switch (a)
     {
-    default:   return key_ascii_table[a]>8 ? key_ascii_table[a] : a+0x80;
+    default:   return boom_key_ascii_table[a]>8 ?
+                 boom_key_ascii_table[a] : a+0x80;
     case 0x7b: return KEYD_PAUSE;
     case 0x0e: return KEYD_BACKSPACE;
     case 0x48: return KEYD_UPARROW;
@@ -92,7 +95,7 @@ static int Alleg_ScanCode2DoomCode (int a)
 
 static int Alleg_DoomCode2ScanCode (int a)
 {
-  static int inverse[256], cache;
+  static int inverse[256], cache=0;
   for (;cache<256;cache++)
     inverse[Alleg_ScanCode2DoomCode(cache)]=cache;
   return inverse[a];
@@ -112,7 +115,7 @@ extern int joystickpresent;
 extern int joy_x,joy_y;
 extern int joy_b1,joy_b2,joy_b3,joy_b4;
 
-void poll_joystick(void);
+//void poll_joystick(void);
 
 // Alleg_JoystickEvents() gathers joystick data and creates an event_t for
 // later processing by G_Responder().
@@ -213,6 +216,7 @@ static void Alleg_GetEvent()
   while ((tail=keyboard_queue.tail) != keyboard_queue.head)
     {
       int k = keyboard_queue.queue[tail];
+      int key;
       keyboard_queue.tail = (tail+1) & (KQSIZE-1);
       event.type = k & 0x80 ? ev_keyup : ev_keydown;
       event.data1 = Alleg_ScanCode2DoomCode(k & 0x7f);
@@ -734,7 +738,8 @@ viddriver_t alleg_driver =
   Alleg_SetPalette,
 
   Alleg_StartTic,
-
+  Alleg_StartFrame,
+  
   alleg_modenames,
 };
 
@@ -744,8 +749,11 @@ viddriver_t alleg_driver =
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-06-09 20:53:45  fraggle
+// add I_StartFrame frame-syncronous stuff (joystick)
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
