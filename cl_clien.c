@@ -1695,7 +1695,7 @@ static boolean RunGameTics()
       
       opensocket =
 	netgame && !demoplayback &&
-	(maketic - gametic > 20) &&
+	(maketic - gametic >= 20) &&
 	(I_GetTime_RealTime() - lastpacket_time > 8);
       
       // find maximum number of tics we can run
@@ -1959,7 +1959,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.10  2000-05-10 13:11:37  fraggle
+// Revision 1.11  2000-05-12 16:41:59  fraggle
+// even better speeddup algorithm
+//
+// Revision 1.10  2000/05/10 13:11:37  fraggle
 // fix demos
 //
 // Revision 1.9  2000/05/07 13:40:31  fraggle

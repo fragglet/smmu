@@ -389,62 +389,68 @@ int SV_Lowtic(int player)
 void SV_SendSpeedupPackets()
 {
   netpacket_t packet;
-  int max1, max2;     // the two players with greatest and 2nd-greatest pings
-  int maxping1, maxping2; // the greatest and 2nd-greatest pings
   int i;
-  int basetime;
-  int pivot_time;
-  
-  // find the two players with the highest pings
-
-  max1 = max2 = 0;
-  maxping1 = maxping2 = -1;
+  int players = 0;
+  int pivot_time = -1;
   
   for(i=0; i<server_numplayers; i++)
+    players += (server_players[i].ingame);
+
+  // if we have only 2 players, we distribute the lag between them
+  // make sure they both send their packets at the same time -
+  // this way they both get the same lag
+  
+  if(players <= 2)
     {
-      nodeinfo_t *ni = &server_nodes[server_players[i].node];
-      
-      if(ni->latency > maxping1)
+      for(i=0; i<server_numplayers; i++)
 	{
-	  max1 = i;
-	  maxping1 = ni->latency;
-	}
-      else if(ni->latency > maxping2)
-	{
-	  max2 = i;
-	  maxping2 = ni->latency;
+	  playerinfo_t *pi = &server_players[i];
+	  nodeinfo_t *ni = &server_nodes[pi->node];
+	  int sendtime = pi->sync_time - (ni->latency/2);
+
+	  if(pivot_time == -1)
+	    pivot_time = sendtime;
+	  else
+	    {
+	      int skiptics = pivot_time - sendtime;
+
+	      if(skiptics)
+		{
+		  packet.type = pt_speedup;
+		  packet.data.speedup.skiptics = skiptics;
+		  
+		  SV_ReliableSend(ni, &packet);
+		}
+	    }
 	}
     }
-  
-  // send packets to nodes
+  else
 
-  packet.type = pt_speedup;
-  pivot_time = -1;
-
-  // this is the time which we want the packets from the clients to
-  // arrive - except for the player with the maximum ping whose packets
-  // we want to arrive a bit later
-  
-  basetime = server_players[max2].sync_time;
-  
-  for(i=0; i<server_numplayers; i++)
-    {
-      playerinfo_t *player = &server_players[i];
-      nodeinfo_t *ni = &server_nodes[player->node];
-
-      // sync_time is the time we want the packet from this node to arrive
-      
-      int sync_time = basetime + (i == max1 ? (maxping1 - maxping2) / 2 : 0);
-      
+    // if we have more than two players, try to make all the tics arrive
+    // at the server at the same time. This way, the lag experienced
+    // should on average be equal to the ping time. This way, having
+    // players with very high pings will not affect the lag of other
+    // players with lower pings
+    
+    { 
+      for(i=0; i<server_numplayers; i++)
 	{
-	  int skiptics = sync_time - player->sync_time;
-	  
-	  // dont send if we dont need them to change
-	  
-	  if(skiptics)
+	  playerinfo_t *pi = &server_players[i];
+	  nodeinfo_t *ni = &server_nodes[pi->node];
+
+	  if(pivot_time == -1)
+	    pivot_time = pi->sync_time;
+	  else
 	    {
-	      packet.data.speedup.skiptics = skiptics;
-	      SV_ReliableSend(ni, &packet);
+	      int skiptics = pivot_time - pi->sync_time;
+
+	      if(skiptics)
+		{
+		  packet.type = pt_speedup;
+		  packet.data.speedup.skiptics = skiptics;
+		  
+		  SV_ReliableSend(ni, &packet);
+		}
 	    }
 	}      
     }
@@ -1664,7 +1670,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.7  2000-05-07 14:10:28  fraggle
+// Revision 1.8  2000-05-12 16:41:59  fraggle
+// even better speeddup algorithm
+//
+// Revision 1.7  2000/05/07 14:10:28  fraggle
 // better time adjustment algorithm
 //
 // Revision 1.6  2000/05/07 13:11:21  fraggle
