@@ -222,6 +222,11 @@ svalue_t getvariablevalue(svariable_t *v)
       returnvar.type = svt_mobj;
       returnvar.value.mobj = *v->value.pMobj;
     }
+  else if(v->type == svt_pFixed)
+    {
+      returnvar.type = svt_fixed;
+      returnvar.value.f = *v->value.pFixed;
+    }
   else
     {
       returnvar.type = v->type;
@@ -251,55 +256,36 @@ void setvariablevalue(svariable_t *v, svalue_t newvalue)
     }
   
   if(v->type == svt_int)
-    {
-      v->value.i = intvalue(newvalue);
-    }
+    v->value.i = intvalue(newvalue);
 
   if(v->type == svt_string)
-    {
-      if(newvalue.type == svt_int)
-	{
-	  sprintf(v->value.s, "%i", (int)newvalue.value.i);
-	}
-      else if(newvalue.type == svt_string)
-	{
-	  strcpy(v->value.s, newvalue.value.s);
-	}
-    }
+    strcpy(v->value.s, stringvalue(newvalue));
+
+  if(v->type == svt_fixed)
+    v->value.fixed = fixedvalue(newvalue);
 
   if(v->type == svt_mobj)
-    {
-      v->value.mobj = MobjForSvalue(newvalue);
-    }  
-  
+    v->value.mobj = MobjForSvalue(newvalue);
+
+
   if(v->type == svt_pInt)
-    {
-      *v->value.pI = intvalue(newvalue);
-    }
+    *v->value.pI = intvalue(newvalue);
 
   if(v->type == svt_pString)
     {
       // free old value
       free(*v->value.pS);
+
+      // dup new string
       
-      // set new one
-      if(newvalue.type == svt_int)
-	{
-	  char tempstr[128];
-	  sprintf(tempstr, "%i", (int)newvalue.value.i);
-	  *v->value.pS = strdup(tempstr);
-	}
-      if(newvalue.type == svt_string)
-	{
-	  // dup new string
-	  *v->value.pS = strdup(newvalue.value.s);
-	}
+      *v->value.pS = strdup(stringvalue(newvalue));
     }
 
+  if(v->type == svt_pFixed)
+    *v->value.pFixed = fixedvalue(newvalue);
+  
   if(v->type == svt_pMobj)
-    {
-      *v->value.pMobj = MobjForSvalue(newvalue);
-    }
+    *v->value.pMobj = MobjForSvalue(newvalue);
   
   if(v->type == svt_function)
     script_error("attempt to set function to a value\n");
@@ -333,6 +319,14 @@ svariable_t *add_game_mobj(char *name, mobj_t **mo)
   return newvar;
 }
 
+svariable_t *add_game_fixed(char *name, fixed_t *fixed)
+{
+  svariable_t *newvar;
+  newvar = new_variable(&global_script, name, svt_pFixed);
+  newvar->value.pFixed = fixed;
+
+  return newvar;
+}
 
 /********************************
                      FUNCTIONS
@@ -521,8 +515,11 @@ svariable_t *new_function(char *name, void (*handler)() )
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

@@ -67,7 +67,7 @@ char *linestart;        // start of line
 char *rover;            // current point reached in script
 
         // inline for speed
-#define isnum(c) ( (c)>='0' && (c)<='9' )
+#define isnum(c) ( ((c)>='0' && (c)<='9') || (c)=='.' )
         // isop: is an 'operator' character, eg '=', '%'
 #define isop(c)   !( ( (c)<='Z' && (c)>='A') || ( (c)<='z' && (c)>='a') || \
                      ( (c)<='9' && (c)>='0') || ( (c)=='_') )
@@ -272,7 +272,15 @@ void get_tokens(char *s)
 	    add_char(*rover);
 	    break;
 	    
-	  case number:  // same for number or name
+	  case number:
+
+	    // add while number chars are read
+
+	    while(isnum(*rover))       // dedicated loop
+	      add_char(*rover++);
+	    next_token();
+	    continue;
+	    
 	  case name:
 
 	    // add the chars
@@ -524,15 +532,26 @@ static svalue_t simple_evaluate(int n)
   
   switch(tokentype[n])
     {
-    case string: returnvar.type = svt_string;
+    case string:
+      returnvar.type = svt_string;
       returnvar.value.s = tokens[n];
       return returnvar;
 
-    case number: returnvar.type = svt_int;
-      returnvar.value.i = atoi(tokens[n]);
+    case number:
+      if(strchr(tokens[n], '.'))
+	{
+	  returnvar.type = svt_fixed;
+	  returnvar.value.f = atof(tokens[n]) * FRACUNIT;
+	}
+      else
+	{
+	  returnvar.type = svt_int;
+	  returnvar.value.i = atoi(tokens[n]);
+	}
       return returnvar;
 
-    case name:   var = find_variable(tokens[n]);
+    case name:
+      var = find_variable(tokens[n]);
       if(!var)
 	{
 	  script_error("unknown variable '%s'\n", tokens[n]);
@@ -682,11 +701,44 @@ void script_error(char *s, ...)
   killscript = true;
 }
 
+//
+// sf: string value of an svalue_t
+//
+
+char *stringvalue(svalue_t v)
+{
+  static char buffer[128];
+  
+  switch(v.type)
+    {
+      case svt_string:
+	return v.value.s;
+
+      case svt_mobj:
+	return "map object";
+
+      case svt_fixed:
+	{
+	  double val = ((float)v.value.f) / FRACUNIT;
+	  sprintf(buffer, "%g", val);
+	  return buffer;
+	}
+      
+      case svt_int:
+      default:
+	sprintf(buffer, "%i", v.value.i);
+	return buffer;	
+    }
+}
+
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

@@ -175,35 +175,22 @@ svalue_t OPcmp(int start, int n, int stop)
   evaluate_leftnright(start, n, stop);
   
   returnvar.type = svt_int;        // always an int returned
-  
-  if(left.type == svt_int)
+
+  if(left.type == svt_string && right.type == svt_string)
     {
-      if(right.type == svt_int)
-	{
-	  returnvar.value.i = left.value.i == right.value.i;
-	  return returnvar;
-	}
-      if(right.type == svt_string)
-	{
-	  returnvar.value.i = left.value.i == atoi(right.value.s);
-	  return returnvar;
-	}
-    }
-  if(left.type == svt_string)
-    {
-      if(right.type == svt_int)
-	{
-	  returnvar.value.i = right.value.i == atoi(left.value.s);
-	  return returnvar;
-	}
-      if(right.type == svt_string)
-	{
-	  returnvar.value.i = !strcmp(left.value.s, right.value.s);
-	  return returnvar;
-	}
+      returnvar.value.i = !strcmp(left.value.s, right.value.s);
+      return returnvar;
     }
 
-  return nullvar;
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    {
+      returnvar.value.i = fixedvalue(left) == fixedvalue(right);
+      return returnvar;
+    }
+
+  returnvar.value.i = intvalue(left) == intvalue(right);
+
+  return returnvar;
 }
 
 svalue_t OPnotcmp(int start, int n, int stop)
@@ -221,9 +208,14 @@ svalue_t OPlessthan(int start, int n, int stop)
   svalue_t left, right, returnvar;
   
   evaluate_leftnright(start, n, stop);
-  
+
   returnvar.type = svt_int;
-  returnvar.value.i = intvalue(left) < intvalue(right);
+  
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    returnvar.type = fixedvalue(left) < fixedvalue(right);
+  else
+    returnvar.value.i = intvalue(left) < intvalue(right);
+
   return returnvar;
 }
 
@@ -234,7 +226,12 @@ svalue_t OPgreaterthan(int start, int n, int stop)
   evaluate_leftnright(start, n, stop);
   
   returnvar.type = svt_int;
-  returnvar.value.i = intvalue(left) > intvalue(right);
+
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    returnvar.value.i = fixedvalue(left) > fixedvalue(right);
+  else
+    returnvar.value.i = intvalue(left) > intvalue(right);
+  
   return returnvar;
 }
 
@@ -256,9 +253,18 @@ svalue_t OPplus(int start, int n, int stop)
   svalue_t left, right, returnvar;
   
   evaluate_leftnright(start, n, stop);
-  
-  returnvar.type = svt_int;
-  returnvar.value.i = intvalue(left) + intvalue(right);
+
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    {
+      returnvar.type = svt_fixed;
+      returnvar.value.f = fixedvalue(left) + fixedvalue(right);
+    }
+  else
+    {
+      returnvar.type = svt_int;
+      returnvar.value.i = intvalue(left) + intvalue(right);
+    }
+
   return returnvar;
 }
 
@@ -275,9 +281,18 @@ svalue_t OPminus(int start, int n, int stop)
     }
   else
     evaluate_leftnright(start, n, stop);
+
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    {
+      returnvar.type = svt_fixed;
+      returnvar.value.f = fixedvalue(left) - fixedvalue(right);
+    }
+  else
+    {
+      returnvar.type = svt_int;
+      returnvar.value.i = intvalue(left) - intvalue(right);
+    }
   
-  returnvar.type = svt_int;
-  returnvar.value.i = intvalue(left) - intvalue(right);
   return returnvar;
 }
 
@@ -286,26 +301,52 @@ svalue_t OPmultiply(int start, int n, int stop)
   svalue_t left, right, returnvar;
   
   evaluate_leftnright(start, n, stop);
+
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    {
+      returnvar.type = svt_fixed;
+      returnvar.value.f = FixedMul(fixedvalue(left), fixedvalue(right));
+    }
+  else
+    {
+      returnvar.type = svt_int;
+      returnvar.value.i = intvalue(left) * intvalue(right);
+    }
   
-  returnvar.type = svt_int;
-  returnvar.value.i = intvalue(left) * intvalue(right);
   return returnvar;
 }
 
 svalue_t OPdivide(int start, int n, int stop)
 {
   svalue_t left, right, returnvar;
-  int ir;
   
   evaluate_leftnright(start, n, stop);
-  
-  if(!(ir = intvalue(right)))
-    script_error("divide by zero\n");
+
+  if(left.type == svt_fixed || right.type == svt_fixed)
+    {
+      fixed_t fr;
+	
+      if((fr = fixedvalue(right)) == 0)
+	script_error("divide by zero\n");
+      else
+	{
+	  returnvar.type = svt_fixed;
+	  returnvar.value.f = FixedDiv(fixedvalue(left), fr);
+	}
+    }
   else
     {
-      returnvar.type = svt_int;
-      returnvar.value.i = intvalue(left) / ir;
+      int ir;
+      
+      if(!(ir = intvalue(right)))
+	script_error("divide by zero\n");
+      else
+	{
+	  returnvar.type = svt_int;
+	  returnvar.value.i = intvalue(left) / ir;
+	}
     }
+  
   return returnvar;
 }
 
@@ -452,8 +493,11 @@ svalue_t OPdecrement(int start, int n, int stop)
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

@@ -96,10 +96,7 @@ void SF_Print()
 
   for(i=0; i<t_argc; i++)
     {
-      if(t_argv[i].type == svt_string)
-	C_Printf("%s", t_argv[i].value.s);
-      else    // assume int
-	C_Printf("%i", (int)t_argv[i].value.i);
+      C_Printf(stringvalue(t_argv[i]));
     }
 }
 
@@ -276,10 +273,7 @@ void SF_PlayerTip()
   plnum = intvalue(t_argv[0]);
   
   for(i=1; i<t_argc; i++)
-    if(t_argv[i].type == svt_string)
-      sprintf(tempstr,"%s%s", tempstr, t_argv[i].value.s);
-    else    // assume int
-      sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
+    sprintf(tempstr,"%s%s", tempstr, stringvalue(t_argv[i]));
   
   player_printf(&players[plnum], tempstr);
 }
@@ -294,10 +288,7 @@ void SF_Message()
     return;
   
   for(i=0; i<t_argc; i++)
-    if(t_argv[i].type == svt_string)
-      sprintf(tempstr,"%s%s", tempstr, t_argv[i].value.s);
-    else    // assume int
-      sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
+    sprintf(tempstr, "%s%s", tempstr, stringvalue(t_argv[i]));
 
   doom_printf(tempstr);
 }
@@ -314,10 +305,7 @@ void SF_PlayerMsg()
   plnum = intvalue(t_argv[0]);
   
   for(i=1; i<t_argc; i++)
-    if(t_argv[i].type == svt_string)
-      sprintf(tempstr,"%s%s", tempstr, t_argv[i].value.s);
-    else    // assume int
-      sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
+    sprintf(tempstr, "%s%s", tempstr, stringvalue(t_argv[i]));
   
   player_printf(&players[plnum], tempstr);
 }
@@ -1216,10 +1204,7 @@ void SF_RunCommand()
   char tempstr[128]="";
   
   for(i=0; i<t_argc; i++)
-    if(t_argv[i].type == svt_string)
-      sprintf(tempstr,"%s%s", tempstr, t_argv[i].value.s);
-    else    // assume int
-      sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
+    sprintf(tempstr, "%s%s", tempstr, stringvalue(t_argv[i]));
 
   cmdtype = c_typed;
   C_RunTextCmd(tempstr);
@@ -1359,8 +1344,11 @@ void init_functions()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

@@ -26,6 +26,7 @@
 typedef struct svariable_s svariable_t;
 #define VARIABLESLOTS 16
 
+#include "m_fixed.h"
 #include "t_parse.h"
 #include "p_mobj.h"
 
@@ -46,10 +47,12 @@ struct svariable_s
     char *s;
     long i;
     mobj_t *mobj;
+    fixed_t fixed;
     
     char **pS;              // pointer to game string
     int *pI;                // pointer to game int
     mobj_t **pMobj;         // pointer to game obj
+    fixed_t *pFixed;
     
     void (*handler)();      // for functions
     char *labelptr;         // for labels
@@ -67,9 +70,11 @@ enum
   svt_function,     // functions are stored as variables
   svt_label,        // labels for goto calls are variables
   svt_const,        // const
+  svt_fixed,        // fixed_t
   svt_pInt,         // pointer to game int
   svt_pString,      // pointer to game string
   svt_pMobj,        // pointer to game mobj
+  svt_pFixed,       // pointer to fixed_t
 };
 
 // variables
@@ -105,8 +110,11 @@ extern svalue_t t_return;
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------
