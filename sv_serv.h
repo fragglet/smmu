@@ -178,8 +178,8 @@ struct fingerpacket_s
 {
   byte players;             // number of players connected
   byte accepting;           // currently accepting connections?
-  char server_name[50];     // name of server
-  byte os_type;             // os_t
+  unsigned char server_name[50];     // name of server
+  unsigned char server_os[6];        // server OS
   // other boring crap here
 };
 
@@ -398,7 +398,10 @@ void SV_Update();
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.7  2000-06-20 21:08:35  fraggle
+// Revision 1.8  2000-08-16 13:29:14  fraggle
+// more generalised os detection
+//
+// Revision 1.7  2000/06/20 21:08:35  fraggle
 // platform detection (dos, win32, linux etc)
 //
 // Revision 1.6  2000/06/04 17:19:03  fraggle

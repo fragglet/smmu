@@ -32,22 +32,24 @@ const char version_name[] = "christmas"; // sf : version names
 
 // os type
 
-doomos_t doomos_type = 
+const char version_os[] = 
 #ifdef DJGPP
-os_dos;
+"DOS";
 #elif defined(LINUX)
-os_linux;
+"linux";
 #elif defined(_WIN32)
-os_windows;
+"win32";
 #else
 os_unknown;
 #endif
 
-
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-22 18:24:58  fraggle
+// Revision 1.4  2000-08-16 13:29:14  fraggle
+// more generalised os detection
+//
+// Revision 1.3  2000/06/22 18:24:58  fraggle
 // os_t -> doomos_t for peaceful coexistence with allegro
 //
 // Revision 1.2  2000/06/20 21:08:35  fraggle
