@@ -710,7 +710,7 @@ static void SV_CheckResendTics()
 
 static void SV_SendChatMsg(char *s, ...)
 {
-  char buffer[128];
+  char buffer[256];
   va_list args;
   int i;
   netpacket_t packet;
@@ -731,7 +731,10 @@ static void SV_SendChatMsg(char *s, ...)
       // build new packet
 
       packet.type = pt_chat;
-      strcpy(packet.data.u.messagepacket.message, buffer);
+
+      // changed to strncpy to prevent buffer overflows:      
+      strncpy(packet.data.u.messagepacket.message, buffer, 48);
+      packet.data.u.messagepacket.message[48] = '\0';
 
       // reliable send
 
@@ -763,7 +766,8 @@ static void SV_SendPrivMsg(int node, char *s, ...)
   // build new packet
   
   packet.type = pt_chat;
-  strcpy(packet.data.u.messagepacket.message, buffer);
+  strncpy(packet.data.u.messagepacket.message, buffer, 48);
+  packet.data.u.messagepacket.message[48] = '\0';
 
   // reliable send
 
@@ -831,6 +835,11 @@ static void SV_ChatMsg(msgpacket_t *msg)
 
   if(node < 0)
     return;
+
+  // make sure that the message is a proper string:
+  // NULL terminate it
+
+  msg->message[50] = '\0';
   
   // action
   
@@ -942,7 +951,8 @@ static void SV_FingerRequest()
   packet.type = pt_finger;
   
   // copy server name
-  strcpy(fp->server_name, server_name);
+  strncpy(fp->server_name, server_name, 48);
+  fp->server_name[48] = '\0';
 
   // number of players in game
   fp->players = 0;
@@ -979,6 +989,10 @@ static void SV_NodeQuit(quitpacket_t *qp)
       return;
     }
 
+  // set last character in quit message buffer to prevent any overflows:
+  // make sure that the string is null-terminated
+  qp->quitmsg[50] = '\0';
+  
   // inform people in chat room
 
   SV_SendChatMsg("%s quit (%s)",
@@ -1273,7 +1287,9 @@ static void SV_DenyJoin(char *reason)
   
   // send back a deny packet
   packet.type = pt_deny;
-  strcpy(packet.data.u.denypacket.reason, reason);
+  // change to strncpy to prevent overflows:
+  strncpy(packet.data.u.denypacket.reason, reason, 48);
+  packet.data.u.denypacket.reason[48] = '\0';
   
   // send
   
@@ -1303,8 +1319,9 @@ static void SV_AcceptJoin(joinpacket_t *jp)
   
   ni->waiting = true;
   ni->netnode = source;
-  strcpy(ni->name, jp->name);
-
+  strncpy(ni->name, jp->name, 18);  // change to strncpy to prevent overflows
+  ni->name[18] = '\0';
+  
   // clear packet send data
 
   ni->packet_sent = ni->packet_acked = 0;
@@ -1319,8 +1336,10 @@ static void SV_AcceptJoin(joinpacket_t *jp)
   packet.type = pt_accept;
 
   // include server name
-  strcpy(packet.data.u.acceptpacket.server_name, server_name);
-
+  // change to strncpy to prevent overflows:
+  strncpy(packet.data.u.acceptpacket.server_name, server_name, 48);
+  packet.data.u.acceptpacket.server_name[48] = '\0';
+  
   // must be reliable
 
   SV_ReliableSend(ni, &packet);
@@ -1793,7 +1812,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.15  2000-08-16 13:29:14  fraggle
+// Revision 1.16  2000-08-17 14:26:52  fraggle
+// seal up possible netgame buffer overruns
+//
+// Revision 1.15  2000/08/16 13:29:14  fraggle
 // more generalised os detection
 //
 // Revision 1.14  2000/06/22 18:25:44  fraggle

@@ -141,7 +141,12 @@ static void Finger_WaitReply(netmodule_t *module)
       
       servers[num_servers].node.netmodule = module;
       servers[num_servers].node.node = node;
-      servers[num_servers++].info = packet->data.u.fingerpacket;
+      servers[num_servers].info = packet->data.u.fingerpacket;
+
+      // check for valid server name: stop overflows
+      servers[num_servers].info.server_name[48] = '\0';
+
+      ++num_servers;
     }
   
   // clean up -
@@ -203,6 +208,9 @@ static server_t *Finger_WaitSingle(netmodule_t *module)
       returndata.node.node = node;
       returndata.info = packet->data.u.fingerpacket;
 
+      // stop overflows
+      returndata.info.server_name[48] = '\0';
+      
       servers[num_servers++] = returndata;
       
       if(!initted)
@@ -1092,7 +1100,10 @@ void Finger_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.6  2000-08-16 13:29:14  fraggle
+// Revision 1.7  2000-08-17 14:26:52  fraggle
+// seal up possible netgame buffer overruns
+//
+// Revision 1.6  2000/08/16 13:29:14  fraggle
 // more generalised os detection
 //
 // Revision 1.5  2000/06/22 18:24:59  fraggle

@@ -283,7 +283,9 @@ void CL_Disconnect(char *reason)
       packet.type = pt_quit;
       
       qp->player = drone ? -1 : consoleplayer;
-      strcpy(qp->quitmsg, reason);
+
+      strncpy(qp->quitmsg, reason, 48);
+      qp->quitmsg[48] = '\0';
 
       // send several packets to make sure that the server
       // receives the packet
@@ -377,8 +379,9 @@ static void CL_SendJoin(netnode_t *netnode)
   packet.type = pt_join;
   packet.data.u.joinpacket.drone = 0;          // not a drone
   packet.data.u.joinpacket.version = VERSION;
-  strcpy(packet.data.u.joinpacket.name, default_name);
-
+  strncpy(packet.data.u.joinpacket.name, default_name, 18);
+  packet.data.u.joinpacket.name[18] = '\0';
+  
   wadsig = W_Signature();
   packet.data.u.joinpacket.wadsig[0] = wadsig & 255;
   packet.data.u.joinpacket.wadsig[1] = (wadsig >> 8) & 255;
@@ -428,7 +431,8 @@ static void CL_SendChatMsg(char *s)
 
   // put message in packet
 
-  strcpy(msg->message, s);
+  strncpy(msg->message, s, 48);
+  msg->message[48] = '\0';
 
   // reliable send
 
@@ -523,7 +527,9 @@ void CL_Connect(netnode_t *netnode)
 	    { 
 	      usermsg("connection accepted!");
 
-	      strcpy(server_name, data->acceptpacket.server_name);
+	      strncpy(server_name, data->acceptpacket.server_name, 48);
+	      server_name[48] = '\0';
+	      
 	      usermsg("\n%s\n", server_name);
 	      //      controller = data->acceptpacket.controller != 0;
 	      got_connection = true;
@@ -533,6 +539,8 @@ void CL_Connect(netnode_t *netnode)
 
 	  if(type == pt_deny)
 	    {
+	      data->denypacket.reason[48] = '\0';
+
 	      C_Printf("connection denied\n");
 	      C_Puts(data->denypacket.reason);
 	      MN_ErrorMsg("connection denied:\n%s",
@@ -751,23 +759,6 @@ void CL_WaitDrawer()
 	  y += V_StringHeight(waitinfo.node_names[i]);
 	}
     }
-
-
-  /*
-    CL_DrawWaitInfo(&waitinfo);
-  else
-    {
-      char *wait_message =
-	"connected to server.\n\n"
-	"waiting for controller to\n"
-	"start the game.\n";
-      
-      V_WriteText(wait_message,
-		  (SCREENWIDTH - V_StringWidth(wait_message)) / 2,
-		  (SCREENHEIGHT - V_StringHeight(wait_message)) / 2);
-    }
-  */
-
 }
 
 //-------------------------------------------------------------------------
@@ -1071,9 +1062,6 @@ static void CL_GamePacket(gamepacket_t *gp)
 	      // missed tic
 	      //   C_Printf("client: missed tic (%i %i)\n", ticnum,
 	      //            nettics[player]);
-	      /********
-		RESEND
-	        ********/
 	      tic_resend = true;
 	    }
 	  
@@ -1165,6 +1153,8 @@ static void CL_Speedup(speeduppacket_t *speedup)
 
 static void CL_TextMsg(msgpacket_t *msg)
 {
+  msg->message[48] = '\0';     // stop overflows
+  
   doom_printf(FC_GRAY "%s", msg->message);
 }
 
@@ -1180,6 +1170,8 @@ static void CL_PlayerQuit(quitpacket_t *qp)
   int pl;
   
   pl = qp->player;
+
+  qp->quitmsg[48] = '\0';
   
   doom_printf(FC_GRAY "\a%s quit (%s)", players[pl].name, qp->quitmsg);
 
@@ -1987,7 +1979,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.15  2000-06-20 21:04:44  fraggle
+// Revision 1.16  2000-08-17 14:26:52  fraggle
+// seal up possible netgame buffer overruns
+//
+// Revision 1.15  2000/06/20 21:04:44  fraggle
 // V_IsPrint function for portable isprint()
 //
 // Revision 1.14  2000/06/04 17:19:02  fraggle
