@@ -67,7 +67,6 @@ PLATOBJS =             \
 	net_ext.o      \
 	ser_port.o     \
 	keyboard.o     \
-	mmus2mid.o     \
 	pproblit.o     \
 	drawspan.o     \
 	emu8kmid.o     \
@@ -206,6 +205,7 @@ OBJS=   \
 	g_game.o       \
 	g_bind.o       \
 	g_cmd.o        \
+	mmus2mid.o     \
 	mn_menus.o     \
 	mn_files.o     \
 	mn_misc.o      \
