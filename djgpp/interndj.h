@@ -20,8 +20,8 @@
  */
 
 
-#ifndef INTERNDJ_H
-#define INTERNDJ_H
+#ifndef DOOM_INTERNDJ_H
+#define DOOM_INTERNDJ_H
 
 #ifndef DJGPP
 #error This file should only be used by the djgpp version of Allegro

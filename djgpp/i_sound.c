@@ -70,6 +70,10 @@ static SAMPLE *raw2SAMPLE(unsigned char *rawdata, int len)
   SAMPLE *spl = malloc(sizeof(SAMPLE));
   spl->bits = 8;
   // killough 1/22/98: Get correct frequency
+
+  // sf: if you are using allegro v3.0 simply comment out this line
+  spl->stereo = 0;
+  
   spl->freq = (rawdata[3]<<8)+rawdata[2];
   spl->len = len;
   spl->priority = 255;
@@ -475,8 +479,11 @@ void I_Sound_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-07-29 22:32:29  fraggle
+// fix for allegro v3.12
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
