@@ -40,13 +40,16 @@ const char version_os[] =
 #elif defined(_WIN32)
 "win32";
 #else
-os_unknown;
+"????";
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-08-17 14:30:32  fraggle
+// Revision 1.6  2001-01-15 01:33:41  fraggle
+// mewse
+//
+// Revision 1.5  2000/08/17 14:30:32  fraggle
 // Up version number
 //
 // Revision 1.4  2000/08/16 13:29:14  fraggle
