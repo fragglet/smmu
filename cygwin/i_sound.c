@@ -32,6 +32,8 @@
 static const char
 rcsid[] = "$Id$";
 
+#include "../config.h"
+
 // proff 07/04/98: Changed from _MSC_VER to _WIN32 for CYGWIN32 compatibility
 
 #define WIN32_LEAN_AND_MEAN
@@ -1122,7 +1124,10 @@ void I_Sound_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2001-01-13 02:31:16  fraggle
+// Revision 1.4  2001-01-13 14:50:53  fraggle
+// include config.h to check for appropriate libraries
+//
+// Revision 1.3  2001/01/13 02:31:16  fraggle
 // fix logs
 //
 // Revision 1.2  2001/01/13 02:28:25  fraggle

@@ -24,6 +24,8 @@
 //
 //----------------------------------------------------------------------------
 
+#include "../config.h" /* read config, do we have libsvga? */
+
 #ifdef HAVE_LIBVGA /* define to allow compile w/out svga support */
 
 #include "../z_zone.h"  /* memory allocation wrappers -- killough */
@@ -550,7 +552,10 @@ viddriver_t svga_driver =
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2001-01-13 02:28:23  fraggle
+// Revision 1.5  2001-01-13 14:50:51  fraggle
+// include config.h to check for appropriate libraries
+//
+// Revision 1.4  2001/01/13 02:28:23  fraggle
 // changed library #defines to standard HAVE_LIBxyz
 // for autoconfing
 //
