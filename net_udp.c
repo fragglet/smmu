@@ -380,9 +380,7 @@ static boolean UDP_Init()
 //
 
 static void UDP_Shutdown()
-{
-  int uptime;
-  
+{  
   if(!tcpip_support)
     return;
 
@@ -394,12 +392,6 @@ static void UDP_Shutdown()
   //  close(send_socket);
 
   udp.initted = false;
-
-  uptime = I_GetTime_RealTime() - init_time;
-  C_Printf("%i bytes sent (%i bytes/sec)\n", bytes_sent,
-	   (bytes_sent*TICRATE)/uptime);
-  C_Printf("%i bytes received (%i bytes/sec)\n", bytes_received,
-	   (bytes_received*TICRATE)/uptime);
 }
 
 //--------------------------------------------------------------------------
@@ -654,9 +646,24 @@ void *UDP_GetPacket_Lagged(int *node)
 
 CONSOLE_INT(udp_port, udp_port, NULL, 0, 65535, NULL, 0) {}
 
+CONSOLE_COMMAND(udp_stats, 0)
+{
+  int uptime;
+
+  if(!udp.initted)
+    return;
+
+  uptime = I_GetTime_RealTime() - init_time;
+  C_Printf("%i bytes sent (%i bytes/sec)\n", bytes_sent,
+	   (bytes_sent*TICRATE)/uptime);
+  C_Printf("%i bytes received (%i bytes/sec)\n", bytes_received,
+	   (bytes_received*TICRATE)/uptime);
+}
+
 void UDP_AddCommands()
 {
   C_AddCommand(udp_port);
+  C_AddCommand(udp_stats);
 }
 
 #endif /* #ifndef DEDICATED */
@@ -666,7 +673,10 @@ void UDP_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-03 16:02:27  fraggle
+// Revision 1.4  2000-05-06 14:05:39  fraggle
+// udp stats console cmd
+//
+// Revision 1.3  2000/05/03 16:02:27  fraggle
 // packet stats
 //
 // Revision 1.2  2000/05/02 15:43:10  fraggle
