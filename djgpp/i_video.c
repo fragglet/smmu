@@ -44,7 +44,6 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include "../w_wad.h"
 #include "../r_draw.h"
 #include "../am_map.h"
-#include "../m_menu.h"
 #include "../wi_stuff.h"
 #include "../i_video.h"
 
@@ -308,7 +307,7 @@ static void I_InitGraphicsMode(void)
       // switched to planar mode, which allows 256K of VGA RAM to be
       // addressable, and allows page flipping, split screen, and hardware
       // panning.
-
+      
       V_Init();
 
       destscreen = 0;
@@ -431,28 +430,28 @@ void I_InitGraphics(void)
         
 videomode_t videomodes[]=
 {
-        {0,0,0,"320x200 VGA"},
-        {0,1,0,"320x200 VGA (pageflipped)"},
-        {0,0,1,"320x200 VESA"},
-        {1,0,1,"640x400 VESA"},
-        {1,1,1,"640x400 VESA (pageflipped)"},
-        {0,0,0, NULL}  // last one has NULL description
+  {0,0,0,"320x200 VGA"},
+  {0,1,0,"320x200 VGA (pageflipped)"},
+  {0,0,1,"320x200 VESA"},
+  {1,0,1,"640x400 VESA"},
+  {1,1,1,"640x400 VESA (pageflipped)"},
+  {0,0,0, NULL}  // last one has NULL description
 };
 
 void I_SetMode(int i)
 {
-        static int firsttime = true;    // the first time to set mode
-
-        hires = videomodes[i].hires;
-        page_flip = videomodes[i].pageflip;
-        vesamode = videomodes[i].vesa;
-
-        if(firsttime)
-                I_InitGraphicsMode();
-        else
-                I_ResetScreen();
-
-        firsttime = false;
+  static int firsttime = true;    // the first time to set mode
+  
+  hires = videomodes[i].hires;
+  page_flip = videomodes[i].pageflip;
+  vesamode = videomodes[i].vesa;
+  
+  if(firsttime)
+    I_InitGraphicsMode();
+  else
+    I_ResetScreen();
+  
+  firsttime = false;
 }
         
      /*****************************************************************
@@ -463,18 +462,18 @@ void I_SetMode(int i)
 // VESA information block structure
 typedef struct vbeinfoblock_s
 {
-    unsigned char  VESASignature[4]   __attribute__ ((packed));
-    unsigned short VESAVersion	      __attribute__ ((packed));
-    unsigned long  OemStringPtr       __attribute__ ((packed));
-    byte    Capabilities[4];
-    unsigned long  VideoModePtr       __attribute__ ((packed));
-    unsigned short TotalMemory	      __attribute__ ((packed));
-    byte    OemSoftwareRev[2];
-    byte    OemVendorNamePtr[4];
-    byte    OemProductNamePtr[4];
-    byte    OemProductRevPtr[4];
-    byte    Reserved[222];
-    byte    OemData[256];
+  unsigned char  VESASignature[4]   __attribute__ ((packed));
+  unsigned short VESAVersion	      __attribute__ ((packed));
+  unsigned long  OemStringPtr       __attribute__ ((packed));
+  byte    Capabilities[4];
+  unsigned long  VideoModePtr       __attribute__ ((packed));
+  unsigned short TotalMemory	      __attribute__ ((packed));
+  byte    OemSoftwareRev[2];
+  byte    OemVendorNamePtr[4];
+  byte    OemProductNamePtr[4];
+  byte    OemProductRevPtr[4];
+  byte    Reserved[222];
+  byte    OemData[256];
 } vbeinfoblock_t;
 
 static vbeinfoblock_t vesainfo;
@@ -487,41 +486,43 @@ static vbeinfoblock_t vesainfo;
 
 void I_CheckVESA()
 {
-    int i;
-    __dpmi_regs     regs;
+  int i;
+  __dpmi_regs     regs;
+  
+  // new ugly stuff...
+  for (i=0; i<sizeof(vbeinfoblock_t); i++)
+    _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
+  
+  dosmemput("VBE2", 4, MASK_LINEAR(__tb));
+  
+  // see if VESA support is available
+  regs.x.ax = 0x4f00;
+  regs.x.di = RM_OFFSET(__tb);
+  regs.x.es = RM_SEGMENT(__tb);
+  __dpmi_int(0x10, &regs);
+  
+  if (regs.h.ah) goto no_vesa;
+  
+  dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
+  
+  if (strncmp(vesainfo.VESASignature, "VESA", 4))
+    goto no_vesa;
+  
+  if (vesainfo.VESAVersion < (VBEVERSION<<8))
+    goto no_vesa;
+  
+  // note: does not actually check to see if any of the available
+  //       vesa modes can be used in the game. Assumes all work.
 
-    return;
+  return;
 
-    // new ugly stuff...
-    for (i=0; i<sizeof(vbeinfoblock_t); i++)
-       _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
-
-    dosmemput("VBE2", 4, MASK_LINEAR(__tb));
-
-    // see if VESA support is available
-    regs.x.ax = 0x4f00;
-    regs.x.di = RM_OFFSET(__tb);
-    regs.x.es = RM_SEGMENT(__tb);
-    __dpmi_int(0x10, &regs);
-
-    if (regs.h.ah) goto no_vesa;
-
-    dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
-
-    if (strncmp(vesainfo.VESASignature, "VESA", 4))
-        goto no_vesa;
-
-    if (vesainfo.VESAVersion < (VBEVERSION<<8))
-        goto no_vesa;
-
-        // note: does not actually check to see if any of the available
-        //       vesa modes can be used in the game. Assumes all work.
-
-    return;
-
-    no_vesa:
-    videomodes[2].description = NULL;       // cut off VESA modes
-
+  //
+  // if no vesa support, cut off the vesa specific modes
+  //
+  
+no_vesa:
+  videomodes[2].description = NULL;       // cut off VESA modes
+  
 }
 
 /************************
@@ -534,13 +535,13 @@ VARIABLE_BOOLEAN(disk_icon, NULL,  onoff);
 CONSOLE_VARIABLE(v_diskicon, disk_icon, 0) {}
 CONSOLE_VARIABLE(v_retrace, use_vsync, 0)
 {
-    V_ResetMode();
+  V_ResetMode();
 }
 
 void I_Video_AddCommands()
 {
-    C_AddCommand(v_diskicon);
-    C_AddCommand(v_retrace);
+  C_AddCommand(v_diskicon);
+  C_AddCommand(v_retrace);
 }
 
 //----------------------------------------------------------------------------

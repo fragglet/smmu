@@ -42,7 +42,7 @@ char* endmsg[/*NUM_QUITMESSAGES+1*/]=
   "you're trying to say you like dos\nbetter than me, right?",
   "don't leave yet -- there's a\ndemon around that corner!",
   "ya know, next time you come in here\ni'm gonna toast ya.",
-  "go ahead and leave. see if i care.\n",
+  "go ahead and leave. see if i care.",
 
   // QuitDOOM II messages
   "you want to quit?\nthen, thou hast lost an eighth!",
@@ -53,18 +53,8 @@ char* endmsg[/*NUM_QUITMESSAGES+1*/]=
   "just leave. when you come\nback, i'll be waiting with a bat.",
   "you're lucky i don't smack\nyou for thinking about leaving.",
 
-  // FinalDOOM?
-  "User survey:\npress y if you are a frad",
-  "isn't this the greatest doom port ever?\nPress y to agree",
-  "press y now and\njoin the cacodemon\nrights movement",
-  "enough of the 'jizz' already..",
-  "press y if you thought final\ndoom was good value for money",
-  "Don't leave yet, remember:\n\"Practice makes perfect\"..",
-  "You may only leave if you\nvisit my page:\nhttp://fraggle.tsx.org/",
-
   // Internal debug. Different style, too.
   "What? How can you see this message?\nGo away."
-
 };
 
 

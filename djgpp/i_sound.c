@@ -415,7 +415,7 @@ int I_RegisterSong(void *data)
      )
     {
       handle=-1;
-      dprintf("Error loading midi: %d",err);
+      doom_printf("Error loading midi: %d",err);
     }
   else
     {

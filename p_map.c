@@ -85,6 +85,8 @@ int numspechit;
 // Temporary holder for thing_sectorlist threads
 msecnode_t *sector_list = NULL;                             // phares 3/16/98
 
+extern boolean reset_viewz;
+
 //
 // TELEPORT MOVE
 //

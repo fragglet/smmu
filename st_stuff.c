@@ -173,6 +173,7 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 
 // sf 15/10/99: removed a load of useless stuff left over from
 //              when the messages were displayed in the statusbar!
+//              amazing that this code from the _betas_ was still here
 
 // ST_Start() has just been called
 static boolean st_firsttime;
@@ -1094,6 +1095,10 @@ VARIABLE_INT(armor_red, NULL,              0, 200, NULL);
 VARIABLE_INT(armor_yellow, NULL,           0, 200, NULL);
 VARIABLE_INT(armor_green, NULL,            0, 200, NULL);
 
+VARIABLE_BOOLEAN(sts_pct_always_gray,      NULL,   yesno);
+VARIABLE_BOOLEAN(sts_always_red,           NULL,   yesno);
+VARIABLE_BOOLEAN(sts_traditional_keys,     NULL,   yesno);
+
 CONSOLE_VARIABLE(ammo_red, ammo_red, 0) { }
 CONSOLE_VARIABLE(ammo_yellow, ammo_yellow, 0) { }
 CONSOLE_VARIABLE(health_red, health_red, 0) { }
@@ -1103,19 +1108,26 @@ CONSOLE_VARIABLE(armor_red, armor_red, 0) { }
 CONSOLE_VARIABLE(armor_yellow, armor_yellow, 0) { }
 CONSOLE_VARIABLE(armor_green, armor_green, 0) { }
 
+CONSOLE_VARIABLE(st_graypct, sts_pct_always_gray, 0) {}
+CONSOLE_VARIABLE(st_rednum, sts_always_red, 0) {}
+CONSOLE_VARIABLE(st_singlekey, sts_traditional_keys, 0) {}
+
 void ST_AddCommands()
 {
-        C_AddCommand(ammo_red);
-        C_AddCommand(ammo_yellow);
-
-        C_AddCommand(health_red);
-        C_AddCommand(health_yellow);
-        C_AddCommand(health_green);
-
-        C_AddCommand(armor_red);
-        C_AddCommand(armor_yellow);
-        C_AddCommand(armor_green);
-
+  C_AddCommand(ammo_red);
+  C_AddCommand(ammo_yellow);
+  
+  C_AddCommand(health_red);
+  C_AddCommand(health_yellow);
+  C_AddCommand(health_green);
+  
+  C_AddCommand(armor_red);
+  C_AddCommand(armor_yellow);
+  C_AddCommand(armor_green);
+  
+  C_AddCommand(st_graypct);
+  C_AddCommand(st_rednum);
+  C_AddCommand(st_singlekey);
 }
 
 //----------------------------------------------------------------------------

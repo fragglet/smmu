@@ -1,5 +1,5 @@
-/***************************** FraggleScript ******************************/
-                // Copyright(C) 1999 Simon Howard 'Fraggle' //
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
 //
 // Variables.
 //
@@ -16,6 +16,8 @@
 // functions are also stored as variables, these are kept in the global
 // script so they can be accessed by all scripts. function variables
 // cannot be set or changed inside the scripts themselves.
+//
+//---------------------------------------------------------------------------
 
 /* includes ************************/
 
@@ -31,253 +33,261 @@
 script_t global_script;         // the global script just holds all
                                 // the global variables
 
-        // initialise the global script: clear all the variables
+// initialise the global script: clear all the variables
+
 void init_variables()
 {
-        int i;
-
-        global_script.parent = NULL;    // globalscript is the root script
-
-        for(i=0; i<VARIABLESLOTS; i++)
-                global_script.variables[i] = NULL;
-
-        // any hardcoded global variables can be added here
+  int i;
+  
+  global_script.parent = NULL;    // globalscript is the root script
+  
+  for(i=0; i<VARIABLESLOTS; i++)
+    global_script.variables[i] = NULL;
+  
+  // any hardcoded global variables can be added here
 }
 
-        // find_variable checks through the current script, level script
-        // and global script to try to find the variable of the name wanted
+// find_variable checks through the current script, level script
+// and global script to try to find the variable of the name wanted
 
 svariable_t *find_variable(char *name)
 {
-        svariable_t *var;
-        script_t *current;
+  svariable_t *var;
+  script_t *current;
+  
+  current = current_script;
+  
+  while(current)
+    {
+      // check this script
+      if((var = variableforname(current, name)))
+	return var;
+      current = current->parent;    // try the parent of this one
+    }
 
-        current = current_script;
-
-        while(current)
-        {
-                        // check this script
-                if((var = variableforname(current, name)))
-                        return var;
-                current = current->parent;    // try the parent of this one
-        }
-
-        return NULL;    // no variable
+  return NULL;    // no variable
 }
 
-        // create a new variable in a particular script.
-        // returns a pointer to the new variable.
+// create a new variable in a particular script.
+// returns a pointer to the new variable.
+
 svariable_t *new_variable(script_t *script, char *name, int vtype)
 {
-        int n;
-        svariable_t *newvar;
-        int tagtype = script==&global_script ? PU_STATIC : PU_LEVEL;
+  int n;
+  svariable_t *newvar;
+  int tagtype = script==&global_script ? PU_STATIC : PU_LEVEL;
+  
+  // find an empty slot first
 
-
-        // find an empty slot first
-
-        newvar = Z_Malloc(sizeof(svariable_t), tagtype, 0);
-        newvar->name = (char*)Z_Strdup(name, tagtype, 0);
-        newvar->type = vtype;
-
-        if(vtype == svt_string)
-        {
-                           // 128 bytes for string
-             newvar->value.s = Z_Malloc(128, tagtype, 0);
-             newvar->value.s[0] = 0;
-        }
-        else
-             newvar->value.i = 0;
-
-        // now hook it into the hashchain
-
-        n = variable_hash(name);
-        newvar->next = script->variables[n];
-        script->variables[n] = newvar;
-
-        return script->variables[n];
+  newvar = Z_Malloc(sizeof(svariable_t), tagtype, 0);
+  newvar->name = (char*)Z_Strdup(name, tagtype, 0);
+  newvar->type = vtype;
+  
+  if(vtype == svt_string)
+    {
+      // 128 bytes for string
+      newvar->value.s = Z_Malloc(128, tagtype, 0);
+      newvar->value.s[0] = 0;
+    }
+  else
+    newvar->value.i = 0;
+  
+  // now hook it into the hashchain
+  
+  n = variable_hash(name);
+  newvar->next = script->variables[n];
+  script->variables[n] = newvar;
+  
+  return script->variables[n];
 }
 
-        // search a particular script for a variable, which
-        // is returned if it exists
+// search a particular script for a variable, which
+// is returned if it exists
+
 svariable_t *variableforname(script_t *script, char *name)
 {
-        int n;
-        svariable_t *current;
-
-        n = variable_hash(name);
-                                    
-        current = script->variables[n];
-
-        while(current)
-        {
-                if(!strcmp(name, current->name))        // found it?
-                        return current;         
-                current = current->next;        // check next in chain
-        }
-
-        return NULL;
+  int n;
+  svariable_t *current;
+  
+  n = variable_hash(name);
+  
+  current = script->variables[n];
+  
+  while(current)
+    {
+      if(!strcmp(name, current->name))        // found it?
+	return current;         
+      current = current->next;        // check next in chain
+    }
+  
+  return NULL;
 }
 
         // free all the variables in a given script
 void clear_variables(script_t *script)
 {
-        int i;
-        svariable_t *current, *next;
-
-        for(i=0; i<VARIABLESLOTS; i++)
-        {
-                current = script->variables[i];
-
-                // go thru this chain
-                while(current)
-                {
-                        // labels are added before variables, during
-                        // preprocessing, so will be at the end of the chain
-                        // we can be sure there are no more variables to free
-                        if(current->type == svt_label)
-                                break;
-
-                        next = current->next; // save for after freeing
-
-                                // if a string, free string data
-                        if(current->type == svt_string)
-                                Z_Free(current->value.s);
-
-                        current = next; // go to next in chain
-                }
-                        // start of labels or NULL
-                script->variables[i] = current;
-        }
+  int i;
+  svariable_t *current, *next;
+  
+  for(i=0; i<VARIABLESLOTS; i++)
+    {
+      current = script->variables[i];
+      
+      // go thru this chain
+      while(current)
+	{
+	  // labels are added before variables, during
+	  // preprocessing, so will be at the end of the chain
+	  // we can be sure there are no more variables to free
+	  if(current->type == svt_label)
+	    break;
+	  
+	  next = current->next; // save for after freeing
+	  
+	  // if a string, free string data
+	  if(current->type == svt_string)
+	    Z_Free(current->value.s);
+	  
+	  current = next; // go to next in chain
+	}
+      // start of labels or NULL
+      script->variables[i] = current;
+    }
 }
 
-        // returns an svalue_t holding the current
-        // value of a particular variable.
+// returns an svalue_t holding the current
+// value of a particular variable.
+
 svalue_t getvariablevalue(svariable_t *v)
 {
-        svalue_t returnvar;
-
-        if(!v) return nullvar;
-
-        if(v->type == svt_pString)
-        {
-            returnvar.type = svt_string;
-            returnvar.value.s = *v->value.pS;
-        }
-        else if(v->type == svt_pInt)
-        {
-            returnvar.type = svt_int;
-            returnvar.value.i = *v->value.pI;
-        }
-        else if(v->type == svt_pMobj)
-        {
-            returnvar.type = svt_mobj;
-            returnvar.value.mobj = *v->value.pMobj;
-        }
-        else
-        {
-            returnvar.type = v->type;
-                // copy the value
-            returnvar.value.i = v->value.i;
-        }
-
-        return returnvar;
+  svalue_t returnvar;
+  
+  if(!v) return nullvar;
+  
+  if(v->type == svt_pString)
+    {
+      returnvar.type = svt_string;
+      returnvar.value.s = *v->value.pS;
+    }
+  else if(v->type == svt_pInt)
+    {
+      returnvar.type = svt_int;
+      returnvar.value.i = *v->value.pI;
+    }
+  else if(v->type == svt_pMobj)
+    {
+      returnvar.type = svt_mobj;
+      returnvar.value.mobj = *v->value.pMobj;
+    }
+  else
+    {
+      returnvar.type = v->type;
+      // copy the value
+      returnvar.value.i = v->value.i;
+    }
+  
+  return returnvar;
 }
 
-        // set a variable to a value from an svalue_t
+// set a variable to a value from an svalue_t
+
 void setvariablevalue(svariable_t *v, svalue_t newvalue)
 {
-        if(killscript) return;  // protect the variables when killing script
+  if(killscript) return;  // protect the variables when killing script
+  
+  if(!v) return;
+  
+  if(v->type == svt_const)
+    {
+      // const adapts to the value it is set to
+      v->type = newvalue.type;
 
-        if(!v) return;
+      // alloc memory for string
+      if(v->type == svt_string)   // static incase a global_script var
+	v->value.s = Z_Malloc(128, PU_STATIC, 0);
+    }
+  
+  if(v->type == svt_int)
+    {
+      v->value.i = intvalue(newvalue);
+    }
 
-        if(v->type == svt_const)
-        {
-                // const adapts to the value it is set to
-            v->type = newvalue.type;
-                // alloc memory for string
-            if(v->type == svt_string)   // static incase a global_script var
-                v->value.s = Z_Malloc(128, PU_STATIC, 0);
-        }
+  if(v->type == svt_string)
+    {
+      if(newvalue.type == svt_int)
+	{
+	  sprintf(v->value.s, "%i", (int)newvalue.value.i);
+	}
+      else if(newvalue.type == svt_string)
+	{
+	  strcpy(v->value.s, newvalue.value.s);
+	}
+    }
 
-        if(v->type == svt_int)
-        {
-            v->value.i = intvalue(newvalue);
-        }
-        if(v->type == svt_string)
-        {
-            if(newvalue.type == svt_int)
-            {
-                sprintf(v->value.s, "%i", (int)newvalue.value.i);
-            }
-            else if(newvalue.type == svt_string)
-            {
-                strcpy(v->value.s, newvalue.value.s);
-            }
-        }
-        if(v->type == svt_mobj)
-        {
-             v->value.mobj = MobjForSvalue(newvalue);
-        }
+  if(v->type == svt_mobj)
+    {
+      v->value.mobj = MobjForSvalue(newvalue);
+    }  
+  
+  if(v->type == svt_pInt)
+    {
+      *v->value.pI = intvalue(newvalue);
+    }
 
+  if(v->type == svt_pString)
+    {
+      // free old value
+      free(*v->value.pS);
+      
+      // set new one
+      if(newvalue.type == svt_int)
+	{
+	  char tempstr[128];
+	  sprintf(tempstr, "%i", (int)newvalue.value.i);
+	  *v->value.pS = strdup(tempstr);
+	}
+      if(newvalue.type == svt_string)
+	{
+	  // dup new string
+	  *v->value.pS = strdup(newvalue.value.s);
+	}
+    }
 
-        if(v->type == svt_pInt)
-        {
-            *v->value.pI = intvalue(newvalue);
-        }
-        if(v->type == svt_pString)
-        {
-                // free old value
-            free(*v->value.pS);
-
-                // set new one
-            if(newvalue.type == svt_int)
-            {
-                char tempstr[128];
-                sprintf(tempstr, "%i", (int)newvalue.value.i);
-                *v->value.pS = strdup(tempstr);
-            }
-            if(newvalue.type == svt_string)
-            {
-                        // dup new string
-                *v->value.pS = strdup(newvalue.value.s);
-            }
-        }
-        if(v->type == svt_pMobj)
-        {
-             *v->value.pMobj = MobjForSvalue(newvalue);
-        }
-
-        if(v->type == svt_function)
-                script_error("attempt to set function to a value\n");
+  if(v->type == svt_pMobj)
+    {
+      *v->value.pMobj = MobjForSvalue(newvalue);
+    }
+  
+  if(v->type == svt_function)
+    script_error("attempt to set function to a value\n");
 
 }
 
 svariable_t *add_game_int(char *name, int *var)
 {
-        svariable_t* newvar;
-        newvar = new_variable(&global_script, name, svt_pInt);
-        newvar->value.pI = var;
+  svariable_t* newvar;
+  newvar = new_variable(&global_script, name, svt_pInt);
+  newvar->value.pI = var;
 
-        return newvar;
+  return newvar;
 }
 
 svariable_t *add_game_string(char *name, char **var)
 {
-        svariable_t* newvar;
-        newvar = new_variable(&global_script, name, svt_pString);
-        newvar->value.pS = var;
+  svariable_t* newvar;
+  newvar = new_variable(&global_script, name, svt_pString);
+  newvar->value.pS = var;
 
-        return newvar;
+  return newvar;
 }
 
 svariable_t *add_game_mobj(char *name, mobj_t **mo)
 {
-        svariable_t* newvar;
-        newvar = new_variable(&global_script, name, svt_pMobj);
-        newvar->value.pMobj = mo;
+  svariable_t* newvar;
+  newvar = new_variable(&global_script, name, svt_pMobj);
+  newvar->value.pMobj = mo;
 
-        return newvar;
+  return newvar;
 }
 
 
@@ -309,153 +319,159 @@ svalue_t t_return;              // returned value
 
 svalue_t evaluate_function(int start, int stop)
 {
-        svariable_t *func = NULL;
-        int startpoint, endpoint;
+  svariable_t *func = NULL;
+  int startpoint, endpoint;
 
-                // the arguments need to be built locally in case of
-                // function returns as function arguments eg
-                // print("here is a random number: ", rnd() );
-        int argc;
-        svalue_t argv[MAXARGS];
+  // the arguments need to be built locally in case of
+  // function returns as function arguments eg
+  // print("here is a random number: ", rnd() );
+  
+  int argc;
+  svalue_t argv[MAXARGS];
 
-        if(tokentype[start] != function || tokentype[stop] != operator
-                        || tokens[stop][0] != ')' )
-                script_error("misplaced closing bracket\n");
+  if(tokentype[start] != function || tokentype[stop] != operator
+     || tokens[stop][0] != ')' )
+    script_error("misplaced closing bracket\n");
 
-                // all the functions are stored in the global script
-        else if( !(func = variableforname(&global_script, tokens[start]))  )
-                script_error("no such function: '%s'\n",tokens[start]);
+  // all the functions are stored in the global script
+  else if( !(func = variableforname(&global_script, tokens[start]))  )
+    script_error("no such function: '%s'\n",tokens[start]);
 
-        else if(func->type != svt_function)
-                script_error("'%s' not a function\n", tokens[start]);
+  else if(func->type != svt_function)
+    script_error("'%s' not a function\n", tokens[start]);
 
-        if(killscript) return nullvar; // one of the above errors occurred
+  if(killscript) return nullvar; // one of the above errors occurred
 
-                // build the argument list
-                // use a C command-line style system rather than
-                // a system using a fixed length list
+  // build the argument list
+  // use a C command-line style system rather than
+  // a system using a fixed length list
 
-        argc = 0;
-        endpoint = start + 2;   // ignore the function name and first bracket
+  argc = 0;
+  endpoint = start + 2;   // ignore the function name and first bracket
+  
+  while(endpoint < stop)
+    {
+      startpoint = endpoint;
+      endpoint = find_operator(startpoint, stop-1, ",");
+      
+      // check for -1: no more ','s 
+      if(endpoint == -1)
+	{               // evaluate the last expression
+	  endpoint = stop;
+	}
+      if(endpoint-1 < startpoint)
+	break;
+      
+      argv[argc] = evaluate_expression(startpoint, endpoint-1);
+      endpoint++;    // skip the ','
+      argc++;
+    }
 
-        while(endpoint < stop)
-        {
-                startpoint = endpoint;
-                endpoint = find_operator(startpoint, stop-1, ",");
+  // store the arguments in the global arglist
+  t_argc = argc;
+  t_argv = argv;
 
-                // check for -1: no more ','s 
-                if(endpoint == -1)
-                {               // evaluate the last expression
-                        endpoint = stop;
-                }
-                if(endpoint-1 < startpoint)
-                        break;
-
-                argv[argc] = evaluate_expression(startpoint, endpoint-1);
-                endpoint++;    // skip the ','
-                argc++;
-        }
-
-        // store the arguments in the global arglist
-        t_argc = argc;
-        t_argv = argv;
-
-        if(killscript) return nullvar;
-
-                 // now run the function
-        func->value.handler();
-
-                // return the returned value
-        return t_return;
+  if(killscript) return nullvar;
+  
+  // now run the function
+  func->value.handler();
+  
+  // return the returned value
+  return t_return;
 }
 
-        // structure dot (.) operator
-        // there are not really any structs in FraggleScript, it's
-        // just a different way of calling a function that looks
-        // nicer. ie
-        //      a.b()  = a.b   =  b(a)
-        //      a.b(c) = b(a,c)
+// structure dot (.) operator
+// there are not really any structs in FraggleScript, it's
+// just a different way of calling a function that looks
+// nicer. ie
+//      a.b()  = a.b   =  b(a)
+//      a.b(c) = b(a,c)
 
-        // this function is just based on the one above
+// this function is just based on the one above
+
 svalue_t OPstructure(int start, int n, int stop)
 {
-        svariable_t *func = NULL;
-                // the arguments need to be built locally in case of
-                // function returns as function arguments eg
-                // print("here is a random number: ", rnd() );
-        int argc;
-        svalue_t argv[MAXARGS];
+  svariable_t *func = NULL;
+  
+  // the arguments need to be built locally in case of
+  // function returns as function arguments eg
+  // print("here is a random number: ", rnd() );
+  
+  int argc;
+  svalue_t argv[MAXARGS];
 
-                // all the functions are stored in the global script
-        if( !(func = variableforname(&global_script, tokens[n+1]))  )
-                script_error("no such function: '%s'\n",tokens[n+1]);
+  // all the functions are stored in the global script
+  if( !(func = variableforname(&global_script, tokens[n+1]))  )
+    script_error("no such function: '%s'\n",tokens[n+1]);
+  
+  else if(func->type != svt_function)
+    script_error("'%s' not a function\n", tokens[n+1]);
 
-        else if(func->type != svt_function)
-                script_error("'%s' not a function\n", tokens[n+1]);
+  if(killscript) return nullvar; // one of the above errors occurred
+  
+  // build the argument list
 
-        if(killscript) return nullvar; // one of the above errors occurred
+  // add the left part as first arg
 
-                // build the argument list
+  argv[0] = evaluate_expression(start, n-1);
+  argc = 1; // start on second argv
 
-                // add the left part as first arg
-        argv[0] = evaluate_expression(start, n-1);
+  if(stop != n+1)         // can be a.b not a.b()
+    {
+      int startpoint, endpoint;
 
-        argc = 1; // start on second argv
+      // ignore the function name and first bracket
+      endpoint = n + 3;
+      
+      while(endpoint < stop)
+	{
+	  startpoint = endpoint;
+	  endpoint = find_operator(startpoint, stop-1, ",");
+	  
+	  // check for -1: no more ','s 
+	  if(endpoint == -1)
+	    {               // evaluate the last expression
+	      endpoint = stop;
+	    }
+	  if(endpoint-1 < startpoint)
+	    break;
+	  
+	  argv[argc] = evaluate_expression(startpoint, endpoint-1);
+	  endpoint++;    // skip the ','
+	  argc++;
+	}
+    }
 
-        if(stop != n+1)         // can be a.b not a.b()
-        {
-                int startpoint, endpoint;
-
-                  // ignore the function name and first bracket
-                endpoint = n + 3;
-        
-                while(endpoint < stop)
-                {
-                        startpoint = endpoint;
-                        endpoint = find_operator(startpoint, stop-1, ",");
-        
-                        // check for -1: no more ','s 
-                        if(endpoint == -1)
-                        {               // evaluate the last expression
-                                endpoint = stop;
-                        }
-                        if(endpoint-1 < startpoint)
-                                break;
-
-                        argv[argc] = evaluate_expression(startpoint, endpoint-1);
-                        endpoint++;    // skip the ','
-                        argc++;
-                }
-        }
-
-        // store the arguments in the global arglist
-        t_argc = argc;
-        t_argv = argv;
-
-        if(killscript) return nullvar;
-
-                 // now run the function
-        func->value.handler();
-
-                // return the returned value
-        return t_return;
-
+  // store the arguments in the global arglist
+  t_argc = argc;
+  t_argv = argv;
+  
+  if(killscript) return nullvar;
+  
+  // now run the function
+  func->value.handler();
+  
+  // return the returned value
+  return t_return;
 }
 
 
-        // create a new function. returns the function number
+// create a new function. returns the function number
+
 svariable_t *new_function(char *name, void (*handler)() )
 {
-        svariable_t *newvar;
+  svariable_t *newvar;
 
-                // create the new variable for the function
-                // add to the global script
-        newvar = new_variable(&global_script, name, svt_function);
+  // create the new variable for the function
+  // add to the global script
+  
+  newvar = new_variable(&global_script, name, svt_function);
+  
+  // add neccesary info
+  
+  newvar->value.handler = handler;
 
-                // add neccesary info
-        newvar->value.handler = handler;
-
-        return newvar;
+  return newvar;
 }
 
 

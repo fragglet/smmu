@@ -1,4 +1,139 @@
 ============================================================================
+17-11-1999
+
+* Menu now quite advanced: includes ability to change variables now.
+  There are two menu item variable types: it_toggle and it_variable.
+  These are similar but differ in the way data is input into them:
+        - it_toggle is used for variables with a limited number of
+          values. If there are only two possible values then the
+          enter key is used to toggle, otherwise left and right is
+          used to set the value
+        - it_variable is for variables with large numbers of values.
+          The enter key is used to activate input of a new value.
+* Broke up menu into two modules: mn_menus.c (which holds all the
+  actual menu data) and mn_engin.c (the menu 'engine')
+* Rewrote the console command caching to used a linked list rather
+  than a fixed-length array. The code is much nicer now. Changed
+  so console commands are not _always_ buffered, but instead only
+  if they have the flag cf_buffered. Some commands have to be
+  buffered(v_mode, addfile, nullmodem, answer, dial)
+* Added all the compatibility flags for the menu
+* Changed d_arbitratenetgame when i noticed it was not working. I
+  recently upgraded one of my computers, so while it was in
+  d_arbitratenetgame sending out packets, the other was still in r_init.
+  When it finally got to d_arbitratenetgame it was flooded with packets
+  from the other computer. Changed so that packets are only broadcast
+  from the server when the function first starts, and subsequent packets
+  are only sent to machines which have acknowledged their readiness.
+* Fixed some coloured lighting problems again. If you put the chasecam
+  on, used the invisibility cheat and looked at a coloured lit area,
+  the sprite went that colour. Fixed by setting fuzzy draw to be selected
+  by the flags in the vissprite, NOT from a NULL colormap.
+* Fixed skin problems with player->mo sprites being set to NULL skin
+* Started a linux port! Moved system specific code (i_*) into DJGPP/
+  subdirectory and created another, linux/ for linux code. Modified
+  makefile to allow for multiple platforms.
+  I copied all the code from the DJGPP system specific code, then went
+  through all the functions and stripped out the code where neccesary.
+  I then filled in all the gaps with code from Colin Phipps' port,
+  lxdoom. Eventually, I managed to get a working port.
+  However, many things are not done:
+        * my version was for SVGALIB only. And slow. An X version will
+          definitely be neccesary.
+        * No sound(linux sound does not work on my PC, its not something
+          I can test)
+* Started experimenting with networking using TCP/IP. Managed to create
+  a working UDP send/receive program with features such as start server,
+  search for servers on network, ping server etc. Tried it on my network
+  and the Internet and it worked more or less fine. The only problem is
+  that of searching for servers, which was hit-and-miss. However, I don't
+  think that's a particularly big problem for when I develop SMMU.
+  I feel confident now that I will probably be able to write in TCP/IP
+  networking to SMMU when the time comes. It will be implemented in the
+  same way that the serial code is. When it does come, it will be easier
+  to start netgames for than any other port to date, IMO.
+
+* Created a FraggleScript adder (add_fs.exe) which automatically loads
+  a FraggleScript file into a wad. Released with source onto the net.
+
+* Moved to doomnation!
+
+============================================================================
+28-10-1999
+
+* Some positive response to the latest release: two other people have set
+  up "FraggleScript tutorial" websites dedicated to SMMU/FraggleScript.
+  Quasar is using the SMMU source for the Eternity TC and people on IRC
+  seem impressed. However, I didn't receive any emails about it (except
+  yesterday I got _one_ after I mentioned my lack of email response).
+  The people that have commented on it seem to like it
+
+* Abandoned my idea for the 'in-automap' style menu. I have instead proceeded
+  to make a more boom-style menu. I have already got this in a quite
+  advanced state: here's what I've done so far:
+
+        - stripped out all old code from m_menu.c: kept some functions
+          such as ticker, drawer etc but these were empty functions ready
+          to be filled in with my own code
+        - Some other functions such as fillbackscreen kept as some are
+          needed by other modules and some may be useful anyway
+        - Kept some important global variables which reside in m_menu.c
+        - Rewrote the drawer, based on a generalised table-style menu.
+          Created menu_t in m_menu.h, which includes all the properties
+          needed for the menus: flags (full-screen with background, show
+          skull rather than highlight etc) and menu items (an array of
+          menuitem_t's)
+        - Function pointer in menu_t allows for specialised drawers for
+          some menus - eg in player setup to draw a picture of the marine
+        - Console changed slightly - Can now do the following
+                "variable +"    -- increase value of variable by one
+                "variable -"    -- decrease value of variable by one
+                "variable /"    -- toggle variable value
+        - menuitem_t's hold the following information:
+                - menu item type - can be a variable, console command to
+                                run, unselectable text (it_info), a gap,
+                                menu title(centered)
+                - name -- name describing the item eg "screen size"
+                - data -- has a number of purposes: console command to run
+                                for it_runcmd, console variable name for
+                                it_variable
+                - patch -- the name of an alternate patch to use - if this
+                                is not NULL then the patch is drawn instead
+                                of the item name
+        - Added main menu back with extra option, "features".
+        - New game menu should be just like the original -- includes support
+                for Doom I and II, and also for the start map when
+                implemented
+        - Options menu reordered: each option has been categorised. There
+                are several categories now: key bindings, mouse, video,
+                sound, compatibility, enemies, weapons, hud, status bar,
+                automap. Options menu is full screen w/background
+        - New Features menu includes multiplayer, load wad, play demos,
+                about SMMU. Multiplayer menu allows you to start serial/modem
+                games, change chat strings and setup your player.
+        - it_variable split into two types:
+                it_toggle       -- can use left/right to change value of
+                                   variable(for non-boolean variables) or
+                                   press enter to toggle value (boolean only)
+                it_variable     -- must press enter to input new value
+        - Main menu uses a seperate drawer to draw the title, for
+          compatibility
+
+* Stil to do for menu:
+        - loads of menus still to do: key bindings, load game, automap,
+          compatibility, savegame, load wad, play demo, about, ...
+        - editing of strings, inputting of new value (currently loads of
+          menu variables cannot be changed, eg chat macros :( )
+        - Key bindings is the major obstacle. I'm planning to rewrite the
+          key binding system soon to use binding of keys to actions
+          (ie. quake style .. i know, i know)
+
+* Finished breaking up console commands. Added p_cmd.c for all the 'game'
+  variables: ie all the ones which are critical for multiplayer sync
+  Also c_cmd.c for all the basic console variables
+* Added three new player colours
+
+============================================================================
 13-10-1999
 
 * The main thing is that I finished integrating FraggleScript into SMMU

@@ -135,10 +135,6 @@ void I_ResetLEDs(void)
 {
 }
 
-void I_InitKeyboard()
-{
-}
-
 
 void I_Init(void)
 {

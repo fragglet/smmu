@@ -1,4 +1,14 @@
-// port.c
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+// ser_port.c
+//
+// code to interface with the comm port.
+// I suppose this is slightly more 'system-specific' than ser_main.c
+//
+// 97% id sersetup sources, 3% Simon Howard
+//
+//---------------------------------------------------------------------------
 
 #include "ser_main.h"
 #include "../d_net.h"
@@ -12,24 +22,26 @@ void jump_start( void );
 
 void isr_8250 (void);
 
-union   REGS    regs;
-struct  SREGS   sregs;
+union REGS regs;
+struct SREGS sregs;
 
-que_t           inque, outque;
+que_t inque, outque;
 
 
-int                     uart;                   // io address
+int uart;                   // io address
 enum {UART_8250, UART_16550} uart_type;
-int                     irq;
+int irq;
 
-int                     modem_status = -1;
-int                     line_status = -1;
+int modem_status = -1;
+int line_status = -1;
 
+// sf: use go32 protected mode irq
 _go32_dpmi_seginfo oldirqvect;
 _go32_dpmi_seginfo newirqvect;
-int                     irqintnum;
 
-int                     comport=2;
+int irqintnum;
+
+int comport = 2;
 
 
 /*
@@ -42,43 +54,44 @@ int                     comport=2;
 
 void GetUart (void)
 {
-	static int ISA_uarts[] = {0x3f8,0x2f8,0x3e8,0x2e8};
-	static int ISA_IRQs[] = {4,3,4,3};
-//        static int MCA_uarts[] = {0x03f8,0x02f8,0x3220,0x3228};
-//        static int MCA_IRQs[] = {4,3,3,3};
-//        int             p;
+  static int ISA_uarts[] = {0x3f8,0x2f8,0x3e8,0x2e8};
+  static int ISA_IRQs[] = {4,3,4,3};
+  //        static int MCA_uarts[] = {0x03f8,0x02f8,0x3220,0x3228};
+  //        static int MCA_IRQs[] = {4,3,3,3};
+  //        int             p;
 
 
-	irq = ISA_IRQs[ comport-1 ];
-	uart = ISA_uarts[ comport-1 ];
+  irq = ISA_IRQs[ comport-1 ];
+  uart = ISA_uarts[ comport-1 ];
 
-/*        regs.h.ah = 0xc0;
-	int86x( 0x15, &regs, &regs, &sregs );
-	if ( regs.x.cflag )
-	{
-		return;
-	}
-	system_data = ( char far *) ( ( (long) sregs.es << 16 ) + regs.x.bx );
-	if ( system_data[ 5 ] & 0x02 )
-	{
-		irq = MCA_IRQs[ comport-1 ];
-		uart = MCA_uarts[ comport-1 ];
-	}
-	else
-	{
-		irq = ISA_IRQs[ comport-1 ];
-		uart = ISA_uarts[ comport-1 ];
-	}*/
+  /*  
+  regs.h.ah = 0xc0;
+  int86x( 0x15, &regs, &regs, &sregs );
+  if ( regs.x.cflag )
+    {
+      return;
+    }
+  system_data = ( char far *) ( ( (long) sregs.es << 16 ) + regs.x.bx );
+  if ( system_data[ 5 ] & 0x02 )
+    {
+      irq = MCA_IRQs[ comport-1 ];
+      uart = MCA_uarts[ comport-1 ];
+    }
+  else
+    {
+      irq = ISA_IRQs[ comport-1 ];
+      uart = ISA_uarts[ comport-1 ];
+    }
 
-/*        p = CheckParm ("-port");
-	if (p)
-                sscanf (_argv[p+1],"0x%x",&uart);
-	p = CheckParm ("-irq");
-	if (p)
-                sscanf (_argv[p+1],"%i",&irq);
+  p = CheckParm ("-port");
+  if (p)
+    sscanf (_argv[p+1],"0x%x",&uart);
+  p = CheckParm ("-irq");
+  if (p)
+    sscanf (_argv[p+1],"%i",&irq);
   */
 
-        C_Printf ("Looking for UART at port 0x%x, irq %i\n",uart,irq);
+  C_Printf ("Looking for UART at port 0x%x, irq %i\n",uart,irq);
 }
 
 
@@ -94,88 +107,87 @@ void GetUart (void)
 
 void InitPort (void)
 {
-	int mcr;
-	int     temp;
+  int mcr;
+  int temp;
 
-//
-// find the irq and io address of the port
-//
-	GetUart ();
+  //
+  // find the irq and io address of the port
+  //
+  GetUart ();
 
-//
-// init com port settings
-//
-	regs.x.ax = 0xf3;               //f3= 9600 n 8 1
-	regs.x.dx = comport - 1;
-	int86 (0x14, &regs, &regs);
+  //
+  // init com port settings
+  //
+  regs.x.ax = 0xf3;               //f3= 9600 n 8 1
+  regs.x.dx = comport - 1;
+  int86 (0x14, &regs, &regs);
+  
+  //
+  // check for a 16550
+  //
+  OUTPUT( uart + FIFO_CONTROL_REGISTER, FCR_FIFO_ENABLE + FCR_TRIGGER_04 );
+  temp = INPUT( uart + INTERRUPT_ID_REGISTER );
+  if ( ( temp & 0xf8 ) == 0xc0 )
+    {
+      uart_type = UART_16550;
+      C_Printf ("UART is a 16550\n\n");
+    }
+  else
+    {
+      uart_type = UART_8250;
+      OUTPUT( uart + FIFO_CONTROL_REGISTER, 0 );
+      C_Printf ("UART is an 8250\n\n");
+    }
+  
+  //
+  // prepare for interrupts
+  //
 
+  OUTPUT( uart + INTERRUPT_ENABLE_REGISTER, 0 );
+  mcr = INPUT( uart + MODEM_CONTROL_REGISTER );
+  mcr |= MCR_OUT2;
+  mcr &= ~MCR_LOOPBACK;
+  OUTPUT( uart + MODEM_CONTROL_REGISTER, mcr );
+  
+  INPUT( uart );  // Clear any pending interrupts
+  INPUT( uart + INTERRUPT_ID_REGISTER );
+  
+  //
+  // hook the irq vector
+  //
+  irqintnum = irq + 8;
+  
+  asm("cli"); // disable interrupts
 
-//
-// check for a 16550
-//
-	OUTPUT( uart + FIFO_CONTROL_REGISTER, FCR_FIFO_ENABLE + FCR_TRIGGER_04 );
-	temp = INPUT( uart + INTERRUPT_ID_REGISTER );
-	if ( ( temp & 0xf8 ) == 0xc0 )
-	{
-		uart_type = UART_16550;
-//                printf ("UART is a 16550\n\n");
-	}
-	else
-	{
-		uart_type = UART_8250;
-		OUTPUT( uart + FIFO_CONTROL_REGISTER, 0 );
-//                printf ("UART is an 8250\n\n");
-	}
+  _go32_dpmi_get_protected_mode_interrupt_vector
+    (irqintnum, &oldirqvect);
+  newirqvect.pm_offset=(int)isr_8250;
+  newirqvect.pm_selector=_go32_my_cs();
+  _go32_dpmi_allocate_iret_wrapper(&newirqvect);
+  _go32_dpmi_set_protected_mode_interrupt_vector
+    (irqintnum, &newirqvect);
 
-//
-// prepare for interrupts
-//
-	OUTPUT( uart + INTERRUPT_ENABLE_REGISTER, 0 );
-	mcr = INPUT( uart + MODEM_CONTROL_REGISTER );
-	mcr |= MCR_OUT2;
-	mcr &= ~MCR_LOOPBACK;
-	OUTPUT( uart + MODEM_CONTROL_REGISTER, mcr );
+  asm("sti"); // enable interrupts
+	
 
-	INPUT( uart );  // Clear any pending interrupts
-	INPUT( uart + INTERRUPT_ID_REGISTER );
+  OUTPUT( 0x20 + 1, INPUT( 0x20 + 1 ) & ~(1<<irq) );
 
-//
-// hook the irq vector
-//
-	irqintnum = irq + 8;
+  asm("cli"); // disable again
 
-        asm("cli");
-        _go32_dpmi_get_protected_mode_interrupt_vector
-                (irqintnum, &oldirqvect);
-        newirqvect.pm_offset=(int)isr_8250;
-        newirqvect.pm_selector=_go32_my_cs();
-        _go32_dpmi_allocate_iret_wrapper(&newirqvect);
-        _go32_dpmi_set_protected_mode_interrupt_vector
-                (irqintnum, &newirqvect);
-        asm("sti");
+  // enable RX and TX interrupts at the uart
+  
+  OUTPUT( uart + INTERRUPT_ENABLE_REGISTER,
+	  IER_RX_DATA_READY + IER_TX_HOLDING_REGISTER_EMPTY);
 
+  // enable interrupts through the interrupt controller
+  
+  OUTPUT( 0x20, 0xc2 );
 
-	OUTPUT( 0x20 + 1, INPUT( 0x20 + 1 ) & ~(1<<irq) );
-
-	asm("cli");
-
-// enable RX and TX interrupts at the uart
-
-	OUTPUT( uart + INTERRUPT_ENABLE_REGISTER,
-			IER_RX_DATA_READY + IER_TX_HOLDING_REGISTER_EMPTY);
-
-// enable interrupts through the interrupt controller
-
-	OUTPUT( 0x20, 0xc2 );
-
-// set DTR
-	OUTPUT( uart + MODEM_CONTROL_REGISTER
-		, INPUT( uart + MODEM_CONTROL_REGISTER ) | MCR_DTR);
-
-
-	asm("sti");
-
-
+  // set DTR
+  OUTPUT( uart + MODEM_CONTROL_REGISTER
+	  , INPUT( uart + MODEM_CONTROL_REGISTER ) | MCR_DTR);
+  
+  asm("sti"); // re-enable
 }
 
 
@@ -189,42 +201,43 @@ void InitPort (void)
 
 void ShutdownPort ( void )
 {
-	OUTPUT( uart + INTERRUPT_ENABLE_REGISTER, 0 );
-	OUTPUT( uart + MODEM_CONTROL_REGISTER, 0 );
+  OUTPUT( uart + INTERRUPT_ENABLE_REGISTER, 0 );
+  OUTPUT( uart + MODEM_CONTROL_REGISTER, 0 );
+  
+  OUTPUT( 0x20 + 1, INPUT( 0x20 + 1 ) | (1<<irq) );
+  
+  // restore old irq
+  asm("cli");
+  _go32_dpmi_set_protected_mode_interrupt_vector
+    (irqintnum, &oldirqvect);
+  _go32_dpmi_free_iret_wrapper(&newirqvect);
+  asm("sti");
 
-	OUTPUT( 0x20 + 1, INPUT( 0x20 + 1 ) | (1<<irq) );
-
-        asm("cli");
-        _go32_dpmi_set_protected_mode_interrupt_vector
-                (irqintnum, &oldirqvect);
-        _go32_dpmi_free_iret_wrapper(&newirqvect);
-        asm("sti");
-
-//
-// init com port settings to defaults
-//
-	regs.x.ax = 0xf3;               //f3= 9600 n 8 1
-	regs.x.dx = comport - 1;
-	int86 (0x14, &regs, &regs);
+  //
+  // init com port settings to defaults
+  //
+  regs.x.ax = 0xf3;               //f3= 9600 n 8 1
+  regs.x.dx = comport - 1;
+  int86 (0x14, &regs, &regs);
 }
 
 
 int read_byte( void )
 {
-	int     c;
-
-	if (inque.tail >= inque.head)
-		return -1;
-	c = inque.data[inque.tail%QUESIZE];
-	inque.tail++;
-	return c;
+  int c;
+  
+  if (inque.tail >= inque.head)
+    return -1;
+  c = inque.data[inque.tail%QUESIZE];
+  inque.tail++;
+  return c;
 }
 
 
 void write_byte( int c )
 {
-	outque.data[outque.head%QUESIZE] = c;
-	outque.head++;
+  outque.data[outque.head%QUESIZE] = c;
+  outque.head++;
 }
 
 
@@ -242,66 +255,64 @@ void write_byte( int c )
 
 void isr_8250(void)
 {
-	int c;
-	int     count;
+  int c;
+  int count;
 
-	while (1)
+  while (1)
+    {
+      switch( INPUT( uart + INTERRUPT_ID_REGISTER ) & 7 )
 	{
-		switch( INPUT( uart + INTERRUPT_ID_REGISTER ) & 7 )
+	  // not enabled
+	case IIR_MODEM_STATUS_INTERRUPT :
+	  modem_status = INPUT( uart + MODEM_STATUS_REGISTER );
+	  break;
+	  
+	  // not enabled
+	case IIR_LINE_STATUS_INTERRUPT :
+	  line_status = INPUT( uart + LINE_STATUS_REGISTER );
+	  break;
+	  
+	  //
+	  // transmit
+	  //
+	case IIR_TX_HOLDING_REGISTER_INTERRUPT :
+	  //I_ColorBlack (63,0,0);
+	  if (outque.tail < outque.head)
+	    {
+	      if (uart_type == UART_16550)
+		count = 16;
+	      else
+		count = 1;
+	      do
 		{
-// not enabled
-		case IIR_MODEM_STATUS_INTERRUPT :
-			modem_status = INPUT( uart + MODEM_STATUS_REGISTER );
-			break;
-
-// not enabled
-		case IIR_LINE_STATUS_INTERRUPT :
-			line_status = INPUT( uart + LINE_STATUS_REGISTER );
-			break;
-
-//
-// transmit
-//
-		case IIR_TX_HOLDING_REGISTER_INTERRUPT :
-//I_ColorBlack (63,0,0);
-			if (outque.tail < outque.head)
-			{
-				if (uart_type == UART_16550)
-					count = 16;
-				else
-					count = 1;
-				do
-				{
-					c = outque.data[outque.tail%QUESIZE];
-					outque.tail++;
-					OUTPUT( uart + TRANSMIT_HOLDING_REGISTER, c );
-				} while (--count && outque.tail < outque.head);
-			}
-			break;
-
-//
-// receive
-//
-		case IIR_RX_DATA_READY_INTERRUPT :
-//I_ColorBlack (0,63,0);
-			do
-			{
-				c = INPUT( uart + RECEIVE_BUFFER_REGISTER );
-				inque.data[inque.head%QUESIZE] = c;
-				inque.head++;
-			} while ( uart_type == UART_16550 && INPUT( uart + LINE_STATUS_REGISTER ) & LSR_DATA_READY );
-
-			break;
-
-//
-// done
-//
-		default :
-//I_ColorBlack (0,0,0);
-			OUTPUT( 0x20, 0x20 );
-			return;
-		}
+		  c = outque.data[outque.tail%QUESIZE];
+		  outque.tail++;
+		  OUTPUT( uart + TRANSMIT_HOLDING_REGISTER, c );
+		} while (--count && outque.tail < outque.head);
+	    }
+	  break;
+	  
+	  //
+	  // receive
+	  //
+	case IIR_RX_DATA_READY_INTERRUPT :
+	  do
+	    {
+	      c = INPUT( uart + RECEIVE_BUFFER_REGISTER );
+	      inque.data[inque.head%QUESIZE] = c;
+	      inque.head++;
+	    } while ( uart_type == UART_16550 && INPUT( uart + LINE_STATUS_REGISTER ) & LSR_DATA_READY );
+	  
+	  break;
+	  
+	  //
+	  // done
+	  //
+	default:
+	  OUTPUT( 0x20, 0x20 );
+	  return;
 	}
+    }
 }
 
 
@@ -316,14 +327,18 @@ void isr_8250(void)
 
 void jump_start( void )
 {
-	int c;
-
-	if (outque.tail < outque.head)
-	{
-		c = outque.data [outque.tail%QUESIZE];
-		outque.tail++;
-		OUTPUT( uart, c );
-	}
+  int c;
+  
+  if (outque.tail < outque.head)
+    {
+      c = outque.data [outque.tail%QUESIZE];
+      outque.tail++;
+      OUTPUT( uart, c );
+    }
 }
+
+
+
+
 
 

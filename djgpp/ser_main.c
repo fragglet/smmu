@@ -1,9 +1,14 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
 //
 // sersetup.c
 //
 // converted so that it is now inside the exe
 // this is a hacked up piece of shit
 //
+// By Simon Howard, based on id sersetup source
+//
+//----------------------------------------------------------------------------
 
 #include "../doomdef.h"
 #include "../doomstat.h"
@@ -18,7 +23,7 @@
 #include "../d_net.h"
 #include "../g_game.h"
 #include "../i_video.h"
-#include "../m_menu.h"
+#include "../mn_engin.h"
 
 extern void (*netdisconnect)();
 
@@ -29,10 +34,10 @@ void ModemClear ();
 extern	que_t		inque, outque;
 
 void jump_start( void );
-extern int 	uart;
+extern int uart;
 
-int			usemodem;
-char		startup[256], shutdown[256];
+int usemodem;
+char startup[256], shutdown[256];
 
 connect_t connectmode=CONNECT;
 char phonenum[50];
@@ -54,15 +59,15 @@ int ser_active;
 
 void write_buffer( char *buffer, unsigned int count )
 {
-// if this would overrun the buffer, throw everything else out
-	if (outque.head-outque.tail+count > QUESIZE)
-		outque.tail = outque.head;
-
-	while (count--)
-		write_byte (*buffer++);
-
-	if ( INPUT( uart + LINE_STATUS_REGISTER ) & 0x40)
-		jump_start();
+  // if this would overrun the buffer, throw everything else out
+  if (outque.head-outque.tail+count > QUESIZE)
+    outque.tail = outque.head;
+  
+  while (count--)
+    write_byte (*buffer++);
+  
+  if ( INPUT( uart + LINE_STATUS_REGISTER ) & 0x40)
+    jump_start();
 }
 
 
@@ -78,47 +83,51 @@ void write_buffer( char *buffer, unsigned int count )
 
 void Ser_Error (char *error, ...)
 {
-	va_list argptr;
-
-        Ser_Disconnect();
-
-	ShutdownPort ();
-
-        if (error)
-	{
-                char tempstr[100];
-                va_start (argptr,error);
-                vsprintf (tempstr,error,argptr);
-                usermsg("");
-                usermsg(tempstr);
-                usermsg("");
-		va_end (argptr);
-
-                strcpy(menu_error_message, tempstr);
-                menu_error_time = -1;
-	}
-        ser_active = 0;
+  va_list argptr;
+  
+  Ser_Disconnect();
+  
+  ShutdownPort ();
+  
+  if (error)
+    {
+      char tempstr[100];
+      va_start (argptr,error);
+      vsprintf (tempstr,error,argptr);
+      usermsg("");
+      usermsg(tempstr);
+      usermsg("");
+      va_end (argptr);
+      
+      // copy error message to menu
+      strcpy(menu_error_message, tempstr);
+      menu_error_time = -1; // infinite duration
+    }
+  ser_active = false;
 }
 
 void Ser_Disconnect()
 {
-        doomcom = &singleplayer;
+  doomcom = &singleplayer;
+	
+  if(!usemodem) return;
+	
+  usermsg("");
+  usermsg("Dropping DTR.. ");
+  usermsg("");
+	
+  OUTPUT( uart + MODEM_CONTROL_REGISTER,
+	  INPUT( uart + MODEM_CONTROL_REGISTER ) & ~MCR_DTR );
+  delay (1250);
+  OUTPUT( uart + MODEM_CONTROL_REGISTER,
+	  INPUT( uart + MODEM_CONTROL_REGISTER ) | MCR_DTR );
+  
+  // hang up modem
 
-        if(!usemodem) return;
-
-        usermsg("");
-        usermsg("Dropping DTR.. ");
-        usermsg("");
-
-        OUTPUT( uart + MODEM_CONTROL_REGISTER
-             , INPUT( uart + MODEM_CONTROL_REGISTER ) & ~MCR_DTR );
-        delay (1250);
-        OUTPUT( uart + MODEM_CONTROL_REGISTER
-             , INPUT( uart + MODEM_CONTROL_REGISTER ) | MCR_DTR );
-        ModemCommand("+++");
-        delay (1250);
-        ModemCommand(shutdown);
-        delay (1250);
+  ModemCommand("+++");
+  delay (1250);
+  ModemCommand(shutdown);
+  delay (1250);
 }
 
 
@@ -133,57 +142,56 @@ void Ser_Disconnect()
 #define MAXPACKET	512
 #define	FRAMECHAR	0x70
 
-char	packet[MAXPACKET];
-int		packetlen;
-int		inescape;
-int		newpacket;
+char packet[MAXPACKET];
+int packetlen;
+int inescape;
+int newpacket;
 
 boolean Ser_ReadPacket (void)
 {
-	int	c;
-
-// if the buffer has overflowed, throw everything out
-
-	if (inque.head-inque.tail > QUESIZE - 4)	// check for buffer overflow
+  int c;
+	
+  // if the buffer has overflowed, throw everything out
+	
+  if (inque.head-inque.tail > QUESIZE - 4)	// check for buffer overflow
+    {
+      inque.tail = inque.head;
+      newpacket = true;
+      return false;
+    }
+  
+  if (newpacket)
+    {
+      packetlen = 0;
+      newpacket = 0;
+    }
+  
+  do
+    {
+      c = read_byte ();
+      if (c < 0)
+	return false;		// haven't read a complete packet
+      //printf ("%c",c);
+      if (inescape)
 	{
-		inque.tail = inque.head;
-		newpacket = true;
-		return false;
+	  inescape = false;
+	  if (c!=FRAMECHAR)
+	    {
+	      newpacket = 1;
+	      return true;	// got a good packet
+	    }
 	}
-
-	if (newpacket)
+      else if (c==FRAMECHAR)
 	{
-		packetlen = 0;
-		newpacket = 0;
-	}
-
-	do
-	{
-		c = read_byte ();
-		if (c < 0)
-			return false;		// haven't read a complete packet
-//printf ("%c",c);
-		if (inescape)
-		{
-			inescape = false;
-			if (c!=FRAMECHAR)
-			{
-				newpacket = 1;
-				return true;	// got a good packet
-			}
-		}
-		else if (c==FRAMECHAR)
-		{
-			inescape = true;
-			continue;			// don't know yet if it is a terminator
-		}						// or a literal FRAMECHAR
-
-		if (packetlen >= MAXPACKET)
-			continue;			// oversize packet
-		packet[packetlen] = c;
-		packetlen++;
-	} while (1);
-
+	  inescape = true;
+	  continue;	// don't know yet if it is a terminator
+	}	        // or a literal FRAMECHAR
+      
+      if (packetlen >= MAXPACKET)
+	continue;			// oversize packet
+      packet[packetlen] = c;
+      packetlen++;
+    } while (1);
 }
 
 
@@ -195,28 +203,26 @@ boolean Ser_ReadPacket (void)
 =============
 */
 
-
-
 void Ser_WritePacket (char *buffer, int len)
 {
-	int		b;
-	char	static localbuffer[MAXPACKET*2+2];
-
-	b = 0;
-	if (len > MAXPACKET)
-		return;
-
-	while (len--)
-	{
-		if (*buffer == FRAMECHAR)
-			localbuffer[b++] = FRAMECHAR;	// escape it for literal
-		localbuffer[b++] = *buffer++;
-	}
-
-	localbuffer[b++] = FRAMECHAR;
-	localbuffer[b++] = 0;
-
-	write_buffer (localbuffer, b);
+  int b;
+  char static localbuffer[MAXPACKET*2+2];
+	
+  b = 0;
+  if (len > MAXPACKET)
+    return;
+	
+  while (len--)
+    {
+      if (*buffer == FRAMECHAR)
+	localbuffer[b++] = FRAMECHAR;	// escape it for literal
+      localbuffer[b++] = *buffer++;
+    }
+  
+  localbuffer[b++] = FRAMECHAR;
+  localbuffer[b++] = 0;
+  
+  write_buffer (localbuffer, b);
 }
 
 
@@ -230,25 +236,21 @@ void Ser_WritePacket (char *buffer, int len)
 
 void Ser_NetISR (void)
 {
-        if (ser_doomcom.command == CMD_SEND)
+  if (ser_doomcom.command == CMD_SEND)
+    {
+      Ser_WritePacket ((char *)&ser_doomcom.data, ser_doomcom.datalength);
+    }
+  else if (ser_doomcom.command == CMD_GET)
+    {      
+      if (Ser_ReadPacket () && packetlen <= sizeof(ser_doomcom.data) )
 	{
-//I_ColorBlack (0,0,63);
-                Ser_WritePacket ((char *)&ser_doomcom.data, ser_doomcom.datalength);
+	  ser_doomcom.remotenode = 1;
+	  ser_doomcom.datalength = packetlen;
+	  memcpy (&ser_doomcom.data, &packet, packetlen);
 	}
-        else if (ser_doomcom.command == CMD_GET)
-	{
-//I_ColorBlack (63,63,0);
-
-                if (Ser_ReadPacket () && packetlen <= sizeof(ser_doomcom.data) )
-		{
-                        ser_doomcom.remotenode = 1;
-                        ser_doomcom.datalength = packetlen;
-                        memcpy (&ser_doomcom.data, &packet, packetlen);
-		}
-		else
-                        ser_doomcom.remotenode = -1;
-	}
-//I_ColorBlack (0,0,0);
+      else
+	ser_doomcom.remotenode = -1;
+    }
 }
 
 
@@ -265,62 +267,65 @@ void Ser_NetISR (void)
 
 void Ser_Connect (void)
 {
-        int             time;
-        int             oldsec;
-	int		localstage, remotestage;
-	char	str[20];
-
-//
-// wait for a good packet
-//
-        usermsg("");
-        usermsg("Attempting to connect across serial");
-        usermsg("link, press escape to abort.");
-        usermsg("");
-
-	oldsec = -1;
-	localstage = remotestage = 0;
-
-	do
+  int time;
+  int oldsec;
+  int localstage, remotestage;
+  char str[20];
+	
+  //
+  // wait for a good packet
+  //
+  
+  usermsg("");
+  usermsg("Attempting to connect across serial");
+  usermsg("link, press escape to abort.");
+  usermsg("");
+	
+  oldsec = -1;
+  localstage = remotestage = 0;
+  
+  do
+    {
+      if(CheckForEsc())
 	{
-                if(CheckForEsc())
-                {
-                        Ser_Error("connection aborted.");
-                        return;
-                }
-                while (Ser_ReadPacket ())
-		{
-			packet[packetlen] = 0;
-//                      printf ("read: %s",packet);
-			if (packetlen != 7)
-				goto badpacket;
-			if (strncmp(packet,"PLAY",4) )
-				goto badpacket;
-			remotestage = packet[6] - '0';
-			localstage = remotestage+1;
-                        if (packet[4] == '0'+ser_doomcom.consoleplayer)
-			{
-                                ser_doomcom.consoleplayer ^= 1;
-				localstage = remotestage = 0;
-			}
-			oldsec = -1;
-		}
-badpacket:
-
-                time = I_GetTime() / 35;
-                if (time != oldsec)
-		{
-                        oldsec = time;
-                        sprintf (str,"PLAY%i_%i",ser_doomcom.consoleplayer,localstage);
-                        Ser_WritePacket (str,strlen(str));
-		}
-
-	} while (remotestage < 1);
-
-//
-// flush out any extras
-//
-        while (Ser_ReadPacket ());
+	  Ser_Error("connection aborted.");
+	  return;
+	}
+      while (Ser_ReadPacket ())
+	{
+	  packet[packetlen] = 0;
+	  //                      printf ("read: %s",packet);
+	  if (packetlen != 7)
+	    goto badpacket;
+	  if (strncmp(packet,"PLAY",4) )
+	    goto badpacket;
+	  remotestage = packet[6] - '0';
+	  localstage = remotestage+1;
+	  if (packet[4] == '0'+ser_doomcom.consoleplayer)
+	    {
+	      ser_doomcom.consoleplayer ^= 1;
+	      localstage = remotestage = 0;
+	    }
+	  oldsec = -1;
+	}
+      
+    badpacket:
+      
+      time = I_GetTime() / 35;
+      if (time != oldsec)
+	{
+	  oldsec = time;
+	  sprintf (str,"PLAY%i_%i",ser_doomcom.consoleplayer,localstage);
+	  Ser_WritePacket (str,strlen(str));
+	}
+      
+    } while (remotestage < 1);
+	
+  //
+  // flush out any extras
+  //
+  
+  while (Ser_ReadPacket ());
 }
 
 
@@ -335,11 +340,11 @@ badpacket:
 
 void ModemCommand (char *str)
 {
-        if(!ser_active) return;         // aborted
-
-        usermsg ("%s",str);
-	write_buffer (str,strlen(str));
-	write_buffer ("\r",1);
+  if(!ser_active) return;         // aborted
+  
+  usermsg ("%s",str);
+  write_buffer (str,strlen(str));
+  write_buffer ("\r",1);
 }
 
 /*
@@ -353,13 +358,7 @@ void ModemCommand (char *str)
 
 void ModemClear ()
 {
-	int		c;
-
-        do
-        {
-              c = read_byte ();
-              if (c == -1) return;
-        } while (1);
+  while(read_byte() != -1);
 }
 
 
@@ -373,42 +372,41 @@ void ModemClear ()
 ==============
 */
 
-char	response[80];
+char response[80];
 
 void ModemResponse (char *resp)
 {
-	int		c;
-	int		respptr;
-
-        if(!ser_active) return;         // it has been aborted
-
-	do
+  int c;
+  int respptr;
+	
+  if(!ser_active) return;         // it has been aborted
+	
+  do
+    {
+      respptr=0;
+      do
 	{
-		respptr=0;
-		do
-		{
-                        if(CheckForEsc())
-                        {
-                                Ser_Error("modem response aborted.");
-                                return;
-                        }
-			c = read_byte ();
-			if (c==-1)
-				continue;
-			if (c=='\n' || respptr == 79)
-			{
-				response[respptr] = 0;
-                                usermsg(FC_GOLD"%s",response);
-				break;
-			}
-			if (c>=' ')
-			{
-				response[respptr] = c;
-				respptr++;
-			}
-		} while (1);
-
-	} while (strncmp(response,resp,strlen(resp)));
+	  if(CheckForEsc())
+	    {
+	      Ser_Error("modem response aborted.");
+	      return;
+	    }
+	  c = read_byte ();
+	  if (c==-1)
+	    continue;
+	  if (c == '\n' || respptr == 79)
+	    {
+	      response[respptr] = 0;
+	      usermsg(FC_GOLD"%s",response);
+	      break;
+	    }
+	  if (c >= ' ')
+	    {
+	      response[respptr] = c;
+	      respptr++;
+	    }
+	} while (1);
+    } while (strncmp(response,resp,strlen(resp)));
 }
 
 
@@ -422,18 +420,22 @@ void ModemResponse (char *resp)
 
 void ReadLine (FILE *f, char *dest)
 {
-	int	c;
-
-	do
+  int c;
+	
+  do
+    {
+      c = fgetc (f);
+      if (c == EOF)
 	{
-		c = fgetc (f);
-		if (c == EOF)
-                        Ser_Error ("EOF in modem.cfg");
-		if (c == '\r' || c == '\n')
-			break;
-		*dest++ = c;
-	} while (1);
-	*dest = 0;
+	  usermsg ("EOF in modem.cfg");
+	  return;
+	}
+      if (c == '\r' || c == '\n')
+	break;
+      *dest++ = c;
+    } while (1);
+  
+ *dest = 0;
 }
 
 
@@ -447,17 +449,30 @@ void ReadLine (FILE *f, char *dest)
 
 void InitModem (void)
 {
-	FILE	*f;
+  ModemCommand(startup);
+  ModemResponse ("OK");
+}
 
-	f = fopen ("modem.cfg","r");
-	if (!f)
-                Ser_Error ("Couldn't read MODEM.CFG");
-	ReadLine (f, startup);
-	ReadLine (f, shutdown);
-	fclose (f);
+//
+// Ser_Init
+//
+// Read cfg from modem.cfg
 
-	ModemCommand(startup);
-	ModemResponse ("OK");
+void Ser_Init()
+{
+  FILE	*f;
+  
+  f = fopen ("modem.cfg","r");
+  if (!f)
+    {
+      usermsg ("Couldn't read MODEM.CFG");
+      strcpy(startup, "atz");
+      strcpy(shutdown, "at z h0");
+      return;
+    }
+  ReadLine (f, startup);
+  ReadLine (f, shutdown);
+  fclose (f);
 }
 
 
@@ -471,26 +486,27 @@ void InitModem (void)
 
 void Dial (void)
 {
-	char	cmd[80];
-
-	usemodem = true;
-	InitModem ();
-
-        if(!ser_active) return; // aborted
-
-        usermsg ("");
-        usermsg ("Dialing...");
-        usermsg ("");
-
-        sprintf (cmd,"ATDT%s",phonenum);
-
-	ModemCommand(cmd);
-        ModemResponse ("CONNECT");
-        if(!ser_active) return; // aborted
-	if (strncmp (response+8,"9600",4) )
-                Ser_Error ("The Connection MUST be made at 9600 baud, no Error correction, no compression!\n"
-			   "Check your modem initialization string!");
-        ser_doomcom.consoleplayer = 1;
+  char cmd[80];
+  
+  usemodem = true;
+  InitModem ();
+  
+  if(!ser_active) return; // aborted
+  
+  usermsg ("");
+  usermsg ("Dialing...");
+  usermsg ("");
+  
+  sprintf (cmd,"ATDT%s",phonenum);
+  
+  ModemCommand(cmd);
+  ModemResponse ("CONNECT");
+  if(!ser_active) return; // aborted
+  if (strncmp (response+8,"9600",4) )
+    Ser_Error ("The Connection MUST be made at 9600\n"
+	       "baud, no Error correction, no compression!\n"
+	       "Check your modem initialization string!");
+  ser_doomcom.consoleplayer = 1;
 }
 
 
@@ -504,20 +520,20 @@ void Dial (void)
 
 void Answer (void)
 {
-	usemodem = true;
-	InitModem ();
-
-        if(!ser_active) return;         // aborted
-
-        usermsg ("");
-        usermsg ("Waiting for ring...");
-        usermsg ("");
-
-	ModemResponse ("RING");
-	ModemCommand ("ATA");
-        ModemResponse ("CONNECT");
-
-        ser_doomcom.consoleplayer = 0;
+  usemodem = true;
+  InitModem ();
+  
+  if(!ser_active) return;         // aborted
+  
+  usermsg ("");
+  usermsg ("Waiting for ring...");
+  usermsg ("");
+  
+  ModemResponse ("RING");
+  ModemCommand ("ATA");
+  ModemResponse ("CONNECT");
+  
+  ser_doomcom.consoleplayer = 0;
 }
 
 extern void    (*netget) (void);
@@ -533,76 +549,82 @@ extern void    (*netsend) (void);
 
 void Ser_Start()
 {
-        c_showprompt = false;
+  c_showprompt = false;
+  
+  C_SetConsole();
+  
+  ser_active = true;
+  usemodem = false;               // default usemodem to false
+  
+  //
+  // set network characteristics
+  //
+	
+  ser_doomcom.id = DOOMCOM_ID;
+  ser_doomcom.ticdup = 1;
+  ser_doomcom.extratics = 0;
+  ser_doomcom.numnodes = 2;
+  ser_doomcom.numplayers = 2;
+  ser_doomcom.drone = 0;
+  
+  doomcom = &ser_doomcom;
+  
+  usermsg("");
+  C_Seperator();
+  usermsg(FC_GRAY "smmu serial mode");
+  usermsg("");
+  
+  //
+  // establish communications
+  //
+  
+  InitPort ();
+  ModemClear();
 
-        C_SetConsole();
+  usermsg("hit escape to abort");
 
-        ser_active = true;
-        usemodem = false;               // default usemodem to false
-//
-// set network characteristics
-//
-        ser_doomcom.id = DOOMCOM_ID;
-        ser_doomcom.ticdup = 1;
-        ser_doomcom.extratics = 0;
-        ser_doomcom.numnodes = 2;
-        ser_doomcom.numplayers = 2;
-        ser_doomcom.drone = 0;
-
-        doomcom=&ser_doomcom;
-
-        usermsg("");
-        C_Seperator();
-        usermsg(FC_GRAY "smmu serial mode");
-        usermsg("");
-
-//
-// establish communications
-//
-	InitPort ();
-        ModemClear();
-
-        switch(connectmode)
-        {
-                case ANSWER:
-		Answer ();
-                break;
-
-                case DIAL:
-		Dial ();
-                break;
-
-                default:
-                break;
-        }
-
-        if(!ser_active) return; // aborted
-
-        Ser_Connect ();
-
-        if(!ser_active) return; // aborted
-
-        netdisconnect = Ser_Disconnect;
-        netget = Ser_NetISR;
-        netsend = Ser_NetISR;
-        netgame = true;
-
-        ResetNet();
-
-        D_InitNetGame();
-
-        ResetNet();
-
-        C_SendNetData();
-        if(!netgame) // aborted
-        {
-                Ser_Disconnect();
-                ResetNet();
-                return;
-        }
-        ResetNet();
-
-        M_ClearMenus();         // clear menus now connected
+  switch(connectmode)
+    {
+    case ANSWER:
+      Answer ();
+      break;
+      
+    case DIAL:
+      Dial ();
+      break;
+      
+    default:
+      break;
+    }
+  
+  if(!ser_active) return; // aborted
+  
+  Ser_Connect ();
+  
+  if(!ser_active) return; // aborted
+  
+  netdisconnect = Ser_Disconnect;
+  netget = Ser_NetISR;
+  netsend = Ser_NetISR;
+  netgame = true;
+  
+  ResetNet();
+  
+  D_InitNetGame();
+  
+  ResetNet();
+	
+  C_SendNetData();
+  
+  if(!netgame) // aborted
+    {
+      Ser_Disconnect();
+      ResetNet();
+      return;
+    }
+  ResetNet();
+  
+  MN_ClearMenus();         // clear menus now connected
 }
 
 extern event_t events[MAXEVENTS];
@@ -610,18 +632,18 @@ extern int eventhead, eventtail;
 
 int CheckForEsc()
 {
-    event_t *ev;
-    int escape=false;
-
-    I_StartTic (); 
-
-    for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
+  event_t *ev;
+  int escape=false;
+  
+  I_StartTic ();
+  
+  for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
     {
-        ev = events + eventtail;
-        if((ev->type==ev_keydown) && (ev->data1==KEYD_ESCAPE))
-                escape = true;
+      ev = events + eventtail;
+      if((ev->type==ev_keydown) && (ev->data1==KEYD_ESCAPE))
+	escape = true;
     }
-    return escape;
+  return escape;
 }
 
 /***************************
@@ -630,31 +652,31 @@ int CheckForEsc()
 
 VARIABLE_INT(comport, NULL,             1, 4, NULL);
 
-CONSOLE_COMMAND(nullmodem, cf_notnet)
+CONSOLE_COMMAND(nullmodem, cf_notnet | cf_buffered)
 {
-        connectmode = CONNECT;
-        Ser_Start();
+  connectmode = CONNECT;
+  Ser_Start();
 }
 
-CONSOLE_COMMAND(dial, cf_notnet)
+CONSOLE_COMMAND(dial, cf_notnet | cf_buffered)
 {
-        connectmode = DIAL;
-        strcpy(phonenum, c_args);
-        Ser_Start();
+  connectmode = DIAL;
+  strcpy(phonenum, c_args);
+  Ser_Start();
 }
 
-CONSOLE_COMMAND(answer, cf_notnet)
+CONSOLE_COMMAND(answer, cf_notnet | cf_buffered)
 {
-        connectmode = ANSWER;
-        Ser_Start();
+  connectmode = ANSWER;
+  Ser_Start();
 }
 
 CONSOLE_VARIABLE(com, comport, 0) {}
 
 void Ser_AddCommands()
 {
-        C_AddCommand(nullmodem);
-        C_AddCommand(dial);
-        C_AddCommand(com);
-        C_AddCommand(answer);
+  C_AddCommand(nullmodem);
+  C_AddCommand(dial);
+  C_AddCommand(com);
+  C_AddCommand(answer);
 }

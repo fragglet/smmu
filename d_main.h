@@ -52,6 +52,7 @@ extern boolean clfastparm; // checkparm of -fast
 extern boolean nosfxparm;
 extern boolean nomusicparm;
 
+extern int use_startmap;
 extern boolean redrawsbar, redrawborder;
 
 

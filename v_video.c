@@ -707,12 +707,13 @@ void V_DrawPatchTL(int x, int y, int scrn, patch_t *patch,
 {
   int col, w;
 
-  if(!general_translucency)
-  {
-        V_DrawPatchTranslated(x, y, scrn, patch, outr, 0);
-        return;
-  }
+  if(!outr) outr = cr_red;
 
+  if(!general_translucency)
+    {
+      V_DrawPatchTranslated(x, y, scrn, patch, outr, 0);
+      return;
+    }
 
   y -= SHORT(patch->topoffset);
   x -= SHORT(patch->leftoffset);

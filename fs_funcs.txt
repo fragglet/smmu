@@ -17,7 +17,7 @@ input()                 -- get input from the user (not implemented in doom)
 beep()                  -- make a beeping sound
 clock()                 -- get the current time (100 clocks = 1 second)
 wait(n)                 -- delay for n clocks
-startscript(scriptnum)  -- start off a new instance of a script                          
+startscript(scriptnum)  -- start off a new instance of a script
 
 //      player:         (some functions default to triggering player)
 //              eg. 
@@ -46,7 +46,7 @@ ceiltext                       -- as for floortext
 
 lightlevel(sectag) -- get lightlevel
 lightlevel(sectag, newval)     -- set lightlevel
-fadelight(sectag, newval, [speed]) -- fade lightlevel to new value                 
+fadelight(sectag, newval, [speed]) -- fade lightlevel to new value
 
 *special                       -- get/set special sector type
 *friction                      -- get/set sector friction

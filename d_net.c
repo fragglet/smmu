@@ -31,7 +31,7 @@ static const char rcsid[] =
 #include "d_englsh.h"
 #include "f_wipe.h"
 #include "m_random.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 #include "i_system.h"
 #include "i_video.h"
 #include "i_net.h"
@@ -162,7 +162,7 @@ void ResetNet()
      nettics[i] = resendto[i] = 0;
      remoteresend[i] = false; 
   }
-  netbuffer->starttic = 0;
+//  netbuffer->starttic = 0;
 }
 
 //
@@ -319,14 +319,16 @@ void GetPackets (void)
         continue;
       nodeingame[netnode] = false;
       playeringame[netconsole] = false;
-      dprintf ("%s left the game",players[netconsole].name);
+      doom_printf ("%s left the game",players[netconsole].name);
 
-        // sf: remove the players mobj
+      if(gamestate == GS_LEVEL)
+      {
+          // sf: remove the players mobj
                            // spawn teleport flash
-      P_SpawnMobj(players[netconsole].mo->x, players[netconsole].mo->y,
+         P_SpawnMobj(players[netconsole].mo->x, players[netconsole].mo->y,
                   players[netconsole].mo->z, MT_TFOG);
-      P_RemoveMobj(players[netconsole].mo);
-
+         P_RemoveMobj(players[netconsole].mo);
+      }
 
       if (demorecording)
         G_CheckDemoStatus ();
@@ -531,7 +533,7 @@ void D_InitPlayers (void)
 //
 void D_ArbitrateNetStart (void)
 {
-  int     i;
+  int     i, j;
   boolean gotinfo[MAXNETNODES];
   int     numgot = 0;
 
@@ -547,15 +549,31 @@ void D_ArbitrateNetStart (void)
 
      V_SetLoading(doomcom->numnodes, "players:");
      numgot = 0;
+
+        // send a packet to all nodes first to get replies going
+        // we don't want to overdo it though: too many packets
+        // will flood the other nodes who may still be in r_init
+
+     netbuffer->starttic = 0;
+     netbuffer->numtics = 0;
+     netbuffer->player = numgot; 
+     for(j=0; j<4; j++)
+       for(i=0; i<doomcom->numnodes; i++)
+         HSendPacket(i, NCMD_SETUP);
+
      while(1)
      {
         CheckAbort();
         netbuffer->starttic = 0;
+        netbuffer->numtics = 0;
         netbuffer->player = numgot;     // tell the other nodes how many
                                         // computers are ready to start
         // send packet to nodes
         for(i=0; i<doomcom->numnodes; i++)
+        {
+                if(!gotinfo[i]) continue;       // ignore nodes not ready
                 HSendPacket(i, NCMD_SETUP);
+        }
 
         while(HGetPacket())
         {
@@ -570,13 +588,16 @@ void D_ArbitrateNetStart (void)
         if(numgot == doomcom->numnodes) // got all players
         {
             netbuffer->starttic = 1;     // 'start'
+            netbuffer->numtics = 1;
             netbuffer->retransmitfrom = rngseed;
+
               // start the game
             for(i=0; i<doomcom->numnodes; i++)
             {
                    HSendPacket(i, NCMD_SETUP);
                    HSendPacket(i, NCMD_SETUP);
             }
+            C_Printf("%i\n", netbuffer->retransmitfrom);
 //            ResetNet();
             break;      // all done, start game now
         }
@@ -585,7 +606,7 @@ void D_ArbitrateNetStart (void)
   else
   {
      int waitingserver = true;     // waiting for server ?
-    
+
      usermsg("waiting for key player..");
      while(1)
      {
@@ -603,6 +624,7 @@ void D_ArbitrateNetStart (void)
 
            if(netbuffer->starttic)  // start the game, all players ready
            {
+              C_Printf("%i\n", netbuffer->retransmitfrom);
               rngseed = netbuffer->retransmitfrom;
 //              ResetNet();
               break;
@@ -610,13 +632,17 @@ void D_ArbitrateNetStart (void)
            V_LoadingSetTo(netbuffer->player);  // update loading box
 
                     // acknowledge key player: 'im here'
-           HSendPacket(doomcom->remotenode, NCMD_SETUP);
+           netbuffer->numtics = 0;
+           for(j=0; j<4; j++)
+              HSendPacket(doomcom->remotenode, NCMD_SETUP);
         }
      }
    }
    usermsg("random seed: %i", rngseed);
-
    D_InitPlayers();
+
+   // wait a bit
+   for(i=I_GetTime_RealTime()+20; I_GetTime_RealTime()<i;);
 }
 
 //
@@ -695,6 +721,7 @@ void D_QuitNetGame (void)
   // send a bunch of packets for security
   netbuffer->player = consoleplayer;
   netbuffer->numtics = 0;
+
   for (i=0 ; i<4 ; i++)
   {
     for (j=1 ; j<doomcom->numnodes ; j++)
@@ -908,7 +935,7 @@ void TryRunTics (void)
   for(i = 0; i<realtics; i++)   // run tics
   {
                 // all independent tickers here
-       M_Ticker ();
+       MN_Ticker ();
        C_Ticker ();
        V_FPSTicker();
   }

@@ -35,6 +35,11 @@ rcsid[] = "$Id: w_wad.c,v 1.20 1998/05/06 11:32:00 jim Exp $";
 // GLOBALS
 //
 
+// sf:
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 // Location of each lump on disk.
 lumpinfo_t **lumpinfo;  //sf : array of ptrs
 int        numlumps;         // killough
@@ -441,14 +446,10 @@ void W_AddPredefines()
 {
   int i;
 
-  numlumps = num_predefined_lumps;
+  // predefined lumps removed now
+  numlumps = 0;
 
-  lumpinfo = malloc(numlumps * sizeof(lumpinfo_t *));
-
-  for(i = 0; i < num_predefined_lumps; i++)
-  {
-        lumpinfo[i] = (lumpinfo_t *) &predefined_lumps[i];
-  }
+  lumpinfo = Z_Malloc(1, PU_STATIC, 0);
 }
 
 //

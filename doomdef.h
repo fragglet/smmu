@@ -258,6 +258,9 @@ typedef enum {
 #define KEYD_SPACEBAR   0x20
 // phares 3/2/98
 
+// sf: console key
+#define KEYD_CONSOLE    '`'
+
 #define KEYD_NUMLOCK    0xC5                 // killough 3/6/98
 
 // phares 4/19/98:
@@ -296,6 +299,12 @@ typedef enum {
                         && (s)[4] == 0 )
 #define isMAPxy(s) ( (s)[0] == 'M' && (s)[1] == 'A' && (s)[2] == 'P'   \
                 && isnumchar((s)[3]) && isnumchar((s)[4]) && !(s)[5] )  
+
+#ifndef DJGPP
+
+  #define stricmp strcasecmp
+  #define strnicmp strncasecmp
+#endif
 
 #endif          // __DOOMDEF__
 

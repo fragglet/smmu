@@ -37,9 +37,9 @@
 
 typedef enum
 {
-        bfg_normal,
-        bfg_classic,
-        bfg_11k
+  bfg_normal,
+  bfg_classic,
+  bfg_11k
 } bfg_t;
 
 // ------------------------

@@ -86,6 +86,7 @@ typedef struct
 	unsigned char	data[QUESIZE];
 } que_t;
 
+void Ser_Init();
 void Ser_Start();
 
 void InitPort (void);

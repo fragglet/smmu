@@ -29,7 +29,7 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 #include "doomstat.h"
 #include "m_argv.h"
 #include "g_game.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 #include "am_map.h"
 #include "w_wad.h"
 #include "i_system.h"
@@ -123,6 +123,8 @@ default_t defaults[] = {
     "selects default skill 1=TYTD 2=NTR 3=HMP 4=UV 5=NM"
   },
 
+#ifdef DJGPP
+
   { // jff 1/18/98 allow Allegro drivers to be set,  -1 = autodetect
     "sound_card",
     &snd_card, NULL,
@@ -137,20 +139,22 @@ default_t defaults[] = {
     "code used by Allegro to select music driver, -1 is autodetect"
   },
 
+#endif
+
   {
     "s_precache",
     &s_precache, NULL,
     0, {0,1}, dt_number, ss_gen, wad_no,
     "precache sounds at startup"
   },
-
+#ifdef DJGPP
   { // jff 3/4/98 detect # voices
     "detect_voices",
     &detect_voices, NULL,
     1, {0,1}, dt_number, ss_gen, wad_no,
     "1 enables voice detection prior to calling install sound"
   },
-
+#endif
   {
     "v_mode",
     &v_mode, NULL,
@@ -164,28 +168,28 @@ default_t defaults[] = {
     0, {0,1}, dt_number, ss_gen, wad_no,
     "start up SMMU in text mode"
   },
-
+#ifdef DJGPP
   {
     "use_vsync",
     &use_vsync, NULL,
     1, {0,1}, dt_number, ss_gen, wad_no,
     "1 to enable wait for vsync to avoid display tearing"
   },
-
+#endif
   {
     "realtic_clock_rate",
     &realtic_clock_rate, NULL,
     100, {10,1000}, dt_number, ss_gen, wad_no,
     "Percentage of normal speed (35 fps) realtic clock runs at"
   },
-
+#ifdef DJGPP
   { // killough 10/98
     "disk_icon",
     &disk_icon, NULL,
     1, {0,1}, dt_number, ss_gen, wad_no,
     "1 to enable flashing icon during disk IO"
   },
-
+#endif
   { // killough 2/21/98
     "pitched_sounds",
     &pitched_sounds, NULL,
@@ -483,6 +487,13 @@ default_t defaults[] = {
     (int *) &deh_files[1], NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "DEH/BEX file preloaded at program startup"
+  },
+
+  {
+    "use_startmap",
+    &use_startmap, NULL,
+    -1, {-1, 1}, dt_number, ss_comp, wad_yes,
+    "use start map instead of menu"
   },
 
   // killough 10/98: compatibility vector:
@@ -1928,7 +1939,7 @@ void M_LoadOptions(void)
     }
 
 //  M_Trans();           // reset translucency in case of change
-  M_ResetMenu();       // reset menu in case of change
+  MN_ResetMenu();       // reset menu in case of change
 }
 
 //
@@ -2354,7 +2365,7 @@ void M_ScreenShot (void)
   // players[consoleplayer].message = "screen shot"
 
   // killough 10/98: print error message and change sound effect if error
-  S_StartSound(NULL, !success ? dprintf(errno ? strerror(errno) :
+  S_StartSound(NULL, !success ? doom_printf(errno ? strerror(errno) :
 					"Could not take screenshot"), sfx_oof :
                sfx_tink);        // just tink, no radio
 				// tink is in doom2 too

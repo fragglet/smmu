@@ -32,102 +32,115 @@ static const char rcsid[] = "$Id: f_wipe.c,v 1.3 1998/05/03 22:11:24 killough Ex
 #include "m_random.h"
 #include "f_wipe.h"
 
-char *start_screen[MAX_SCREENWIDTH] = {0};  // array of pointers to the
-                                       // column data for 'superfast' melt
+// array of pointers to the
+// column data for 'superfast' melt
+char *start_screen[MAX_SCREENWIDTH] = {0};
+
+// worm y 
 int worms[MAX_SCREENWIDTH];
+
 #define wipe_scrheight (SCREENHEIGHT<<hires)
 #define wipe_scrwidth (SCREENWIDTH<<hires)
+
 int            wipe_speed = 12;
 boolean        inwipe = false;
-int            syncmove = 0;
+boolean        syncmove = false;
 int            starting_height;
 
 void Wipe_Initwipe()
 {
-        int x;
-
-        inwipe = true;
-
-        starting_height = current_height<<hires;       // use console height
-        for(x=0; x<wipe_scrwidth; x++)
-        {
-                worms[x] = starting_height;
-        }
-
-        syncmove = 0;
+  int x;
+  
+  inwipe = true;
+  
+  starting_height = current_height<<hires;       // use console height
+  
+  for(x=0; x<wipe_scrwidth; x++)
+    {
+      worms[x] = starting_height;
+    }
+  
+  syncmove = false;
 }
 
 void Wipe_StartScreen()
 {
-        Wipe_Initwipe();
-
-        if(!start_screen[0])
-        {
-              int x;
-              for(x=0;x<MAX_SCREENWIDTH;x++)
-                start_screen[x] = Z_Malloc(MAX_SCREENHEIGHT,PU_STATIC,0);
-        }
-
-        {
-                int x, y;
-                for(x=0; x<wipe_scrwidth; x++)
-                  for(y=0; y<wipe_scrheight-worms[x]; y++)
-                    *(start_screen[x] + y) =
-                        *(screens[0] + (y+worms[x]) * wipe_scrwidth + x);
-        }
-        return;
+  Wipe_Initwipe();
+  
+  if(!start_screen[0])
+    {
+      int x;
+      for(x=0;x<MAX_SCREENWIDTH;x++)
+	start_screen[x] = Z_Malloc(MAX_SCREENHEIGHT,PU_STATIC,0);
+    }
+  
+  {
+    int x, y;
+    for(x=0; x<wipe_scrwidth; x++)
+      for(y=0; y<wipe_scrheight-worms[x]; y++)
+	*(start_screen[x] + y) =
+	  *(screens[0] + (y+worms[x]) * wipe_scrwidth + x);
+  }
+  
+  return;
 }
 
 void Wipe_Drawer()
 {
-        int x;
-
-        for(x=0; x<wipe_scrwidth; x++)
-        {
-            char *dest;
-            char *src;
-            int y;
-
-            src = start_screen[x];
-            dest = screens[0] + wipe_scrwidth*worms[x] + x;
-
-            for(y=worms[x]; y<wipe_scrheight; y++)
-            {
-                  *dest = *src;
-                  dest += wipe_scrwidth; src++;
-            }
-        }
-        redrawsbar = true; // clean up status bar
+  int x;
+  
+  for(x=0; x<wipe_scrwidth; x++)
+    {
+      char *dest;
+      char *src;
+      int y;
+      
+      src = start_screen[x];
+      dest = screens[0] + wipe_scrwidth*worms[x] + x;
+      
+      for(y=worms[x]; y<wipe_scrheight; y++)
+	{
+	  *dest = *src;
+	  dest += wipe_scrwidth; src++;
+	}
+    }
+ 
+  redrawsbar = true; // clean up status bar
 }
 
 void Wipe_Ticker()
 {
-        int done, x;
-        int keepsyncmove = 0;
-        int moveamount = 0;
+  boolean done;
+  int x;
+  boolean keepsyncmove = false; // start moving random, then move together
+  int moveamount = 0;
+  
+  done = true;  // default to true
+  
+  for(x=0; x<wipe_scrwidth; x++)
+    {
+      moveamount += (M_Random()%5) - 2;
+      if(moveamount < 0) moveamount = 0;
+      
+      if(worms[x] < wipe_scrheight)
+	{                // move the worm down
+	  int dy;
+	  
+	  dy = syncmove ? 12 : moveamount;
+	  dy = (dy * wipe_speed) / 12;
 
-        done = 1;
+	  worms[x] += dy << hires;
 
-        for(x=0; x<wipe_scrwidth; x++)
-        {
-            moveamount += (M_Random()%5) - 2;
-            if(moveamount < 0) moveamount = 0;
-            
-            if(worms[x] < wipe_scrheight)
-            {                // move the worm down
-                int dy;
+	  // move together after a certain amount
+	  if(worms[x] > 20+starting_height) keepsyncmove = true; 
 
-                dy = syncmove ? 12 : moveamount;
-                dy = (dy * wipe_speed) / 12;
-
-                worms[x] += dy << hires;
-                if(worms[x] > 20+starting_height) keepsyncmove = 1;
-                done = 0;
-            }
-        }
-
-        if(done)
-                inwipe = false;
-        syncmove = keepsyncmove;
+	  done = false; // not yet finished
+	}
+    }
+  
+  if(done)
+    inwipe = false;
+  
+  syncmove = keepsyncmove;
 }
 

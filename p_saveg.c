@@ -146,7 +146,7 @@ void P_UnArchivePlayers (void)
         players[i].mo = NULL;
 //        players[i].message = NULL;
         players[i].attacker = NULL;
-        P_SetSkin(&marine, i);      // reset skin
+	players[i].skin = &marine;  // reset skin
 
         for (j=0 ; j<NUMPSPRITES ; j++)
           if (players[i]. psprites[j].state)

@@ -25,12 +25,12 @@
 
 static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough Exp $";
 
+#include <stdio.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <conio.h>
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -46,7 +46,7 @@ static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough E
 #include "f_wipe.h"
 #include "m_argv.h"
 #include "m_misc.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 #include "i_system.h"
 #include "i_sound.h"
 #include "i_video.h"
@@ -89,7 +89,8 @@ char **wadfiles;
 char *wad_files[MAXLOADFILES], *deh_files[MAXLOADFILES];
 
 int textmode_startup = 0;  // sf: textmode_startup for old-fashioned people
-boolean devparm;        // started game with -devparm
+int use_startmap = -1;     // default to -1 for asking in menu
+boolean devparm;           // started game with -devparm
 
 // jff 1/24/98 add new versions of these variables to remember command line
 boolean clnomonsters;   // checkparm of -nomonsters
@@ -179,7 +180,7 @@ void D_ProcessEvents (void)
   //     time soon =)
 //  if (gamemode != commercial || W_CheckNumForName("map01") >= 0)
     for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
-      if (!M_Responder(events+eventtail))
+      if (!MN_Responder(events+eventtail))
 	if(!C_Responder(events+eventtail))
 	  G_Responder(events+eventtail);
 }
@@ -213,11 +214,11 @@ void D_Display (void)
         // save the current screen if about to wipe
         // no melting consoles
   if (gamestate != wipegamestate && wipegamestate != GS_CONSOLE)
-  {
-    Wipe_StartScreen();
-  }
+    {
+      Wipe_StartScreen();
+    }
 
-  if (inwipe || c_moving)
+  if (inwipe || c_moving || menuactive)
     redrawsbar = redrawborder = true;   // redraw status bar and border
 
   switch (gamestate)                // do buffered drawing
@@ -277,7 +278,7 @@ void D_Display (void)
 
   C_Drawer();
   // menus go directly to the screen
-  M_Drawer();          // menu is drawn even on top of everything
+  MN_Drawer();         // menu is drawn even on top of everything
   NetUpdate();         // send out any new accumulation
 
     //sf : now system independent
@@ -331,8 +332,8 @@ void D_PageDrawer(void)
         int l = W_CheckNumForName(pagename);
         if(l == -1)
         {
-                M_DrawCredits();        // just draw the credits instead
-                return;
+            MN_DrawCredits();        // just draw the credits instead
+            return;
         }
 
         if(hires)               // check for original title screen
@@ -357,7 +358,7 @@ void D_PageDrawer(void)
         }
   }
   else
-        M_DrawCredits();
+        MN_DrawCredits();
 
    
 /*  {
@@ -1305,14 +1306,15 @@ void D_DoomMain(void)
       sidemove[0] = sidemove[0]*turbo_scale/100;
       sidemove[1] = sidemove[1]*turbo_scale/100;
     }
-
-    {
-        char filestr[128];
-                // get smmu.wad from the same directory as smmu.exe
-                // 25/10/99: use same name as exe
-        sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
-        D_AddFile(filestr);
-    }
+  
+  {
+    char filestr[128];
+    // get smmu.wad from the same directory as smmu.exe
+    // 25/10/99: use same name as exe
+    sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
+    D_AddFile(filestr);
+    D_AddFile("start.wad");
+  }
 
   modifiedgame = false;         // reset, ignoring smmu.wad etc.
 
@@ -1370,14 +1372,37 @@ void D_DoomMain(void)
       autostart = true;
     }
 
+        // sf: moved back timer code
   if ((p = M_CheckParm ("-timer")) && p < myargc-1 && deathmatch)
     {
       int time = atoi(myargv[p+1]);
+      extern int levelTimeLimit;
+
       usermsg("Levels will end after %d minute%s.\n", time, time>1 ? "s" : "");
+      levelTimeLimit = time;
+    }
+        // sf: moved from p_spec.c
+
+  // See if -frags has been used
+
+  p = M_CheckParm("-frags");
+  if (p && deathmatch)
+    {
+      int frags;
+      extern int levelFragLimit;
+
+      frags = atoi(myargv[p+1]);
+      if (frags <= 0) frags = 10;  // default 10 if no count provided
+      levelFragLimit = frags;
     }
 
   if ((p = M_CheckParm ("-avg")) && p < myargc-1 && deathmatch)
+  {
+    extern int levelTimeLimit;
+
+    levelTimeLimit = 20 * 60 * TICRATE;
     puts("Austin Virtual Gaming: Levels will end after 20 minutes");
+  }
 
   if (((p = M_CheckParm ("-warp")) ||      // killough 5/2/98
        (p = M_CheckParm ("-wart"))) && p < myargc-1)
@@ -1504,8 +1529,8 @@ void D_DoomMain(void)
   startupmsg("ST_Init","Init status bar.");
   ST_Init();
 
-  startupmsg("M_Init","Init miscellaneous info.");
-  M_Init();
+  startupmsg("MN_Init","Init menu.");
+  MN_Init();
 
   startupmsg("T_Init", "Init FraggleScript.");
   T_Init();
@@ -1519,7 +1544,7 @@ void D_DoomMain(void)
   if(devparm)   // we wait if in devparm so the user can see the messages
   {
         printf("devparm: press a key..\n");
-        getch();
+        getchar();
   }
 
  /****************** Must be in graphics mode by now! *********************/
@@ -1627,6 +1652,8 @@ void D_DoomMain(void)
           C_Update();
 
   DEBUGMSG("start main loop\n");
+
+  oldgamestate = wipegamestate = gamestate;
 
   while(1)
     {

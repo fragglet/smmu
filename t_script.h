@@ -1,3 +1,7 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+
 #ifndef __T_SCRIPT_H__
 #define __T_SCRIPT_H__
 
@@ -8,17 +12,17 @@ typedef struct runningscript_s runningscript_t;
 
 struct runningscript_s
 {
-        script_t *script;
-
-                // where we are
-        char *savepoint;
-        int timer;      // delay time remaining
-
-                // saved variables
-        svariable_t *variables[VARIABLESLOTS];
-
-        runningscript_t *prev, *next;  // for chain
-        mobj_t *trigger;
+  script_t *script;
+  
+  // where we are
+  char *savepoint;
+  int timer;      // delay time remaining
+	
+  // saved variables
+  svariable_t *variables[VARIABLESLOTS];
+  
+  runningscript_t *prev, *next;  // for chain
+  mobj_t *trigger;
 };
 
 void T_Init();

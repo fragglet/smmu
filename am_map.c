@@ -23,10 +23,12 @@ static const char rcsid[] =
   "$Id: am_map.c,v 1.24 1998/05/10 12:05:24 jim Exp $";
 
 #include "doomstat.h"
+#include "d_main.h"
 #include "st_stuff.h"
 #include "r_main.h"
 #include "p_setup.h"
 #include "p_maputl.h"
+#include "r_draw.h"
 #include "w_wad.h"
 #include "v_video.h"
 #include "p_spec.h"
@@ -597,6 +599,7 @@ void AM_Stop (void)
   automapactive = false;
   ST_Responder(&st_notify);
   stopped = true;
+  redrawsbar = redrawborder = true;  // sf: need redraw
 }
 
 //
@@ -615,6 +618,7 @@ void AM_Start()
 
   if (!stopped)
     AM_Stop();
+  redrawsbar = redrawborder = true;  // sf: redraw needed
   stopped = false;
   if (lastlevel != gamemap || lastepisode != gameepisode || hires!=last_hires)
   {
@@ -735,25 +739,25 @@ boolean AM_Responder
       followplayer = !followplayer;
       f_oldloc.x = MAXINT;
       // Ty 03/27/98 - externalized
-      dprintf(followplayer ? s_AMSTR_FOLLOWON : s_AMSTR_FOLLOWOFF);
+      doom_printf(followplayer ? s_AMSTR_FOLLOWON : s_AMSTR_FOLLOWOFF);
     }
     else if (ch == key_map_grid)
     {
       automap_grid = !automap_grid;      // killough 2/28/98
       // Ty 03/27/98 - *not* externalized
-      dprintf(automap_grid ? s_AMSTR_GRIDON : s_AMSTR_GRIDOFF);
+      doom_printf(automap_grid ? s_AMSTR_GRIDON : s_AMSTR_GRIDOFF);
     }
     else if (ch == key_map_mark)
     {
       // Ty 03/27/98 - *not* externalized     
         // sf: fixed this (buffer at start, presumably from an old sprintf
-      dprintf("%s %d", s_AMSTR_MARKEDSPOT, markpointnum);
+      doom_printf("%s %d", s_AMSTR_MARKEDSPOT, markpointnum);
       AM_addMark();
     }
     else if (ch == key_map_clear)
     {
       AM_clearMarks();  // Ty 03/27/98 - *not* externalized
-      dprintf(s_AMSTR_MARKSCLEARED);                            //    ^
+      doom_printf(s_AMSTR_MARKSCLEARED);                            //    ^
     }                                                           //    |
     else                                                        // phares
     {
@@ -1574,7 +1578,18 @@ void AM_drawPlayers(void)
     if (p->powers[pw_invisibility])
       color = 246; // *close* to black
     else
-      color = mapcolor_plyr[their_color];   //jff 1/6/98 use default color
+      {
+	// sf: extended colour range
+#define GREEN 112
+	if(their_color == 0)
+	  {
+	    color = GREEN;
+	  }
+	else
+	  {
+	    color = translationtables[(their_color-1) * 256 + GREEN];
+	  }
+      }
 
     AM_drawLineCharacter
     (

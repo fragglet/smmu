@@ -1,9 +1,13 @@
-/******** I_INPUT.C ********/
-
+// Emacs style mode select -*- C++ -*-
+//-----------------------------------------------------------------------------
+//
 // sf: used to be in i_video.c
+//
 // this is all the code to interface with the controllers(keyboard, mouse,
 // joystick etc). I didn't think it really fell under the 'video'
 // category =).
+//
+//-----------------------------------------------------------------------------
 
 #include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
@@ -24,7 +28,7 @@
 #include "../w_wad.h"
 #include "../r_draw.h"
 #include "../am_map.h"
-#include "../m_menu.h"
+#include "../mn_engin.h"
 #include "../wi_stuff.h"
 #include "../i_system.h"
 

@@ -1,5 +1,5 @@
-/***************************** FraggleScript ******************************/
-                // Copyright(C) 1999 Simon Howard 'Fraggle' //
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
 //
 // Preprocessor.
 //
@@ -10,10 +10,14 @@
 //      3: 'dry' runs the script: goes thru each statement and
 //         sets the types of all the section_t's in the script
 //      4: Saves locations of all goto() labels
-
+//
 // the system of section_t's is pretty horrible really, but it works
 // and its probably the only way i can think of of saving scripts
 // half-way thru running
+//
+// By Simon Howard
+//
+//---------------------------------------------------------------------------
 
 /* includes ************************/
 
@@ -29,16 +33,17 @@
 #include "t_vari.h"
 #include "t_func.h"
 
-        // clear the script: section and variable slots
+// clear the script: section and variable slots
+
 void clear_script()
 {
-        int i;
-
-        for(i=0; i<SECTIONSLOTS; i++)
-                current_script->sections[i] = NULL;
-
-        for(i=0; i<VARIABLESLOTS; i++)
-                current_script->variables[i] = NULL;
+  int i;
+  
+  for(i=0; i<SECTIONSLOTS; i++)
+    current_script->sections[i] = NULL;
+  
+  for(i=0; i<VARIABLESLOTS; i++)
+    current_script->variables[i] = NULL;
 }
 
 /*********** {} sections *************/
@@ -50,71 +55,72 @@ void clear_script()
 // and finding them from a given offset.
 
 #define section_hash(b)           \
-        ( (int)((b)-current_script->data) % SECTIONSLOTS)
+       ( (int) ( (b) - current_script->data) % SECTIONSLOTS)
 
 section_t *new_section(char *brace)
 {
-        int n;
-        section_t *newsec;
-
-                // create section
-                // make level so its cleared at start of new level
-        newsec = Z_Malloc(sizeof(section_t), PU_LEVEL, 0);
-        newsec->start = brace;
-
-        // hook it into the hashchain
-
-        n = section_hash(brace);
-        newsec->next = current_script->sections[n];
-        current_script->sections[n] = newsec;
-
-        return newsec;
+  int n;
+  section_t *newsec;
+  
+  // create section
+  // make level so its cleared at start of new level
+  
+  newsec = Z_Malloc(sizeof(section_t), PU_LEVEL, 0);
+  newsec->start = brace;
+  
+  // hook it into the hashchain
+  
+  n = section_hash(brace);
+  newsec->next = current_script->sections[n];
+  current_script->sections[n] = newsec;
+  
+  return newsec;
 }
 
         // find a section_t from the location of the starting { brace
 section_t *find_section_start(char *brace)
 {
-        int n = section_hash(brace);
-        section_t *current;
-
-        current = current_script->sections[n];
-
-        // use the hash table: check the appropriate hash chain
-
-        while(current)
-        {
-                if(current->start == brace)
-                        return current;
-                current = current->next;
-        }
-
-        return NULL;    // not found
+  int n = section_hash(brace);
+  section_t *current;
+  
+  current = current_script->sections[n];
+  
+  // use the hash table: check the appropriate hash chain
+  
+  while(current)
+    {
+      if(current->start == brace)
+	return current;
+      current = current->next;
+    }
+  
+  return NULL;    // not found
 }
 
         // find a section_t from the location of the ending } brace
 section_t *find_section_end(char *brace)
 {
-        int n;
-
-        // hash table is no use, they are hashed according to
-        // the offset of the starting brace
-
-        // we have to go through every entry to find from the
-        // ending brace
-
-        for(n=0; n<SECTIONSLOTS; n++)      // check all sections in all chains
-        {
-          section_t *current = current_script->sections[n];
-
-          while(current)
-          {
-             if(current->end == brace)
-                 return current;        // found it
-             current = current->next;
-          }
-        }
-
-        return NULL;    // not found
+  int n;
+  
+  // hash table is no use, they are hashed according to
+  // the offset of the starting brace
+  
+  // we have to go through every entry to find from the
+  // ending brace
+  
+  for(n=0; n<SECTIONSLOTS; n++)      // check all sections in all chains
+    {
+      section_t *current = current_script->sections[n];
+      
+      while(current)
+	{
+	  if(current->end == brace)
+	    return current;        // found it
+	  current = current->next;
+	}
+    }
+  
+  return NULL;    // not found
 }
 
 /********** labels ****************/
@@ -134,170 +140,175 @@ section_t *find_section_end(char *brace)
         // create a new label. pass the location inside the script
 svariable_t *new_label(char *labelptr)
 {
-        svariable_t *newlabel;   // labels are stored as variables
-        char labelname[128];
-        char *temp, *temp2;
-
-                // copy the label name from the script up to ':'
-        for(temp=labelptr, temp2 = labelname; *temp!=':'; temp++, temp2++)
-                *temp2 = *temp;
-        *temp2 = NULL;  // end string in null
-
-        newlabel = new_variable(current_script, labelname, svt_label);
-
-        // put neccesary data in the label
-
-        newlabel->value.labelptr = labelptr;
-
-        return newlabel;
+  svariable_t *newlabel;   // labels are stored as variables
+  char labelname[128];
+  char *temp, *temp2;
+  
+  // copy the label name from the script up to ':'
+  for(temp=labelptr, temp2 = labelname; *temp!=':'; temp++, temp2++)
+    *temp2 = *temp;
+  *temp2 = NULL;  // end string in null
+  
+  newlabel = new_variable(current_script, labelname, svt_label);
+  
+  // put neccesary data in the label
+  
+  newlabel->value.labelptr = labelptr;
+  
+  return newlabel;
 }
 
 /*********** main loop **************/
 
-        // This works by recursion. when a { opening
-        // brace is found, another instance of the
-        // function is called for the data inside
-        // the {} section.
-        // At the same time, the sections are noted
-        // down and hashed. Goto() labels are noted
-        // down, and comments are blanked out
+// This works by recursion. when a { opening
+// brace is found, another instance of the
+// function is called for the data inside
+// the {} section.
+// At the same time, the sections are noted
+// down and hashed. Goto() labels are noted
+// down, and comments are blanked out
 
 char *process_find_char(char *data, char find)
 {
-        while(*data)
-        {
-                if(*data==find) return data;
-                if(*data=='\"')       // found a quote: ignore stuff in it
-                {
-                        data++;
-                        while(*data && *data != '\"')
-                        {
-                                        // escape sequence ?
-                                if(*data=='\\') data++;
-                                data++;
-                        }
-                              // error: end of script in a constant
-                        if(!*data) return NULL;
-                }
-                        // comments: blank out
-                if(*data=='/' && *(data+1)=='*')        // /* -- */ comment
-                {
-                        while(*data && (*data != '*' || *(data+1) != '/') )
-                        {
-                                *data=' '; data++;
-                        }
-                        if(*data)
-                          *data = *(data+1) = ' ';   // blank the last bit
-                        else
-                        {
-                          rover = data;
-                          // script terminated in comment
-                          script_error("script terminated inside comment\n");
-                        }
-                }
-                if(*data=='/' && *(data+1)=='/')        // // -- comment
-                        while(*data != '\n')
-                        {
-                                *data=' '; data++;       // blank out
-                        }
-                if(*data==':'  // ':' -- a label
-                   && current_script->scriptnum != -1)   // not levelscript
-                {
-                        char *labelptr = data-1;
+  while(*data)
+    {
+      if(*data==find) return data;
+      if(*data=='\"')       // found a quote: ignore stuff in it
+	{
+	  data++;
+	  while(*data && *data != '\"')
+	    {
+	      // escape sequence ?
+	      if(*data=='\\') data++;
+	      data++;
+	    }
+	  // error: end of script in a constant
+	  if(!*data) return NULL;
+	}
 
-                        while(!isop(*labelptr)) labelptr--;
-                        new_label(labelptr+1);
-                }
-                
-                if(*data=='{')  // { -- } sections: add 'em
-                {
-                        section_t *newsec = new_section(data);
+      // comments: blank out
 
-                        newsec->type = st_empty;
-                                // find the ending } and save
-                        newsec->end = process_find_char(data+1, '}');
-                        if(!newsec->end)
-                        {                // brace not found
-                                rover = data;
-                                script_error("section error: no ending brace\n");
-                                return NULL;
-                        }
-                                // continue from the end of the section
-                        data = newsec->end;
-                }
-                data++;
-        }
-        return NULL;
+      if(*data=='/' && *(data+1)=='*')        // /* -- */ comment
+	{
+	  while(*data && (*data != '*' || *(data+1) != '/') )
+	    {
+	      *data=' '; data++;
+	    }
+	  if(*data)
+	    *data = *(data+1) = ' ';   // blank the last bit
+	  else
+	    {
+	      rover = data;
+	      // script terminated in comment
+	      script_error("script terminated inside comment\n");
+	    }
+	}
+      if(*data=='/' && *(data+1)=='/')        // // -- comment
+	while(*data != '\n')
+	  {
+	    *data=' '; data++;       // blank out
+	  }
+
+      // labels
+
+      if(*data==':'  // ':' -- a label
+	 && current_script->scriptnum != -1)   // not levelscript
+	{
+	  char *labelptr = data-1;
+	  
+	  while(!isop(*labelptr)) labelptr--;
+	  new_label(labelptr+1);
+	}
+      
+      if(*data=='{')  // { -- } sections: add 'em
+	{
+	  section_t *newsec = new_section(data);
+	  
+	  newsec->type = st_empty;
+	  // find the ending } and save
+	  newsec->end = process_find_char(data+1, '}');
+	  if(!newsec->end)
+	    {                // brace not found
+	      rover = data;
+	      script_error("section error: no ending brace\n");
+	      return NULL;
+	    }
+	  // continue from the end of the section
+	  data = newsec->end;
+	}
+      data++;
+    }
+
+  return NULL;
 }
 
 
 /*********** second stage parsing ************/
 
-        // second stage preprocessing considers the script
-        // in terms of tokens rather than as plain data.
-        //
-        // we 'dry' run the script: go thru each statement and
-        // collect types for section_t
-        //
-        // this is an important thing to do, it cannot be done
-        // at runtime for 2 reasons:
-        //      1. gotos() jumping inside loops will pass thru
-        //         the end of the loop
-        //      2. savegames. loading a script saved inside a
-        //         loop will let it pass thru the loop
-        //
-        // this is basically a cut-down version of the normal
-        // parsing loop.
+// second stage preprocessing considers the script
+// in terms of tokens rather than as plain data.
+//
+// we 'dry' run the script: go thru each statement and
+// collect types for section_t
+//
+// this is an important thing to do, it cannot be done
+// at runtime for 2 reasons:
+//      1. gotos() jumping inside loops will pass thru
+//         the end of the loop
+//      2. savegames. loading a script saved inside a
+//         loop will let it pass thru the loop
+//
+// this is basically a cut-down version of the normal
+// parsing loop.
 
 void get_tokens(char *);         // t_parse.c
 
 void dry_run_script()
 {
-                // save some stuff
-        char *old_rover = rover;
-        section_t *old_current_section = current_section;
-
-        char *end = current_script->data + current_script->len;
-        char *token_alloc;
-
-        killscript = false;
-
-                // allocate space for the tokens
-        token_alloc = Z_Malloc(current_script->len + T_MAXTOKENS, PU_STATIC, 0);
-
-        rover = current_script->data;
-
-        while(rover < end && *rover)
-        {
-                tokens[0] = token_alloc;
-                get_tokens(rover);
-
-                if(killscript) break;
-                if(!num_tokens) continue;
-
-                if(current_section && tokentype[0] == function)
-                {
-                        if(!strcmp(tokens[0], "if"))
-                        {
-                            current_section->type = st_if;
-                            continue;
-                        }
-                        else if(!strcmp(tokens[0], "while") 
-                             || !strcmp(tokens[0], "for"))
-                        {
-                            current_section->type = st_loop;
-                            current_section->data.data_loop.loopstart
-                                = linestart;
-                            continue;
-                        }
-                } 
-        }
-
-        Z_Free(token_alloc);
-
-                // restore stuff
-        current_section = old_current_section;
-        rover = old_rover;
+  // save some stuff
+  char *old_rover = rover;
+  section_t *old_current_section = current_section;
+  
+  char *end = current_script->data + current_script->len;
+  char *token_alloc;
+  
+  killscript = false;
+  
+  // allocate space for the tokens
+  token_alloc = Z_Malloc(current_script->len + T_MAXTOKENS, PU_STATIC, 0);
+  
+  rover = current_script->data;
+  
+  while(rover < end && *rover)
+    {
+      tokens[0] = token_alloc;
+      get_tokens(rover);
+      
+      if(killscript) break;
+      if(!num_tokens) continue;
+      
+      if(current_section && tokentype[0] == function)
+	{
+	  if(!strcmp(tokens[0], "if"))
+	    {
+	      current_section->type = st_if;
+	      continue;
+	    }
+	  else if(!strcmp(tokens[0], "while") ||
+		  !strcmp(tokens[0], "for"))
+	    {
+	      current_section->type = st_loop;
+	      current_section->data.data_loop.loopstart = linestart;
+	      continue;
+	    }
+	} 
+    }
+  
+  Z_Free(token_alloc);
+  
+  // restore stuff
+  current_section = old_current_section;
+  rover = old_rover;
 }
 
 /***************** main preprocess function ******************/
@@ -307,20 +318,21 @@ void dry_run_script()
 
 void preprocess(script_t *script)
 {
-        if(debugfile) fprintf(debugfile,"  preprocess script %i\n", script->scriptnum);
-
-        current_script = script;
-        script->len = strlen(script->data);
-
-        clear_script();
-
-        DEBUGMSG("    run thru script\n");
-
-        process_find_char(script->data, NULL);  // fill in everything
-
-        DEBUGMSG("    dry run script\n");
-
-        dry_run_script();
+  if(debugfile)
+    fprintf(debugfile,"  preprocess script %i\n", script->scriptnum);
+  
+  current_script = script;
+  script->len = strlen(script->data);
+  
+  clear_script();
+  
+  DEBUGMSG("    run thru script\n");
+  
+  process_find_char(script->data, NULL);  // fill in everything
+  
+  DEBUGMSG("    dry run script\n");
+  
+  dry_run_script();
 }
 
 /************ includes ******************/
@@ -333,37 +345,40 @@ void preprocess(script_t *script)
 
 void parse_data(char *data, char *end); // t_parse.c
 
-        // parse an 'include' lump
+// parse an 'include' lump
+
 void parse_include(char *lumpname)
 {
-        int lumpnum;
-        char *lump, *end;
-        char *saved_rover;
-
-        if(-1 == (lumpnum = W_GetNumForName(lumpname)) )
-        {
-               script_error("include lump '%s' not found!\n", lumpname);
-               return;
-        }
-
-        lump = W_CacheLumpNum(lumpnum, PU_STATIC);
-
-                // realloc bigger for NULL at end
-        lump = Z_Realloc(lump, W_LumpLength(lumpnum)+10, PU_STATIC, NULL);
-
-        saved_rover = rover;    // save rover during include
-        rover = lump; end = lump+W_LumpLength(lumpnum);
-        *end = 0;
-
-                // preprocess the include
-        process_find_char(lump, NULL);
-
-                // now parse the lump
-        parse_data(lump, end);
-
-        // restore rover
-        rover = saved_rover;
-
-        // free the lump
-        Z_Free(lump);
+  int lumpnum;
+  char *lump, *end;
+  char *saved_rover;
+  
+  if(-1 == (lumpnum = W_GetNumForName(lumpname)) )
+    {
+      script_error("include lump '%s' not found!\n", lumpname);
+      return;
+    }
+  
+  lump = W_CacheLumpNum(lumpnum, PU_STATIC);
+  
+  // realloc bigger for NULL at end
+  lump = Z_Realloc(lump, W_LumpLength(lumpnum)+10, PU_STATIC, NULL);
+  
+  saved_rover = rover;    // save rover during include
+  rover = lump; end = lump+W_LumpLength(lumpnum);
+  *end = 0;
+  
+  // preprocess the include
+  // we assume that it does not include sections or labels or 
+  // other nasty things
+  process_find_char(lump, NULL);
+  
+  // now parse the lump
+  parse_data(lump, end);
+  
+  // restore rover
+  rover = saved_rover;
+  
+  // free the lump
+  Z_Free(lump);
 }

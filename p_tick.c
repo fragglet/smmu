@@ -256,7 +256,7 @@ void P_Ticker (void)
         // activated and viewz is reset appropriately here.
 
   if(reset_viewz && gamestate == GS_LEVEL)
-      P_CalcHeight (players+displayplayer); // Determines view height and bobbing
+      P_CalcHeight (&players[displayplayer]); // Determines view height and bobbing
 
   T_DelayedScripts();
 }

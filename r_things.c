@@ -367,7 +367,9 @@ void R_DrawVisSprite(vissprite_t *vis, int x1, int x2)
   // killough 4/11/98: rearrange and handle translucent sprites
   // mixed with translucent/non-translucent 2s normals
 
-  if (!dc_colormap)   // NULL colormap = shadow draw
+        // sf: shadow draw now done by mobj flags, not a null colormap
+
+  if (vis->mobjflags & MF_SHADOW)   // shadow draw
   {
     colfunc = R_DrawFuzzColumn;    // killough 3/14/98
   }
@@ -560,8 +562,8 @@ void R_ProjectSprite (mobj_t* thing)
   vis->patch = lump;
 
   // get light level
-  if (thing->flags & MF_SHADOW)
-    vis->colormap = NULL;               // shadow draw
+  if (thing->flags & MF_SHADOW)     // sf
+    vis->colormap = colormaps[0];
   else if (fixedcolormap)
     vis->colormap = fixedcolormap;      // fixed map
   else if (thing->frame & FF_FULLBRIGHT)
@@ -683,7 +685,7 @@ void R_DrawPSprite (pspdef_t *psp)
   vis->x1 = x1 < 0 ? 0 : x1;
   vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;
   vis->scale = pspritescale;
-  vis->colour = 0;      // default colourmap
+  vis->colour = 0;      // sf: default colourmap
 
   if (flip)
     {
@@ -702,9 +704,12 @@ void R_DrawPSprite (pspdef_t *psp)
   vis->patch = lump;
 
   if (viewplayer->powers[pw_invisibility] > 4*32
-      || viewplayer->powers[pw_invisibility] & 8)
-
-    vis->colormap = NULL;                    // shadow draw
+   || viewplayer->powers[pw_invisibility] & 8)
+  {
+           // sf: shadow draw now detected by flags
+     vis->mobjflags |= MF_SHADOW;                    // shadow draw
+     vis->colormap = colormaps[0];
+  }
   else if (fixedcolormap)
     vis->colormap = fixedcolormap;           // fixed color
   else if (psp->state->frame & FF_FULLBRIGHT)
@@ -712,7 +717,7 @@ void R_DrawPSprite (pspdef_t *psp)
   else
     vis->colormap = spritelights[MAXLIGHTSCALE-1];  // local light
 
-  if(vis->colormap!=NULL && psp->trans) // translucent gunflash
+  if(psp->trans) // translucent gunflash
     vis->mobjflags |= MF_TRANSLUCENT;
 
   if(viewplayer->readyweapon == wp_bfg && bfglook==2)
@@ -741,7 +746,6 @@ void R_DrawPlayerSprites(void)
   pspdef_t *psp;
   sector_t tmpsec;
   int floorlightlevel, ceilinglightlevel;
-  int a, b;
 
         // sf: psprite switch
   if(!showpsprites || viewcamera) return;
@@ -753,7 +757,7 @@ void R_DrawPlayerSprites(void)
   // (see r_bsp.c for similar calculations for non-player sprites)
 
   R_FakeFlat(viewplayer->mo->subsector->sector, &tmpsec,
-             &floorlightlevel, &ceilinglightlevel, NULL);
+             &floorlightlevel, &ceilinglightlevel, 0);
   lightnum = ((floorlightlevel+ceilinglightlevel) >> (LIGHTSEGSHIFT+1))
     + extralight;
 
@@ -764,15 +768,9 @@ void R_DrawPlayerSprites(void)
   else
     spritelights = scalelight[lightnum];
 
-  a = viewheight;
-
-  b = R_Pspriteclip();
-//  dprintf("%i",b);
-  a -= b;  
-
   for(i=0;i<viewwidth;i++)
   {
-    pscreenheightarray[i] = a;
+    pscreenheightarray[i] = viewheight;
   }
 
   // clip to screen bounds

@@ -232,6 +232,10 @@ void I_Init(void)
   }
 
   I_CheckVESA();
+
+  // get modem cfg
+
+  Ser_Init();
 }
 
 //

@@ -14,11 +14,11 @@ DEPENDENCIES = 1
 
 # select platform here:
 DJGPPDOS=1
-# LINUX=1
+#LINUX=1
 
 ifdef DJGPPDOS
         
-	PLATFORM = DJGPP
+	PLATFORM = djgpp
         # compiler
 	CC = gcc
         
@@ -68,7 +68,7 @@ endif
 
 # nb. linux support not yet finished :(
 ifdef LINUX
-	PLATFORM = LINUX
+	PLATFORM = linux
         # compiler
 	CC = gcc
         
@@ -97,7 +97,7 @@ ifdef LINUX
         # -s
         
         # libraries to link in
-        LIBS = 
+        LIBS = -lm -lvga
         
         # this selects flags based on debug and release tagets
         CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
@@ -114,7 +114,6 @@ endif
 OBJS=   \
 	$(PLATOBJS)	    \
 	$(O)/p_info.o	    \
-	$(O)/lumps.o        \
 	$(O)/c_cmd.o	    \
 	$(O)/c_io.o	    \
 	$(O)/c_runcmd.o	    \
@@ -136,19 +135,23 @@ OBJS=   \
         $(O)/d_items.o      \
         $(O)/g_game.o       \
 	$(O)/g_cmd.o        \
-        $(O)/m_menu.o       \
+        $(O)/mn_menus.o     \
+	$(O)/mn_engin.o	    \
+	$(O)/mn_misc.o      \
         $(O)/m_misc.o       \
         $(O)/m_argv.o       \
         $(O)/m_bbox.o       \
         $(O)/m_cheat.o      \
         $(O)/m_random.o     \
         $(O)/am_map.o       \
+	$(O)/am_color.o     \
         $(O)/p_ceilng.o     \
 	$(O)/p_chase.o	    \
 	$(O)/p_cmd.o	    \
         $(O)/p_doors.o      \
         $(O)/p_enemy.o      \
         $(O)/p_floor.o      \
+	$(O)/p_hubs.o       \
         $(O)/p_inter.o      \
         $(O)/p_lights.o     \
         $(O)/p_map.o        \
@@ -226,7 +229,6 @@ clean:
 
 $(O)/$(EXE): $(OBJS) $(O)/version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/version.o -o $@ $(LIBS)
-	$(RM) $(O)/version.o
 
 $(O)/%.o:   %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -248,6 +250,9 @@ $(OBJS): z_zone.h
 # dependencies currently broken :(
 ifdef DEPENDENCIES
 
+# rebuild version.c if anything changes
+$(O)/version.o: version.c $(OBJS)
+
 $(O)/doomdef.o: doomdef.c doomdef.h z_zone.h m_swap.h version.h
 
 $(O)/doomstat.o: doomstat.c doomstat.h doomdata.h doomtype.h d_net.h \
@@ -265,7 +270,7 @@ $(O)/i_system.o: $(PLATFORM)/i_system.c i_system.h d_ticcmd.h doomtype.h \
 $(O)/i_sound.o: $(PLATFORM)/i_sound.c z_zone.h doomstat.h doomdata.h \
  doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
- i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h DJGPP/mmus2mid.h \
+ i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h djgpp/mmus2mid.h \
  i_sound.h sounds.h w_wad.h g_game.h d_event.h d_main.h s_sound.h
 
 $(O)/i_video.o: $(PLATFORM)/i_video.c z_zone.h doomstat.h doomdata.h \
@@ -273,9 +278,10 @@ $(O)/i_video.o: $(PLATFORM)/i_video.c z_zone.h doomstat.h doomdata.h \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h v_video.h \
  r_data.h r_defs.h r_state.h d_main.h d_event.h st_stuff.h m_argv.h w_wad.h \
- sounds.h s_sound.h r_draw.h am_map.h m_menu.h wi_stuff.h
+ sounds.h s_sound.h r_draw.h am_map.h mn_engin.h wi_stuff.h
 
-$(O)/i_net.o: $(PLATFORM)/i_net.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
+$(O)/i_net.o: $(PLATFORM)/i_net.c z_zone.h doomstat.h doomdata.h doomtype.h \
+ d_net.h \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h d_event.h \
  m_argv.h i_net.h
@@ -286,7 +292,7 @@ $(O)/f_finale.o: f_finale.c doomstat.h doomdata.h doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  d_event.h v_video.h r_data.h r_defs.h r_state.h w_wad.h s_sound.h \
- sounds.h dstrings.h d_englsh.h d_deh.h hu_stuff.h m_menu.h
+ sounds.h dstrings.h d_englsh.h d_deh.h hu_stuff.h mn_engin.h
 
 $(O)/f_wipe.o: f_wipe.c doomdef.h z_zone.h m_swap.h version.h i_video.h \
  doomtype.h v_video.h r_data.h r_defs.h m_fixed.h i_system.h \
@@ -297,13 +303,13 @@ $(O)/d_main.o: d_main.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
  doomdata.h doomtype.h d_net.h d_player.h d_items.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h dstrings.h \
  d_englsh.h sounds.h w_wad.h s_sound.h v_video.h r_data.h r_defs.h \
- r_state.h f_finale.h d_event.h f_wipe.h m_argv.h m_misc.h m_menu.h \
+ r_state.h f_finale.h d_event.h f_wipe.h m_argv.h m_misc.h mn_engin.h \
  i_sound.h i_video.h g_game.h hu_stuff.h wi_stuff.h st_stuff.h \
  am_map.h p_setup.h r_draw.h r_main.h d_main.h d_deh.h
 
 $(O)/d_net.o: d_net.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
- i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h m_menu.h \
+ i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h mn_engin.h \
  d_event.h i_video.h i_net.h g_game.h
 
 $(O)/d_items.o: d_items.c info.h d_think.h d_items.h doomdef.h z_zone.h \
@@ -312,22 +318,22 @@ $(O)/d_items.o: d_items.c info.h d_think.h d_items.h doomdef.h z_zone.h \
 $(O)/g_game.o: g_game.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h f_finale.h \
- d_event.h m_argv.h m_misc.h m_menu.h m_random.h p_setup.h p_saveg.h \
+ d_event.h m_argv.h m_misc.h mn_engin.h m_random.h p_setup.h p_saveg.h \
  p_tick.h d_main.h wi_stuff.h hu_stuff.h st_stuff.h am_map.h w_wad.h \
  r_main.h r_data.h r_defs.h r_state.h r_draw.h p_map.h s_sound.h \
  dstrings.h d_englsh.h sounds.h r_sky.h d_deh.h p_inter.h g_game.h
 
-$(O)/m_menu.o: m_menu.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
+$(O)/mn_menus.o: mn_menus.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
  doomdata.h doomtype.h d_net.h d_player.h d_items.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h dstrings.h \
  d_englsh.h d_main.h d_event.h i_video.h v_video.h r_data.h r_defs.h \
  r_state.h w_wad.h r_main.h hu_stuff.h g_game.h s_sound.h sounds.h \
- m_menu.h d_deh.h m_misc.h
+ mn_engin.h d_deh.h m_misc.h
 
 $(O)/m_misc.o: m_misc.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h m_argv.h \
- g_game.h d_event.h m_menu.h am_map.h w_wad.h i_sound.h sounds.h \
+ g_game.h d_event.h mn_engin.h am_map.h w_wad.h i_sound.h sounds.h \
  i_video.h v_video.h r_data.h r_defs.h r_state.h hu_stuff.h st_stuff.h \
  dstrings.h d_englsh.h m_misc.h s_sound.h d_main.h
 
@@ -479,7 +485,7 @@ $(O)/r_data.o: r_data.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
 $(O)/r_draw.o: r_draw.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h w_wad.h \
- r_main.h r_data.h r_defs.h r_state.h v_video.h m_menu.h
+ r_main.h r_data.h r_defs.h r_state.h v_video.h mn_engin.h
 
 $(O)/r_main.o: r_main.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
@@ -558,7 +564,7 @@ $(O)/info.o: info.c doomdef.h z_zone.h m_swap.h version.h sounds.h \
 
 $(O)/sounds.o: sounds.c doomtype.h sounds.h
 
-$(O)/mmus2mid.o: $(PLATFORM)/mmus2mid.c DJGPP/mmus2mid.h z_zone.h
+$(O)/mmus2mid.o: $(PLATFORM)/mmus2mid.c djgpp/mmus2mid.h z_zone.h
 
 $(O)/i_main.o: $(PLATFORM)/i_main.c doomdef.h z_zone.h m_swap.h version.h m_argv.h \
  d_main.h d_event.h doomtype.h i_system.h d_ticcmd.h
@@ -578,11 +584,11 @@ $(O)/version.o: version.c version.h z_zone.h
 
 # Allegro patches required to function satisfactorily
 
-$(O)/emu8kmid.o: $(PLATFORM)/emu8kmid.c DJGPP/emu8k.h DJGPP/internal.h \
-  DJGPP/interndj.h DJGPP/allegro.h
+$(O)/emu8kmid.o: $(PLATFORM)/emu8kmid.c djgpp/emu8k.h djgpp/internal.h \
+  djgpp/interndj.h djgpp/allegro.h
 
-$(O)/keyboard.o: $(PLATFORM)/keyboard.c DJGPP/internal.h DJGPP/interndj.h \
-  DJGPP/allegro.h
+$(O)/keyboard.o: $(PLATFORM)/keyboard.c djgpp/internal.h djgpp/interndj.h \
+  djgpp/allegro.h
 	$(CC) $(CFLAGS_COMMON) -O $(CFLAGS_NEWFEATURES) -c $< -o $@
 
 endif
@@ -706,4 +712,3 @@ $(O)/bin2c.o: bin2c.c
 # Lee's Jan 19 sources
 #
 ###############################################################################
-

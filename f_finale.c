@@ -32,7 +32,7 @@ rcsid[] = "$Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $";
 #include "s_sound.h"
 #include "sounds.h"
 #include "dstrings.h"
-#include "m_menu.h"
+#include "mn_engin.h"
 #include "d_deh.h"  // Ty 03/22/98 - externalizations
 #include "p_info.h"
 
@@ -283,7 +283,7 @@ void F_TextWrite (void)
 
   lumpnum = W_CheckNumForName (finaleflat);
   if(lumpnum == -1) // flat
-          M_DrawBackground(finaleflat, screens[0]);
+          MN_DrawBackground(finaleflat, screens[0]);
   else
   {                     // normal picture
         patch_t *pic;

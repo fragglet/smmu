@@ -1,3 +1,7 @@
+// Emacs style mode select -*- C++ -*-
+//----------------------------------------------------------------------------
+//
+
 #ifndef __HU_STUFF_H__
 #define __HU_STUFF_H__
 
@@ -12,11 +16,11 @@ typedef struct textwidget_s textwidget_t;
 
 struct textwidget_s
 {
-        int x, y;       // co-ords on screen
-        int font;       // 0 = normal red text 1 = heads up font
-        char *message;
-        void (*handler)();      // controller function
-        int cleartic;   // gametic in which to clear the widget (0=never)
+  int x, y;       // co-ords on screen
+  int font;       // 0 = normal red text 1 = heads up font
+  char *message;
+  void (*handler)();      // controller function
+  int cleartic;   // gametic in which to clear the widget (0=never)
 };
 
 extern int show_vpo;

@@ -35,6 +35,7 @@ rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 #include "m_argv.h"
 #include "g_game.h"
 #include "w_wad.h"
+#include "p_hubs.h"
 #include "r_main.h"
 #include "r_things.h"
 #include "r_sky.h"
@@ -998,25 +999,25 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   players[consoleplayer].viewz = 1;
 
   if(debugfile)
-  {
-     fprintf(debugfile, "P_SetupLevel: got here\n mapname: %s\n",mapname);
-     fflush(debugfile);
-  }
+    {
+      fprintf(debugfile, "P_SetupLevel: got here\n mapname: %s\n",mapname);
+      fflush(debugfile);
+    }
 
       // get the map name lump number
   if((lumpnum = W_CheckNumForName(mapname)) == -1)
   {
-        C_Printf("Map not found: '%s'\n", mapname);
-	C_SetConsole();
-	return;
+    C_Printf("Map not found: '%s'\n", mapname);
+    C_SetConsole();
+    return;
   }
 
   if(!P_CheckLevel(lumpnum))     // not a level
-  {
-        C_Printf("Not a level: '%s'\n", mapname);
-        C_SetConsole();
-        return;
-  }
+    {
+      C_Printf("Not a level: '%s'\n", mapname);
+      C_SetConsole();
+      return;
+    }
 
   strncpy(levelmapname, mapname, 8);
   leveltime = 0;
@@ -1137,9 +1138,6 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   // psprites
 //  showpsprites = default_psprites;
 
-	// clear script command buffer
-  C_ClearBuffer(c_script);
-
   HU_FragsUpdate();     // reset frag counter
 
   R_SetViewSize (screenSize+3); //sf
@@ -1163,6 +1161,7 @@ void P_Init (void)
   P_InitSwitchList();
   P_InitPicAnims();
   R_InitSprites(spritelist);
+  P_InitHubs();
 }
 
 //
@@ -1180,33 +1179,34 @@ int olo_loaded = false;
 
 void P_LoadOlo()
 {
-	int lumpnum;
-	char *lump;
+  int lumpnum;
+  char *lump;
 
-        if((lumpnum = W_CheckNumForName("OLO")) == -1)
-		return;
+  if((lumpnum = W_CheckNumForName("OLO")) == -1)
+    return;
 
-	lump = W_CacheLumpNum(lumpnum, PU_CACHE);
-
-	if(strncmp(lump, "OLO", 3))
-		return;
-
-	memcpy(&olo, lump, sizeof(olo_t));
-
-	olo_loaded = true;
+  lump = W_CacheLumpNum(lumpnum, PU_CACHE);
+  
+  if(strncmp(lump, "OLO", 3))
+    return;
+  
+  memcpy(&olo, lump, sizeof(olo_t));
+  
+  olo_loaded = true;
 }
 
 // test thingy
 
 void C_DumpThings()
 {
-        int i;
-
-        for(i=0; i<numthings; i++)
-        {
-                C_Printf("%i\n", spawnedthings[i]);
-        }
-        C_Printf(FC_GRAY"(%i)\n", numthings);
+  int i;
+  
+  for(i=0; i<numthings; i++)
+    {
+      C_Printf("%i\n", spawnedthings[i]);
+    }
+  
+  C_Printf(FC_GRAY"(%i)\n", numthings);
 }
 
 

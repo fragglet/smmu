@@ -2089,7 +2089,7 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
 }
 
         // sf: changed to enable_nuke for console
-int enable_nuke;  // killough 12/98: nukage disabling cheat
+int enable_nuke = 1;  // killough 12/98: nukage disabling cheat
 
 //
 // P_PlayerInSpecialSector()
@@ -2221,10 +2221,11 @@ void P_PlayerInSpecialSector (player_t *player)
 //  levelFragLimit, levelFragLimitCount
 //
 
-boolean         levelTimer;
-int             levelTimeCount;
-boolean         levelFragLimit;      // Ty 03/18/98 Added -frags support
-int             levelFragLimitCount; // Ty 03/18/98 Added -frags support
+// sf: rearranged variables
+
+int             levelTime;              // sf
+int             levelTimeLimit;
+int             levelFragLimit; // Ty 03/18/98 Added -frags support
 
 void P_UpdateSpecials (void)
 {
@@ -2232,29 +2233,26 @@ void P_UpdateSpecials (void)
   int         pic;
   int         i;
 
+  levelTime++;
+
   // Downcount level timer, exit level if elapsed
-  if (levelTimer == true && --levelTimeCount)
+  if (levelTimeLimit && leveltime >= levelTimeLimit*35*60 )
     G_ExitLevel();
 
   // Check frag counters, if frag limit reached, exit level // Ty 03/18/98
   //  Seems like the total frags should be kept in a simple
   //  array somewhere, but until they are...
-  if (levelFragLimit == true)  // we used -frags so compare count
+  if (levelFragLimit)  // we used -frags so compare count
     {
-      int k,m,fragcount,exitflag=false;
-      for (k=0;k<MAXPLAYERS;k++)
+      int i;
+      for (i=0; i<MAXPLAYERS; i++)
         {
-          if (!playeringame[k]) continue;
-          fragcount = 0;
-          for (m=0;m<MAXPLAYERS;m++)
-            {
-              if (!playeringame[m]) continue;
-              fragcount += (m!=k)?  players[k].frags[m] : -players[k].frags[m];
-            }
-          if (fragcount >= levelFragLimitCount) exitflag = true;
-          if (exitflag == true) break; // skip out of the loop--we're done
+          if (!playeringame[i]) continue;
+
+                // sf: use hu_frags.c frag counter
+          if(players[i].totalfrags >= levelFragLimit) break;
         }
-      if (exitflag == true)
+      if (i < MAXPLAYERS)       // sf: removed exitflag (ugh)
         G_ExitLevel();
     }
 
@@ -2324,37 +2322,14 @@ void P_SpawnSpecials (void)
   if (W_CheckNumForName("texture2") >= 0)
     episode = 2;
 
-  // See if -timer needs to be used.
-  levelTimer = false;
+        // sf: -timer moved to d_main.c
+        //     -avg also
 
-  i = M_CheckParm("-avg");   // Austin Virtual Gaming 20 min timer on DM play
-  if (i && deathmatch)
-    {
-      levelTimer = true;
-      levelTimeCount = 20 * 60 * TICRATE;
-    }
+        // sf: changed -frags: not loaded at start of every level
+        //     to allow changing by console
 
-  i = M_CheckParm("-timer"); // user defined timer on game play
-  if (i && deathmatch)
-    {
-      int time;
-      time = atoi(myargv[i+1]) * 60 * TICRATE;
-      levelTimer = true;
-      levelTimeCount = time;
-    }
-
-  // See if -frags has been used
-  levelFragLimit = false;
-  i = M_CheckParm("-frags");  // Ty 03/18/98 Added -frags support
-  if (i && deathmatch)
-    {
-      int frags;
-      frags = atoi(myargv[i+1]);
-      if (frags <= 0) frags = 10;  // default 10 if no count provided
-      levelFragLimit = true;
-      levelFragLimitCount = frags;
-    }
-
+        // reset levelTime.
+  levelTime = 0;
 
   //  Init special sectors.
   sector = sectors;

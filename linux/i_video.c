@@ -44,7 +44,7 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include "../w_wad.h"
 #include "../r_draw.h"
 #include "../am_map.h"
-#include "../m_menu.h"
+#include "../mn_engin.h"
 #include "../wi_stuff.h"
 #include "../i_video.h"
 
@@ -56,7 +56,7 @@ int use_vsync; // Hmm...
 
 int hires = 0;
 
-static boolean initialised = false;
+boolean initialised = false;
 static int mode = G320x200x256;
 
 //
@@ -118,6 +118,11 @@ void I_ReadScreen(byte *scr)
 
 static void I_PlainBlit(void* src, int dest, int w, int h, int pitch)
 {
+  // sf:
+  w <<= hires;
+  h <<= hires;
+  pitch <<= hires; 
+
   vga_lockvc();
   {
     if (redraw_state != blit) // We probably chose blit to avoid paging
@@ -212,6 +217,8 @@ static void I_InitGraphicsMode(void)
 {
   const vga_modeinfo * pinfo;
 
+  
+
   //  I_InitKBTransTable();
   fprintf(stderr, "I_InitGraphics: ");
 
@@ -276,7 +283,7 @@ static void I_InitGraphicsMode(void)
   putc('\n', stderr);
 
   if (vga_setmode(mode))
-    I_Error("Failed to set video mode 320x200x256");
+    I_Error("Failed to set video mode");
 
   //  if (mflag == F_mouse)
   //  mouse_seteventhandler((__mouse_handler)I_MouseEventHandler);
