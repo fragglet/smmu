@@ -35,6 +35,7 @@ rcsid[] = "$Id$";
 #include "d_event.h"
 #include "c_net.h"
 #include "g_game.h"
+#include "hu_stuff.h"
 #include "r_main.h"
 #include "p_map.h"
 #include "p_maputl.h"
@@ -523,6 +524,10 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
   P_PlayerThink (&predicted_player);
   P_MobjThinker(&predicted_mobj);
 
+  // sf: run heads up - make sure we update the lightup crosshair
+
+  HU_Ticker();
+  
   predicted_tic = false;    // back to reality
   
   // unhook predicted_mobj and hook the actual player obj back in
@@ -535,7 +540,10 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:41  fraggle
+// Revision 1.3  2000-05-07 13:01:12  fraggle
+// lightup crosshair prediction
+//
+// Revision 1.2  2000/05/02 15:43:41  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
