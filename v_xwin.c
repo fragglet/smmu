@@ -42,7 +42,7 @@ rcsid[] = "$Id$";
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
-#ifndef NOSHM
+#ifdef USE_XSHM
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
@@ -64,18 +64,18 @@ int XShmGetEventBase( Display* dpy );
 #include <signal.h>
 
 #if defined(SCOOS5) || defined(SCOUW2) || defined(SCOUW7)
-#include "../strcmp.h"
+#include "strcmp.h"
 #endif
 
-#include "../c_runcmd.h"
-#include "../doomstat.h"
-#include "../doomdef.h"
-#include "../d_main.h"
-#include "../i_system.h"
-#include "../m_argv.h"
-#include "../v_mode.h"
-#include "../v_video.h"
-#include "../w_wad.h"
+#include "c_runcmd.h"
+#include "doomstat.h"
+#include "doomdef.h"
+#include "d_main.h"
+#include "i_system.h"
+#include "m_argv.h"
+#include "v_mode.h"
+#include "v_video.h"
+#include "w_wad.h"
 
 // sf: hires
 
@@ -98,7 +98,7 @@ static int X_width;
 static int X_height;
 static Atom X_deletewin;
 
-#ifndef NOSHM
+#ifdef USE_XSHM
 // MIT SHared Memory extension.
 static boolean doShm;
 
@@ -231,7 +231,7 @@ static int xlatekey(void)
 
 void XWin_ShutdownGraphics(void)
 {
-#ifndef NOSHM
+#ifdef USE_XSHM
   // Release shared memory
   shmctl(X_shminfo.shmid, IPC_RMID, 0);
 #endif
@@ -414,7 +414,7 @@ void XWin_GetEvent(void)
       break;
       
     default:
-#ifndef NOSHM
+#ifdef USE_XSHM
       if (doShm && X_event.type == X_shmeventtype)
 	shmFinished = true;
 #endif
@@ -510,12 +510,26 @@ void XWin_UpdateNoBlit(void)
 //
 void XWin_FinishUpdate(void)
 {  
+
+  printf("XWin_FinishUpdate: start\n");
+
+
+  printf("%i\n", x_bpp);
+
+  if((multiply == 1) && (x_bpp == 1))
+    {
+      memcpy(image->data, screens[0], SCREENWIDTH * SCREENHEIGHT);
+
+      goto blit_it;
+    }
+
   // sf: fps dots now non-sys specific
-  
+ 
   // Special optimization for 16bpp and screen size * 2, because this
   // probably is the most used one. This code does the scaling
   // and colormap transformation in one single loop instead of two,
   // which halves the time needed for the transformations.
+
   if ((multiply == 2) && (x_bpp == 2))
     {
       unsigned int *olineptrs[2];
@@ -543,8 +557,11 @@ void XWin_FinishUpdate(void)
 	  olineptrs[0] += step;
 	  olineptrs[1] += step;
 	} while (y--);
-      goto blit_it;	// indenting the whole stuff with one more
+
+      // indenting the whole stuff with one more
       // elseif won't make it better
+
+      goto blit_it;	
     }
   
   // Special optimization for 16bpp and screen size * 3, because I
@@ -584,14 +601,18 @@ void XWin_FinishUpdate(void)
 	  olineptrs[1] += step;
 	  olineptrs[2] += step;
 	} while (y--);
-      goto blit_it;	// indenting the whole stuff with one more
+      
+      // indenting the whole stuff with one more
       // elseif won't make it better
+
+      goto blit_it;	
     }
   
   // From here on the old code, first scale screen, then in a second step
   // do the colormap transformation. This works for all combinations.
   
   // scales the screen size before blitting it
+
   if (multiply == 2)
     {
       unsigned int *olineptrs[2];
@@ -698,8 +719,9 @@ void XWin_FinishUpdate(void)
       static void Expand4(unsigned *, double *);
       Expand4 ((unsigned *)(screens[0]), (double *) (image->data));
     }
-  
+
   // colormap transformation dependend on X server color depth
+
   if (x_bpp == 2)
     {
       int x,y;
@@ -710,13 +732,16 @@ void XWin_FinishUpdate(void)
       while (y--) 
 	{
 	  olineptr =  (unsigned short *) &(image->data[y*X_width*x_bpp]);
-	  if (multiply==1)
+	  if(multiply == 1)
 	    ilineptr = (unsigned char*) (screens[0]+y*X_width);
 	  else
 	    ilineptr =  (unsigned char*) &(image->data[y*X_width]);
 	  x = xstart;
 	  do 
 	    {
+	      // sf: yay, looks like someone was off sick the day 
+	      // they explained endianness
+
 	      olineptr[x] = x_colormap2[ilineptr[x]];
 	    } while (x--);
 	}
@@ -738,7 +763,7 @@ void XWin_FinishUpdate(void)
 	  x = xstart;
 	  do
 	    {
-	      memcpy(olineptr+3*x,x_colormap3+3*ilineptr[x],3);
+	      memcpy(olineptr + 3*x, x_colormap3+3*ilineptr[x], 3);
 	    } while (x--);
 	}
     }
@@ -748,14 +773,15 @@ void XWin_FinishUpdate(void)
       int xstart = basewidth*multiply-1;
       unsigned char* ilineptr;
       unsigned int* olineptr;
-      y = baseheight*multiply;      
+
+      y = baseheight * multiply;
       while (y--) 
 	{
-	  olineptr =  (unsigned int *) &(image->data[y*X_width*x_bpp]);
+	  olineptr = (unsigned int *) &(image->data[y * X_width * x_bpp]);
 	  if (multiply==1)
-	    ilineptr = (unsigned char*) (screens[0]+y*X_width);
+	    ilineptr = (unsigned char*) (screens[0] + y*X_width);
 	  else
-	    ilineptr =  (unsigned char*) &(image->data[y*X_width]);
+	    ilineptr = (unsigned char*) &(image->data[y*X_width]);
 	  x = xstart;
 	  do 
 	    {
@@ -763,9 +789,9 @@ void XWin_FinishUpdate(void)
 	    } while (x--);
 	}
     }
-  
+
  blit_it:
-#ifndef NOSHM
+#ifdef USE_XSHM
   if (doShm)
     {
       if (!XShmPutImage(X_display,
@@ -787,8 +813,9 @@ void XWin_FinishUpdate(void)
       
     }
   else
-#endif /* #ifndef NOSHM */
+#endif /* #ifdef USE_XSHM */
     {      
+
       // draw the image
       XPutImage(X_display,
 	       	X_mainWindow,
@@ -798,6 +825,8 @@ void XWin_FinishUpdate(void)
 		0, 0,
 		X_width, X_height );
     }
+
+  printf("XWin_FinishUpdate: finished\n");
 }
 
 
@@ -899,7 +928,7 @@ void XWin_SetPalette(byte* palette)
 }
 
 
-#ifndef NOSHM 
+#ifdef USE_XSHM 
 
 //
 // This function is probably redundant,
@@ -1003,7 +1032,7 @@ static void grabsharedmemory(int size)
 	  (int) (image->data));
 }
 
-#endif /* #ifndef NOSHM */
+#endif /* #ifdef USE_XSHM */
 
 //
 // XWin_CloseWindow
@@ -1021,7 +1050,7 @@ static void XWin_CloseWindow()
 
   window_open = false;
   
-#ifndef NOSHM
+#ifdef USE_XSHM
   // Release shared memory.
 
   // Detach from X server
@@ -1063,7 +1092,7 @@ static void XWin_OpenWindow()
   X_height = baseheight * multiply;
 
 
-#ifndef NOSHM
+#ifdef USE_XSHM
 
   // set up shm
 
@@ -1110,7 +1139,7 @@ static void XWin_OpenWindow()
       
     }
   else
-#endif /* #ifndef NOSHM */
+#endif /* #ifdef USE_XSHM */
     {
       image = XCreateImage(X_display,
 			   X_visual,
@@ -1403,7 +1432,7 @@ boolean XWin_InitGraphics(void)
       I_Error("Could not get list of pixmap formats");
   }
 
-#ifndef NOSHM
+#ifdef USE_XSHM
   
   // check for the MITSHM extension
   doShm = 
@@ -1427,8 +1456,8 @@ boolean XWin_InitGraphics(void)
   if (doShm)
     fprintf(stderr, "Using MITSHM extension\n");
 
-#endif /* #ifndef NOSHM */
-  
+#endif /* #ifdef USE_XSHM */
+
   // create the colormap
   if (x_pseudo)
     X_cmap = XCreateColormap(X_display, RootWindow(X_display, X_screen),
@@ -1439,7 +1468,7 @@ boolean XWin_InitGraphics(void)
     x_colormap3 = malloc(3*256);
   else if (x_bpp==4)
     x_colormap4 = malloc(4*256);
-
+  
   return true;                     // initted ok
 }
 
@@ -1633,7 +1662,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2001-01-13 16:32:17  fraggle
+// Revision 1.3  2001-01-14 02:26:20  fraggle
+// fix X build
+//
+// Revision 1.2  2001/01/13 16:32:17  fraggle
 // fix config.h #include
 //
 // Revision 1.1  2001/01/13 14:53:01  fraggle

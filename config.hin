@@ -20,7 +20,11 @@
 
 // X Libraries installed
 
-#undef HAVE_LIBX
+#undef HAVE_LIBX11
+
+// Use X shared memory extension
+
+#undef USE_XSHM
 
 // AAlib Ascii Art Library
 
