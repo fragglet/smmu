@@ -207,7 +207,7 @@ void I_Quit (void)
   else
     I_EndDoom();
 
-  M_SaveDefaults ();
+  G_SaveDefaults ();
 }
 
 //
@@ -281,7 +281,10 @@ void I_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-06-19 15:00:23  fraggle
+// Revision 1.2  2000-06-20 21:07:33  fraggle
+// fix .cfg file saving
+//
+// Revision 1.1  2000/06/19 15:00:23  fraggle
 // cygwin support
 //
 // Revision 1.2  2000/04/30 19:38:33  fraggle
