@@ -1,0 +1,31 @@
+// DJGPP config.h
+
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
+
+// defines
+
+#define I386ASM 1
+
+// Windows DirectX support
+// We support compiling using basic GDI or
+// without sound.  Cygwin is used for windows
+// compiling but DirectX is not yet widely 
+// supported by it.
+
+/* #define HAVE_LIBDSOUND 1 */
+/* #define HAVE_LIBDDRAW 1 */
+
+// X Libraries installed
+
+/* #undef HAVE_LIBX */
+
+// AAlib Ascii Art Library
+
+/* #undef HAVE_LIBAA */
+
+// svgalib
+
+/* #undef HAVE_LIBVGA */
+
+#endif
