@@ -283,37 +283,39 @@ void I_ShutdownSound(void)
 // sf: dynamic sound resource loading
 void I_CacheSound(sfxinfo_t *sound)
 {
-    if(sound->data) return;     // already cached
-
-                // sf: changed
-    if(sound->link) I_CacheSound(sound->link);
-    else
+  if(sound->data) return;     // already cached
+  
+  // sf: changed
+  if(sound->link)
+    I_CacheSound(sound->link);
+  else
     sound->data = getsfx(sound->name, &sound->length);
 }
 
 void I_InitSound(void)
 {
   // Secure and configure sound device first.
-
+  
   if (detect_voices && snd_card>=0 && mus_card>=0)
     {
       int mv;                          //jff 3/3/98 try it according to Allegro
       int dv = detect_digi_driver(snd_card); // detect the digital sound driver
-      if (dv==0)
-        snd_card=0;
+      if (dv == 0)
+        snd_card = 0;
       mv = detect_midi_driver(mus_card);     // detect the midi driver
-      if (mv==-1)
-        dv=mv=dv/2;          //note stealing driver, uses digital voices
-      if (mv==0xffff)
-        mv=-1;               //extern MPU-401 - unknown use default voices
+      if (mv == -1)
+        dv = mv = dv/2;          //note stealing driver, uses digital voices
+      if (mv == 0xffff)
+        mv = -1;               //extern MPU-401 - unknown use default voices
       reserve_voices(dv,mv); // reserve the number of voices detected
     }                                  //jff 3/3/98 end of sound init changes
 
 
-  if (install_sound(snd_card, mus_card, "none")==-1) //jff 1/18/98 autodect MIDI
+  //jff 1/18/98 autodect MIDI
+  
+  if (install_sound(snd_card, mus_card, "none") == -1)
     {
-      usermsg("\tSound init error. Assuming no sound");
-      usermsg("\t%s",allegro_error); // killough 8/8/98
+      usermsg("\tSound init error: %s", allegro_error); // killough 8/8/98
       //jff 1/22/98 on error, disable sound this invocation
       //in future - nice to detect if either sound or music might be ok
       nosfxparm = true;
@@ -322,14 +324,14 @@ void I_InitSound(void)
     }
   else //jff 1/22/98 don't register I_ShutdownSound if errored
     {
-      usermsg("\tConfigured audio device");  // killough 8/8/98
-      LOCK_VARIABLE(channel);  // killough 2/7/98: prevent VM swapping of sfx
+      // killough 2/7/98: prevent VM swapping of sfx
+      LOCK_VARIABLE(channel); 
       atexit(I_ShutdownSound); // killough
     }
 
   // Finished initialization.
-
 }
+
 
 ///
 // MUSIC API.
@@ -455,9 +457,9 @@ CONSOLE_VARIABLE(detect_voices, detect_voices, 0) {}
 
 void I_Sound_AddCommands()
 {
-    C_AddCommand(snd_card);
-    C_AddCommand(mus_card);
-    C_AddCommand(detect_voices);
+  C_AddCommand(snd_card);
+  C_AddCommand(mus_card);
+  C_AddCommand(detect_voices);
 }
 
 

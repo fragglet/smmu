@@ -36,7 +36,7 @@ void D_AddFile(char *file);
 void D_ListWads();
 void D_ReInitWadfiles();
 void D_NewWadLumps(int handle);
-int D_AddNewFile(char *s);
+boolean D_AddNewFile(char *s);
 
 
 char *D_DoomExeDir(void);       // killough 2/16/98: path to executable's dir

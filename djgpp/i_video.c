@@ -33,21 +33,29 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include <dos.h>
 #include <go32.h>
 
+#include "../doomstat.h"
+
+#include "../am_map.h"
 #include "../c_io.h"
 #include "../c_runcmd.h"
-#include "../doomstat.h"
-#include "../v_video.h"
 #include "../d_main.h"
-#include "../m_bbox.h"
-#include "../st_stuff.h"
-#include "../m_argv.h"
-#include "../w_wad.h"
-#include "../r_draw.h"
-#include "../am_map.h"
-#include "../wi_stuff.h"
 #include "../i_video.h"
+#include "../m_argv.h"
+#include "../m_bbox.h"
+#include "../mn_engin.h"
+#include "../r_draw.h"
+#include "../st_stuff.h"
+#include "../v_video.h"
+#include "../w_wad.h"
+#include "../wi_stuff.h"
+#include "../z_zone.h"
 
-/**************************** Input code *************************************/
+
+///////////////////////////////////////////////////////////////////////////
+//
+// Input Code
+//
+//////////////////////////////////////////////////////////////////////////
 
 extern void I_InitKeyboard();      // i_system.c
 
@@ -205,7 +213,11 @@ void I_StartTic()
   I_GetEvent();
 }
 
-/************************* Graphics code ************************************/
+////////////////////////////////////////////////////////////////////////////
+//
+// Graphics Code
+//
+////////////////////////////////////////////////////////////////////////////
 
 //
 // I_UpdateNoBlit
@@ -229,8 +241,8 @@ int vesamode;
 BITMAP *screens0_bitmap;
 boolean noblit;
 
-static int in_graphics_mode;
-static int in_page_flip, in_hires, linear;
+static boolean in_graphics_mode;
+static boolean in_page_flip, in_hires, linear;
 static int scroll_offset;
 static unsigned long screen_base_addr;
 static unsigned destscreen;
@@ -331,7 +343,7 @@ static void I_InitDiskFlash(void)
       destroy_bitmap(old_data);
     }
 
-        //sf : disk is actually 16x15
+  //sf : disk is actually 16x15
   diskflash = create_bitmap_ex(8, 16<<hires, 15<<hires);
   old_data = create_bitmap_ex(8, 16<<hires, 15<<hires);
 
@@ -401,10 +413,12 @@ void I_ShutdownGraphics(void)
       // Turn off graphics mode
       set_gfx_mode(GFX_TEXT, 0, 0, 0, 0);
 
-      in_graphics_mode = 0;
+      in_graphics_mode = false;
       in_textmode = true;
     }
 }
+
+#define BADVID "video mode not supported"
 
 extern boolean setsizeneeded;
 
@@ -412,102 +426,135 @@ extern boolean setsizeneeded;
 // killough 11/98: New routine, for setting hires and page flipping
 //
 
-static void I_InitGraphicsMode(void)
+// sf: now returns true if an error occurred
+
+static boolean I_InitGraphicsMode(void)
 {
-  int gfx_type = GFX_AUTODETECT;
-
-  if(vesamode && !hires && page_flip) vesamode = 0;
-  if(vesamode) gfx_type = GFX_VESA2L;
-
+  set_color_depth(8);     // killough 2/7/98: use allegro set_gfx_mode
   scroll_offset = 0;
 
-  if (hires || !page_flip)
+  V_Init();  
+  
+  // sf: reorganised to use v_mode
+  
+  switch(v_mode)
     {
-      set_color_depth(8);     // killough 2/7/98: use allegro set_gfx_mode
-
-      if (hires)
+      // mode 1: vga pageflipped, like original doom
+      // by lee killough
+      
+      case 1:
 	{
-	  if (page_flip)
-	    if (set_gfx_mode(gfx_type, 640, 400, 640, 800))
-	      {
-//                warn_about_changes(S_BADVID);      // Revert to no pageflipping
-		page_flip = 0;
-	      }
-	    else
-	      set_clip(screen, 0, 0, 640, 800);    // Allow full access
+	  // killough 8/15/98:
+	  //
+	  // Page flipping code for wait-free, flicker-free display.
+	  //
+	  // This is the method Doom originally used, and was removed in the
+	  // Linux source. It only works for 320x200. The VGA hardware is
+	  // switched to planar mode, which allows 256K of VGA RAM to be
+	  // addressable, and allows page flipping, split screen, and hardware
+	  // panning.
+	  
+	  destscreen = 0;
+	  
+	  //
+	  // VGA mode 13h
+	  //
+	  
+	  set_gfx_mode(GFX_AUTODETECT, 320, 200, 0, 0);
 
-	  if (!page_flip && set_gfx_mode(gfx_type, 640, 400, 0, 0))
-	    {
-	      hires = 0;                           // Revert to lowres
-	      page_flip = in_page_flip;            // Restore orig pageflipping
-//              warn_about_changes(S_BADVID);
-	      I_InitGraphicsMode();                // Start all over
-	      return;
-	    }
+	  // 
+	  // turn off chain 4 and odd/even 
+	  // 
+	  outportb(0x3c4, 4); 
+	  outportb(0x3c5, (inportb(0x3c5) & ~8) | 4); 
+	  
+	  // 
+	  // turn off odd/even and set write mode 0 
+	  // 
+	  outportb(0x3ce, 5); 
+	  outportb(0x3cf, inportb(0x3cf) & ~0x13);
+	  
+	  // 
+	  // turn off chain 4 
+	  // 
+	  outportb(0x3ce, 6); 
+	  outportb(0x3cf, inportb(0x3cf) & ~2); 
+      
+	  // 
+	  // clear the entire buffer space, because
+	  // int 10h only did 16 k / plane 
+	  // 
+	  outportw(0x3c4, 0xf02);
+	  blast(0xa0000 + (byte *) __djgpp_conventional_base, *screens);
+	  
+	  // Now we do most of this stuff again for Allegro's benefit :)
+	  // All that work above was just to clear the screen first.
+	  set_gfx_mode(GFX_MODEX, 320, 200, 320, 800);
 	}
+      break;
 
-      if (!hires)
-	set_gfx_mode(gfx_type, 320, 200, 0, 0);
+      // 320x200 VESA
+      // can be significantly faster than vga 320x200 
+	
+      case 2:
+	if(set_gfx_mode(GFX_VESA2L, 320, 200, 320, 200))
+	  {
+	    I_SetMode(0);        // reset to mode 0
+	    MN_ErrorMsg(BADVID);
+	    return true;
+	  }
+	break;
+	
+	// 3: hires mode 640x400
+	
+      case 3:
+	if (1)//set_gfx_mode(GFX_AUTODETECT, 640, 400, 0, 0))
+	  {
+	    I_SetMode(0);               // reset to vga low res
+	    MN_ErrorMsg(BADVID);
+	    return true;  // error
+	  }
+	break;
+	
+	// 4: hires mode pageflipped 640x400
+	
+      case 4:
+	if (set_gfx_mode(GFX_AUTODETECT, 640, 400, 640, 800))
+          {
+	    // revert to normal non-pageflipped
+	    I_SetMode(3);
+	    MN_ErrorMsg(BADVID);
+	    return true;
+	  }
+	else
+	  set_clip(screen, 0, 0, 640, 800);    // Allow full access
+	  
+	break;
+	
+      // 0: 320x200 plain ol' VGA
+      // we place this at the end with default:
+	
+      default:
+      case 0:
+	if(set_gfx_mode(GFX_AUTODETECT, 320, 200, 320, 200))
+	   {
+	     // if we cant set this, we're screwed :)
+	     I_Error("couldn't get 320x200 vga!\n");
+	   }
+	break;
+    }
 
+  if(v_mode != 1)
+    {
       linear = is_linear_bitmap(screen);
-
+      
       __dpmi_get_segment_base_address(screen->seg, &screen_base_addr);
       screen_base_addr -= __djgpp_base_address;
-
-      V_Init();
-    }
-  else
-    {
-      // killough 8/15/98:
-      //
-      // Page flipping code for wait-free, flicker-free display.
-      //
-      // This is the method Doom originally used, and was removed in the
-      // Linux source. It only works for 320x200. The VGA hardware is
-      // switched to planar mode, which allows 256K of VGA RAM to be
-      // addressable, and allows page flipping, split screen, and hardware
-      // panning.
-      
-      V_Init();
-
-      destscreen = 0;
-
-      //
-      // VGA mode 13h
-      //
-      
-      set_gfx_mode(GFX_AUTODETECT, 320, 200, 0, 0);
-
-      // 
-      // turn off chain 4 and odd/even 
-      // 
-      outportb(0x3c4, 4); 
-      outportb(0x3c5, (inportb(0x3c5) & ~8) | 4); 
- 
-      // 
-      // turn off odd/even and set write mode 0 
-      // 
-      outportb(0x3ce, 5); 
-      outportb(0x3cf, inportb(0x3cf) & ~0x13);
-      
-      // 
-      // turn off chain 4 
-      // 
-      outportb(0x3ce, 6); 
-      outportb(0x3cf, inportb(0x3cf) & ~2); 
-      
-      // 
-      // clear the entire buffer space, because int 10h only did 16 k / plane 
-      // 
-      outportw(0x3c4, 0xf02);
-      blast(0xa0000 + (byte *) __djgpp_conventional_base, *screens);
-
-      // Now we do most of this stuff again for Allegro's benefit :)
-      // All that work above was just to clear the screen first.
-      set_gfx_mode(GFX_MODEX, 320, 200, 320, 800);
     }
 
-  in_graphics_mode = 1;
+  MN_ErrorMsg("");       // clear any error messages
+  
+  in_graphics_mode = true;
   in_textmode = false;
   in_page_flip = page_flip;
   in_hires = hires;
@@ -515,23 +562,25 @@ static void I_InitGraphicsMode(void)
   setsizeneeded = true;
 
   I_InitDiskFlash();        // Initialize disk icon
-
   I_SetPalette(W_CacheLumpName("PLAYPAL",PU_CACHE));
+
+  return false;
 }
 
 void I_ResetScreen(void)
 {
-  if (!in_graphics_mode)
-    {
-      setsizeneeded = true;
-      V_Init();
-      return;
-    }
+  // Switch out of old graphics mode
+  
+  I_ShutdownGraphics();
+  
+  // Switch to new graphics mode
+  // check for errors -- we may be setting to a different mode instead
+  
+  if(I_InitGraphicsMode())
+    return;
 
-  I_ShutdownGraphics();     // Switch out of old graphics mode
-
-  I_InitGraphicsMode();     // Switch to new graphics mode
-
+  // reset other modules
+  
   if (automapactive)
     AM_Start();             // Reset automap dimensions
 
@@ -584,26 +633,29 @@ void I_InitGraphics(void)
   Z_CheckHeap();
 }
 
-        // the list of video modes is stored here in i_video.c
-        // the console commands to change them are in v_misc.c,
-        // so that all the platform-specific stuff is in here.
-        // v_misc.c does not care about the format of the videomode_t,
-        // all it asks is that it contains a text value 'description'
-        // which describes the mode
+// the list of video modes is stored here in i_video.c
+// the console commands to change them are in v_misc.c,
+// so that all the platform-specific stuff is in here.
+// v_misc.c does not care about the format of the videomode_t,
+// all it asks is that it contains a text value 'description'
+// which describes the mode
         
 videomode_t videomodes[]=
 {
-  {0,0,0,"320x200 VGA"},
-  {0,1,0,"320x200 VGA (pageflipped)"},
-  {0,0,1,"320x200 VESA"},
-  {1,0,1,"640x400 VESA"},
-  {1,1,1,"640x400 VESA (pageflipped)"},
-  {0,0,0, NULL}  // last one has NULL description
+  // hires, pageflip, vesa, description
+  {0, 0, 0, "320x200 VGA"},
+  {0, 1, 0, "320x200 VGA (pageflipped)"},
+  {0, 0, 1, "320x200 VESA"},
+  {1, 0, 0, "640x400"},
+  {1, 1, 0, "640x400 (pageflipped)"},
+  {0, 0, 0,  NULL}  // last one has NULL description
 };
 
 void I_SetMode(int i)
 {
   static int firsttime = true;    // the first time to set mode
+
+  v_mode = i;
   
   hires = videomodes[i].hires;
   page_flip = videomodes[i].pageflip;
@@ -613,80 +665,9 @@ void I_SetMode(int i)
     I_InitGraphicsMode();
   else
     I_ResetScreen();
-  
+
   firsttime = false;
-}
-        
-     /*****************************************************************
-         check for VESA and reduce the number of modes if neccesary
-                         swiped from legacy
-      *****************************************************************/
-
-// VESA information block structure
-typedef struct vbeinfoblock_s
-{
-  unsigned char  VESASignature[4]   __attribute__ ((packed));
-  unsigned short VESAVersion	      __attribute__ ((packed));
-  unsigned long  OemStringPtr       __attribute__ ((packed));
-  byte    Capabilities[4];
-  unsigned long  VideoModePtr       __attribute__ ((packed));
-  unsigned short TotalMemory	      __attribute__ ((packed));
-  byte    OemSoftwareRev[2];
-  byte    OemVendorNamePtr[4];
-  byte    OemProductNamePtr[4];
-  byte    OemProductRevPtr[4];
-  byte    Reserved[222];
-  byte    OemData[256];
-} vbeinfoblock_t;
-
-static vbeinfoblock_t vesainfo;
-
-        // some #defines used
-#define RM_OFFSET(addr)       (addr & 0xF)
-#define RM_SEGMENT(addr)      ((addr >> 4) & 0xFFFF)
-#define MASK_LINEAR(addr)     (addr & 0x000FFFFF)
-#define VBEVERSION	2	// we need vesa2 or higher
-
-void I_CheckVESA()
-{
-  int i;
-  __dpmi_regs     regs;
-  
-  // new ugly stuff...
-  for (i=0; i<sizeof(vbeinfoblock_t); i++)
-    _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
-  
-  dosmemput("VBE2", 4, MASK_LINEAR(__tb));
-  
-  // see if VESA support is available
-  regs.x.ax = 0x4f00;
-  regs.x.di = RM_OFFSET(__tb);
-  regs.x.es = RM_SEGMENT(__tb);
-  __dpmi_int(0x10, &regs);
-  
-  if (regs.h.ah) goto no_vesa;
-  
-  dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
-  
-  if (strncmp(vesainfo.VESASignature, "VESA", 4))
-    goto no_vesa;
-  
-  if (vesainfo.VESAVersion < (VBEVERSION<<8))
-    goto no_vesa;
-  
-  // note: does not actually check to see if any of the available
-  //       vesa modes can be used in the game. Assumes all work.
-
-  return;
-
-  //
-  // if no vesa support, cut off the vesa specific modes
-  //
-  
-no_vesa:
-  videomodes[2].description = NULL;       // cut off VESA modes
-  
-}
+}        
 
 /************************
         CONSOLE COMMANDS

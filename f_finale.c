@@ -82,7 +82,7 @@ void F_StartFinale (void)
     case registered:
     case retail:
     {
-      S_ChangeMusic(mus_victor, true);
+      S_ChangeMusicNum(mus_victor, true);
       
       switch (gameepisode)
       {
@@ -112,7 +112,7 @@ void F_StartFinale (void)
     // DOOM II and missions packs with E1, M34
     case commercial:
     {
-      S_ChangeMusic(mus_read_m, true);
+      S_ChangeMusicNum(mus_read_m, true);
 
       // Ty 08/27/98 - added the gamemission logic
 
@@ -159,7 +159,7 @@ void F_StartFinale (void)
 
     // Indeterminate.
     default:  // Ty 03/30/98 - not externalized
-         S_ChangeMusic(mus_read_m, true);
+         S_ChangeMusicNum(mus_read_m, true);
          finaleflat = "F_SKY1"; // Not used anywhere else.
          finaletext = s_C1TEXT;  // FIXME - other text, music?
          break;
@@ -282,15 +282,16 @@ void F_TextWrite (void)
   // killough 11/98: the background-filling code was already in m_menu.c
 
   lumpnum = W_CheckNumForName (finaleflat);
-  if(lumpnum == -1) // flat
-          MN_DrawBackground(finaleflat, screens[0]);
-  else
-  {                     // normal picture
-        patch_t *pic;
 
-        pic = W_CacheLumpNum(lumpnum, PU_CACHE);
-        V_DrawPatch(0, 0, 0, pic);
-  }
+  if(lumpnum == -1) // flat
+    V_DrawBackground(finaleflat, screens[0]);
+  else
+    {                     // normal picture
+      patch_t *pic;
+      
+      pic = W_CacheLumpNum(lumpnum, PU_CACHE);
+      V_DrawPatch(0, 0, 0, pic);
+    }
 
   // draw some of the text onto the screen
   cx = 10;
@@ -387,7 +388,7 @@ void F_StartCast (void)
   castframes = 0;
   castonmelee = 0;
   castattacking = false;
-  S_ChangeMusic(mus_evil, true);
+  S_ChangeMusicNum(mus_evil, true);
 }
 
 

@@ -92,6 +92,7 @@ void Wipe_Drawer()
       int wormy, y;
       
       wormy = worms[x >> hires] > 0 ? worms[x >> hires] : 0;  // limit check
+	  
       wormy <<= hires;
       src = start_screen[x];
       dest = screens[0] + wipe_scrwidth*wormy + x;

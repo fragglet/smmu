@@ -10,8 +10,6 @@
 //
 //----------------------------------------------------------------------------
 
-/* includes ************************/
-
 #include <stdio.h>
 
 #include "hu_frags.h"
@@ -34,11 +32,7 @@
 
 #define FRAGNUMX 175
 
-/* externs ************************/
-
-extern boolean gamekeydown[NUMKEYS];
-
-/* globals ************************/
+extern boolean gamekeydown[NUMKEYS]; // g_game.c
 
 player_t *sortedplayers[MAXPLAYERS];
 
@@ -47,8 +41,6 @@ int show_scores;                // enable scores
 
 static patch_t *fragspic;
 static patch_t *fragbox;
-
-/* functions ************************/
 
 void HU_FragsInit()
 {
@@ -159,6 +151,11 @@ void HU_FragsErase()
   for(i=FRAGSY; i<SCREENHEIGHT-ST_HEIGHT; i++)
     R_VideoErase(i*SCREENWIDTH, SCREENWIDTH);
 }
+
+////////////////////////////////////
+//
+// Console Commands
+//
 
 CONSOLE_COMMAND(frags, 0)
 {

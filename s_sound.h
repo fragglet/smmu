@@ -51,7 +51,9 @@ void S_StopSound(const mobj_t *origin);
 void S_StartMusic(int music_id);
 
 // Start music using <music_id> from sounds.h, and set whether looping
-void S_ChangeMusic(int music_id, int looping);
+void S_ChangeMusicNum(int music_id, int looping);
+void S_ChangeMusicName(char *name, int looping);
+void S_ChangeMusic(musicinfo_t *music, int looping);
 
 // Stops the music fer sure.
 void S_StopMusic(void);
@@ -65,6 +67,8 @@ sfxinfo_t *S_SfxInfoForName(char *name);
 void S_UpdateSound(int lumpnum);
 void S_Chgun();
 
+musicinfo_t *S_MusicForName(char *name);
+void S_UpdateMusic(int lumpnum);
 
 //
 // Updates music & sounds

@@ -264,7 +264,7 @@ char buf[3];
         doom_printf(s_STSTR_NOMUS); // Ty 03/27/98 - externalized
       else
         {
-          S_ChangeMusic(musnum, 1);
+          S_ChangeMusicNum(musnum, 1);
           idmusnum = musnum; //jff 3/17/98 remember idmus number for restore
         }
     }
@@ -278,7 +278,7 @@ char buf[3];
         doom_printf(s_STSTR_NOMUS); // Ty 03/27/98 - externalized
       else
         {
-          S_ChangeMusic(musnum, 1);
+          S_ChangeMusicNum(musnum, 1);
           idmusnum = musnum; //jff 3/17/98 remember idmus number for restore
         }
     }

@@ -304,7 +304,7 @@ int EV_DoDoor(line_t *line, vldoor_e type)
   vldoor_t *door;
 
   // open all doors with the same tag as the activating line
-  while ((secnum = P_FindSectorFromLineTag(line,secnum)) >= 0)
+  while ((secnum = P_FindSectorFromLineTag(line, secnum)) >= 0)
     {
       sec = &sectors[secnum];
       // if the ceiling already moving, don't start the door action
@@ -373,6 +373,117 @@ int EV_DoDoor(line_t *line, vldoor_e type)
         }
     }
   return rtn;
+}
+
+//
+// EV_OpenDoor
+//
+// sf: for FraggleScript functions
+// allows greater control over how the door behaves
+//
+
+void EV_OpenDoor(int sectag, int speed, int wait_time)
+{
+  vldoor_e door_type;
+  int secnum = -1;
+  vldoor_t *door;
+
+  if(speed < 1) speed = 1;
+  
+  // find out door type first
+
+  if(wait_time)               // door closes afterward
+    {
+      if(speed >= 4)              // blazing ?
+	door_type = blazeRaise;
+      else
+	door_type = normal;
+    }
+  else
+    {
+      if(speed >= 4)              // blazing ?
+	door_type = blazeOpen;
+      else
+	door_type = open;
+    }
+
+  // open door in all the sectors with the specified tag
+
+  while ((secnum = P_FindSectorFromTag(sectag, secnum)) >= 0)
+    {
+      sector_t *sec = &sectors[secnum];
+      // if the ceiling already moving, don't start the door action
+      if (P_SectorActive(ceiling_special,sec)) //jff 2/22/98
+        continue;
+
+      // new door thinker
+      door = Z_Malloc (sizeof(*door), PU_LEVSPEC, 0);
+      P_AddThinker(&door->thinker);
+      sec->ceilingdata = door;
+
+      door->thinker.function = T_VerticalDoor;
+      door->sector = sec;
+      door->type = door_type;
+      door->topwait = wait_time;
+      door->speed = VDOORSPEED * speed;
+      door->line = NULL;   // not triggered by a line
+      door->lighttag = 0;  // no lighting effect
+      door->topheight = P_FindLowestCeilingSurrounding(sec) - 4*FRACUNIT;
+      door->direction = plat_up;
+
+      if (door->topheight != sec->ceilingheight)
+	S_StartSound((mobj_t *)&door->sector->soundorg,
+		     speed >= 4 ? sfx_bdopn : sfx_doropn);
+    }
+}
+
+//
+// EV_CloseDoor
+//
+// sf: also for FraggleScript functions
+//
+
+void EV_CloseDoor(int sectag, int speed)
+{
+  vldoor_e door_type;
+  int secnum = -1;
+  vldoor_t *door;
+
+  if(speed < 1) speed = 1;
+  
+  // find out door type first
+
+  if(speed >= 4)              // blazing ?
+    door_type = blazeClose;
+  else
+    door_type = close;
+  
+  // open door in all the sectors with the specified tag
+
+  while ((secnum = P_FindSectorFromTag(sectag, secnum)) >= 0)
+    {
+      sector_t *sec = &sectors[secnum];
+      // if the ceiling already moving, don't start the door action
+      if (P_SectorActive(ceiling_special,sec)) //jff 2/22/98
+        continue;
+
+      // new door thinker
+      door = Z_Malloc (sizeof(*door), PU_LEVSPEC, 0);
+      P_AddThinker(&door->thinker);
+      sec->ceilingdata = door;
+
+      door->thinker.function = T_VerticalDoor;
+      door->sector = sec;
+      door->type = door_type;
+      door->speed = VDOORSPEED * speed;
+      door->line = NULL;   // not triggered by a line
+      door->lighttag = 0;  // no lighting effect
+      door->topheight = P_FindLowestCeilingSurrounding(sec) - 4*FRACUNIT;
+      door->direction = plat_down;
+
+      S_StartSound((mobj_t *)&door->sector->soundorg,
+		   speed >= 4 ? sfx_bdcls : sfx_dorcls);
+    }  
 }
 
 

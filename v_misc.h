@@ -7,14 +7,20 @@
 
 void V_InitMisc();
 
-/******************** setting modes *******************/
+/////////////////////////////////////////////////////////////////////////////
+//
+// Mode setting
+//
 
 void V_Mode();
 void V_ModeList();
 void V_ResetMode();
 extern int v_mode;
 
-/************************ font ************************/
+/////////////////////////////////////////////////////////////////////////////
+//
+// Font
+//
 
 #define V_FONTSTART    '!'     // the first font character
 #define V_FONTEND      (0x7f) // jff 2/16/98 '_' the last font characters
@@ -39,22 +45,40 @@ void V_LoadFont();
 int V_StringWidth(unsigned char *s);
 int V_StringHeight(unsigned char *s);
 
-/******************** box drawing *********************/
+///////////////////////////////////////////////////////////////////////////
+//
+// Box Drawing
+//
+
 void V_DrawBox(int, int, int, int);
 
+///////////////////////////////////////////////////////////////////////////
+//
+// Loading box
+//
 
-
-/******************* 'loading' pic ********************/
 void V_DrawLoading();
 void V_SetLoading(int total, char *mess);
 void V_LoadingIncrease();
 void V_LoadingSetTo(int amount);
 
+///////////////////////////////////////////////////////////////////////////
+//
+// FPS ticker
+//
 
-/******************** fps ticker **********************/
 void V_FPSDrawer();
 void V_FPSTicker();
 extern int v_ticker;
+
+///////////////////////////////////////////////////////////////////////////
+//
+// Background 'tile' fill
+//
+
+void V_DrawBackground(char* patchname, byte *back_dest);
+void V_DrawDistortedBackground(char* patchname, byte *back_dest);
+
 
 
 #endif

@@ -224,7 +224,7 @@ void P_ParseLevelVar(char *cmd)
 void P_ClearLevelVars()
 {
   info_levelname = info_skyname = info_levelpic = "";
-  info_music = gamemode == commercial ? "runnin" : "e1m1";
+  info_music = "";
   info_creator = "unknown";
   info_interpic = "INTERPIC";
   info_partime = -1;

@@ -165,16 +165,17 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
       // killough 11/98: allow .lmp extension if none existed before
       NormalizeSlashes(AddDefaultExtension(strcpy(filename, name), ".lmp"));
       if ((handle = open(filename,O_RDONLY | O_BINARY)) == -1)
-      {
-        if(in_textmode)
-          I_Error("Error: couldn't open %s\n",name);  // killough
-        else
-        {
-          C_Printf("couldn't open %s\n",name);
-          return true;  // error
-        }
-      }
+	{
+	  if(in_textmode)
+	    I_Error("Error: couldn't open %s\n",name);  // killough
+	  else
+	    {
+	      C_Printf("couldn't open %s\n",name);
+	      return true;  // error
+	    }
+	}
     }
+  
   if(in_textmode)
     printf(" adding %s\n",filename);   // killough 8/8/98
   startlump = numlumps;
@@ -205,38 +206,39 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
       numlumps += header.numlumps;
     }
 
-    free(filename);           // killough 11/98
+  free(filename);           // killough 11/98
+  
+  // Fill in lumpinfo
+  //sf :ptr to ptr
+  lumpinfo = realloc(lumpinfo, (numlumps+2)*sizeof(lumpinfo_t*));
 
-    // Fill in lumpinfo
-                                        //sf :ptr to ptr
-    lumpinfo = realloc(lumpinfo, (numlumps+2)*sizeof(lumpinfo_t*));
-                // space for new lumps
-    newlumps = malloc((numlumps-startlump) * sizeof(lumpinfo_t));
-    lump_p = newlumps;
-        //&lumpinfo[startlump];
-
-    if (!strncmp(header.identification,"IWAD",4))
+  // space for new lumps
+  newlumps = malloc((numlumps-startlump) * sizeof(lumpinfo_t));
+  lump_p = newlumps;
+  //&lumpinfo[startlump];
+  
+  if (!strncmp(header.identification,"IWAD",4))
     {                 // the iwad
-          iwadhandle = handle;
+      iwadhandle = handle;
     }
+  
+  for (i=startlump ; i<numlumps ; i++,lump_p++, fileinfo++)
+    {
+      lumpinfo[i] = lump_p;
+      lump_p->handle = handle;                    //  killough 4/25/98
+      lump_p->position = LONG(fileinfo->filepos);
+      lump_p->size = LONG(fileinfo->size);
+      // sf:cache
+      lump_p->data = lump_p->cache = NULL;         // killough 1/31/98
+      lump_p->namespace = ns_global;              // killough 4/17/98
+      strncpy (lump_p->name, fileinfo->name, 8);
+    }
+  
+  free(fileinfo2free);      // killough
+  
+  D_NewWadLumps(handle);
 
-    for (i=startlump ; i<numlumps ; i++,lump_p++, fileinfo++)
-      {
-        lumpinfo[i] = lump_p;
-        lump_p->handle = handle;                    //  killough 4/25/98
-        lump_p->position = LONG(fileinfo->filepos);
-        lump_p->size = LONG(fileinfo->size);
-                                // sf:cache
-        lump_p->data = lump_p->cache = NULL;         // killough 1/31/98
-        lump_p->namespace = ns_global;              // killough 4/17/98
-        strncpy (lump_p->name, fileinfo->name, 8);
-      }
-
-    free(fileinfo2free);      // killough
-
-    D_NewWadLumps(handle);
-
-    return false;       // no error
+  return false;       // no error
 }
 
 // jff 1/23/98 Create routines to reorder the master directory
@@ -261,48 +263,52 @@ static void W_CoalesceMarkedResource(const char *start_marker,
   size_t i, num_marked = 0, num_unmarked = 0;
   int is_marked = 0, mark_end = 0;
   lumpinfo_t *lump = lumpinfo[0];
-
+  
   for (i=0; i<numlumps; i++)
-  {
-    lump = lumpinfo[i];
-
-    if (IsMarker(start_marker, lump->name))       // start marker found
-      { // If this is the first start marker, add start marker to marked lumps
-        if (!num_marked)
-          {
-            marked[0] = lump;
-            marked[0]->namespace = ns_global;        // killough 4/17/98
-            num_marked = 1;
-          }
-        is_marked = 1;                            // start marking lumps
-      }
-    else
-      if (IsMarker(end_marker, lump->name))       // end marker found
-        {
-          mark_end = 1;                           // add end marker below
-          is_marked = 0;                          // stop marking lumps
-        }
-      else                  // sf: namespace already set
-        if (is_marked || lump->namespace==namespace)// if we are marking lumps,
-          {                                       // move lump to marked list
-
-                // sf 26/10/99:
-                // ignore sprite lumps greater than 8 (the smallest possible)
-                // in size -- this was used by some dmadds wads
-                // as an 'empty' graphics resource
-            if(namespace != ns_sprites || lump->size > 8)
-            {
-               marked[num_marked] = lump;
-               marked[num_marked]->namespace = namespace;  // killough 4/17/98
-               num_marked++;
-            }
-         }
-        else
-        {
-          lumpinfo[num_unmarked] = lump;       // else move down THIS list
-          num_unmarked++;
-        }
-  }
+    {
+      lump = lumpinfo[i];
+      
+      // If this is the first start marker, add start marker to marked lumps
+      if (IsMarker(start_marker, lump->name))       // start marker found
+	{
+	  if (!num_marked)
+	    {
+	      marked[0] = lump;
+	      marked[0]->namespace = ns_global;        // killough 4/17/98
+	      num_marked = 1;
+	    }
+	  is_marked = 1;                            // start marking lumps
+	}
+      else
+	if (IsMarker(end_marker, lump->name))       // end marker found
+	  {
+	    mark_end = 1;                           // add end marker below
+	    is_marked = 0;                          // stop marking lumps
+	  }
+	else                 
+	  // if we are marking lumps,
+	  // move lump to marked list
+	  // sf: check for namespace already set
+	  if (is_marked || lump->namespace==namespace)
+	    {                                       
+	      // sf 26/10/99:
+	      // ignore sprite lumps greater than 8 (the smallest possible)
+	      // in size -- this was used by some dmadds wads
+	      // as an 'empty' graphics resource
+	      if(namespace != ns_sprites || lump->size > 8)
+		{
+		  marked[num_marked] = lump;
+		  marked[num_marked]->namespace = namespace;
+		  num_marked++;
+		}
+	    }
+	  else
+	    {
+	      lumpinfo[num_unmarked] = lump;       // else move down THIS list
+	      num_unmarked++;
+	    }
+    }
+  
   // Append marked list to end of unmarked list
   memcpy(lumpinfo + num_unmarked, marked, num_marked * sizeof(lumpinfo_t *));
 
@@ -483,9 +489,9 @@ void W_InitMultipleFiles(char *const *filenames)
 
 int W_AddNewFile(char *filename)
 {
-        if(W_AddFile(filename)) return true;
-        W_InitResources();              // reinit lump lookups etc
-        return false;
+  if(W_AddFile(filename)) return true;
+  W_InitResources();              // reinit lump lookups etc
+  return false;
 }
 
 //
@@ -559,21 +565,21 @@ void *W_CacheLumpNum(int lump, int tag)
 
 // Predefined lumps removed -- sf
 
-        // sf: lump checksum
+// sf: lump checksum
 
 long W_LumpCheckSum(int lumpnum)
 {
-        int i, lumplength;
-        char *lump;
-        long checksum = 0;
-
-        lump = W_CacheLumpNum(lumpnum, PU_CACHE);
-        lumplength = W_LumpLength(lumpnum);
-
-        for(i=0; i<lumplength; i++)
-                checksum+= lump[i]*i;
-
-        return checksum;
+  int i, lumplength;
+  char *lump;
+  long checksum = 0;
+  
+  lump = W_CacheLumpNum(lumpnum, PU_CACHE);
+  lumplength = W_LumpLength(lumpnum);
+  
+  for(i=0; i<lumplength; i++)
+    checksum+= lump[i]*i;
+  
+  return checksum;
 }
 
 //----------------------------------------------------------------------------

@@ -23,9 +23,10 @@
 #include "mn_engin.h"
 #include "mn_misc.h"
 
-/******************
-  POP-UP MESSAGES
-  *****************/
+/////////////////////////////////////////////////////////////////////////
+//
+// Pop-up Messages
+//
 
 char popup_message[128];
 char *popup_message_command;            // console command to run
@@ -168,9 +169,10 @@ void MN_Question(char *message, char *command)
   popup_message_command = command;
 }
 
-/**************
-  HELP SCREENS
- ***************/
+//////////////////////////////////////////////////////////////////////////
+//
+// Credits Screens
+//
 
 void MN_DrawCredits(void);
 
@@ -245,12 +247,13 @@ void MN_DrawCredits(void)
 {
   inhelpscreens = true;
 
-        // sf: altered for SMMU
+  // sf: altered for SMMU
 
-  MN_DrawDistortedBackground(gamemode==commercial ? "SLIME05" : "NUKAGE1",
-                                screens[0]);
+  V_DrawDistortedBackground(gamemode==commercial ? "SLIME05" : "NUKAGE1",
+			    screens[0]);
 
-        // sf: SMMU credits
+  // sf: SMMU credits
+
   V_WriteText(FC_GRAY "SMMU:" FC_RED " \"Smack my marine up\"\n"
 	      "\n"
 	      "Port by Simon Howard 'Fraggle'\n"
@@ -350,9 +353,10 @@ CONSOLE_COMMAND(credits, 0)
   viewing_helpscreen = 0;
 }
 
-/**************************
-  AUTOMAP COLOUR SELECTION
- **************************/
+///////////////////////////////////////////////////////////////////////////
+//
+// Automap Colour selection
+//
 
 // selection of automap colours for menu.
 

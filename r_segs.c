@@ -270,36 +270,36 @@ static void R_RenderSegLoop (void)
 
 #ifdef TRANWATER
       if (markfloor2)
-      {
-           int yw = bottomfrac2>>HEIGHTBITS;
-
-           if(yw < 0) yw = 0;
-           if(yw >= viewheight) yw = viewheight-1;
-
-           if(yw > floorplane2->top[rw_x])
-                floorplane2->top[rw_x] = yw;
-           if(yw < floorplane2->bottom[rw_x])
-                floorplane2->bottom[rw_x] = yw;
-
-           if(viewz<floorplane2->height) // below plane
-           {
-                   top = floorclip2[rw_x]+1;
-                   bottom = yw;
-                   if(bottom >= floorclip[rw_x]) bottom = floorclip[rw_x]-1;
+	{
+	  int yw = bottomfrac2>>HEIGHTBITS;
+	  
+	  if(yw < 0) yw = 0;
+	  if(yw >= viewheight) yw = viewheight-1;
+	  
+	  if(yw > floorplane2->top[rw_x])
+	    floorplane2->top[rw_x] = yw;
+	  if(yw < floorplane2->bottom[rw_x])
+	    floorplane2->bottom[rw_x] = yw;
+	  
+	  if(viewz<floorplane2->height) // below plane
+	    {
+	      top = floorclip2[rw_x]+1;
+	      bottom = yw;
+	      if(bottom >= floorclip[rw_x]) bottom = floorclip[rw_x]-1;
+	    }
+	  else                 // above
+	    {
+	      top = yw;
+	      bottom = floorclip2[rw_x]-1;
+	      if(top <= ceilingclip[rw_x]) top = ceilingclip[rw_x]+1;
            }
-           else                 // above
-           {
-                   top = yw;
-                   bottom = floorclip2[rw_x]-1;
-                   if(top <= ceilingclip[rw_x]) top = ceilingclip[rw_x]+1;
-           }
-
-           if(top <= bottom)
-           {
-                floorplane2->top[rw_x] = top;
-                floorplane2->bottom[rw_x] = bottom;
-           }
-
+	  
+	  if(top <= bottom)
+	    {
+	      floorplane2->top[rw_x] = top;
+	      floorplane2->bottom[rw_x] = bottom;
+	    }
+	  
       }
 #endif
 
@@ -529,8 +529,10 @@ void R_StoreWallRange(const int start, const int stop)
       // a single sided line is terminal, so it must mark ends
       markfloor = markceiling = true;
 
+#ifdef TRANWATER
       markfloor2 = !!floorplane2;
-
+#endif
+      
       if (linedef->flags & ML_DONTPEGBOTTOM)
         {         // bottom of texture at bottom
           fixed_t vtop = frontsector->floorheight +
@@ -632,7 +634,7 @@ void R_StoreWallRange(const int start, const int stop)
 
         // killough 4/17/98: draw floors if different light levels
         || backsector->floorlightsec != frontsector->floorlightsec
-        ;
+	 ;
 
       markceiling = worldhigh != worldtop
         || backsector->ceilingpic != frontsector->ceilingpic
@@ -709,7 +711,7 @@ void R_StoreWallRange(const int start, const int stop)
       offsetangle = rw_normalangle-rw_angle1;
 
       if (offsetangle > ANG180)
-        offsetangle = -offsetangle;
+	offsetangle = -offsetangle;
 
       if (offsetangle > ANG90)
         offsetangle = ANG90;
@@ -771,11 +773,11 @@ void R_StoreWallRange(const int start, const int stop)
 
 #ifdef TRANWATER
   if (floorplane2)
-  {
-        int worldplane = (floorplane2->height - viewz)>>4;
-        bottomstep2 = -FixedMul (rw_scalestep,worldplane);
-        bottomfrac2 = (centeryfrac>>4) - FixedMul (worldplane, rw_scale);
-  }
+    {
+      int worldplane = (floorplane2->height - viewz)>>4;
+      bottomstep2 = -FixedMul (rw_scalestep,worldplane);
+      bottomfrac2 = (centeryfrac>>4) - FixedMul (worldplane, rw_scale);
+    }
 #endif
 
   if (backsector)

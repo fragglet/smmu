@@ -145,14 +145,14 @@ void P_UnArchivePlayers (void)
 	//     levels: ie. retain the same weapons etc.
 
 	if(!hub_changelevel)
-	{
-	  memcpy(&players[i], save_p, sizeof(player_t));
-	  for (j=0 ; j<NUMPSPRITES ; j++)
-	    if (players[i].psprites[j].state)
-	      players[i].psprites[j].state =
-		&states[ (int)players[i].psprites[j].state ];
-	}
-
+	  {
+	    memcpy(&players[i], save_p, sizeof(player_t));
+	    for (j=0 ; j<NUMPSPRITES ; j++)
+	      if (players[i].psprites[j].state)
+		players[i].psprites[j].state =
+		  &states[ (int)players[i].psprites[j].state ];
+	  }
+	
         save_p += sizeof(player_t);
 
         // will be set when unarc thinker

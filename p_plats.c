@@ -267,7 +267,7 @@ int EV_DoPlat
         plat->wait = 35*PLATWAIT;
         plat->status = down;
         if(!silentmove(sec))    // sf: silentmove
-                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+	  S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
           
       case blazeDWUS:
@@ -281,7 +281,7 @@ int EV_DoPlat
         plat->wait = 35*PLATWAIT;
         plat->status = down;
         if(!silentmove(sec))    // sf: silentmove
-                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+	  S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
           
       case perpetualRaise:
@@ -300,7 +300,7 @@ int EV_DoPlat
         plat->status = P_Random(pr_plats)&1;
 
         if(!silentmove(sec))    // sf: silentmove
-                S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+	  S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
         break;
 
       case toggleUpDn: //jff 3/14/98 add new type to support instant toggle

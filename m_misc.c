@@ -2084,10 +2084,11 @@ int M_ReadFile(char const *name, byte **buffer)
       fclose(fp);
     }
 
-  I_Error("Couldn't read file %s: %s", name, 
-	  errno ? strerror(errno) : "(Unknown Error)");
+  // sf: do not quit on file not found
+  //  I_Error("Couldn't read file %s: %s", name, 
+  //	  errno ? strerror(errno) : "(Unknown Error)");
 
-  return 0;
+  return -1;
 }
 
 //

@@ -1170,26 +1170,27 @@ void startupmsg(char *func, char *desc)
 	  func, desc);
 }
 
-        // sf: this is really part of D_DoomMain but I made it into
-        // a seperate function
-        // this stuff needs to be kept together
+// sf: this is really part of D_DoomMain but I made it into
+// a seperate function
+// this stuff needs to be kept together
 
 void D_SetGraphicsMode()
 {
-   DEBUGMSG("** set graphics mode\n");
+  DEBUGMSG("** set graphics mode\n");
 
-             // set graphics mode
-   I_InitGraphics();
+  // set graphics mode
+  I_InitGraphics();
+  
+  DEBUGMSG("done\n");
 
-   DEBUGMSG("done\n");
-          // set up the console to display startup messages
-   gamestate = GS_CONSOLE; 
-   current_height = SCREENHEIGHT;
-   c_showprompt = false;
-
-   C_Puts(game_name);    // display description of gamemode
-   D_ListWads();         // list wads to the console
-   C_Printf("\n");       // leave a gap
+  // set up the console to display startup messages
+  gamestate = GS_CONSOLE; 
+  current_height = SCREENHEIGHT;
+  c_showprompt = false;
+  
+  C_Puts(game_name);    // display description of gamemode
+  D_ListWads();         // list wads to the console
+  C_Printf("\n");       // leave a gap
 }
 
 //
@@ -1201,7 +1202,7 @@ void D_DoomMain(void)
   int p, slot;
   char file[PATH_MAX+1];      // killough 3/22/98
 
-  setbuf(stdout,NULL);
+  setbuf(stdout, NULL);
 
   FindResponseFile();         // Append response file arguments to command-line
 
@@ -1218,10 +1219,10 @@ void D_DoomMain(void)
   // killough 10/98: process all command-line DEH's first
   D_ProcessDehCommandLine();
 
-        // sf: removed beta
+  // sf: removed beta
 
   // jff 1/24/98 set both working and command line value of play parms
-        // sf: make bitwise for console
+  // sf: make boolean for console
   nomonsters = clnomonsters = !!M_CheckParm ("-nomonsters");
   respawnparm = clrespawnparm = !!M_CheckParm ("-respawn");
   fastparm = clfastparm = !!M_CheckParm ("-fast");
@@ -1238,55 +1239,55 @@ void D_DoomMain(void)
 
   switch ( gamemode )
     {
-    case retail:
-      sprintf (title,"The Ultimate DOOM Startup");
-      break;
-    case shareware:
-      sprintf (title,"DOOM Shareware Startup");
-      break;
-
-    case registered:
-      sprintf (title,"DOOM Registered Startup");
-      break;
-
-    case commercial:
-      switch (gamemission)      // joel 10/16/98 Final DOOM fix
-	{
-	case pack_plut:
-	  sprintf (title,"DOOM 2: Plutonia Experiment");
-	  break;
-
-	case pack_tnt:
-	  sprintf (title, "DOOM 2: TNT - Evilution");
-	  break;
-
-	case doom2:
-	default:
-	  sprintf (title,"DOOM 2: Hell on Earth");
-	  break;
-	}
-      break;
-      // joel 10/16/98 end Final DOOM fix
-
-    default:
-      sprintf (title, "Public DOOM");
-      break;
+      case retail:
+	sprintf (title,"The Ultimate DOOM Startup");
+	break;
+      case shareware:
+	sprintf (title,"DOOM Shareware Startup");
+	break;
+	
+      case registered:
+	sprintf (title,"DOOM Registered Startup");
+	break;
+	
+      case commercial:
+	switch (gamemission)      // joel 10/16/98 Final DOOM fix
+	  {
+	    case pack_plut:
+	      sprintf (title,"DOOM 2: Plutonia Experiment");
+	      break;
+	      
+	    case pack_tnt:
+	      sprintf (title, "DOOM 2: TNT - Evilution");
+	      break;
+	      
+	    case doom2:
+	    default:
+	      sprintf (title,"DOOM 2: Hell on Earth");
+	      break;
+	  }
+	break;
+	// joel 10/16/98 end Final DOOM fix
+	
+      default:
+	sprintf (title, "Public DOOM");
+	break;
     }
-    printf("%s\n", title);
-    printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
+  printf("%s\n", title);
+  printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
 #endif /* GAMEBAR */
-
+  
   if (devparm)
-  {
-    printf(D_DEVSTR);
-    v_ticker = true;  // turn on the fps ticker
-  }
-
+    {
+      printf(D_DEVSTR);
+      v_ticker = true;  // turn on the fps ticker
+    }
+  
   if (M_CheckParm("-cdrom"))
     {
       printf(D_CDROM);
       mkdir("c:/doomdata",0);
-
+      
       // killough 10/98:
       sprintf(basedefault, "c:/doomdata/%s.cfg", D_DoomExeName());
     }
@@ -1315,12 +1316,13 @@ void D_DoomMain(void)
     char filestr[128];
     // get smmu.wad from the same directory as smmu.exe
     // 25/10/99: use same name as exe
+
     sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
     D_AddFile(filestr);
   }
 
   modifiedgame = false;         // reset, ignoring smmu.wad etc.
-
+  
   // add any files specified on the command line with -file wadfile
   // to the wad list
 
@@ -1348,12 +1350,12 @@ void D_DoomMain(void)
       p = M_CheckParm ("-timedemo");
 
   if (p && p < myargc-1)
-  {
+    {
       strcpy(file,myargv[p+1]);
       AddDefaultExtension(file,".lmp");     // killough
-      D_AddFile(file);
+      //      D_AddFile(file); // sf: no longer need to addfile
       usermsg("Playing demo %s\n",file);
-  }
+    }
 
   // get skill / episode / map from parms
 
@@ -1384,8 +1386,9 @@ void D_DoomMain(void)
       usermsg("Levels will end after %d minute%s.\n", time, time>1 ? "s" : "");
       levelTimeLimit = time;
     }
-        // sf: moved from p_spec.c
 
+  // sf: moved from p_spec.c
+  
   // See if -frags has been used
 
   p = M_CheckParm("-frags");
@@ -1440,6 +1443,12 @@ void D_DoomMain(void)
       sprintf(filename,"debug%i.txt",consoleplayer);
       usermsg("debug output to: %s\n",filename);
       debugfile = fopen(filename,"w");
+    }
+
+  if (M_CheckParm ("-debugstd"))
+    {
+      usermsg("debug output to stderr\n");
+      debugfile = stdout;
     }
  
   startupmsg("M_LoadDefaults", "Load system defaults.");
@@ -1511,7 +1520,7 @@ void D_DoomMain(void)
   startupmsg("I_Init","Setting up machine state.");
   I_Init();
 
-  /************************************************************************/
+  /////////////////////////////////////////////////////////////////////////
   
   // devparm override of early set graphics mode
 
@@ -1551,15 +1560,19 @@ void D_DoomMain(void)
       getchar();
     }
   
- /****************** Must be in graphics mode by now! *********************/
+  //////////////////////////////////////////////////////////////////////
+  //
+  // Must be in Graphics mode by now!
+  //
+    
+  // check
 
-        // check
-  if(in_textmode)  D_SetGraphicsMode();
+  if(in_textmode)
+    D_SetGraphicsMode();
 
   C_Printf("\n");
   C_Seperator();
-  C_Printf(	
-	   "\n"
+  C_Printf("\n"
 	   FC_GRAY "SMMU" FC_RED " by Simon Howard 'Fraggle'\n"
 	   "http://fraggle.tsx.org/ \n"
 	   "version %i.%02i '%s' \n\n",
@@ -1639,6 +1652,7 @@ void D_DoomMain(void)
     {
       if (demorecording)
 	  G_BeginRecording();
+
       if(netgame)
 	{
           C_SendNetData();
@@ -1718,7 +1732,7 @@ void D_NewWadLumps(int handle)
 	    {
 	      if(name[1] < wad_firstlevel[1] ||       // earlier episode?
 		 // earlier level in the same episode?
-                 (name[1] == wad_firstlevel[1] && name[3] < wad_firstlevel[3]) )
+                 (name[1] == wad_firstlevel[1] && name[3] < wad_firstlevel[3]))
 		strncpy(wad_firstlevel, name, 8);
 	    }
 	  if(isMAPxy(name) && isMAPxy(wad_firstlevel))
@@ -1743,11 +1757,20 @@ void D_NewWadLumps(int handle)
 	{
 	  S_UpdateSound(i);
 	}
-                // skins
+      
+      // new music
+      if(!strncmp(lumpinfo[i]->name, "D_", 2))
+	{
+	  S_UpdateMusic(i);
+	}
+
+      // skins
       if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
 	{
 	  P_ParseSkin(i);
 	}
+
+      // mbf dehacked lump
       if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
 	{
 	  D_ProcessDehInWad(i);
@@ -1777,9 +1800,10 @@ void usermsg(char *s, ...)
   }
 }
 
-        // add a new .wad file
-        // returns 1 if successfully loaded
-int D_AddNewFile(char *s)
+// add a new .wad file
+// returns true if successfully loaded
+
+boolean D_AddNewFile(char *s)
 {
   c_showprompt = false;
   if(W_AddNewFile(c_argv[0])) return false;

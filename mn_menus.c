@@ -52,11 +52,16 @@ void MN_InitMenus()
   mn_wadname = Z_Strdup("", PU_STATIC, 0);
 }
 
-/***************************** THE MENUS **********************************/
+//////////////////////////////////////////////////////////////////////////
+//
+// THE MENUS
+//
+//////////////////////////////////////////////////////////////////////////
 
-/***********************
-              MAIN MENU
- ***********************/
+/////////////////////////////////////////////////////
+//
+// Main Menu
+//
 
 void MN_MainMenuDrawer();
 
@@ -84,6 +89,11 @@ void MN_MainMenuDrawer()
   // hack for m_doom compatibility
    V_DrawPatch(94, 2, 0, W_CacheLumpName("M_DOOM", PU_CACHE));
 }
+
+// mn_newgame called from main menu:
+// goes to start map OR
+// starts menu
+// according to use_startmap, gametype and modifiedgame
 
 CONSOLE_COMMAND(mn_newgame, 0)
 {
@@ -113,7 +123,8 @@ CONSOLE_COMMAND(mn_newgame, 0)
     }
   else
     {
-      if(modifiedgame) MN_StartMenu(&menu_newgame);
+      if(modifiedgame)
+	MN_StartMenu(&menu_newgame);
       else
 	{
 	  // hack -- cut off thy flesh consumed if not retail
@@ -124,6 +135,9 @@ CONSOLE_COMMAND(mn_newgame, 0)
 	}
     }
 }
+
+// menu item to quit doom:
+// pop up a quit message as in the original
 
 CONSOLE_COMMAND(mn_quit, 0)
 {
@@ -143,9 +157,10 @@ CONSOLE_COMMAND(mn_quit, 0)
 
 }
 
-/************************
-        SELECT EPISODE
- ************************/
+/////////////////////////////////////////////////////////
+//
+// Episode Selection
+//
 
 int start_episode;
 
@@ -186,10 +201,10 @@ CONSOLE_COMMAND(mn_episode, cf_notnet)
   MN_StartMenu(&menu_newgame);
 }
 
-
-/************************
-           NEW GAME MENU
- ************************/
+//////////////////////////////////////////////////////////
+//
+// New Game Menu: Skill Level Selection
+//
 
 menu_t menu_newgame =
 {
@@ -232,6 +247,11 @@ CONSOLE_COMMAND(newgame, cf_notnet)
   MN_ClearMenus();
 }
 
+//////////////////////////////////////////////////
+//
+// First-time Query menu to use start map
+//
+
 menu_t menu_startmap =
 {
   {
@@ -255,9 +275,12 @@ char *str_startmap[] = {"ask", "no", "yes"};
 VARIABLE_INT(use_startmap, NULL, -1, 1, str_startmap);
 CONSOLE_VARIABLE(use_startmap, use_startmap, 0) {}
 
-/***********************
-          FEATURES MENU
- ***********************/
+/////////////////////////////////////////////////////
+//
+// Features Menu
+//
+// Access to new SMMU features
+//
 
 menu_t menu_features =
 {
@@ -284,9 +307,13 @@ CONSOLE_COMMAND(mn_features, 0)
   MN_StartMenu(&menu_features);
 }
 
-/********************
-               DEMOS
- ********************/
+////////////////////////////////////////////////
+//
+// Demos Menu
+//
+// Allow Demo playback and (recording),
+// also access to camera angles
+//
 
 menu_t menu_demos = 
 {
@@ -312,7 +339,7 @@ menu_t menu_demos =
   mf_background,    // full screen
 };
 
-VARIABLE_STRING(mn_demoname,     NULL,           8);
+VARIABLE_STRING(mn_demoname,     NULL,           12);
 CONSOLE_VARIABLE(mn_demoname,    mn_demoname,     0) {}
 
 CONSOLE_COMMAND(mn_demos, cf_notnet)
@@ -320,9 +347,12 @@ CONSOLE_COMMAND(mn_demos, cf_notnet)
   MN_StartMenu(&menu_demos);
 }
 
-/************************
-        LOAD WAD
-*************************/
+//////////////////////////////////////////////////////////////////
+//
+// Load new pwad menu
+//
+// Using SMMU dynamic wad loading
+//
 
 menu_t menu_loadwad =
 {
@@ -359,9 +389,12 @@ CONSOLE_COMMAND(mn_loadwad, cf_notnet)
   MN_StartMenu(&menu_loadwad);
 }
 
-/************************
-        MULTIPLAYER
- ************************/
+//////////////////////////////////////////////////////////////
+//
+// Multiplayer Menu
+//
+// Access to the new Multiplayer features of SMMU
+//
 
 menu_t menu_multiplayer =
 {
@@ -391,9 +424,10 @@ CONSOLE_COMMAND(mn_multi, 0)
   MN_StartMenu(&menu_multiplayer);
 }
   
-/************************
-        GAME SETTINGS
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// Multiplayer Game settings
+//
 
 enum
 {
@@ -487,9 +521,11 @@ CONSOLE_COMMAND(mn_startgame, 0)
   C_RunTextCmd(console_cmds[connect_type]);
 }
 
-/************************
-    ADVANCED MULTIPLAYER
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// Multiplayer Game settings
+// Advanced menu
+//
 
 menu_t menu_advanced =
 {
@@ -521,9 +557,12 @@ CONSOLE_COMMAND(mn_advanced, cf_server)
   MN_StartMenu(&menu_advanced);
 }
 
-/************************
-        TCP/IP MENU
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// TCP/IP Menu
+//
+// When its done!
+//
 
 menu_t menu_tcpip =
 {
@@ -544,9 +583,10 @@ CONSOLE_COMMAND(mn_tcpip, 0)
   MN_StartMenu(&menu_tcpip);
 }
 
-/**************************
-        SERIAL/MODEM MENU
- **************************/
+/////////////////////////////////////////////////////////////////
+//
+// Serial/Modem Game
+//
 
 menu_t menu_serial =
 {
@@ -576,9 +616,10 @@ CONSOLE_COMMAND(mn_serial, 0)
 VARIABLE_STRING(mn_phonenum,     NULL,           126);
 CONSOLE_VARIABLE(mn_phonenum,    mn_phonenum,     0) {}
 
-/************************
-        CHAT MACROS MENU
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// Chat Macros
+//
 
 menu_t menu_chatmacros =
 {
@@ -607,9 +648,10 @@ CONSOLE_COMMAND(mn_chatmacros, 0)
   MN_StartMenu(&menu_chatmacros);
 }
 
-/************************
-        PLAYER SETUP
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// Player Setup
+//
 
 void MN_PlayerDrawer();
 
@@ -622,7 +664,7 @@ menu_t menu_player =
     {it_toggle,         "player colour",        "colour"},
     {it_toggle,         "player skin",          "skin"},
     {it_gap},
-    {it_toggle,       "handedness",           "lefthanded"},
+    {it_toggle,         "handedness",           "lefthanded"},
     {it_end}
   },
   150,5,                                // x, y offset
@@ -668,9 +710,11 @@ CONSOLE_COMMAND(mn_player, 0)
   MN_StartMenu(&menu_player);
 }
 
-/************************
-        LOAD GAME
- ************************/
+
+/////////////////////////////////////////////////////////////////
+//
+// Load Game
+//
 
 #define SAVESLOTS 7
 #define SAVESTRINGSIZE  24
@@ -861,9 +905,10 @@ CONSOLE_COMMAND(mn_load, 0)
   MN_ClearMenus();
 }
 
-/************************
-        SAVE GAME
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// Save Game
+//
 
 void MN_SaveGameDrawer()
 {
@@ -909,10 +954,12 @@ CONSOLE_COMMAND(mn_savegame, 0)
   MN_StartMenu(&menu_savegame);
 }
 
-
-/************************
-        OPTIONS MENU
- ************************/
+/////////////////////////////////////////////////////////////////
+//
+// Options Menu
+//
+// Massively re-organised from the original version
+//
 
 menu_t menu_options =
 {
@@ -957,9 +1004,10 @@ CONSOLE_COMMAND(mn_endgame, 0)
   MN_Question(s_ENDGAME, "starttitle");
 }
 
-/*********************
-        VIDEO MODES
- *********************/
+/////////////////////////////////////////////////////////////////
+//
+// Video Options
+//
 
 void MN_VideoModeDrawer();
 
@@ -968,9 +1016,9 @@ menu_t menu_video =
   {
     {it_title,        FC_GOLD "video",                NULL, "m_video"},
     {it_gap},
+    {it_runcmd,       "set video mode",               "mn_vidmode"},
+    {it_gap},
     {it_info,         FC_GOLD "mode"},
-    {it_toggle,       "video mode",                   "v_mode"},
-    {it_info,         "(vid mode here)"},
     {it_toggle,       "wait for retrace",             "v_retrace"},
     {it_runcmd,       "test framerate..",             "timedemo demo2; mn_clearmenus"},
     {it_slider,       "gamma correction",             "gamma"},
@@ -991,7 +1039,7 @@ menu_t menu_video =
     {it_end},
   },
   200, 15,              // x,y offset
-  3,                    // start on first selectable
+  2,                    // start on first selectable
   mf_background,        // full-screen menu
   MN_VideoModeDrawer
 };
@@ -1003,8 +1051,6 @@ void MN_VideoModeDrawer()
   spritedef_t *sprdef;
   spriteframe_t *sprframe;
 
-  menu_video.menuitems[4].description = videomodes[v_mode].description;
-    
   // draw an imp fireball
   
   sprdef = &sprites[states[S_TBALL1].sprite];
@@ -1022,9 +1068,70 @@ CONSOLE_COMMAND(mn_video, 0)
   MN_StartMenu(&menu_video);
 }
 
-/***********************
-                SOUND
- ***********************/
+/////////////////////////////////////////////////////////////////
+//
+// Set vid mode
+
+void MN_VidModeDrawer();
+
+menu_t menu_vidmode =
+  {
+    {
+      {it_title,        FC_GOLD "video",                NULL, "m_video"},
+      {it_gap},
+      {it_info,         FC_GOLD "current mode:"},
+      {it_info,         "(current mode)"},
+      {it_gap},
+      {it_info,         FC_GOLD "select video mode:"},
+      // .... video modes filled in by console cmd function ......
+      {it_end},
+    },
+    50, 15,              // x,y offset
+    7,                    // start on first selectable
+    mf_leftaligned|mf_background,        // full-screen menu
+    MN_VidModeDrawer,
+  };
+
+void MN_VidModeDrawer()
+{
+  menu_vidmode.menuitems[3].description = videomodes[v_mode].description;
+}
+
+CONSOLE_COMMAND(mn_vidmode, 0)
+{
+  static boolean menu_built = false;
+  
+  // dont build multiple times
+  if(!menu_built)
+    {
+      int menuitem, vidmode;
+      char tempstr[20];
+      
+      // start on item 6
+      
+      for(menuitem=6, vidmode=0; videomodes[vidmode].description;
+	  menuitem++, vidmode++)
+	{
+	  menu_vidmode.menuitems[menuitem].type = it_runcmd;
+	  menu_vidmode.menuitems[menuitem].description =
+	    videomodes[vidmode].description;
+	  sprintf(tempstr, "v_mode %i", vidmode);
+	  menu_vidmode.menuitems[menuitem].data = strdup(tempstr);
+	}
+     
+      menu_vidmode.menuitems[menuitem].type = it_end; // mark end
+
+      menu_built = true;
+    }
+
+  MN_StartMenu(&menu_vidmode);
+}
+
+
+/////////////////////////////////////////////////////////////////
+//
+// Sound Options
+//
 
 menu_t menu_sound =
 {
@@ -1056,9 +1163,10 @@ CONSOLE_COMMAND(mn_sound, 0)
   MN_StartMenu(&menu_sound);
 }
 
-/***********************
-                MOUSE
- ***********************/
+/////////////////////////////////////////////////////////////////
+//
+// Mouse Options
+//
 
 menu_t menu_mouse =
 {
@@ -1091,9 +1199,11 @@ CONSOLE_COMMAND(mn_mouse, 0)
   MN_StartMenu(&menu_mouse);
 }
 
-/************************
-          HUD SETTINGS
- ************************/
+
+/////////////////////////////////////////////////////////////////
+//
+// HUD Settings
+//
 
 menu_t menu_hud =
 {
@@ -1128,9 +1238,11 @@ CONSOLE_COMMAND(mn_hud, 0)
   MN_StartMenu(&menu_hud);
 }
 
-/***************************
-        STATUS BAR SETTINGS
- ***************************/
+
+/////////////////////////////////////////////////////////////////
+//
+// Status Bar Settings
+//
 
 menu_t menu_statusbar =
 {
@@ -1164,9 +1276,11 @@ CONSOLE_COMMAND(mn_status, 0)
   MN_StartMenu(&menu_statusbar);
 }
 
-/************************
-                AUTOMAP
- ************************/
+
+/////////////////////////////////////////////////////////////////
+//
+// Automap colours
+//
 
 menu_t menu_automap = 
 {
@@ -1205,9 +1319,11 @@ CONSOLE_COMMAND(mn_automap, 0)
   MN_StartMenu(&menu_automap);
 }
 
-/************************
-                WEAPONS
- ************************/
+
+/////////////////////////////////////////////////////////////////
+//
+// Weapon Options
+//
 
 menu_t menu_weapons =
 {
@@ -1242,9 +1358,10 @@ CONSOLE_COMMAND(mn_weapons, 0)
   MN_StartMenu(&menu_weapons);
 }
 
-/**************************
-            COMPATIBILITY
- **************************/
+/////////////////////////////////////////////////////////////////
+//
+// Compatibility vectors
+//
 
 menu_t menu_compat =
 {
@@ -1289,9 +1406,11 @@ CONSOLE_COMMAND(mn_compat, 0)
   MN_StartMenu(&menu_compat);
 }
 
-/**************************
-                  ENEMIES
- **************************/
+
+/////////////////////////////////////////////////////////////////
+//
+// Enemies
+//
 
 menu_t menu_enemies =
 {
@@ -1321,9 +1440,16 @@ CONSOLE_COMMAND(mn_enemies, 0)
   MN_StartMenu(&menu_enemies);
 }
 
-// sf: special framerate menu to show how your framerate compares
-//     with _mine_
 
+/////////////////////////////////////////////////////////////////
+//
+// Framerate test
+//
+// Option on "video options" menu allows you to timedemo your
+// computer on demo2. When you finish you are presented with
+// this menu
+
+// test framerates
 int framerates[] = {2462, 1870, 2460, 698, 489};
 int this_framerate;
 void MN_FrameRateDrawer();
@@ -1431,6 +1557,7 @@ void MN_AddMenus()
   C_AddCommand(mn_options);
   C_AddCommand(mn_mouse);
   C_AddCommand(mn_video);
+    C_AddCommand(mn_vidmode);
   C_AddCommand(mn_sound);
   C_AddCommand(mn_weapons);
   C_AddCommand(mn_compat);

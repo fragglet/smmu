@@ -16,9 +16,9 @@ DJGPPDOS=1
 ################################ DJGPP ####################################
 
 ifdef DJGPPDOS
-        
-PLATFORM = djgpp
 
+PLATFORM = djgpp
+        
 # compiler
 CC=gcc
         
@@ -56,23 +56,53 @@ LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
 # system-specific object files
 PLATOBJS =                  \
 	$(O)/i_main.o       \
-   	$(O)/i_system.o     \
-  	$(O)/i_sound.o      \
+	$(O)/i_system.o     \
+	$(O)/i_sound.o      \
 	$(O)/i_video.o      \
 	$(O)/i_net.o        \
-        $(O)/ser_main.o     \
+	$(O)/ser_main.o     \
 	$(O)/ser_port.o     \
 	$(O)/keyboard.o     \
 	$(O)/mmus2mid.o     \
 	$(O)/pproblit.o     \
 	$(O)/drawspan.o     \
-	$(O)/drawcol.o      \
-	$(O)/emu8kmid.o
+	$(O)/emu8kmid.o     \
+	$(O)/drawcol.o
+
+build : $(EXE)
 
 $(EXE): $(OBJS) $(O)/version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/version.o -o $@ $(LIBS)
 
-doom all: $(EXE)
+release: sources binaries
+
+sources:
+# build source zip
+	make clean
+	$(RM) smmu-src.zip
+	pkzip -a -ex -rp smmu-src
+
+binaries:
+# build binaries zip
+	del $(O)\smmu.exe
+	make build
+	strip $(O)/smmu.exe
+	djp $(O)/smmu.exe
+	if exist smmu.zip del smmu.zip
+	pkzip -a -ex smmu $(O)/smmu.exe $(O)/smmu.wad               \
+			smmu.txt smmuedit.txt                       \
+			doomlic.txt copying copying.dj 
+	pkzip -a -ex -rp smmu examples/*.wad
+
+clean:
+	del *.c~
+	del *.h~
+	del $(O)\tranmap.dat
+	del $(O)\smmu.cfg
+	if exist $(O_RELEASE)\*.exe del $(O_RELEASE)\*.exe
+	if exist $(O_DEBUG)\*.exe del $(O_DEBUG)\*.exe
+	if exist $(O_RELEASE)\*.o del $(O_RELEASE)\*.o
+	if exist $(O_DEBUG)\*.o del $(O_DEBUG)\*.o
 
 endif
 
@@ -117,7 +147,7 @@ PLATOBJS =                  \
 	$(O)/i_system.o     \
 	$(O)/i_net.o
 
-all : xsmmu ssmmu
+build : xsmmu ssmmu
 
 # X version doesn't work on my pc currently
 # please email me if you have any success
@@ -128,6 +158,10 @@ ssmmu: $(OBJS) $(O)/i_svga.o $(O)/version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/i_svga.o $(O)/version.o -o $@  -lvga
 
 endif
+
+nothing : 
+	@echo SMMU makefile:
+	@echo you need to specify a platform in the Makefile!
 
 ############################## OBJECT FILES #################################
 
@@ -218,30 +252,8 @@ OBJS=   \
 	$(O)/t_oper.o	    \
         $(O)/t_spec.o
 
-release: clean
-	$(RM) tranmap.dat
-	$(RM) smmu.cfg
-	$(RM) smmu-src.zip
-	$(RM) examples.zip
-	$(RM) smmu.zip
-	pkzip -a -ex -rp smmu-src
-	$(MAKE) all
-	pkzip -a -ex examples examples\*.*
-	pkzip -a -ex smmu smmu.exe smmu.txt smmuedit.txt
-	pkzip -a -Ex smmu doomlic.txt copying copying.dj
-	#        pkzip -a -Ex smmu common.cfg examples.zip betalevl.wad betagrph.wad
-	#        pkzip -a -Ex smmu asetup.exe cwsdpmi.exe copying copying.dj readme.1st
-	$(RM) examples.zip
-
 debug:
 	$(MAKE) MODE=DEBUG
-
-clean:
-	$(RM) $(O)\$(EXE)
-	$(RM) $(O_RELEASE)\*.exe
-	$(RM) $(O_DEBUG)\*.exe
-	$(RM) $(O_RELEASE)\*.o
-	$(RM) $(O_DEBUG)\*.o
 
 $(O)/%.o:   %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -600,8 +612,8 @@ $(O)/version.o: version.c version.h z_zone.h
 $(O)/emu8kmid.o: $(PLATFORM)/emu8kmid.c djgpp/emu8k.h djgpp/internal.h \
   djgpp/interndj.h djgpp/allegro.h
 
-$(O)/keyboard.o: $(PLATFORM)/keyboard.c djgpp/internal.h djgpp/interndj.h \
-  djgpp/allegro.h
+$(O)/keyboard.o: $(PLATFORM)/keyboard.c djgpp/internal.h  \
+  djgpp/interndj.h djgpp/allegro.h
 	$(CC) $(CFLAGS_COMMON) -O $(CFLAGS_NEWFEATURES) -c $< -o $@
 
 endif

@@ -1066,17 +1066,42 @@ static void G_DoPlayDemo(void)
 {
   skill_t skill;
   int i, episode, map;
-  char basename[9];
   int demover;
   byte *option_p = NULL;      // killough 11/98
-
+  int lumpnum;
+  int length;
+  
   if (gameaction != ga_loadgame)      // killough 12/98: support -loadgame
     basetic = gametic;  // killough 9/29/98
 
-  ExtractFileBase(defdemoname,basename);           // killough
+  // sf: try reading from a file first
+  // we no longer have to load the demo lmp into the wad directory
+  
+  length = M_ReadFile(defdemoname, &demobuffer);
 
-  demobuffer = demo_p = W_CacheLumpName (basename, PU_STATIC);  // killough
+  // file not found ?
+  
+  if(length <= 0)
+    {
+      char basename[9];
 
+      // try a lump instead
+      ExtractFileBase(defdemoname,basename);           // killough
+
+      // check if lump exists
+      if(-1 == (lumpnum = W_CheckNumForName(basename)))
+	{
+	  C_Printf("not found: %s\n", defdemoname);
+	  return;
+	}
+      else
+	{
+	  demobuffer = W_CacheLumpNum (lumpnum, PU_STATIC);  // killough
+	}      
+    }
+      
+  demo_p = demobuffer;
+  
   // killough 2/22/98, 2/28/98: autodetect old demos and act accordingly.
   // Old demos turn on demo_compatibility => compatibility; new demos load
   // compatibility flag, and other flags as well, as a part of the demo.
@@ -1758,12 +1783,12 @@ void G_Ticker(void)
   // obfuscation is useful but insane when taken to the extreme
 
   if(gamestate == GS_LEVEL)
-  {                    
-    P_Ticker();
-    ST_Ticker(); 
-    AM_Ticker(); 
-    HU_Ticker();
-  }
+    {                    
+      P_Ticker();
+      ST_Ticker(); 
+      AM_Ticker(); 
+      HU_Ticker();
+    }
   else if(paused & 2 );
   else if(gamestate == GS_INTERMISSION) WI_Ticker();
   else if(gamestate == GS_FINALE) F_Ticker();
@@ -2593,12 +2618,13 @@ void G_DeferedPlayDemo(char *s)
   static char name[100];
 
   while(*s==' ') s++;             // catch invalid demo names
+  /*
   if(W_CheckNumForName(s) == -1)
     {
       C_Printf("%s: demo not found\n",s);
       return;
     }
-
+    */
   strcpy(name, s);
   
   G_StopDemo();          // stop any previous demos
@@ -2615,12 +2641,15 @@ void G_TimeDemo(char *s)
   static char name[100];
 
   while(*s==' ') s++;             // catch invalid demo names
+
+  /*
   if(W_CheckNumForName(s) == -1)
     {
       C_Printf("%s: demo not found\n",s);
       return;
     }
-
+    */
+  
   strcpy(name, s);
   
   G_StopDemo();          // stop any previous demos

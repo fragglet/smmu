@@ -178,17 +178,18 @@ static void R_MapPlane(int y, int x1, int x2)
     R_DrawSpan();
 
 
-                // visplane viewing
+  // visplane viewing
+
   if(visplane_view)      //sf
-  {
-        if(ds_y >=0 && ds_y < viewheight)
+    {
+      if(ds_y >=0 && ds_y < viewheight)
         {
-                if(ds_x1 >= 0 && ds_x1<=viewwidth)
-                        *(screens[0]+y*(SCREENWIDTH<<hires)+x1)=0;
-                if(ds_x2 >= 0 && ds_x2<=viewwidth)
-                        *(screens[0]+y*(SCREENWIDTH<<hires)+x2)=0;
+	  if(ds_x1 >= 0 && ds_x1<=viewwidth)
+	    *(screens[0]+y*(SCREENWIDTH<<hires)+x1)=0;
+	  if(ds_x2 >= 0 && ds_x2<=viewwidth)
+	    *(screens[0]+y*(SCREENWIDTH<<hires)+x2)=0;
         }
-  }
+    }
 }
 
 //
@@ -205,11 +206,10 @@ void R_ClearPlanes(void)
       (current_height-viewwindowy) < 0 ? -1: current_height-viewwindowy
                     : -1;
   a = -1;
-
+  
   // opening / clipping determination
   for (i=0 ; i<viewwidth ; i++)
-         floorclip[i] = viewheight,
-         ceilingclip[i] = a;
+    floorclip[i] = viewheight, ceilingclip[i] = a;
 
   for (i=0;i<MAXVISPLANES;i++)    // new code -- killough
     for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )

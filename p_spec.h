@@ -911,6 +911,10 @@ int EV_DoDoor(line_t *line, vldoor_e type);
 
 int EV_DoLockedDoor(line_t *line, vldoor_e type, mobj_t *thing);
 
+void EV_OpenDoor(int sectag, int speed, int wait_time);
+
+void EV_CloseDoor(int sectag, int speed);
+
 // p_lights
 
 int EV_StartLightStrobing(line_t *line);

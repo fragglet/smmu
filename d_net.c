@@ -953,9 +953,10 @@ void TryRunTics (void)
   RunGameTics();
 }
 
-/************************
-        CONSOLE COMMANDS
-*************************/
+/////////////////////////////////////////////////////
+//
+// Console Commands
+//
 
 CONSOLE_COMMAND(kick, cf_server)
 {

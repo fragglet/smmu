@@ -10,7 +10,6 @@
 //
 //-----------------------------------------------------------------------------
 
-/* includes ************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -32,7 +31,7 @@
 #include "w_wad.h"
 #include "s_sound.h"
 
-/* defines *************************/
+
 #define MESSAGES 384
 // keep the last 32 typed commands
 #define HISTORY 32
@@ -40,15 +39,8 @@
 #define C_SCREENHEIGHT (SCREENHEIGHT<<hires)
 #define C_SCREENWIDTH (SCREENWIDTH<<hires)
 
-/* externs *************************/
-
 extern const char* shiftxform;
-
-/* prototypes **********************/
-
 void Egg();
-
-/* local variables *****************/
 
 // the messages (what you see in the console window)
 static unsigned char messages[MESSAGES][LINELENGTH];
@@ -74,11 +66,13 @@ static char *input_point;      // left-most point you see of the command line
 static int pgup_down=0, pgdn_down=0;
 int console_enabled = true;
 
-/* functions ***********************/
 
-      /************* main console module functions ***************/
-
+/////////////////////////////////////////////////////////////////////////
+//
+// Main Console functions
+//
 // ticker, responder, drawer, init etc.
+//
 
 static void C_InitBackdrop()
 {
@@ -133,7 +127,8 @@ void C_Init()
   C_UpdateInputPoint();
 }
 
-        // called every tic
+// called every tic
+
 void C_Ticker()
 {
   c_showprompt = true;
@@ -227,9 +222,12 @@ int C_Responder(event_t* ev)
   // only interested in keypresses
   if(ev->type != ev_keydown) return 0;
   
-          /******* check for special keypresses *********/
+  //////////////////////////////////
+  // Check for special keypresses
+  //
   // detect activating of console etc.
-
+  //
+  
   // activate console?
   if(ev->data1 == KEYD_CONSOLE && console_enabled)
     {
@@ -243,9 +241,12 @@ int C_Responder(event_t* ev)
   // not til its stopped moving
   if(current_target < current_height) return false;
 
-                /********** console active commands **********/
+  ///////////////////////////////////////
+  // Console active commands
+  //
   // keypresses only dealt with if console active
-
+  //
+  
   // tab-completion
   if(ev->data1 == KEYD_TAB)
     {
@@ -278,10 +279,12 @@ int C_Responder(event_t* ev)
       return true;
     }
 
-                /********** command history ***********/
+  ////////////////////////////////
+  // Command history
+  //  
 
   // previous command
-
+  
   if(ev->data1 == KEYD_UPARROW)
     {
       history_current =
@@ -311,8 +314,12 @@ int C_Responder(event_t* ev)
       return true;
     }
 
-                /******** normal text input ************/
-
+  /////////////////////////////////////////
+  // Normal Text Input
+  //
+  
+  // backspace
+  
   if(ev->data1 == KEYD_BACKSPACE)
     {
       if(strlen(inputtext) > 0)
@@ -343,7 +350,8 @@ int C_Responder(event_t* ev)
 }
 
 
-       // draw the console
+// draw the console
+
 void C_Drawer()
 {
   int y;
@@ -352,26 +360,28 @@ void C_Drawer()
   
   if(!consoleactive) return;   // dont draw if not active
 
-               /******* check for change in screen res ********/
+  // Check for change in screen res
+
   if(oldscreenheight != C_SCREENHEIGHT)
     {
       C_InitBackdrop();       // re-init to the new screen size
       oldscreenheight = C_SCREENHEIGHT;
     }
 
-                /******** draw backdrop *********/
-
   // fullscreen console for fullscreen mode
   if(gamestate == GS_CONSOLE) current_height = SCREENHEIGHT;
+
+
+  // draw backdrop
 
   memcpy(screens[0],
 	 backdrop + (C_SCREENHEIGHT-(current_height<<hires))*C_SCREENWIDTH,
 	 (current_height<<hires)*C_SCREENWIDTH);
 
-                /********** draw text **************/
-
+  //////////////////////////////////////////////////////////////////////
+  // draw text messages
+  
   // offset starting point up by 8 if we are showing input prompt
-  // or if we are scrolling back in the history
   
   y = current_height - ((c_showprompt && message_pos==message_last) ? 8 : 0);
 
@@ -382,17 +392,19 @@ void C_Drawer()
     {
       // move up one line on the screen
       // back one line in the history
-      y-=8; count--;
+      y -= 8;
       
-      if(count < 0) break;    // end of message history?
+      if(--count < 0) break;    // end of message history?
       if(y < 0) break;        // past top of screen?
       
       // draw this line
       V_WriteText(messages[count], 0, y);
     }
 
-                /****** draw the input line ******/
-
+  //////////////////////////////////
+  // Draw input line
+  //
+  
   // input line on screen, not scrolled back in history?
   
   if(current_height > 8 && c_showprompt && message_pos == message_last)
@@ -417,9 +429,12 @@ void C_Update()
   I_FinishUpdate ();
 }
 
-     /**************** I/O Functions ******************/
+/////////////////////////////////////////////////////////////////////////
+//
+// I/O Functions
+//
 
-// scroll console up (static)
+// scroll console up
 
 static void C_ScrollUp()
 {
@@ -439,7 +454,8 @@ static void C_ScrollUp()
   messages[message_last] [0] = 0;  // new line is empty
 }
 
-        // add a character to the console(static)
+// add a character to the console
+
 static void C_AddChar(unsigned char c)
 {
   char *end;
@@ -503,7 +519,10 @@ void C_Seperator()
   C_Printf("{|||||||||||||||||||||||||||||}\n");
 }
 
-        /********** console activation *****************/
+///////////////////////////////////////////////////////////////////
+//
+// Console activation
+//
 
 // put smmu into console mode
 
@@ -520,13 +539,15 @@ void C_SetConsole()
   G_StopDemo();                   // stop demo playing
 }
 
-        // make the console go up
+// make the console go up
+
 void C_Popup()
 {
   current_target = 0;
 }
 
-        // make the console disappear
+// make the console disappear
+
 void C_InstaPopup()
 {
   current_target = current_height = 0;

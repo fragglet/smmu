@@ -36,6 +36,7 @@ rcsid[] = "$Id: r_draw.c,v 1.16 1998/05/03 22:41:46 killough Exp $";
 #define MAXHEIGHT MAX_SCREENHEIGHT
 
 #define SBARHEIGHT 32             /* status bar height at bottom of screen */
+#define USEASM /* sf: changed #ifdef DJGPP to #ifdef USEASM */
 
 //
 // All drawing to the view buffer is accomplished in this file.
@@ -89,7 +90,7 @@ byte    *dc_source;      // first pixel in a column (possibly virtual)
 //  be used. It has also been used with Wolfenstein 3D.
 // 
 
-#ifndef DJGPP     // killough 2/15/98
+#ifndef USEASM     // killough 2/15/98
 
 void R_DrawColumn (void) 
 { 
@@ -187,7 +188,7 @@ void R_DrawColumn (void)
 // opaque' decision is made outside this routine, not down where the
 // actual code differences are.
 
-#ifndef DJGPP                       // killough 2/21/98: converted to x86 asm
+#ifndef USEASM                       // killough 2/21/98: converted to x86 asm
 
 void R_DrawTLColumn (void)                                           
 { 
@@ -448,24 +449,28 @@ typedef struct
 
 translat_t translations[] =
 {
-  {96,  16},     // indigo
-  {64,  16},     // brown
-  {32,  16},     // red
-                 /*** NEW COLOURS ***/
-  {176, 16},     // tomato
-  {128, 16},     // dirt
-  {200, 8},      // blue
-  {160, 8},      // gold
-  {152, 8},      // felt?
-  {0,   1},      // bleeacckk!!
-  {250, 5},      // purple
+    {96,  16},     // indigo
+    {64,  16},     // brown
+    {32,  16},     // red
+  
+  /////////////////////////
+  // New colours
+  
+    {176, 16},     // tomato
+    {128, 16},     // dirt
+    {200, 8},      // blue
+    {160, 8},      // gold
+    {152, 8},      // felt?
+    {0,   1},      // bleeacckk!!
+    {250, 5},      // purple
   //  {168, 8}, // bright pink, kinda
-  {216, 8},      // vomit yellow
-  {16,  16},     // pink
-  {56,  8},      // cream
-  {88,  8},      // white
+    {216, 8},      // vomit yellow
+    {16,  16},     // pink
+    {56,  8},      // cream
+    {88,  8},      // white
 };
-        // sf : rewritten
+
+// sf : rewritten
 
 void R_InitTranslationTables (void)
 {
@@ -509,7 +514,7 @@ fixed_t ds_ystep;
 // start of a 64*64 tile image 
 byte *ds_source;        
 
-#ifndef DJGPP      // killough 2/15/98
+#ifndef USEASM      // killough 2/15/98
 
 void R_DrawSpan (void) 
 { 
@@ -707,7 +712,7 @@ void R_FillBackScreen (void)
     return;
 
   // killough 11/98: use the function in m_menu.c
-  MN_DrawBackground(gamemode==commercial ? "GRNROCK" : "FLOOR7_2", screens[1]);
+  V_DrawBackground(gamemode==commercial ? "GRNROCK" : "FLOOR7_2", screens[1]);
         
   patch = W_CacheLumpName("brdr_t", PU_CACHE);
 

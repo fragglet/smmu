@@ -57,8 +57,10 @@ rcsid[] = "$Id: s_sound.c,v 1.11 1998/05/03 22:57:06 killough Exp $";
 #define NORM_PRIORITY 64
 #define NORM_SEP 128
 #define S_STEREO_SWING (96<<FRACBITS)
-        // sf:
+
+// sf: sound/music hashing
 #define SOUND_HASHSLOTS 17
+// use sound_hash for music hash too
 #define sound_hash(s)                             \
          ( ( tolower((s)[0]) + (s)[0] ?           \
              tolower((s)[1]) + (s)[1] ?           \
@@ -110,10 +112,9 @@ int default_numChannels;  // killough 9/98
 //jff 3/17/98 to keep track of last IDMUS specified music num
 int idmusnum;
 
-int playing_lumpnum;    // the lumpnum of the playing mus
-
         // sf:
 sfxinfo_t *sfxinfos[SOUND_HASHSLOTS];
+musicinfo_t *musicinfos[SOUND_HASHSLOTS];
 
 //
 // Internals.
@@ -152,18 +153,18 @@ static int S_AdjustSoundParams(camera_t *listener, const mobj_t *source,
 				       + ANG90) >> ANGLETOFINESHIFT]) : 0;
 
   if (source)
-  {
-                // source in a killed-sound sector?
-       if (R_PointInSubsector(source->x, source->y)->sector->special
-                 & SF_KILLSOUND)
-            return 0;
-  }
+    {
+      // source in a killed-sound sector?
+      if (R_PointInSubsector(source->x, source->y)->sector->special
+	  & SF_KILLSOUND)
+	return 0;
+    }
   else
-                // are _we_ in a killed-sound sector?
-       if(gamestate == GS_LEVEL &&
-          R_PointInSubsector(listener->x, listener->y)
-                        ->sector->special & SF_KILLSOUND)
-                return 0;
+    // are _we_ in a killed-sound sector?
+    if(gamestate == GS_LEVEL &&
+       R_PointInSubsector(listener->x, listener->y)
+       ->sector->special & SF_KILLSOUND)
+      return 0;
 
   if (!dist)  // killough 11/98: handle zero-distance as special case
     {
@@ -176,7 +177,8 @@ static int S_AdjustSoundParams(camera_t *listener, const mobj_t *source,
     return 0;
 
   // angle of source to listener
-        // sf: use listenx, listeny
+  // sf: use listenx, listeny
+
   angle = R_PointToAngle2(listener->x, listener->y, source->x, source->y);
 
   if (angle <= listener->angle)
@@ -246,10 +248,10 @@ void S_StartSfxInfo(const mobj_t *origin, sfxinfo_t *sfx)
     return;
 
   if (sfx->skinsound)           // check for skin sounds
-  {
-     if(origin && origin->skin && origin->skin->sounds[sfx->skinsound-1])
+    {
+      if(origin && origin->skin && origin->skin->sounds[sfx->skinsound-1])
         sfx = S_SfxInfoForName(origin->skin->sounds[sfx->skinsound-1]);
-  }
+    }
 
   sfx_id = sfx - S_sfx;
 
@@ -284,22 +286,30 @@ void S_StartSfxInfo(const mobj_t *origin, sfxinfo_t *sfx)
   if (!origin || origin == players[displayplayer].mo)
     sep = NORM_SEP;
   else
-  {
-    // sf: change to adjustsoundparams means we need to build a quick
-    // camera_t. horrible i know
-    camera_t player; mobj_t *mo = players[displayplayer].mo;
-    player.x = mo->x; player.y = mo->y; player.z = mo->z;
-    player.angle = mo->angle;
-                        // use an external cam?
-    if (!S_AdjustSoundParams(camera ? camera : &player, origin, &volume,
-                             &sep, &pitch))
-      return;
-    else
-      if (origin->x == players[displayplayer].mo->x &&
-          origin->y == players[displayplayer].mo->y)
-        sep = NORM_SEP;
-  }
-
+    {
+      // sf: change to adjustsoundparams means we need to build a quick
+      // camera_t. horrible i know
+      camera_t player; mobj_t *mo = players[displayplayer].mo;
+      player.x = mo->x; player.y = mo->y; player.z = mo->z;
+      player.angle = mo->angle;
+      
+      // use an external cam?
+      if (!S_AdjustSoundParams
+	  (
+	   camera ? camera : &player,
+	   origin,
+	   &volume,
+	   &sep,
+	   &pitch
+	   )
+	  )
+	return;
+      else
+	if (origin->x == players[displayplayer].mo->x &&
+	    origin->y == players[displayplayer].mo->y)
+	  sep = NORM_SEP;
+    }
+  
   if (pitched_sounds)
     {
       // hacks to vary the sfx pitches
@@ -341,23 +351,23 @@ void S_StartSfxInfo(const mobj_t *origin, sfxinfo_t *sfx)
 
 void S_StartSound(const mobj_t *origin, int sfx_id)
 {
-   S_StartSfxInfo(origin, &S_sfx[sfx_id]);
+  S_StartSfxInfo(origin, &S_sfx[sfx_id]);
 }
 
 void S_StartSoundName(const mobj_t *origin, char *name)
 {
-   sfxinfo_t *sfx;
-
-   if(!(sfx = S_SfxInfoForName(name)))
-        C_Printf("sound not found: %s\n", name);
-   else
-        S_StartSfxInfo(origin, sfx);
+  sfxinfo_t *sfx;
+  
+  if(!(sfx = S_SfxInfoForName(name)))
+    doom_printf("sound not found: %s\n", name);
+  else
+    S_StartSfxInfo(origin, sfx);
 }
 
 void S_StopSound(const mobj_t *origin)
 {
   int cnum;
-
+  
   //jff 1/22/98 return if sound is not enabled
   if (!snd_card || nosfxparm)
     return;
@@ -406,19 +416,19 @@ void S_UpdateSounds(const mobj_t *listener)
   if (!snd_card || nosfxparm)
     return;
 
-        // fix afterglow's bug: segv because of NULL listener
   if(listener)
-  {            // fill in player first
-          player.x = listener->x;  player.y = listener->y;
-          player.z = listener->z;
-          player.angle = listener->angle;
-  }
+    {            // fill in player first
+      player.x = listener->x;  player.y = listener->y;
+      player.z = listener->z;
+      player.angle = listener->angle;
+    }
 
                 // now update each individual channel
   for (cnum=0 ; cnum<numChannels ; cnum++)
     {
       channel_t *c = &channels[cnum];
       sfxinfo_t *sfx = c->sfxinfo;
+
       if (sfx)
         {
           if (I_SoundIsPlaying(c->handle))
@@ -428,6 +438,7 @@ void S_UpdateSounds(const mobj_t *listener)
               int pitch = NORM_PITCH;
               int sep = NORM_SEP;
 
+	      /*
               if (sfx->link)
                 {
                   pitch = sfx->pitch;
@@ -441,18 +452,26 @@ void S_UpdateSounds(const mobj_t *listener)
                     if (volume > snd_SfxVolume)
                       volume = snd_SfxVolume;
                 }
-
+		*/
+	      
               // check non-local sounds for distance clipping
               // or modify their params
 
-                        // sf: removed check for if
-                        // listener is source, for silencing sectors
-                        // sf again: use external camera if there is one
-                        // fix afterglows bug: segv because of NULL listener
+	      // sf: removed check for if
+	      // listener is source, for silencing sectors
+	      // sf again: use external camera if there is one
+	      // fix afterglows bug: segv because of NULL listener
+
               if (c->origin) // killough 3/20/98
-                if (!S_AdjustSoundParams(camera ? camera :
-                                listener ? &player : NULL,
-                                c->origin, &volume, &sep, &pitch))
+                if (!S_AdjustSoundParams
+		    (
+		     camera ? camera : listener ? &player : NULL,
+		     c->origin,
+		     &volume,
+		     &sep,
+		     &pitch
+		     )
+		    )
                   S_StopChannel(cnum);
                 else
                   I_UpdateSoundParams(c->handle, volume, sep, pitch);
@@ -493,46 +512,66 @@ void S_SetSfxVolume(int volume)
   snd_SfxVolume = volume;
 }
 
-void S_ChangeMusic(int musicnum, int looping)
+// sf: created changemusicnum, not limited to original musics
+// change by music number
+// removed mus_new
+
+void S_ChangeMusicNum(int musnum, int looping)
 {
   musicinfo_t *music;
+  
+  if (musnum <= mus_None || musnum >= NUMMUSIC)
+    {
+      doom_printf("Bad music number %d\n", musnum);
+      return;
+    }
+
+  music = &S_music[musnum];
+    
+  S_ChangeMusic(music, looping);
+}
+
+// change by name
+void S_ChangeMusicName(char *name, int looping)
+{
+  musicinfo_t *music;
+
+  music = S_MusicForName(name);
+
+  if(music)
+    S_ChangeMusic(music, looping);
+  else
+    {
+      doom_printf("music not found: %s\n", name);    
+      S_StopMusic(); // stop music anyway
+    }
+}
+
+void S_ChangeMusic(musicinfo_t *music, int looping)
+{
   int lumpnum;
   char namebuf[9];
 
-  //jff 1/22/98 return if music is not enabled
+    //jff 1/22/98 return if music is not enabled
   if (!mus_card || nomusicparm)
     return;
 
-  if (musicnum <= mus_None || musicnum >= NUMMUSIC)
-  {
-      C_Printf("Bad music number %d\n", musicnum);
-      return;
-  }
+  // same as the one playing ?
 
-  music = &S_music[musicnum];
-
-  if(musicnum == mus_new)       // check for 'new' music lumps
-  {
-     if(strlen(info_music) > 6) info_music[6] = 0;
-     sprintf(namebuf, "d_%s", info_music);
-  }
-  else
-     sprintf(namebuf, "d_%s", music->name);     // use the original
-
-  lumpnum = W_CheckNumForName(namebuf);
-
-                  // same as the one playing ?
-  if(mus_playing && (playing_lumpnum == lumpnum) )
-    return;
+  if(mus_playing == music )
+    return;  
 
   // shutdown old music
   S_StopMusic();
 
+  sprintf(namebuf, "d_%s", music->name);
+
+  lumpnum = W_CheckNumForName(namebuf);
   if(lumpnum == -1)
-  {
-        C_Printf("bad music name '%s'\n", namebuf);
-        return;
-  }
+    {
+      doom_printf("bad music name '%s'\n", music->name);
+      return;
+    }
 
   // load & register it
   music->data = W_CacheLumpNum(lumpnum, PU_MUSIC);
@@ -542,7 +581,6 @@ void S_ChangeMusic(int musicnum, int looping)
   I_PlaySong(music->handle, looping);
 
   mus_playing = music;
-  playing_lumpnum = lumpnum;
 }
 
 //
@@ -550,7 +588,7 @@ void S_ChangeMusic(int musicnum, int looping)
 //
 void S_StartMusic(int m_id)
 {
-  S_ChangeMusic(m_id, false);
+  S_ChangeMusicNum(m_id, false);
 }
 
 void S_StopMusic(void)
@@ -600,41 +638,53 @@ void S_Start(void)
   // start new music for the level
   mus_paused = 0;
 
-  if (idmusnum!=-1)
-    mnum = idmusnum; //jff 3/17/98 reload IDMUS music if not -1
+  if(!*info_music && gamemap==0)
+    {
+      // dont know what music to play
+      // we need a default
+      info_music = gamemode == commercial ? "runnin" : "e1m1";
+    }
+  
+  // sf: replacement music
+  if(*info_music)
+    S_ChangeMusicName(info_music, true);
   else
-    if (gamemode == commercial)
-      mnum = mus_runnin + gamemap - 1;
-    else
-      {
-        static const int spmus[] =     // Song - Who? - Where?
-        {
-          mus_e3m4,     // American     e4m1
-          mus_e3m2,     // Romero       e4m2
-          mus_e3m3,     // Shawn        e4m3
-          mus_e1m5,     // American     e4m4
-          mus_e2m7,     // Tim  e4m5
-          mus_e2m4,     // Romero       e4m6
-          mus_e2m6,     // J.Anderson   e4m7 CHIRON.WAD
-          mus_e2m5,     // Shawn        e4m8
-          mus_e1m9      // Tim          e4m9
-        };
-
-                // sf: simplified
-        mnum = gameepisode < 4 ? mus_e1m1 + (gameepisode-1)*9 + gamemap-1
-                               : spmus[gamemap-1];
-      }
-  if(gamemap == 0)
-  {
-        mnum = mus_new;
-  }
-  S_ChangeMusic(mnum, true);
+    {
+      if (idmusnum!=-1)
+	mnum = idmusnum; //jff 3/17/98 reload IDMUS music if not -1
+      else
+	if (gamemode == commercial)
+	  mnum = mus_runnin + gamemap - 1;
+	else
+	  {
+	    static const int spmus[] =     // Song - Who? - Where?
+	      {
+		mus_e3m4,     // American     e4m1
+		mus_e3m2,     // Romero       e4m2
+		mus_e3m3,     // Shawn        e4m3
+		mus_e1m5,     // American     e4m4
+		mus_e2m7,     // Tim  e4m5
+		mus_e2m4,     // Romero       e4m6
+		mus_e2m6,     // J.Anderson   e4m7 CHIRON.WAD
+		mus_e2m5,     // Shawn        e4m8
+		mus_e1m9      // Tim          e4m9
+	      };
+	    
+	    // sf: simplified
+	    mnum = gameepisode < 4 ?
+	      mus_e1m1 + (gameepisode-1)*9 + gamemap-1 :
+	      spmus[gamemap-1];
+	  }
+     
+      // start music
+      S_ChangeMusicNum(mnum, true);
+    }
 }
 
 void S_PreCacheAllSounds()
 {
   int i;
-
+  
   for(i=1; i<NUMSFX; i++)
     I_CacheSound(&S_sfx[i]);
 }
@@ -667,10 +717,10 @@ void S_Init(int sfxVolume, int musicVolume)
   S_SetMusicVolume(musicVolume);
 
   if(s_precache)        // sf: option to precache sounds
-  {
-    S_PreCacheAllSounds();
-    usermsg("\tprecached all sounds.");
-  }
+    {
+      S_PreCacheAllSounds();
+      usermsg("\tprecached all sounds.");
+    }
   else
     usermsg("\tsounds to be cached dynamically.");
 
@@ -678,113 +728,197 @@ void S_Init(int sfxVolume, int musicVolume)
   mus_paused = 0;
 }
 
-/********** sound hashing ************/
+/////////////////////////////////////////////////////////////////////////
+//
+// Sound Hashing
+//
 
-int hashtable_created = false;  // set to 1 when created
+int soundhash_created = false;  // set to 1 when created
 
         // store sfxinfo_t in hashchain
 void S_StoreSfxInfo(sfxinfo_t *sfxinfo)
 {
-   int hashnum = sound_hash(sfxinfo->name);
+  int hashnum = sound_hash(sfxinfo->name);
+  
+  if(!soundhash_created)
+    {
+      S_CreateSoundHashTable();
+      hashnum = sound_hash(sfxinfo->name);
+    }
+  
+  // hook it in
 
-   if(!hashtable_created)
-   {
-        S_CreateSoundHashTable();
-        hashnum = sound_hash(sfxinfo->name);
-   }
-
-          // hook it in
-   sfxinfo->next = sfxinfos[hashnum];
-   sfxinfos[hashnum] = sfxinfo;
+  sfxinfo->next = sfxinfos[hashnum];
+  sfxinfos[hashnum] = sfxinfo;
 }
 
 static void S_CreateSoundHashTable()
 {
-   int i;
+  int i;
+  
+  if(soundhash_created) return;   // already done
+  soundhash_created = true;    // set here to prevent recursive calls
+  
+  // clear hash slots first
 
-   if(hashtable_created) return;   // already done
-   hashtable_created = true;    // set here to prevent recursive calls
+  for(i=0; i<SOUND_HASHSLOTS; i++)
+    sfxinfos[i] = 0;
 
-          // clear hash slots first
-   for(i=0; i<SOUND_HASHSLOTS; i++)
-           sfxinfos[i] = 0;
-
-   for(i=1; i<NUMSFX; i++)
-   {
+  for(i=1; i<NUMSFX; i++)
+    {
       S_StoreSfxInfo(&S_sfx[i]);
-   }
+    }
 }
 
 sfxinfo_t *S_SfxInfoForName(char *name)
 {
    sfxinfo_t *si = sfxinfos[sound_hash(name)];
  
-   if(!hashtable_created)
-   {
-        S_CreateSoundHashTable();
-        si = sfxinfos[sound_hash(name)];
-   }
-
+   if(!soundhash_created)
+     {
+       S_CreateSoundHashTable();
+       si = sfxinfos[sound_hash(name)];
+     }
+   
    while(si)
-   {
+     {
        if(!strcasecmp(name, si->name)) return si;
        si = si->next;
-   }
-
+     }
+   
    return NULL;
 }
 
 void S_Chgun()
 {
-   memcpy(&S_sfx[sfx_chgun], &chgun, sizeof(sfxinfo_t));
-   S_sfx[sfx_chgun].data = NULL;
+  memcpy(&S_sfx[sfx_chgun], &chgun, sizeof(sfxinfo_t));
+  S_sfx[sfx_chgun].data = NULL;
 }
 
-        // free sound and reload (new wad)
-        // also check to see if a new sound name has been found
-        // (ie. not one in the original game). If so, we create
-        // a new sfxinfo_t and hook it into the hashtable for use
-        // by scripting and skins
+// free sound and reload
+// also check to see if a new sound name has been found
+// (ie. not one in the original game). If so, we create
+// a new sfxinfo_t and hook it into the hashtable for use
+// by scripting and skins
 
-        // NOTE: LUMPNUM NOT SOUNDNUM
+// NOTE: LUMPNUM NOT SOUNDNUM
 void S_UpdateSound(int lumpnum)
 {
-   sfxinfo_t *sfx;
-   char name[8];
-
-   strncpy(name,lumpinfo[lumpnum]->name+2,6);
-   name[6] = 0;
-
-   sfx = S_SfxInfoForName(name);
-
-   if(!sfx)
-   {
-       // create a new one and hook into hashchain
-
-       sfx = Z_Malloc(sizeof(sfxinfo_t), PU_STATIC, 0);
-
-       sfx->name = strdup(name);
-       sfx->singularity = sg_none;
-       sfx->priority = 64;
-       sfx->link = NULL;
-       sfx->pitch = sfx->volume = -1;
-       sfx->skinsound = 0;
-       sfx->data = NULL;
-       S_StoreSfxInfo(sfx);
-   }
-
-   if(sfx->data)
-   {
-          // free it if cached
-        Z_Free(sfx->data);      // free
-        sfx->data = NULL;
-   }
+  sfxinfo_t *sfx;
+  char name[8];
+  
+  strncpy(name,lumpinfo[lumpnum]->name+2,6);
+  name[6] = 0;
+  
+  sfx = S_SfxInfoForName(name);
+  
+  if(!sfx)
+    {
+      // create a new one and hook into hashchain
+      
+      sfx = Z_Malloc(sizeof(sfxinfo_t), PU_STATIC, 0);
+      
+      sfx->name = strdup(name);
+      sfx->singularity = sg_none;
+      sfx->priority = 64;
+      sfx->link = NULL;
+      sfx->pitch = sfx->volume = -1;
+      sfx->skinsound = 0;
+      sfx->data = NULL;
+      S_StoreSfxInfo(sfx);
+    }
+  
+  if(sfx->data)
+    {
+      // free it if cached
+      Z_Free(sfx->data);      // free
+      sfx->data = NULL;
+    }
 }
 
+///////////////////////////////////////////////////////////////////////////
+//
+// Music Hashing
+//
 
-/*************************
-        CONSOLE COMMANDS
- *************************/
+static boolean mushash_created = false;
+
+static void S_HookMusic(musicinfo_t *music)
+{
+  int hashslot;
+
+  if(!music || !music->name) return;
+  
+  hashslot = sound_hash(music->name);
+
+  music->next = musicinfos[hashslot];
+  musicinfos[hashslot] = music;
+}
+
+static void S_CreateMusicHashTable()
+{
+  int i;
+
+  // only build once
+  
+  if(mushash_created)
+    return;
+  else
+    mushash_created = true;
+
+  for(i=0; i<SOUND_HASHSLOTS; i++)
+    musicinfos[i] = NULL;
+  
+  // hook in all musics
+  for(i=0; i<NUMMUSIC; i++)
+    {
+      S_HookMusic(&S_music[i]);
+    }
+}
+
+musicinfo_t *S_MusicForName(char *name)
+{
+  int hashnum = sound_hash(name);
+  musicinfo_t *mus;
+
+  if(!mushash_created)
+    S_CreateMusicHashTable();
+
+  for(mus=musicinfos[hashnum]; mus; mus = mus->next)
+    {
+      if(!strcasecmp(name, mus->name))
+	return mus;
+    }
+    
+  return NULL;
+}
+
+void S_UpdateMusic(int lumpnum)
+{
+  musicinfo_t *music;
+  char sndname[8];
+
+  strncpy(sndname, lumpinfo[lumpnum]->name + 2, 6);
+
+  // check if one already in the table first
+
+  music = S_MusicForName(sndname);
+
+  if(!music)         // not found in list
+    {
+      // build a new musicinfo_t
+      music = Z_Malloc(sizeof(*music), PU_STATIC, 0);
+      music->name = Z_Strdup(sndname, PU_STATIC, 0);
+
+      // hook into hash list
+      S_HookMusic(music);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+// Console Commands
+//
 
 VARIABLE_BOOLEAN(s_precache, NULL,      onoff);
 VARIABLE_BOOLEAN(pitched_sounds, NULL,  onoff);
@@ -794,8 +928,8 @@ VARIABLE_INT(snd_MusicVolume, NULL,     0, 15, NULL);
 
 void S_ResetVolume()
 {
-   S_SetMusicVolume(snd_MusicVolume);
-   S_SetSfxVolume(snd_SfxVolume);
+  S_SetMusicVolume(snd_MusicVolume);
+  S_SetSfxVolume(snd_SfxVolume);
 }
 
 CONSOLE_VARIABLE(s_precache, s_precache, 0) {}
@@ -803,20 +937,20 @@ CONSOLE_VARIABLE(s_pitched, pitched_sounds, 0) {}
 CONSOLE_VARIABLE(snd_channels, default_numChannels, 0) {}
 CONSOLE_VARIABLE(sfx_volume, snd_SfxVolume, 0)
 {
-    S_ResetVolume();
+  S_ResetVolume();
 }
 CONSOLE_VARIABLE(music_volume, snd_MusicVolume, 0)
 {
-    S_ResetVolume();
+  S_ResetVolume();
 }
 
 void S_AddCommands()
 {
-    C_AddCommand(s_pitched);
-    C_AddCommand(s_precache);
-    C_AddCommand(snd_channels);
-    C_AddCommand(sfx_volume);
-    C_AddCommand(music_volume);
+  C_AddCommand(s_pitched);
+  C_AddCommand(s_precache);
+  C_AddCommand(snd_channels);
+  C_AddCommand(sfx_volume);
+  C_AddCommand(music_volume);
 }
 
 

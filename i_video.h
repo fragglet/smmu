@@ -65,11 +65,11 @@ void I_ResetVidMode();
 typedef struct videomode_s
 {
 #ifdef DJGPP
-        int hires;
-        int pageflip;
-        int vesa;
+  boolean hires;
+  boolean pageflip;
+  boolean vesa;
 #endif
-        char *description;
+  char *description;
 } videomode_t;
 
 extern videomode_t videomodes[];

@@ -10,8 +10,6 @@
 //
 //-----------------------------------------------------------------------------
 
-/* includes ************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +26,6 @@
 #include "g_game.h"
 #include "z_zone.h"
 
-/* Prototypes **********************/
-
 static void C_EchoValue(command_t *command);
 static void C_SetVariable(command_t *command);
 static void C_RunAlias(alias_t *alias);
@@ -37,18 +33,20 @@ static int C_Sync(command_t *command);
 static void C_ArgvtoArgs();
 static boolean C_Strcmp(unsigned char *a, unsigned char *b);
 
-/***************************
-  PARSING/RUNNING COMMANDS
- ***************************/
+///////////////////////////////////////////////////////////////////////////
+//
+// Parsing/Running Commands
+//
 
 int cmdtype;
-char c_argv[MAXTOKENS][MAXTOKENLENGTH];   // tokenised list of arguments
-int c_argc;                               // number of arguments
-char c_args[128];                         // raw list of arguments
-command_t *c_command;                     // ptr to command we're running
 
 static char cmdtokens[MAXTOKENS][MAXTOKENLENGTH];
 static int numtokens;
+
+command_t *c_command;
+char c_argv[MAXTOKENS][MAXTOKENLENGTH];   // tokenised list of arguments
+int c_argc;                               // number of arguments
+char c_args[128];                         // raw list of arguments
 
         // break up the command into tokens
 static void C_GetTokens(char *command)
@@ -94,6 +92,7 @@ static void C_GetTokens(char *command)
     }
 }
 
+//
 // C_RunIndivTextCmd.
 // called once a typed command line has been broken
 // into individual commands (multiple commands on one
@@ -131,8 +130,8 @@ static void C_RunIndivTextCmd(char *cmdname)
   C_RunCommand(command, cmdname+strlen(cmdtokens[0]));
 }
 
-        // check the flags of a command to see if it
-        // should be run or not
+// check the flags of a command to see if it
+// should be run or not
 
 static boolean C_CheckFlags(command_t *command)
 {
@@ -189,7 +188,7 @@ static void C_DoRunCommand(command_t *command, char *options)
   memcpy(c_argv, cmdtokens, sizeof cmdtokens);
   c_argc = numtokens;
   c_command = command;
-
+  
   // perform checks
   
   // check through the tokens for variable names
@@ -310,29 +309,43 @@ static int C_Sync(command_t *command)
 
 void C_RunTextCmd(char *command)
 {
-  char *startofcmd;
-  char *scanner;
-  int quotemark=0;  // for " quote marks
+  boolean quotemark=0;  // for " quote marks
+  char *sub_command = NULL;
+  char *rover;
 
-  startofcmd = scanner = command;
-  
-  // break down the command into individual commands
-  
-  while(*scanner)
+  for(rover=command; *rover; rover++)
     {
-      // ignore ';'s inside quote marks
-      if(*scanner=='"') quotemark = !quotemark;
-      if(*scanner==';' && !quotemark)
-	{                      // end of command: run it
-	  *scanner = '\0';
-	  C_RunIndivTextCmd(startofcmd);
-	  *scanner = ';';
-	  startofcmd=scanner+1; // prepare for next command
+      if(*rover=='\"')    // quotemark
+	{
+	  quotemark = !quotemark;
+	  continue;
 	}
-      scanner++;
+      if(*rover==';' && !quotemark)  // command seperator and not in string 
+	{
+	  // found sub-command
+	  // use recursion to run the subcommands
+
+	  // left
+	  // copy sub command, alloc slightly more than needed
+	  sub_command = malloc(rover-command+3); 
+	  strncpy(sub_command, command, rover-command);
+	  sub_command[rover-command] = '\0';   // end string
+
+	  C_RunTextCmd(sub_command);
+
+	  // right
+	  C_RunTextCmd(rover+1);
+
+	  // leave to the other function calls (above) to run commands
+	  free(sub_command);
+	  return;
+	}
     }
   
-  C_RunIndivTextCmd(startofcmd); // dont forget the last one
+  // no sub-commands: just one
+  // so run it
+
+  C_RunIndivTextCmd(command);
 }
 
 // get the literal value of a variable (ie. "1" not "on")
@@ -385,7 +398,7 @@ char *C_VariableStringValue(variable_t *variable)
 
 // echo a value eg. ' "alwaysmlook" is "1" '
 
-void C_EchoValue(command_t *command)
+static void C_EchoValue(command_t *command)
 {
   C_Printf("\"%s\" is \"%s\"\n", command->name,
 	   C_VariableStringValue(command->variable) );
@@ -544,22 +557,23 @@ static void C_SetVariable(command_t *command)
     command->handler();
 }
 
-/**********************
-        TAB COMPLETION
- **********************/
+////////////////////////////////////////////////////////////////////////
+//
+// Tab Completion
+//
 
-char origkey[100];
-int nokey = 1;
-command_t *tabs[128];
-int numtabs = 0;
-int thistab = -1;
+static char origkey[100];
+static boolean gotkey;
+static command_t *tabs[128];
+static int numtabs = 0;
+static int thistab = -1;
 
 // given a key (eg. "r_sw"), will look through all
 // the commands in the hash chains and gather
 // all the commands which begin with this into a
 // list 'tabs'
 
-static void GetTabs(char *key)
+void GetTabs(char *key)
 {
   int i;
   int keylen;
@@ -568,7 +582,7 @@ static void GetTabs(char *key)
   while(*key==' ') key++;
 
   strcpy(origkey, key);
-  nokey = 0;
+  gotkey = true;
 
   if(!*key) return;
   
@@ -597,8 +611,8 @@ static void GetTabs(char *key)
 void C_InitTab()
 {
   numtabs = 0;
-  strcpy(origkey, "");
-  nokey = 1;
+  origkey[0] = '\0';
+  gotkey = false;
   thistab = -1;
 }
 
@@ -610,10 +624,8 @@ char *C_NextTab(char *key)
   static char returnstr[100];
 
   // get tabs if not done already
-  if(nokey)
-    {
+  if(!gotkey)
       GetTabs(key);
-    }
   
   // select next tab
   thistab = thistab == -1 ? 0 : thistab+1;  
@@ -636,7 +648,7 @@ char *C_PrevTab(char *key)
   static char returnstr[100];
 
   // get tabs if neccesary
-  if(nokey)
+  if(!gotkey)
     {
       GetTabs(key);
     }
@@ -655,9 +667,10 @@ char *C_PrevTab(char *key)
   return returnstr;
 }
 
-/************************
-                ALIASES
- ************************/
+/////////////////////////////////////////////////////////////////////////
+//
+// Aliases
+//
 
 // fixed length array arrgh!
 alias_t aliases[128];
@@ -682,7 +695,8 @@ alias_t *C_GetAlias(char *name)
   return NULL;
 }
 
-        // create a new alias, or use one that already exists
+// create a new alias, or use one that already exists
+
 alias_t *C_NewAlias(unsigned char *aliasname, unsigned char *command)
 {
   alias_t *alias;
@@ -739,11 +753,10 @@ void C_RunAlias(alias_t *alias)
   C_RunTextCmd(alias->command);   // run the command
 }
 
-
-
-/*********************
-  COMMAND BUFFERING
- *********************/
+//////////////////////////////////////////////////////////////////////
+//
+// Command Bufferring
+//
 
 // new ticcmds can be built at any time including during the
 // rendering process. The commands need to be buffered
@@ -907,11 +920,13 @@ boolean C_Strcmp(unsigned char *a, unsigned char *b)
   return false;       // no difference in them
 }
 
-/*************************
-          COMMAND HASHING
- *************************/
+//////////////////////////////////////////////////////////////////
+//
+// Command hashing
+//
+// Faster look up of console commands
 
-command_t *cmdroots[16];
+command_t *cmdroots[CMDCHAINS];
 
        // the hash key
 #define CmdHashKey(s)                                     \

@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include "c_io.h"
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "doomtype.h"
 #include "d_main.h"
@@ -865,7 +866,7 @@ void SF_CeilingHeight()
   if(t_argc > 1)          // > 1: set ceilheight
     {
       int i = -1;
-      
+
       // set all sectors with tag
       while ((i = P_FindSectorFromTag(tagnum, i)) >= 0)
 	{
@@ -1127,7 +1128,121 @@ void SF_StartSkill()
   G_DeferedInitNew(skill, firstlevel);
 }
 
-        /************* init_functions *******************/
+//////////////////////////////////////////////////////////////////////////
+//
+// Doors
+//
+
+// opendoor(sectag, [delay], [speed])
+
+void SF_OpenDoor()
+{
+  int speed, wait_time;
+  int sectag;
+  
+  if(t_argc < 1)
+    {
+      script_error("need sector tag for door to open\n");
+      return;
+    }
+
+  // got sector tag
+  sectag = intvalue(t_argv[0]);
+
+  // door wait time
+  
+  if(t_argc > 1)    // door wait time
+    wait_time = (intvalue(t_argv[1]) * 35) / 100;
+  else
+    wait_time = 0;  // 0= stay open
+  
+  // door speed
+
+  if(t_argc > 2)
+    speed = intvalue(t_argv[2]);
+  else
+    speed = 1;    // 1= normal speed
+  
+  EV_OpenDoor(sectag, speed, wait_time);  
+}
+
+void SF_CloseDoor()
+{
+  int speed;
+  int sectag;
+  
+  if(t_argc < 1)
+    {
+      script_error("need sector tag for door to open\n");
+      return;
+    }
+
+  // got sector tag
+  sectag = intvalue(t_argv[0]);
+
+  // door speed
+
+  if(t_argc > 1)
+    speed = intvalue(t_argv[1]);
+  else
+    speed = 1;    // 1= normal speed
+  
+  EV_CloseDoor(sectag, speed);  
+}
+
+// run console cmd
+
+void SF_RunCommand()
+{
+  int i;
+  char tempstr[128]="";
+  
+  for(i=0; i<t_argc; i++)
+    if(t_argv[i].type == svt_string)
+      sprintf(tempstr,"%s%s", tempstr, t_argv[i].value.s);
+    else    // assume int
+      sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
+
+  cmdtype = c_typed;
+  C_RunTextCmd(tempstr);
+}
+
+// any linedef type
+
+void SF_LineTrigger()
+{
+  line_t junk;
+  
+  if(!t_argc)
+    {
+      script_error("need line trigger type\n");
+      return;
+    }
+  
+  junk.special = intvalue(t_argv[0]);
+  junk.tag = t_argc == 1 ? 0 : intvalue(t_argv[1]);
+  
+  if (!P_UseSpecialLine(t_trigger, &junk, 0))    // Try using it
+    P_CrossSpecialLine(&junk, 0, t_trigger);   // Try crossing it
+}
+
+void SF_ChangeMusic()
+{
+  if(!t_argc)
+    {
+      script_error("need new music name\n");
+      return;
+    }
+  if(t_argv[0].type != svt_string)
+    { script_error("incorrect argument to function\n"); return;}
+
+  S_ChangeMusicName(t_argv[0].value.s, 1);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Init Functions
+//
 
 void init_functions()
 {
@@ -1189,7 +1304,7 @@ void init_functions()
   new_function("floorheight", SF_FloorHeight);
   new_function("floortext", SF_FloorTexture);
   new_function("movefloor", SF_MoveFloor);
-  new_function("ceilheight", SF_FloorHeight);
+  new_function("ceilheight", SF_CeilingHeight);
   new_function("moveceil", SF_MoveCeiling);
   new_function("ceiltext", SF_FloorTexture);
   new_function("lightlevel", SF_LightLevel);
@@ -1207,7 +1322,15 @@ void init_functions()
   // sound functions
   new_function("startsound", SF_StartSound);
   new_function("startsectorsound", SF_StartSectorSound);
-
+  new_function("changemusic", SF_ChangeMusic);
+  
   // hubs!
   new_function("changehublevel", SF_ChangeHubLevel);
+
+  // doors
+  new_function("opendoor", SF_OpenDoor);
+  new_function("closedoor", SF_CloseDoor);
+
+  new_function("runcommand", SF_RunCommand);
+  new_function("linetrigger", SF_LineTrigger);
 }

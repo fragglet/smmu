@@ -9,8 +9,6 @@
 //
 //----------------------------------------------------------------------------
 
-/* includes ************************/
-
 #include <stdio.h>
 
 #include "doomdef.h"
@@ -31,14 +29,10 @@
 #include "v_video.h"
 #include "w_wad.h"
 
-/* defines ************************/
-
 #define HU_TITLE  (*mapnames[(gameepisode-1)*9+gamemap-1])
 #define HU_TITLE2 (*mapnames2[gamemap-1])
 #define HU_TITLEP (*mapnamesp[gamemap-1])
 #define HU_TITLET (*mapnamest[gamemap-1])
-
-/* prototypes *********************/
 
 void HU_WarningsInit();
 void HU_WarningsDrawer();
@@ -56,8 +50,6 @@ void HU_MessageErase();
 void HU_CentreMessageClear();
 boolean HU_ChatRespond(event_t *ev);
 
-/* globals ************************/
-
 // the global widget list
 
 char *chat_macros[10];
@@ -73,7 +65,6 @@ int mess_colour = CR_RED;      // the colour of normal messages
 // main message list
 unsigned char *levelname;
 
-/* externs ***********************/
 //
 // Builtin map names.
 // The actual names can be found in DStrings.h.
@@ -87,7 +78,11 @@ extern char **mapnames2[];
 extern char **mapnamesp[];
 extern char **mapnamest[];
 
-/* Functions **********************/
+///////////////////////////////////////////////////////////////////////
+//
+// Main Functions
+//
+// Init, Drawer, Ticker etc.
 
 void HU_Start()
 {
@@ -139,6 +134,10 @@ boolean HU_Responder(event_t *ev)
   
   return HU_ChatRespond(ev);
 }
+
+// hu_newlevel called when we enter a new level
+// determine the level name and display it in
+// the console
 
 void HU_NewLevel()
 {
@@ -200,12 +199,13 @@ void HU_Erase()
   HU_FragsErase();
 }
 
-/************************
-        NORMAL MESSAGES
- ************************/
-
+////////////////////////////////////////////////////////////////////////
+//
+// Normal Messages
+//
 // 'picked up a clip' etc.
 // seperate from the widgets (below)
+//
 
 char hu_messages[MAXHUDMESSAGES][256];
 int hud_msg_lines;   // number of message lines in window up to 16
@@ -236,7 +236,8 @@ void HU_PlayerMsg(char *s)
   scrolltime = leveltime + (message_timer * 35) / 1000;
 }
 
-        // erase the text before drawing
+// erase the text before drawing
+
 void HU_MessageErase()
 {
   int y;
@@ -279,10 +280,10 @@ void HU_MessageTick()
     }
 }
 
-
-/******************
-        CROSSHAIR
-******************/
+/////////////////////////////////////////////////////////////////////////
+//
+// Crosshair
+//
 
 patch_t *crosshairs[CROSSHAIRS];
 patch_t *crosshair=NULL;
@@ -357,17 +358,19 @@ void HU_CrossHairTick()
     }        
 }
 
-/*****************
-          WARNINGS
- *****************/
+///////////////////////////////////////////////////////////////////////
+//
+// Pop-up Warning Boxes
 //
 // several different things that appear, quake-style, to warn you of
 // problems
 
+//
 // Open Socket Warning
 //
 // Problem with network leads or something like that
 
+//
 // VPO Warning indicator
 //
 // most ports nowadays have removed the visplane overflow problem.
@@ -399,9 +402,10 @@ void HU_WarningsDrawer()
     V_DrawPatch(20, 20, 0, socket);
 }
 
-/*******************
-          WIDGETS
-  ******************/
+/////////////////////////////////////////////////////////////////////////
+//
+// Text Widgets
+//
 // the main text widgets. does not include the normal messages
 // 'picked up a clip' etc
 
@@ -455,14 +459,19 @@ void HU_WidgetsErase()
     }
 }
 
-/*** THE WIDGETS ***/
+//////////////////////////////////////
+//
+// The widgets
 
 void HU_LevelTimeHandler();
 void HU_CentreMessageHandler();
 void HU_LevelNameHandler();
 void HU_ChatHandler();
 
-        /*** centre of screen 'quake-style' message ***/
+//////////////////////////////////////////////////
+//
+// Centre-of-screen, quake-style message
+//
 
 textwidget_t hu_centremessage =
 {
@@ -508,7 +517,10 @@ void HU_CentreMsg(char *s)
   C_Printf("%s\n", s);
 }
 
-             //// level time elapsed so far (automap) ////
+/////////////////////////////////////
+//
+// Elapsed level time (automap)
+//
 
 textwidget_t hu_leveltime =
 {
@@ -538,7 +550,10 @@ void HU_LevelTimeHandler()
   hu_leveltime.message = timestr;        
 }
 
-                //// Level Name in Automap ////
+///////////////////////////////////////////
+//
+// Automap level name display
+//
 
 textwidget_t hu_levelname =
 {
@@ -553,7 +568,10 @@ void HU_LevelNameHandler()
   hu_levelname.message = automapactive ? levelname : NULL;
 }
 
-                ///// Chat message typein ////////
+///////////////////////////////////////////////
+//
+// Chat message display
+//
 
 textwidget_t hu_chat = 
 {
@@ -650,7 +668,10 @@ void HU_WidgetsInit()
   HU_AddWidget(&hu_chat);
 }
 
-/* Tables ********************/
+////////////////////////////////////////////////////////////////////////
+//
+// Tables
+//
 
 const char* shiftxform;
 
@@ -695,9 +716,10 @@ const char english_shiftxform[] =
   '{', '|', '}', '~', 127
 };
 
-/*****************************
-        CONSOLE COMMANDS
- *****************************/
+/////////////////////////////////////////////////////////////////////////
+//
+// Console Commands
+//
 
 VARIABLE_BOOLEAN(showMessages,  NULL,                   onoff);
 VARIABLE_INT(mess_colour,       NULL, 0, CR_LIMIT-1,    textcolours);

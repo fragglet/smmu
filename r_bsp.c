@@ -278,7 +278,7 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
       sec->lightlevel : sectors[sec->ceilinglightsec].lightlevel;
 
 
-  if (sec->heightsec != -1)
+  if(sec->heightsec != -1)
     {
       const sector_t *s = &sectors[sec->heightsec];
       int heightsec = viewplayer->mo->subsector->sector->heightsec;
@@ -652,26 +652,26 @@ static void R_Subsector(int num)
 #ifdef TRANWATER
                         // sf: translucent floor attempt
   if(frontsector->heightsec != -1)
-  {
-        sector_t *pSec;
-
-        pSec = sectors+frontsector->heightsec;
-
-        floorplane2 =
-                R_FindPlane(pSec->floorheight, frontsector->floorpic,
-                            pSec->lightlevel, 0, 0 );
-        if(!floorplane2->trans)
+    {
+      sector_t *pSec;
+      
+      pSec = sectors+frontsector->heightsec;
+      
+      floorplane2 =
+	R_FindPlane(pSec->floorheight, frontsector->floorpic,
+		    pSec->lightlevel, 0, 0 );
+      if(!floorplane2->trans)
         {
-                int i;
-                floorplane2->trans=1;
-                for(i=0;i<viewwidth;i++)
-                        floorplane2->top[i]=viewwidth;
+	  int i;
+	  floorplane2->trans=1;
+	  for(i=0;i<viewwidth;i++)
+	    floorplane2->top[i]=viewwidth;
         }
-  }
+    }
   else
 #endif
-        floorplane2 = NULL;
-
+    floorplane2 = NULL;
+  
   // killough 9/18/98: Fix underwater slowdown, by passing real sector 
   // instead of fake one. Improve sprite lighting by basing sprite
   // lightlevels on floor & ceiling lightlevels in the surrounding area.

@@ -19,9 +19,10 @@
 
 extern int gamma_correct;
 
-/******************************
-   CONSOLE VIDEO MODE COMMANDS
- ******************************/
+/////////////////////////////////////////////////////////////////////////////
+//
+// Console Video Mode Commands
+//
 // non platform-specific stuff is here in v_misc.c
 // platform-specific stuff is in i_video.c
 // videomode_t is platform specific although it must
@@ -29,7 +30,7 @@ extern int gamma_correct;
 // see i_video.c for more info
 
 int v_mode = 0;
-int prevmode = 0;
+static int prevmode = 0;
 
 int NumModes()
 {
@@ -59,9 +60,10 @@ void V_ResetMode()
   I_SetMode(v_mode);
 }
 
-/******************
-         FONT STUFF
- ******************/
+///////////////////////////////////////////////////////////////////////////
+//
+// Font
+//
 
 patch_t* v_font[V_FONTSIZE];
 patch_t *bgp[9];        // background for boxes
@@ -207,9 +209,12 @@ int V_StringWidth(unsigned char *s)
 }
 
 
-/*********************
-           BOX DRAWING
- *********************/
+////////////////////////////////////////////////////////////////////////////
+//
+// Box Drawing
+//
+// Originally from the Boom heads up code
+//
 
 #define FG 0
 
@@ -254,11 +259,10 @@ void V_InitBox()
   bgp[8] = (patch_t *) W_CacheLumpName("BOXLR", PU_STATIC);
 }
 
-
-
-/***********************
-        'LOADING' PIC
- ***********************/
+//////////////////////////////////////////////////////////////////////////
+//
+// "Loading" Box
+//
 
 static int loading_amount = 0;
 static int loading_total = -1;
@@ -335,10 +339,10 @@ void V_LoadingSetTo(int amount)
   if(!in_textmode) V_DrawLoading();
 }
 
-/************************
-   FPS Ticker
-*************************/
-
+/////////////////////////////////////////////////////////////////////////////
+//
+// Framerate Ticker
+//
 // show dots at the bottom of the screen which represent
 // an approximation to the current fps of doom.
 // moved from i_video.c to make it a bit more
@@ -464,6 +468,79 @@ void V_Init(void)
 
 }
 
+/////////////////////////////
+//
+// V_DrawBackground tiles a 64x64 patch over the entire screen, providing the
+// background for the Help and Setup screens.
+//
+// killough 11/98: rewritten to support hires
+
+static void V_TileFlat(byte *back_src, byte *back_dest)
+{
+  int x, y;
+  byte *src = back_src;          // copy of back_src
+  
+  V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+  
+  if (hires)       // killough 11/98: hires support
+#if 0              // this tiles it in hires:
+    for (y = 0 ; y < SCREENHEIGHT*2 ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH*2/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}
+#endif
+  
+  // while this pixel-doubles it
+  for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src,
+	 back_dest += SCREENWIDTH*2)
+    for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+      {
+	int i = 63;
+	do
+	  back_dest[i*2] = back_dest[i*2+SCREENWIDTH*2] =
+	    back_dest[i*2+1] = back_dest[i*2+SCREENWIDTH*2+1] = src[i];
+	while (--i>=0);
+	back_dest += 128;
+      }
+  else
+    for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}  
+}
+
+void V_DrawBackground(char* patchname, byte *back_dest)
+{
+  byte *src;
+  
+  src =  W_CacheLumpNum(firstflat+R_FlatNumForName(patchname),PU_CACHE);
+
+  V_TileFlat(src, back_dest);
+}
+
+// sf:
+
+char *R_DistortedFlat(int);
+
+void V_DrawDistortedBackground(char* patchname, byte *back_dest)
+{
+  byte *src;
+
+  V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+  src = R_DistortedFlat(R_FlatNumForName(patchname));
+
+  V_TileFlat(src, back_dest);
+}
+
+////////////////////////////////////////////////////////////////////////////
+//
+// Init
+//
 
 void V_InitMisc()
 {
@@ -471,9 +548,10 @@ void V_InitMisc()
   V_InitBox();
 }
 
-/*************************
-          CONSOLE COMMANDS
- *************************/
+//////////////////////////////////////////////////////////////////////////
+//
+// Console Commands
+//
 
 VARIABLE_INT(v_mode, NULL,              0, 10, NULL);
 

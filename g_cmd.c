@@ -23,8 +23,6 @@
 #include "p_inter.h"
 #include "w_wad.h"
 
-/****** externs ******/
-
 extern int automlook;
 extern int invert_mouse;
 extern int screenshot_pcx;
@@ -32,7 +30,10 @@ extern boolean sendpause;
 extern int forwardmove[2];
 extern int sidemove[2];
 
-/******* game commands *******/
+////////////////////////////////////////////////////////////////////////
+//
+// Game Commands
+//
 
 CONSOLE_COMMAND(i_error, 0)
 {
@@ -116,15 +117,20 @@ CONSOLE_NETCMD(exitlevel, cf_server|cf_level, netcmd_exitlevel)
   G_ExitLevel();
 }
 
-          /******* demo stuff *********/
+//////////////////////////////////////
+//
+// Demo Stuff
+//
 
 CONSOLE_COMMAND(playdemo, cf_notnet)
 {
+  /*
   if(W_CheckNumForName(c_argv[0]) == -1)
     {
       C_Printf("%s not found\n",c_argv[0]);
       return;
     }
+    */
   G_DeferedPlayDemo(c_argv[0]);
   singledemo = true;            // quit after one demo
 }
@@ -145,7 +151,10 @@ CONSOLE_COMMAND(timedemo, cf_notnet)
 VARIABLE_BOOLEAN(cooldemo, NULL,            onoff);
 CONSOLE_VARIABLE(cooldemo, cooldemo, 0) {}
 
-    /**************** wads ****************/
+///////////////////////////////////////////////////
+//
+// Wads
+//
 
 // load new wad
 // buffered command: r_init during load
@@ -155,7 +164,8 @@ CONSOLE_COMMAND(addfile, cf_notnet|cf_buffered)
   D_AddNewFile(c_argv[0]);
 }
 
-        // list loaded wads
+// list loaded wads
+
 CONSOLE_COMMAND(listwads, 0)
 {
   D_ListWads();
@@ -253,7 +263,10 @@ extern int smooth_turning;
 VARIABLE_BOOLEAN(smooth_turning, NULL,          onoff);
 CONSOLE_VARIABLE(smooth_turning, smooth_turning, 0) {}
 
-        /********* chat macros ************/
+////////////////////////////////////////////////////////////////
+//
+// Chat Macros
+//
 
 void G_AddChatMacros()
 {
@@ -289,7 +302,10 @@ void G_AddChatMacros()
     }
 }
 
-        /********** weapon prefs **************/
+///////////////////////////////////////////////////////////////
+//
+// Weapon Prefs
+//
 
 extern int weapon_preferences[2][NUMWEAPONS+1];                   
 
@@ -350,7 +366,10 @@ void G_AddWeapPrefs()
     }
 }
 
-//      compatibility vectors
+///////////////////////////////////////////////////////////////
+//
+// Compatibility vectors
+//
 
 // names given to cmds
 const char *comp_strings[] =

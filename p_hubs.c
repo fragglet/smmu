@@ -155,7 +155,6 @@ void P_HubChangeLevel(char *levelname)
 {
   hub_changelevel = true;
 
-  C_Printf("hubs: go to level %s\n", levelname);
   SaveHubLevel();
   LoadHubLevel(levelname);
 }
@@ -174,8 +173,6 @@ void P_DumpHubs()
   for(i=0; i<num_hub_levels; i++)
     {
       strncpy(tempbuf, hub_levels[i].levelname, 8);
-      C_Printf("%s: %s\n", tempbuf, hub_levels[i].tmpfile ?
-	       hub_levels[i].tmpfile : "");
     }
 }
 
@@ -201,8 +198,6 @@ void P_SavePlayerPosition(player_t *player, int sectag)
   // save sector x,y offset
 
   save_sectag = sectag;
-
-  C_Printf("sectag: %i\n", sectag);
 
   if((secnum = P_FindSectorFromTag(sectag, -1)) < 0)
     {

@@ -1040,7 +1040,7 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   WI_StopCamera();      // reset the intermissions camera
 
   // when loading a hub level, display a 'loading' box
-  if(hub_changelevel)
+  if(0) //hub_changelevel)
     V_SetLoading(4, "loading");
 
   DEBUGMSG("hu_newlevel\n");

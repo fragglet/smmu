@@ -104,9 +104,7 @@ static void Ser_Error (char *error, ...)
       usermsg("");
       va_end (argptr);
       
-      // copy error message to menu
-      strcpy(menu_error_message, tempstr);
-      menu_error_time = -1; // infinite duration
+      MN_ErrorMsg(tempstr);
     }
   ser_active = false;
 }
