@@ -32,6 +32,7 @@
 #include "g_game.h"
 #include "m_argv.h"
 #include "m_misc.h"
+#include "m_random.h"
 #include "sv_serv.h"
 #include "w_wad.h"
 #include "z_zone.h"
@@ -40,6 +41,8 @@
 
 #define DEMOMARKER    0x80
 
+extern int nettics[MAXPLAYERS]; // cl_clien.c
+
 extern boolean netdemo;
 
 static byte *demobuffer;
@@ -47,6 +50,12 @@ static byte *demo_p;           // read/write pt in buffer
 
 boolean demoplayback;
 boolean demorecording;
+
+// for comparative timing purposes
+
+static int startgametic;
+static int starttime;
+static boolean timedemo_menuscreen;
 
 //===========================================================================
 //
@@ -72,10 +81,24 @@ void CL_StopDemo()
     }
   else if(demoplayback)
     {
+      if(timingdemo)
+	{
+	  int gametics = gametic - startgametic;
+	  int realtics = I_GetTime_RealTime() - starttime;
+	  
+	  timingdemo = singletics = false;
+
+	  if(timedemo_menuscreen)
+	    MN_ShowFrameRate((gametics * TICRATE * 10) / realtics);
+	  else
+	    C_Printf("%i fps\n", (gametics * TICRATE) / realtics);
+	}
+
       Z_ChangeTag(demobuffer, PU_CACHE);
       G_ReloadDefaults();    // killough 3/1/98
-      netgame = false;       // killough 3/29/98
+      netgame = netdemo = false;       // killough 3/29/98
       deathmatch = false;
+      demoplayback = false;
       if (singledemo)
 	{
 	  demoplayback = false;
@@ -98,9 +121,6 @@ void G_StopDemo()
 // Demo Playback
 //
 //===========================================================================
-
-int             startgametic;
-int             starttime;     // for comparative timing purposes
 
 // read ticcmd from original doom demo
 
@@ -134,7 +154,7 @@ void CL_ReadDemoCmd(ticcmd_t *ticcmd)
   if(*demo_p == DEMOMARKER)
     {
       // end of demo
-      G_StopDemo();
+      CL_StopDemo();
     }
   else
     {
@@ -159,6 +179,10 @@ void CL_PlayDemo(char *demoname)
   byte *option_p = NULL;      // killough 11/98
   skill_t skill;
   int i, episode, map;
+
+  // stop any running demos first
+  
+  CL_StopDemo();
   
   // sf: try reading from a file first
   // we no longer have to load the demo lmp into the wad directory
@@ -313,7 +337,12 @@ void CL_PlayDemo(char *demoname)
   precache = true;
   usergame = false;
   demoplayback = true;
+  singledemo = false;
 
+  for(i=0; i<MAXPLAYERS; i++)
+    nettics[i] = gametic;
+  basetic = gametic;
+  
   for (i=0; i<MAXPLAYERS;i++)         // killough 4/24/98
     players[i].cheats = 0;
 
@@ -328,6 +357,15 @@ CONSOLE_COMMAND(playdemo, cf_notnet)
 {
   CL_PlayDemo(c_argv[0]);
   singledemo = true;            // quit after one demo
+}
+
+CONSOLE_COMMAND(timedemo, cf_notnet)
+{
+  CL_PlayDemo(c_argv[0]);
+  singledemo = true;
+  singletics = true;
+  timingdemo = true;
+  timedemo_menuscreen = cmdtype == c_menu;
 }
 
 void G_DeferedPlayDemo(char *name) {}
@@ -347,6 +385,7 @@ void G_RecordDemo(char *name) {}
 void CL_Demo_AddCommands()
 {
   C_AddCommand(playdemo);
+  C_AddCommand(timedemo);
 }
 
 
@@ -484,6 +523,11 @@ void CL_PlayDemo(char *demoname)
   byte *option_p = NULL;      // killough 11/98
   int lumpnum;
   int length;
+
+  gametic = gametime = 0;
+
+  for(i=0; i<MAXPLAYERS; i++)
+    nettics[i] = 0;
   
   if (gameaction != ga_loadgame)      // killough 12/98: support -loadgame
     basetic = gametic;  // killough 9/29/98
@@ -771,8 +815,11 @@ void G_StopDemo()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-10 13:11:37  fraggle
+// fix demos
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------

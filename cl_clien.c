@@ -1475,10 +1475,8 @@ void CL_ReadTiccmds()
       if(!playeringame[i])
 	continue;
       CL_ReadDemoCmd(&backup_tics[i][maketic & 255]);
-      nettics[i] = maketic;
+      nettics[i]++;
     }
-  
-  maketic++;
 }
 
 //-------------------------------------------------------------------------
@@ -1502,6 +1500,11 @@ void NetUpdate()
   int entertic = I_GetTime();
   int newtics = (entertic - gametime) / ticdup;
 
+  // singletic update is syncronous
+  
+  if(singletics) 
+    return;
+  
   if(newtics > 0)
     {
       if(newtics > 4)
@@ -1659,42 +1662,56 @@ static boolean RunGameTics()
   int count;
   int key = -1;
   int consist;
-  
-  NetUpdate();
-  
-  // find lowest tic we can run
 
-  for(i=0; i<MAXPLAYERS; i++)
+  // if timing demo, read the ticcmds in here rather than in
+  // NetUpdate
+  
+  if(singletics)
     {
-      if(!playeringame[i])
-	continue;
-      if(key == -1)
-	key = i;
-      if(nettics[i] < lowtic)
-	lowtic = nettics[i];
+      // read ticcmds
+      CL_ReadTiccmds();
+      availabletics = 1;
     }
-
-  // set open socket if we havent received packets from server
-  // for a while
-
-  opensocket =
-    netgame && !demoplayback &&
-    (maketic - gametic > 20) &&
-    (I_GetTime_RealTime() - lastpacket_time > 8);
-  
-  // find maximum number of tics we can run
-  
-  availabletics = lowtic - gametic/ticdup; // - 1;
-
-  if(availabletics < 0)
+  else
     {
-      //  C_Printf("availabletic < 0! %i %i\n", lowtic, gametic/ticdup);
-      return false;
-    }
+      // normal tic stuff
+
+      NetUpdate();
   
-  if(availabletics == 0)
-    {
-      return false;        // wait until we have some tics
+      // find lowest tic we can run
+      
+      for(i=0; i<MAXPLAYERS; i++)
+	{
+	  if(!playeringame[i])
+	    continue;
+	  if(key == -1)
+	    key = i;
+	  if(nettics[i] < lowtic)
+	    lowtic = nettics[i];
+	}
+      
+      // set open socket if we havent received packets from server
+      // for a while
+      
+      opensocket =
+	netgame && !demoplayback &&
+	(maketic - gametic > 20) &&
+	(I_GetTime_RealTime() - lastpacket_time > 8);
+      
+      // find maximum number of tics we can run
+      
+      availabletics = lowtic - gametic/ticdup; // - 1;
+      
+      if(availabletics < 0)
+	{
+	  //  C_Printf("availabletic < 0! %i %i\n", lowtic, gametic/ticdup);
+	  return false;
+	}
+      
+      if(availabletics == 0)
+	{
+	  return false;        // wait until we have some tics
+	}
     }
   
   // try and run tics now
@@ -1717,8 +1734,9 @@ static boolean RunGameTics()
 	  if(consist == -1)
 	    consist = player_cmds[i].consistancy;
 	  else
+	    // flash out-of-sync warning when we go out of sync in netgames
 	    if(consist != player_cmds[i].consistancy)
-	      out_of_sync = true;      // flash out-of-sync warning
+	      out_of_sync = netgame && !demoplayback;
 	}
       
       for(i=0; i<ticdup; i++)
@@ -1750,7 +1768,7 @@ static boolean RunGameTics()
   // Movement prediction
   // reduce laggy feel
 
-  if(gamestate == GS_LEVEL)
+  if(netgame && !demoplayback && gamestate == GS_LEVEL)
     {
       // sf: only run multiples of 2 tics
       // otherwise we can end up flicking between eg. 4 and 5 and it jumps
@@ -1941,7 +1959,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.9  2000-05-07 13:40:31  fraggle
+// Revision 1.10  2000-05-10 13:11:37  fraggle
+// fix demos
+//
+// Revision 1.9  2000/05/07 13:40:31  fraggle
 // default to full prediction
 //
 // Revision 1.8  2000/05/07 13:11:21  fraggle
