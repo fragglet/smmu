@@ -1395,6 +1395,8 @@ void SV_Shutdown()
 	SendPacket(&server_nodes[i].netnode, &packet);
     }
 
+  delay(300);
+  
   server_numnodes = 0;
   server_active = false;
 
@@ -1476,8 +1478,11 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

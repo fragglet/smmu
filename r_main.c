@@ -518,8 +518,16 @@ void R_SetupFrame (player_t *player, camera_t *camera)
       oldfov = fov;
     }
 
-  viewplayer = player;
-  mobj = player->mo;
+  // sf: movement prediction
+  // use alternate player position tics have been pre-run
+  
+  if(player->predicted)
+    viewplayer = player->predicted;
+  else
+    viewplayer = player;
+
+  viewobj = player->mo;
+  mobj = viewplayer->mo;
 
   // cameras
   
@@ -529,20 +537,20 @@ void R_SetupFrame (player_t *player, camera_t *camera)
       viewy = camera->y;
       viewz = camera->z;
       viewangle = camera->angle;
-      viewcamera = camera;  viewobj = NULL;
+      viewcamera = camera;
       updownangle = camera->updownangle;
       extralight = 0;
     }
   else
     {
-      viewx = mobj->x + 3*mobj->momx;
-      viewy = mobj->y + 3*mobj->momy;
-      viewz = player->viewz;
+      viewx = mobj->x;
+      viewy = mobj->y;
+      viewz = viewplayer->viewz;
       viewangle = mobj->angle;// + viewangleoffset;
-      viewobj = mobj; viewcamera = NULL;
+      viewcamera = NULL;
       // y shearing
-      updownangle = player->updownangle;
-      extralight = player->extralight;
+      updownangle = viewplayer->updownangle;
+      extralight = viewplayer->extralight;
     }
   
   viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
@@ -642,9 +650,6 @@ angle_t R_WadToAngle(int wadangle)
   return wadangle * (ANG45 / 45);
 }
 
-static int render_ticker = 0;
-int flatskip = 0;
-
 //
 // R_RenderView
 //
@@ -670,7 +675,7 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
   // Check for new console commands.
   NetUpdate ();
      
-  if(!flatskip || render_ticker % flatskip) R_DrawPlanes ();
+  R_DrawPlanes ();
     
   // Check for new console commands.
   NetUpdate ();
@@ -679,8 +684,6 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
 
   // Check for new console commands.
   NetUpdate ();
-
-  render_ticker++;
 }
 
 // sf: rewritten
@@ -716,7 +719,6 @@ char *handedstr[]       = {"right", "left"};
 
 VARIABLE_BOOLEAN(lefthanded, NULL,                  handedstr);
 VARIABLE_BOOLEAN(r_blockmap, NULL,                  onoff);
-VARIABLE_INT(flatskip, NULL,                        0, 100, NULL);
 VARIABLE_BOOLEAN(flashing_hom, NULL,                onoff);
 VARIABLE_BOOLEAN(visplane_view, NULL,               onoff);
 VARIABLE_BOOLEAN(r_precache, NULL,                  onoff);
@@ -800,8 +802,11 @@ void R_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
