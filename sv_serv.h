@@ -228,8 +228,9 @@ typedef struct
 
 typedef struct
 {
-  short version;         // game version -- must all be the same
+  short version;        // game version -- must all be the same
   byte drone;           // set to non-zero if we want to be a drone
+  byte wadsig[4];       // wad signature
   char name[20];        // node name
 } joinpacket_t;
 
@@ -387,7 +388,10 @@ void SV_Update();
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-03 16:21:23  fraggle
+// Revision 1.3  2000-05-03 16:46:45  fraggle
+// check wads in netgames
+//
+// Revision 1.2  2000/05/03 16:21:23  fraggle
 // client speedup code
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle

@@ -592,16 +592,35 @@ long W_LumpCheckSum(int lumpnum)
   lumplength = W_LumpLength(lumpnum);
   
   for(i=0; i<lumplength; i++)
-    checksum+= lump[i]*i;
+    checksum += lump[i]*i;
   
   return checksum;
+}
+
+//
+// sf: W_Signature: 'signature' of wad to ensure netgame players
+// are using the same wads
+//
+
+unsigned long W_Signature()
+{
+  int i;
+  unsigned long sig = 0;
+  
+  for(i=0; i<numlumps; i++)
+    sig += i * lumpinfo[i]->size;
+
+  return sig;
 }
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-03 16:46:45  fraggle
+// check wads in netgames
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
