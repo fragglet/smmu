@@ -218,7 +218,7 @@ static void ModemClear ()
 // Send a command to the modem
 //
 
-void ModemCommand(char *command)
+static void ModemCommand(char *command)
 {
   usermsg (COMMAND_COLOUR "%s", command);
   Ser_WriteBuffer(command, strlen(command));
@@ -237,7 +237,7 @@ void ModemCommand(char *command)
 
 static char response_buffer[MAXRESPONSE] = "";
 
-char *ModemResponse(char *resp)
+static char *ModemResponse(char *resp)
 {
   char c;
   static char read_response[MAXRESPONSE];   
@@ -460,12 +460,12 @@ void Ser_ReadModemCfg()
 // netmodules.
 // we have a different netmodule for serial and modem links
 
-boolean Ser_Init();
-boolean Modem_Init();
-void Ser_Disconnect();
-void *Ser_GetPacket(int *node);
-void Ser_SendPacket(int node, void *data, int datalen);
-void Ser_SendBroadcast(void *data, int datalen);
+static boolean Ser_Init();
+static boolean Modem_Init();
+static void Ser_Disconnect();
+static void *Ser_GetPacket(int *node);
+static void Ser_SendPacket(int node, void *data, int datalen);
+static void Ser_SendBroadcast(void *data, int datalen);
 
 netmodule_t serial =
   {
@@ -492,7 +492,7 @@ netmodule_t modem =
 // Ser_Init
 //
 
-boolean Ser_Init()
+static boolean Ser_Init()
 {
   InitPort ();
   ModemClear();
@@ -512,7 +512,7 @@ boolean Ser_Init()
 // Ser_Disconnect
 //
 
-void Ser_Disconnect()
+static void Ser_Disconnect()
 {
   // wait a bit for the ISR to finish sending the disconnect packet
 
@@ -532,7 +532,7 @@ void Ser_Disconnect()
 // Modem_Init
 //
 
-boolean Modem_Init()
+static boolean Modem_Init()
 {
   if(!Ser_Init())
     return false;
@@ -556,7 +556,7 @@ boolean Modem_Init()
 // Ser_SendPacket
 //
 
-void Ser_SendPacket(int node, void *data, int datalen)
+static void Ser_SendPacket(int node, void *data, int datalen)
 {
   Ser_WritePacket (data, datalen);
 }
@@ -566,7 +566,7 @@ void Ser_SendPacket(int node, void *data, int datalen)
 // Ser_SendBroadcast
 //
 
-void Ser_SendBroadcast(void *data, int datalen)
+static void Ser_SendBroadcast(void *data, int datalen)
 {
   Ser_SendPacket(0, data, datalen);
 }
@@ -576,7 +576,7 @@ void Ser_SendBroadcast(void *data, int datalen)
 // Ser_GetPacket
 //
 
-void *Ser_GetPacket(int *node)
+static void *Ser_GetPacket(int *node)
 {
   if(usemodem && waiting_call)
     {
@@ -618,8 +618,11 @@ void Ser_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:57:18  fraggle
+// make functions static
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

@@ -57,11 +57,11 @@ int client_head, client_tail;
 //
 //===========================================================================
 
-boolean Loopback_Server_Init();
-void Loopback_Server_Shutdown();
-void *Loopback_Server_GetPacket(int *node);
-void Loopback_Server_SendPacket(int node, void *data, int datalen);
-void Loopback_Server_SendBroadcast(void *data, int datalen);
+static boolean Loopback_Server_Init();
+static void Loopback_Server_Shutdown();
+static void *Loopback_Server_GetPacket(int *node);
+static void Loopback_Server_SendPacket(int node, void *data, int datalen);
+static void Loopback_Server_SendBroadcast(void *data, int datalen);
 
 netmodule_t loopback_server =
   {
@@ -80,7 +80,7 @@ netmodule_t loopback_server =
 // Send packet to local client
 //
 
-void Loopback_Server_SendPacket(int node, void *data, int datalen)
+static void Loopback_Server_SendPacket(int node, void *data, int datalen)
 {
   // add packet to inqueue for client
   memcpy(&client_inqueue[client_tail], data, datalen);
@@ -93,7 +93,7 @@ void Loopback_Server_SendPacket(int node, void *data, int datalen)
 // Loopback_Server_SendBroadcast
 //
 
-void Loopback_Server_SendBroadcast(void *data, int datalen)
+static void Loopback_Server_SendBroadcast(void *data, int datalen)
 {
   Loopback_Server_SendPacket(0, data, datalen);
 }
@@ -105,7 +105,7 @@ void Loopback_Server_SendBroadcast(void *data, int datalen)
 // Get packets from local client
 //
   
-void *Loopback_Server_GetPacket(int *node)
+static void *Loopback_Server_GetPacket(int *node)
 {
   void *return_packet;
   
@@ -134,7 +134,7 @@ void *Loopback_Server_GetPacket(int *node)
 // Initialise module
 //
 
-boolean Loopback_Server_Init()
+static boolean Loopback_Server_Init()
 {
   loopback_server.initted = true;
   loopback_server.numnodes = 1;
@@ -149,7 +149,7 @@ boolean Loopback_Server_Init()
 // Shutdown module
 //
 
-void Loopback_Server_Shutdown()
+static void Loopback_Server_Shutdown()
 {
 }
 
@@ -159,11 +159,11 @@ void Loopback_Server_Shutdown()
 //
 //===========================================================================
 
-boolean Loopback_Client_Init();
-void Loopback_Client_Shutdown();
-void *Loopback_Client_GetPacket(int *node);
-void Loopback_Client_SendPacket(int node, void *data, int datalen);
-void Loopback_Client_SendBroadcast(void *data, int datalen);
+static boolean Loopback_Client_Init();
+static void Loopback_Client_Shutdown();
+static void *Loopback_Client_GetPacket(int *node);
+static void Loopback_Client_SendPacket(int node, void *data, int datalen);
+static void Loopback_Client_SendBroadcast(void *data, int datalen);
 
 netmodule_t loopback_client =
   {
@@ -182,7 +182,7 @@ netmodule_t loopback_client =
 // Send packet to local server
 //
 
-void Loopback_Client_SendPacket(int node, void *data, int datalen)
+static void Loopback_Client_SendPacket(int node, void *data, int datalen)
 {
   //  C_Printf("Loopback_Client_SendPacket\n");
 
@@ -199,7 +199,7 @@ void Loopback_Client_SendPacket(int node, void *data, int datalen)
 // Broadcast send -- same as normal send
 //
 
-void Loopback_Client_SendBroadcast(void *data, int datalen)
+static void Loopback_Client_SendBroadcast(void *data, int datalen)
 {
   Loopback_Client_SendPacket(0, data, datalen);
 }
@@ -211,7 +211,7 @@ void Loopback_Client_SendBroadcast(void *data, int datalen)
 // Get packet from local server
 //
   
-void *Loopback_Client_GetPacket(int *node)
+static void *Loopback_Client_GetPacket(int *node)
 {
   void *return_packet;
 
@@ -240,7 +240,7 @@ void *Loopback_Client_GetPacket(int *node)
 // Initialise module
 //
 
-boolean Loopback_Client_Init()
+static boolean Loopback_Client_Init()
 {
   loopback_client.initted = true;
   loopback_client.numnodes = 1;
@@ -255,15 +255,18 @@ boolean Loopback_Client_Init()
 // Shutdown module
 //
 
-void Loopback_Client_Shutdown()
+static void Loopback_Client_Shutdown()
 {
 }
 
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:57:14  fraggle
+// make functions static
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------

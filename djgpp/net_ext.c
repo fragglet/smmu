@@ -104,7 +104,7 @@ typedef struct
   netpacket_t         data;  
 } doomcom_t;
 
-doomcom_t *doomcom;
+static doomcom_t *doomcom;
 
 //-------------------------------------------------------------------------
 //
@@ -124,11 +124,11 @@ static void External_Call (void)
 // Driver Module
 //
 
-boolean External_Init();
-void External_Shutdown();
-void External_SendPacket(int node, void *data, int datalen);
-void External_SendBroadcast(void *data, int datalen);			    
-void *External_GetPacket(int *node);
+static boolean External_Init();
+static void External_Shutdown();
+static void External_SendPacket(int node, void *data, int datalen);
+static void External_SendBroadcast(void *data, int datalen);
+static void *External_GetPacket(int *node);
 
 netmodule_t external =
   {
@@ -147,7 +147,7 @@ netmodule_t external =
 // Initialise the module
 //
 
-boolean External_Init()
+static boolean External_Init()
 {
   int i;
 
@@ -178,7 +178,7 @@ boolean External_Init()
 // Shut down the module
 //
 
-void External_Shutdown()
+static void External_Shutdown()
 {
 }
 
@@ -189,7 +189,7 @@ void External_Shutdown()
 // Get any new packets from the external driver
 //
 
-void *External_GetPacket(int *node)
+static void *External_GetPacket(int *node)
 {
   static netpacket_t netpacket;
   
@@ -222,7 +222,7 @@ void *External_GetPacket(int *node)
 // Send a packet
 //
 
-void External_SendPacket(int node, void *data, int datalen)
+static void External_SendPacket(int node, void *data, int datalen)
 {
   if(!external.initted)
     return;
@@ -258,7 +258,7 @@ void External_SendPacket(int node, void *data, int datalen)
 // Broadcast packet send
 //
 
-void External_SendBroadcast(void *data, int datalen)
+static void External_SendBroadcast(void *data, int datalen)
 {
   int i;
 
@@ -269,8 +269,11 @@ void External_SendBroadcast(void *data, int datalen)
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-06-19 14:57:18  fraggle
+// make functions static
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

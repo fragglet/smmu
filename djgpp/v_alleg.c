@@ -195,7 +195,7 @@ static void Alleg_JoystickEvents()
 //
 // Alleg_StartFrame
 //
-void Alleg_StartFrame (void)
+static void Alleg_StartFrame (void)
 {
   Alleg_JoystickEvents(); // Obtain joystick data                 phares 4/3/98
 }
@@ -266,7 +266,7 @@ static void Alleg_GetEvent()
 // Alleg_StartTic
 //
 
-void Alleg_StartTic()
+static void Alleg_StartTic()
 {
   Alleg_GetEvent();
 }
@@ -281,7 +281,7 @@ void Alleg_StartTic()
 // Alleg_UpdateNoBlit
 //
 
-void Alleg_UpdateNoBlit (void)
+static void Alleg_UpdateNoBlit (void)
 {
 }
 
@@ -303,7 +303,7 @@ static unsigned long screen_base_addr;
 static unsigned destscreen;
 static int border_offset; 
 
-void Alleg_FinishUpdate(void)
+static void Alleg_FinishUpdate(void)
 {
   if(vga_pageflip)
     {
@@ -372,7 +372,7 @@ void Alleg_FinishUpdate(void)
 // Alleg_ReadScreen
 //
 
-void Alleg_ReadScreen(byte *scr)
+static void Alleg_ReadScreen(byte *scr)
 {
   int size = hires ? SCREENWIDTH*SCREENHEIGHT*4 : SCREENWIDTH*SCREENHEIGHT;
 
@@ -417,7 +417,7 @@ static void Alleg_InitDiskFlash(void)
 // killough 10/98: draw disk icon
 //
 
-void Alleg_BeginRead(void)
+static void Alleg_BeginRead(void)
 {
   if (!disk_icon)
     return;
@@ -435,7 +435,7 @@ void Alleg_BeginRead(void)
 // killough 10/98: erase disk icon
 //
 
-void Alleg_EndRead(void)
+static void Alleg_EndRead(void)
 {
   if (!disk_icon)
     return;
@@ -444,7 +444,7 @@ void Alleg_EndRead(void)
        scroll_offset + ((SCREENHEIGHT-15)<<hires), 16 << hires, 15 << hires);
 }
 
-void Alleg_SetPalette(byte *palette)
+static void Alleg_SetPalette(byte *palette)
 {
   int i;
 
@@ -471,7 +471,7 @@ void Alleg_SetPalette(byte *palette)
 // Go to text mode
 //
 
-void Alleg_UnsetMode(void)
+static void Alleg_UnsetMode(void)
 {
   clear(screen);
   
@@ -485,7 +485,7 @@ void Alleg_UnsetMode(void)
 
 // sf: now returns true if an error occurred
 
-boolean Alleg_SetMode(int i)
+static boolean Alleg_SetMode(int i)
 {
   set_color_depth(8);     // killough 2/7/98: use allegro set_gfx_mode
   scroll_offset = 0;
@@ -661,11 +661,11 @@ boolean Alleg_SetMode(int i)
 //
 //===========================================================================
 
-void Alleg_ShutdownGraphics()
+static void Alleg_ShutdownGraphics()
 {
 }
 
-boolean Alleg_InitGraphics(void)
+static boolean Alleg_InitGraphics(void)
 {
   static int firsttime = true;
 
@@ -749,7 +749,10 @@ viddriver_t alleg_driver =
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-09 20:53:45  fraggle
+// Revision 1.3  2000-06-19 14:57:37  fraggle
+// make functions static
+//
+// Revision 1.2  2000/06/09 20:53:45  fraggle
 // add I_StartFrame frame-syncronous stuff (joystick)
 //
 // Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
