@@ -47,7 +47,7 @@ void I_ReadScreen (byte* scr);
 int I_DoomCode2ScanCode(int);   // killough
 int I_ScanCode2DoomCode(int);   // killough
 
-void I_ResetScreen(void);   // killough 10/98
+void I_ResetVidMode();
 
 extern int use_vsync;  // killough 2/8/98: controls whether vsync is called
 extern int page_flip;  // killough 8/15/98: enables page flipping (320x200)
@@ -55,6 +55,22 @@ extern int disk_icon;  // killough 10/98
 extern int vesamode;
 extern int hires;      // killough 11/98
 extern BITMAP *screens0_bitmap;   // killough 12/98
+
+// video modes
+
+typedef struct videomode_s
+{
+        int hires;
+        int pageflip;
+        int vesa;
+        char *description;
+} videomode_t;
+
+extern videomode_t videomodes[];
+
+void I_CheckVESA();
+void I_SetMode(int i);
+
 
 #endif
 

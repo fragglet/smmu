@@ -23,7 +23,7 @@
 
 char *normalflat;
 char distortedflat[4096];
-int swirly_water;       // hack
+int r_swirl;       // hack
 int xoffset[64];
 int yoffset[64];
 int swirltic = -1;
@@ -40,10 +40,12 @@ void R_DrawLines()
 
 #define AMP 3
 #define AMP2 2
+#define SPEED 25
 
 char *R_DistortedFlat(int flatnum)
 {
         int x, y, i, newy;
+        int leveltic = gametic - basetic;  // 14/9/99 no moving when paused
         long sinvalue, sinvalue2;
 
         normalflat = W_CacheLumpNum(firstflat + flatnum, PU_STATIC);
@@ -52,14 +54,14 @@ char *R_DistortedFlat(int flatnum)
 
                 // if the offsets have been made for this tic already,
                 // dont make them again
-        if(swirltic != gametic)
+        if(swirltic != leveltic)
             for(i=0; i<64; i++)
             {
                 // one is x, one is y
                 // they must be slightly different to add an element
                 // of unpredictablity to the effect
 
-                // gametic*n determines the speed
+                // leveltic*n determines the speed
                 // 2 waves are used and added together: sinvalue
                 // and sinvalue2 are the offsets from each individual
                 // wave. The two waves have different swirlfactors to
@@ -69,18 +71,18 @@ char *R_DistortedFlat(int flatnum)
                 // 128 is added to the offsets to ensure that no negative
                 // values turn up
 
-                sinvalue = (i * swirlfactor + gametic*110 + 900) & 8191;
-                sinvalue2 = (i * swirlfactor2 + gametic*90 + 300) & 8191;
+                sinvalue = (i * swirlfactor + leveltic*SPEED*5 + 900) & 8191;
+                sinvalue2 = (i * swirlfactor2 + leveltic*SPEED*4 + 300) & 8191;
                 xoffset[i] = 128 + ((finesine[sinvalue]*AMP) >> FRACBITS)
                        + ((finesine[sinvalue2]*AMP2) >> FRACBITS);
 
-                sinvalue = (i * swirlfactor + gametic*130 + 700) & 8191;
-                sinvalue2 = (i * swirlfactor2 + gametic*65 + 1200) & 8191;
+                sinvalue = (i * swirlfactor + leveltic*SPEED*3 + 700) & 8191;
+                sinvalue2 = (i * swirlfactor2 + leveltic*SPEED*4 + 1200) & 8191;
                 yoffset[i] = 128 + ((finesine[sinvalue]*AMP) >> FRACBITS)
                        + ((finesine[sinvalue2]*AMP2) >> FRACBITS);
 
                         // do not rebuild the offsets until next tic
-                swirltic = gametic;
+                swirltic = leveltic;
             }
 
 

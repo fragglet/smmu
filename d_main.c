@@ -87,6 +87,7 @@ char **wadfiles;
 #define MAXLOADFILES 2
 char *wad_files[MAXLOADFILES], *deh_files[MAXLOADFILES];
 
+int textmode_startup = 0;  // sf: textmode_startup for old-fashioned people
 boolean devparm;        // started game with -devparm
 
 // jff 1/24/98 add new versions of these variables to remember command line
@@ -95,7 +96,7 @@ boolean clrespawnparm;  // checkparm of -respawn
 boolean clfastparm;     // checkparm of -fast
 // jff 1/24/98 end definition of command line version of play mode switches
 
-int blockmapbuild = 0;       // -blockmap command line
+int r_blockmap = false;       // -blockmap command line
 
 boolean nomonsters;     // working -nomonsters
 boolean respawnparm;    // working -respawn
@@ -173,7 +174,9 @@ void D_PostEvent(event_t *ev)
 void D_ProcessEvents (void)
 {
   // IF STORE DEMO, DO NOT ACCEPT INPUT
-  if (gamemode != commercial || W_CheckNumForName("map01") >= 0)
+  // sf: I don't think SMMU is going to be player in any store any
+  //     time soon =)
+//  if (gamemode != commercial || W_CheckNumForName("map01") >= 0)
     for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
       if (!M_Responder(events+eventtail))
 	if(!C_Responder(events+eventtail))
@@ -243,22 +246,18 @@ void D_Display (void)
       if (!gametic)
 	break;
       HU_Erase();
-      if (automapactive)
-	AM_Drawer();
       if (inwipe || wipe || (scaledviewheight != 200 && fullscreen) // killough 11/98
           || (inhelpscreensstate && !inhelpscreens) || c_moving)
 	redrawsbar = true;              // just put away the help screen
-      ST_Drawer(scaledviewheight == 200, redrawsbar );    // killough 11/98
-      redrawsbar = false;
       fullscreen = scaledviewheight == 200;               // killough 11/98
 
-      // draw the view directly
-      if (gametic)
-      {
-              if (!automapactive)
-                 R_RenderPlayerView (players+displayplayer, camera);
-              HU_Drawer ();
-      }
+      if (automapactive)
+          AM_Drawer();
+      else
+          R_RenderPlayerView (players+displayplayer, camera);
+
+      ST_Drawer(scaledviewheight == 200, redrawsbar );    // killough 11/98
+      HU_Drawer ();
       break;
     case GS_INTERMISSION:
       WI_Drawer();
@@ -273,8 +272,7 @@ void D_Display (void)
       break;
     }
 
-  // draw buffered stuff to screen
-//  I_UpdateNoBlit();
+  redrawsbar = false; // reset this now
 
   // clean up border stuff
   if (gamestate != oldgamestate && gamestate != GS_LEVEL)
@@ -286,8 +284,8 @@ void D_Display (void)
   oldgamestate = wipegamestate = gamestate;
 
   // draw pause pic
-  if (paused)
-    {
+  if (paused && !walkcam_active)        // sf: not if walkcam active for
+    {                                   // frads taking screenshots
       int y = 4;
       if (!automapactive)
 	y += viewwindowy;
@@ -298,13 +296,16 @@ void D_Display (void)
   if (wipe || inwipe)
   {
     wipe_Drawer();
-//    I_UpdateNoBlit();
   }
 
   C_Drawer();
   // menus go directly to the screen
   M_Drawer();          // menu is drawn even on top of everything
   NetUpdate();         // send out any new accumulation
+
+    //sf : now system independent
+  if(v_ticker)
+    V_FPSDrawer();
 
   I_FinishUpdate ();              // page flip or blit buffer
 }
@@ -327,7 +328,7 @@ void D_PageTicker(void)
   // being played. The only time this matters is when using -loadgame with
   // -fastdemo, -playdemo, or -timedemo, and a consistency error occurs.
 
-  if (!singledemo && --pagetic < 0)
+  if (/*!singledemo &&*/ --pagetic < 0)
     D_AdvanceDemo();
 }
 
@@ -348,7 +349,11 @@ void D_PageDrawer(void)
   if (pagename)
   {
         int l = W_CheckNumForName(pagename);
-        if(l == -1) return;
+        if(l == -1)
+        {
+                M_DrawCredits();        // just draw the credits instead
+                return;
+        }
 
         if(hires)               // check for original title screen
         {
@@ -1184,18 +1189,20 @@ void startupmsg(char *func, char *desc)
 
 void D_SetGraphicsMode()
 {
-          if(debugfile) fprintf(debugfile, "** set graphics mode\n");
-        
-                // set graphics mode
-          I_InitGraphics();
+   if(debugfile) fprintf(debugfile, "** set graphics mode\n");
 
-                // set up the console to display startup messages
-          gamestate = GS_CONSOLE; consoleactive = 1;
-          current_height = SCREENHEIGHT;
-          c_showprompt = false;
+   I_InitKeyboard(); // last chance for ctrl-c
+
+             // set graphics mode
+   I_InitGraphics();
+
+          // set up the console to display startup messages
+   gamestate = GS_CONSOLE; consoleactive = 1;
+   current_height = SCREENHEIGHT;
+   c_showprompt = false;
         
-          D_ListWads();         // list wads to the console
-          C_Printf("\n");       // leave a gap
+   D_ListWads();         // list wads to the console
+   C_Printf("\n");       // leave a gap
 }
 
 //
@@ -1308,7 +1315,7 @@ void D_DoomMain(void)
   if (devparm)
   {
     printf(D_DEVSTR);
-    showticker = true;  // turn on the fps ticker
+    v_ticker = true;  // turn on the fps ticker
   }
 
   if (M_CheckParm("-cdrom"))
@@ -1323,21 +1330,21 @@ void D_DoomMain(void)
   // turbo option
   if ((p=M_CheckParm ("-turbo")))
     {
-      int scale = 200;
+      extern int turbo_scale;
       extern int forwardmove[2];
       extern int sidemove[2];
 
       if (p<myargc-1)
-	scale = atoi(myargv[p+1]);
-      if (scale < 10)
-	scale = 10;
-      if (scale > 400)
-	scale = 400;
-      printf ("turbo scale: %i%%\n",scale);
-      forwardmove[0] = forwardmove[0]*scale/100;
-      forwardmove[1] = forwardmove[1]*scale/100;
-      sidemove[0] = sidemove[0]*scale/100;
-      sidemove[1] = sidemove[1]*scale/100;
+        turbo_scale = atoi(myargv[p+1]);
+      if (turbo_scale < 10)
+        turbo_scale = 10;
+      if (turbo_scale > 400)
+        turbo_scale = 400;
+      printf ("turbo scale: %i%%\n",turbo_scale);
+      forwardmove[0] = forwardmove[0]*turbo_scale/100;
+      forwardmove[1] = forwardmove[1]*turbo_scale/100;
+      sidemove[0] = sidemove[0]*turbo_scale/100;
+      sidemove[1] = sidemove[1]*turbo_scale/100;
     }
 
   // sf: add smmu.wad only if predefines not being used
@@ -1345,7 +1352,7 @@ void D_DoomMain(void)
     {
         char filestr[128];
                 // get smmu.wad from the same directory as smmu.exe
-        sprintf(filestr, "%s/smmu.wad", D_DoomExeDir());
+        sprintf(filestr, "%ssmmu.wad", D_DoomExeDir());
         D_AddFile(filestr);
     }
 #endif
@@ -1458,8 +1465,6 @@ void D_DoomMain(void)
   M_LoadDefaults();              // load before initing other systems
 
   bodyquesize = default_bodyquesize; // killough 10/98
-  snd_card = default_snd_card;
-  mus_card = default_mus_card;
 
   G_ReloadDefaults();    // killough 3/4/98: set defaults just loaded.
   // jff 3/24/98 this sets startskill if it was -1
@@ -1519,22 +1524,20 @@ void D_DoomMain(void)
   startupmsg("C_Init","Init console.");
   C_Init();
 
-  startupmsg("I_Init","Setting up machine state.");
-  I_Init();
-
   startupmsg("V_InitMisc","Init miscellaneous video patches");
   V_InitMisc();
 
-  if(devparm)   // we wait if in devparm so the user can see the messages
-  {
-        printf("devparm: press a key..\n");
-        while(eventtail == eventhead) I_GetEvent();  // doom getch kinda =)
-  }
+  startupmsg("I_Init","Setting up machine state.");
+  I_Init();
 
  /************************************************************************/
-           // set graphics mode: no printfs beyond this point! //
-  startupmsg("D_SetGraphicsMode", "Set graphics mode");
-  D_SetGraphicsMode();
+
+        // devparm override of early set graphics mode
+  if(!textmode_startup && !devparm)
+  {
+     startupmsg("D_SetGraphicsMode", "Set graphics mode");
+     D_SetGraphicsMode();
+  }
 
   startupmsg("R_Init","Init DOOM refresh daemon");
   R_Init();
@@ -1557,8 +1560,16 @@ void D_DoomMain(void)
   startupmsg("D_CheckNetGame","Check netgame status.");
   D_CheckNetGame();
 
+  if(devparm)   // we wait if in devparm so the user can see the messages
+  {
+        printf("devparm: press a key..\n");
+        getch();
+  }
 
  /****************** Must be in graphics mode by now! *********************/
+
+        // check
+  if(in_textmode)  D_SetGraphicsMode();
 
   C_Printf("\n");
   C_Seperator();
@@ -1582,15 +1593,16 @@ void D_DoomMain(void)
       // address as an integer on the command line!
 
       statcopy = (void*) atoi(myargv[p+1]);
-//      puts("External statistics registered.");
+      usermsg("External statistics registered.");
     }
+
+        // sf: -blockmap option as a variable now
+  if(M_CheckParm("-blockmap")) r_blockmap = true;
 
   // start the apropriate game based on parms
 
   // killough 12/98: 
   // Support -loadgame with -record and reimplement -recordfrom.
-
-  if(M_CheckParm("-blockmap")) blockmapbuild = true;
 
   if ((slot = M_CheckParm("-recordfrom")) && (p = slot+2) < myargc)
     G_RecordDemo(myargv[p]);
@@ -1652,14 +1664,11 @@ void D_DoomMain(void)
       }
     }
 
-  if(debugfile) fprintf(debugfile, "done\n");
-
-  atexit(D_QuitNetGame);       // killough
+  // this fixes a strange bug, don't know why but it works
+  for(p=0; p<10; p++)
+        C_Update();
 
   if(debugfile) fprintf(debugfile, "start main loop\n");
-
-  for(p=0; p<10; p++)
-          C_Update();
 
   while(1)
     {
@@ -1694,9 +1703,9 @@ void D_DoomMain(void)
 
 void D_ReInitWadfiles()
 {
-        R_FreeData();
-        R_Init();
-        P_Init();
+    R_FreeData();
+    R_Init();
+    P_Init();
 }
 
 void D_NewWadLumps(int handle)

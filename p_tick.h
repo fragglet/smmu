@@ -47,6 +47,8 @@ typedef enum {
 
 extern thinker_t thinkerclasscap[];
 
+        // sf: jumping-viewz-on-hyperlift bug
+extern boolean reset_viewz;
 #endif
 
 //----------------------------------------------------------------------------

@@ -33,6 +33,7 @@ rcsid[] = "$Id: s_sound.c,v 1.11 1998/05/03 22:57:06 killough Exp $";
 #include "m_random.h"
 #include "w_wad.h"
 #include "c_io.h"
+#include "c_runcmd.h"
 #include "p_info.h"
 
 // when to clip out sounds
@@ -317,6 +318,8 @@ void S_Startsfxinfo(const mobj_t *origin, sfxinfo_t *sfx)
 
   if (cnum<0)
     return;
+
+  while(sfx->link) sfx = sfx->link;     // sf: skip thru link(s)
 
   // Assigns the handle to one of the channels in the mix/output buffer.
   channels[cnum].handle = I_StartSound(sfx, volume, sep, pitch, priority);
@@ -636,8 +639,14 @@ void S_Init(int sfxVolume, int musicVolume)
     }
 
   S_SetMusicVolume(musicVolume);
+
   if(s_precache)        // sf: option to precache sounds
+  {
     S_PreCacheAllSounds();
+    usermsg("\tprecached all sounds.");
+  }
+  else
+    usermsg("\tsounds to be cached dynamically.");
 
   // no sounds are playing, and they are not mus_paused
   mus_paused = 0;
@@ -671,20 +680,84 @@ void S_UpdateSound(int lumpnum)
         name[6] = 0;
 
         sfx = S_sfxinfoForname(name);
-
-        if(!sfx) return;
+        if(!sfx) return;        // not found
 
         if(!sfx->data) return;  // not yet cached anyway
 
         Z_Free(sfx->data);      // free
         sfx->data = NULL;
-        if(sfx->link) sfx->link->data = NULL;
+        if(s_precache) I_CacheSound(sfx);       // precache if we do that
 }
 
 void S_Chgun()
 {
         memcpy(S_sfx+sfx_chgun, &chgun, sizeof(sfxinfo_t));
-        S_sfx[sfx_chgun].data=0;
+        S_sfx[sfx_chgun].data = NULL;
+}
+
+/*************************
+        CONSOLE COMMANDS
+ *************************/
+
+variable_t var_s_precache =
+{&s_precache,     NULL,                 vt_int,    0,1, onoff};
+variable_t var_pitched =
+{&pitched_sounds, NULL,                 vt_int,    0,1, onoff};
+variable_t var_sndchannels =
+{
+        &default_numChannels, NULL,
+        vt_int, 1, 128,
+};
+variable_t var_sfxvol =
+{
+        &snd_SfxVolume, NULL,
+        vt_int, 0, 15,        
+};
+variable_t var_musvol =
+{
+        &snd_MusicVolume, NULL,
+        vt_int, 0, 127
+};
+
+void S_ResetVolume()
+{
+        S_SetMusicVolume(snd_MusicVolume);
+        S_SetSfxVolume(snd_SfxVolume);
+}
+
+command_t s_commands[] =
+{
+        {
+                "s_pitched",   ct_variable,
+                0,
+                &var_pitched,NULL
+        },
+        {
+                "s_precache",  ct_variable,
+                0,
+                &var_s_precache,NULL
+        },
+        {
+                "snd_channels", ct_variable,
+                0,
+                &var_sndchannels
+        },
+        {
+                "sfx_volume", ct_variable,
+                0,
+                &var_sfxvol, S_ResetVolume
+        },
+        {
+                "music_volume", ct_variable,
+                0,
+                &var_musvol, S_ResetVolume
+        },
+        {"end", ct_end}
+};
+
+void S_AddCommands()
+{
+        C_AddCommandList(s_commands);
 }
 
 

@@ -26,6 +26,10 @@
 
 #include "doomdef.h"
 
+// intercam
+        // more than enough
+#define MAXCAMERAS 128
+
 // States for the intermission
 
 typedef enum

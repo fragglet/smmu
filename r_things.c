@@ -722,11 +722,11 @@ void R_DrawPSprite (pspdef_t *psp)
   }
   else
   {
-    centery=(viewheight/2);
-    centeryfrac=centery<<16;
+    centery = viewheight/2 ;
+    centeryfrac = centery << FRACBITS;
     R_DrawVisSprite (vis, vis->x1, vis->x2);
-    centery=viewheight/2+(updownangle>>16);
-    centeryfrac=((viewheight/2)<<16)+updownangle;
+    centery = (viewheight/2) + updownangle;
+    centeryfrac = centery<<FRACBITS;
   }
 }
 

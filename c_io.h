@@ -5,6 +5,7 @@
         // for text colours:
 #include "v_video.h"
 
+#define INPUTLENGTH 512
 #define LINELENGTH 96
 
 void C_Init();

@@ -2,3 +2,5 @@
 	intertext backgr, fog per level in one config file
 <Afterglow> CENTER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 <aurikan> SMMU is like the coolest name for a port
+<BrV-Zokum> sfraggle: i love that port ;)
+<citrus> yummy

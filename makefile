@@ -71,6 +71,7 @@ OBJS=	\
         $(O)/d_net.o        \
         $(O)/d_items.o      \
         $(O)/g_game.o       \
+	$(O)/g_cmd.o        \
         $(O)/m_menu.o       \
         $(O)/m_misc.o       \
         $(O)/m_argv.o       \
@@ -129,7 +130,8 @@ OBJS=	\
         $(O)/p_genlin.o     \
         $(O)/d_deh.o	    \
 	$(O)/emu8kmid.o     \
-	$(O)/t_script.o
+	$(O)/t_script.o     \
+	$(O)/v_misc.o
 #        $(O)/hu_lib.o       \
 
 doom all: $(O)/$(EXE)

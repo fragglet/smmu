@@ -223,8 +223,8 @@ void R_ClearPlanes(void)
   // left to right mapping
   angle = (viewangle-ANG90)>>ANGLETOFINESHIFT;
   // scale will be unit scale at SCREENWIDTH/2 distance
-  basexscale = FixedDiv (finecosine[angle],centerxfrac);
-  baseyscale = -FixedDiv (finesine[angle],centerxfrac);
+  basexscale = FixedDiv (finecosine[angle],centerxfrac*zoom);
+  baseyscale = -FixedDiv (finesine[angle],centerxfrac*zoom);
 
   num_visplanes = 0;    // reset
 }

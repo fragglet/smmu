@@ -24,10 +24,13 @@
 
 static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
 
+#include "c_cmdlst.h"
 #include "doomstat.h"
+#include "g_game.h"
 #include "r_main.h"
 #include "r_things.h"
 #include "r_plane.h"
+#include "r_ripple.h"
 #include "r_bsp.h"
 #include "r_draw.h"
 #include "m_bbox.h"
@@ -36,7 +39,7 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "v_video.h"
 
 // Fineangles in the SCREENWIDTH wide window.
-#define FIELDOFVIEW 2048    
+int fov=2048;   //sf: made an int from a #define
 
 // killough: viewangleoffset is a legacy from the pre-v1.2 days, when Doom
 // had Left/Mid/Right viewing. +/-ANG90 offsets were placed here on each
@@ -56,6 +59,7 @@ player_t *viewplayer;
 extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
 camera_t *viewcamera;
+int zoom = 1;   // sf: fov/zooming
 
 void R_HOMdrawer();
 
@@ -231,9 +235,10 @@ static void R_InitTextureMapping (void)
   //  after the view angle.
   //
   // Calc focallength
-  //  so FIELDOFVIEW angles covers SCREENWIDTH.
+  //  so fov angles covers SCREENWIDTH.
 
-  focallength = FixedDiv(centerxfrac, finetangent[FINEANGLES/4+FIELDOFVIEW/2]);
+                        // sf: zooming
+  focallength = FixedDiv(centerxfrac*zoom, finetangent[FINEANGLES/4+fov/2]);
         
   for (i=0 ; i<FINEANGLES/2 ; i++)
     {
@@ -358,19 +363,20 @@ void R_ExecuteSetViewSize (void)
   viewwidth = scaledviewwidth << hires;                  // killough 11/98
   viewheight = scaledviewheight << hires;                // killough 11/98
 
-  centery = viewheight/2;
   centerx = viewwidth/2;
+  centery = viewheight/2;
   centerxfrac = centerx<<FRACBITS;
   centeryfrac = centery<<FRACBITS;
-  projection = centerxfrac;
+  projection = centerxfrac * zoom;      // sf: zooming
 
   R_InitBuffer(scaledviewwidth, scaledviewheight);       // killough 11/98
         
   R_InitTextureMapping();
     
   // psprite scales
-  pspritescale = FixedDiv(viewwidth, SCREENWIDTH);       // killough 11/98
-  pspriteiscale= FixedDiv(SCREENWIDTH, viewwidth);       // killough 11/98
+                                // sf: zooming added
+  pspritescale = FixedDiv(zoom*viewwidth, SCREENWIDTH);       // killough 11/98
+  pspriteiscale = FixedDiv(SCREENWIDTH, zoom*viewwidth);       // killough 11/98
     
   // thing clipping
   for (i=0 ; i<viewwidth ; i++)
@@ -381,13 +387,11 @@ void R_ExecuteSetViewSize (void)
   // planes
   for (i=0 ; i<viewheight*2 ; i++)
     {
-        fixed_t dy;
-
-//      fixed_t dy = abs(((i-viewheight/2)<<FRACBITS)+FRACUNIT/2);
-        dy = abs(((i-viewheight)<<FRACBITS)+FRACUNIT/2);
-      origyslope[i] = FixedDiv(viewwidth*(FRACUNIT/2), dy);
+      fixed_t dy = abs(((i-viewheight)<<FRACBITS)+FRACUNIT/2);
+                // sf: zooming
+      origyslope[i] = FixedDiv(viewwidth*zoom*(FRACUNIT/2), dy);
     }
-   yslope=origyslope+(viewheight/2);
+   yslope = origyslope + (viewheight/2);
         
   for (i=0 ; i<viewwidth ; i++)
     {
@@ -424,6 +428,7 @@ void R_ExecuteSetViewSize (void)
 //
 
 extern int screenblocks;
+extern int screenSize;
 
 void R_Init (void)
 {
@@ -487,15 +492,16 @@ void R_SetupFrame (player_t *player, camera_t *camera)
   viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
 
         // y shearing
+  updownangle *= zoom;          // sf: zooming
                 // check for limits
   updownangle = updownangle >  50 ?  50 :
                 updownangle < -50 ? -50 : updownangle;
         // scale to screen size
   updownangle = (updownangle * viewheight) / 100;
 
-  centery = (viewheight>>1) + updownangle;
-  yslope = origyslope + (viewheight>>1) - updownangle;
+  centery = (viewheight/2) + updownangle;
   centeryfrac = (centery<<FRACBITS);
+  yslope = origyslope + (viewheight>>1) - updownangle;
 
         // use drawcolumn
   colfunc = R_DrawColumn; //sf
@@ -644,6 +650,154 @@ void R_HOMdrawer()
       }
 
 //      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8);
+}
+
+/***************************
+            CONSOLE COMMANDS
+  **************************/
+
+variable_t var_chasecam = 
+{&chasecam_active,NULL,                 vt_int,    0,1,onoff};
+variable_t var_walkcam = 
+{&walkcam_active, NULL,                 vt_int,    0,1, onoff};
+variable_t var_lefthanded = 
+{&lefthanded,     NULL,                 vt_int,    0,1, yesno};
+variable_t var_blockmap = 
+{&r_blockmap,  NULL,                    vt_int,    0,1, onoff};
+variable_t var_flatskip =
+{&flatskip,       NULL,                 vt_int,    0,100,NULL};
+variable_t var_homflash =
+{&flashing_hom,   NULL,                 vt_int,    0,1, onoff};
+variable_t var_planeview = 
+{&visplane_view,  NULL,                 vt_int,    0,1, onoff};
+variable_t var_precache =
+{&r_precache,     NULL,                 vt_int,    0,1, onoff};
+variable_t var_psprites =
+{&default_psprites,NULL,                vt_int,    0,1, yesno};
+variable_t var_stretchsky =
+{&stretchsky,     NULL,                 vt_int,    0,1, onoff};
+variable_t var_swirlywater =
+{&r_swirl,   NULL,                      vt_int,    0,1, onoff};
+variable_t var_trans =
+{&general_translucency,NULL,            vt_int,    0,1, onoff};
+variable_t var_tranpct = 
+{&tran_filter_pct,NULL,                 vt_int,    0,100, NULL};
+variable_t var_homdetect =
+{&autodetect_hom, NULL,                 vt_int,    0,1, yesno};
+variable_t var_screensize =
+{&screenSize,     NULL,                 vt_int,    0,8, NULL};
+variable_t var_zoom =
+{&zoom,            NULL,                 vt_int,    0,8192, NULL};
+
+
+void R_ResetTrans()
+{
+  if (general_translucency)
+    R_InitTranMap(0);
+}
+
+void R_SizeScreen()
+{
+  screenblocks = screenSize + 3;
+
+  if(gamestate == GS_LEVEL) // not in intercam
+     R_SetViewSize (screenblocks);
+}
+
+command_t r_commands[] =
+{
+    {
+        "chasecam",    ct_variable,
+        0,
+        &var_chasecam, P_ToggleChasecam
+    },
+    {
+        "walkcam",     ct_variable,
+        cf_notnet,
+        &var_walkcam, P_ToggleWalk
+    },
+    {
+        "lefthanded",  ct_variable,
+        0,
+        &var_lefthanded
+    },
+    {
+        "r_blockmap", ct_variable,
+        0,
+        &var_blockmap
+    },
+    {
+        "r_flatskip",  ct_variable,
+        0,
+        &var_flatskip
+    },
+    {
+        "r_homflash", ct_variable,
+        0,
+        &var_homflash
+    },
+    {
+        "r_planeview", ct_variable,
+        0,
+        &var_planeview
+    },
+    {
+        "r_zoom",      ct_variable,
+        0,
+        &var_zoom, R_ExecuteSetViewSize
+    },
+    {
+        "r_precache", ct_variable,
+        0,
+        &var_precache
+    },
+    {
+        "r_showgun", ct_variable,
+        0,
+        &var_psprites
+    },
+    {
+        "r_showhom", ct_variable,
+        0,
+        &var_homdetect
+    },
+    {
+        "r_stretchsky",ct_variable,
+        0,
+        &var_stretchsky
+    },
+    {
+        "r_swirl", ct_variable,
+        0,
+        &var_swirlywater
+    },
+    {
+        "r_trans", ct_variable,
+        0,
+        &var_trans, R_ResetTrans
+    },
+    {
+        "r_tranpct", ct_variable,
+        0,
+        &var_tranpct, R_ResetTrans
+    },
+    {
+        "screensize", ct_variable,
+        0,
+        &var_screensize, R_SizeScreen
+    },
+    {
+        "listskins",   ct_command,
+        0,
+        NULL,P_ListSkins
+    },
+
+    {"end", ct_end}
+};
+
+void R_AddCommands()
+{
+        C_AddCommandList(r_commands);
 }
 
 //----------------------------------------------------------------------------

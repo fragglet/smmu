@@ -164,7 +164,10 @@ rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 // killough 2/8/98: weapon info position macros UNUSED, removed here
 
 // main player in game
-static player_t *plyr;
+
+#define plyr (&players[displayplayer])
+
+// static player_t *plyr;
 
 // ST_Start() has just been called
 static boolean st_firsttime;
@@ -914,7 +917,6 @@ void ST_initData(void)
   int i;
 
   st_firsttime = true;
-  plyr = &players[displayplayer];            // killough 3/7/98
 
   st_clock = 0;
   st_chatstate = StartChatState;

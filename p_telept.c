@@ -72,8 +72,16 @@ int EV_Teleport(line_t *line, int side, mobj_t *thing)
 
           thing->z = thing->floorz;
 
-          if (player)
-            player->viewz = thing->z + player->viewheight;
+          if (player) reset_viewz = true;       //sf: use this instead
+                                        // of affecting viewz directly
+
+          thing->angle = m->angle;
+
+                // sf: reset the chasecam at its new position.
+                //     this needs to be done before startsound so we hear
+                //     the teleport sound when using the chasecam
+          if(thing->player==players+displayplayer)
+                P_ResetChasecam();
 
           // spawn teleport fog and emit sound at source
           S_StartSound(P_SpawnMobj(oldx, oldy, oldz, MT_TFOG), sfx_telept);
@@ -94,17 +102,14 @@ int EV_Teleport(line_t *line, int side, mobj_t *thing)
   	    thing->reactiontime = 18;
 #endif
 
-          thing->angle = m->angle;
-
         // kill all momentum
           thing->momx = thing->momy = thing->momz = 0;
-        
+
                   // killough 10/98: kill all bobbing momentum too
           if (player)
-            player->momx = player->momy = 0;
-
-          if(thing->player==players+displayplayer)
-                P_ResetChasecam();
+          {
+             player->momx = player->momy = 0;
+          }
 
           return 1;
         }
@@ -185,7 +190,8 @@ int EV_SilentTeleport(line_t *line, int side, mobj_t *thing)
 
               // Reset the delta to have the same dynamics as before
               player->deltaviewheight = deltaviewheight;
-              if(player==players+displayplayer)
+
+              if(player == players+displayplayer)
                   P_ResetChasecam();
             }
           return 1;
@@ -316,7 +322,8 @@ int EV_SilentLineTeleport(line_t *line, int side, mobj_t *thing,
 
             // Reset the delta to have the same dynamics as before
             player->deltaviewheight = deltaviewheight;
-            if(player==players+displayplayer)
+
+            if(player == players+displayplayer)
                 P_ResetChasecam();
           }
 

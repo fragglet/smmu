@@ -20,8 +20,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
+static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 
 #include "z_zone.h"  /* memory allocation wrappers -- killough */
 
@@ -30,8 +29,12 @@ rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 #include <allegro.h>
 #include <dpmi.h>
 #include <sys/nearptr.h>
+#include <sys/farptr.h>
 #include <dos.h>
+#include <go32.h>
 
+#include "c_io.h"
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "v_video.h"
 #include "d_main.h"
@@ -43,6 +46,7 @@ rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 #include "am_map.h"
 #include "m_menu.h"
 #include "wi_stuff.h"
+#include "i_video.h"
 
 //
 // I_UpdateNoBlit
@@ -76,13 +80,6 @@ void I_FinishUpdate(void)
 {
   if (noblit || !in_graphics_mode)
     return;
-
-  // draws little dots on the bottom of the screen
-  // sf: no longer devparm dependent
-  if (showticker)
-    {
-        V_FPSTicker();
-    }
 
   if (in_page_flip)
     if (!in_hires)
@@ -175,14 +172,15 @@ static void I_InitDiskFlash(void)
       destroy_bitmap(old_data);
     }
 
-  diskflash = create_bitmap_ex(8, 16<<hires, 16<<hires);
-  old_data = create_bitmap_ex(8, 16<<hires, 16<<hires);
+        //sf : disk is actually 16x15
+  diskflash = create_bitmap_ex(8, 16<<hires, 15<<hires);
+  old_data = create_bitmap_ex(8, 16<<hires, 15<<hires);
 
-  V_GetBlock(0, 0, 0, 16, 16, temp);
-  V_DrawPatchDirect(0, 0, 0, W_CacheLumpName(M_CheckParm("-cdrom") ?
+  V_GetBlock(0, 0, 0, 16, 15, temp);
+  V_DrawPatchDirect(0, -1, 0, W_CacheLumpName(M_CheckParm("-cdrom") ?
 					     "STCDROM" : "STDISK", PU_CACHE));
-  V_GetBlock(0, 0, 0, 16, 16, diskflash->line[0]);
-  V_DrawBlock(0, 0, 0, 16, 16, temp);
+  V_GetBlock(0, 0, 0, 16, 15, diskflash->line[0]);
+  V_DrawBlock(0, 0, 0, 16, 15, temp);
 }
 
 //
@@ -196,11 +194,11 @@ void I_BeginRead(void)
 
   blit(screen, old_data,
        (SCREENWIDTH-16) << hires,
-       scroll_offset + ((SCREENHEIGHT-16)<<hires),
-       0, 0, 16 << hires, 16 << hires);
+       scroll_offset + ((SCREENHEIGHT-15)<<hires),
+       0, 0, 16 << hires, 15 << hires);
 
   blit(diskflash, screen, 0, 0, (SCREENWIDTH-16) << hires,
-       scroll_offset + ((SCREENHEIGHT-16)<<hires), 16 << hires, 16 << hires);
+       scroll_offset + ((SCREENHEIGHT-15)<<hires), 16 << hires, 15 << hires);
 }
 
 //
@@ -213,7 +211,7 @@ void I_EndRead(void)
     return;
 
   blit(old_data, screen, 0, 0, (SCREENWIDTH-16) << hires,
-       scroll_offset + ((SCREENHEIGHT-16)<<hires), 16 << hires, 16 << hires);
+       scroll_offset + ((SCREENHEIGHT-15)<<hires), 16 << hires, 15 << hires);
 }
 
 void I_SetPalette(byte *palette)
@@ -257,10 +255,10 @@ extern boolean setsizeneeded;
 
 static void I_InitGraphicsMode(void)
 {
-  int gfx_type=GFX_AUTODETECT;
+  int gfx_type = GFX_AUTODETECT;
 
-  if(vesamode && !hires && page_flip) vesamode=0;
-  if(vesamode) gfx_type=GFX_VESA2L;
+  if(vesamode && !hires && page_flip) vesamode = 0;
+  if(vesamode) gfx_type = GFX_VESA2L;
 
   scroll_offset = 0;
 
@@ -391,12 +389,12 @@ void I_ResetScreen(void)
 
 void I_InitGraphics(void)
 {
-  static int firsttime=1;
+  static int firsttime = true;
 
   if (!firsttime)
     return;
 
-  firsttime=0;
+  firsttime = false;
 
   check_cpu();    // 1/16/98 killough -- sets cpu_family based on CPU
 
@@ -419,9 +417,139 @@ void I_InitGraphics(void)
 
   in_page_flip = page_flip;
 
-  I_InitGraphicsMode();    // killough 10/98
+  V_ResetMode();
 
   Z_CheckHeap();
+}
+
+        // the list of video modes is stored here in i_video.c
+        // the console commands to change them are in v_misc.c,
+        // so that all the platform-specific stuff is in here.
+        // v_misc.c does not care about the format of the videomode_t,
+        // all it asks is that it contains a text value 'description'
+        // which describes the mode
+        
+videomode_t videomodes[]=
+{
+        {0,0,0,"320x200 VGA"},
+        {0,1,0,"320x200 VGA (pageflipped)"},
+        {0,0,1,"320x200 VESA"},
+        {1,0,1,"640x400 VESA"},
+        {1,1,1,"640x400 VESA (pageflipped)"},
+        {0,0,0, NULL}  // last one has NULL description
+};
+
+void I_SetMode(int i)
+{
+        static int firsttime = true;    // the first time to set mode
+
+        hires = videomodes[i].hires;
+        page_flip = videomodes[i].pageflip;
+        vesamode = videomodes[i].vesa;
+
+        if(firsttime)
+                I_InitGraphicsMode();
+        else
+                I_ResetScreen();
+
+        firsttime = false;
+}
+        
+     /*****************************************************************
+         check for VESA and reduce the number of modes if neccesary
+                         swiped from legacy
+      *****************************************************************/
+
+// VESA information block structure
+typedef struct vbeinfoblock_s
+{
+    unsigned char  VESASignature[4]   __attribute__ ((packed));
+    unsigned short VESAVersion	      __attribute__ ((packed));
+    unsigned long  OemStringPtr       __attribute__ ((packed));
+    byte    Capabilities[4];
+    unsigned long  VideoModePtr       __attribute__ ((packed));
+    unsigned short TotalMemory	      __attribute__ ((packed));
+    byte    OemSoftwareRev[2];
+    byte    OemVendorNamePtr[4];
+    byte    OemProductNamePtr[4];
+    byte    OemProductRevPtr[4];
+    byte    Reserved[222];
+    byte    OemData[256];
+} vbeinfoblock_t;
+
+static vbeinfoblock_t vesainfo;
+
+        // some #defines used
+#define RM_OFFSET(addr)       (addr & 0xF)
+#define RM_SEGMENT(addr)      ((addr >> 4) & 0xFFFF)
+#define MASK_LINEAR(addr)     (addr & 0x000FFFFF)
+#define VBEVERSION	2	// we need vesa2 or higher
+
+void I_CheckVESA()
+{
+    int i;
+    __dpmi_regs     regs;
+
+    // new ugly stuff...
+    for (i=0; i<sizeof(vbeinfoblock_t); i++)
+       _farpokeb(_dos_ds, MASK_LINEAR(__tb)+i, 0);
+
+    dosmemput("VBE2", 4, MASK_LINEAR(__tb));
+
+    // see if VESA support is available
+    regs.x.ax = 0x4f00;
+    regs.x.di = RM_OFFSET(__tb);
+    regs.x.es = RM_SEGMENT(__tb);
+    __dpmi_int(0x10, &regs);
+
+    if (regs.h.ah) goto no_vesa;
+
+    dosmemget(MASK_LINEAR(__tb), sizeof(vbeinfoblock_t), &vesainfo);
+
+    if (strncmp(vesainfo.VESASignature, "VESA", 4))
+        goto no_vesa;
+
+    if (vesainfo.VESAVersion < (VBEVERSION<<8))
+        goto no_vesa;
+
+        // note: does not actually check to see if any of the available
+        //       vesa modes can be used in the game. Assumes all work.
+
+    return;
+
+    no_vesa:
+    videomodes[2].description = NULL;       // cut off VESA modes
+
+}
+
+/************************
+        CONSOLE COMMANDS
+ ************************/
+
+variable_t var_retrace =
+{&use_vsync,      NULL,                 vt_int,    0,1, yesno};
+variable_t var_disk =
+{&disk_icon,      NULL,                 vt_int,    0,1, onoff};
+
+
+command_t i_video_commands[] =
+{
+        {
+                "v_diskicon",  ct_variable,
+                0,
+                &var_disk, NULL
+        },
+        {
+                "v_retrace",   ct_variable,
+                0,
+                &var_retrace,V_ResetMode
+        },
+        {"end", ct_end}
+};
+
+void I_Video_AddCommands()
+{
+        C_AddCommandList(i_video_commands);
 }
 
 //----------------------------------------------------------------------------

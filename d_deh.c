@@ -1899,8 +1899,8 @@ void deh_procSounds(DEHFILE *fpin, FILE* fpout, char *line)
                       S_sfx[indexnum].usefulness = value;
                     else
                       if (!strcasecmp(key,deh_sfxinfo[8]))  // Neg. One 2
-                //sf: lumpnum no longer used
-;//                        S_sfx[indexnum].lumpnum = value;
+                        ; // sf: pointless and no longer works
+                        //S_sfx[indexnum].lumpnum = value;
                       else
                         if (fpout) fprintf(fpout,
                                            "Invalid sound string index for '%s'\n",key);
@@ -2530,9 +2530,6 @@ boolean deh_procStringSub(char *key, char *lookfor, char *newstring, FILE *fpout
       found = lookfor ?
         !stricmp(*deh_strlookup[i].ppstr,lookfor) :
         !stricmp(deh_strlookup[i].lookup,key);
-
-     if (fpout) fprintf(fpout,
-                     "sf: %s\n",*deh_strlookup[i].ppstr);   
 
       if (found)
         {

@@ -14,6 +14,7 @@
 #include "g_game.h"
 #include "i_video.h"
 #include "c_io.h"
+#include "c_runcmd.h"
 #include "doomdef.h"
 #include "doomstat.h"
 
@@ -598,14 +599,12 @@ void ser_Start()
 extern event_t events[MAXEVENTS];
 extern int eventhead, eventtail;
 
-void I_GetEvent();      // shut up compiler
-
 int CheckForEsc()
 {
     event_t *ev;
     int escape=0;
 
-    I_GetEvent();
+    I_StartTic (); 
 
     for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
     {
@@ -614,4 +613,63 @@ int CheckForEsc()
                 return 1;
     }
     return escape;
+}
+
+/***************************
+        CONSOLE COMMANDS
+ ***************************/
+
+variable_t var_comport =
+{
+        &comport,        NULL,
+        vt_int,    1,4, NULL
+};
+
+void ser_CmdNullModem()
+{
+        connectmode = CONNECT;
+        ser_Start();
+}
+
+void ser_CmdDial()
+{
+        connectmode = DIAL;
+        strcpy(phonenum, c_args);
+        ser_Start();
+}
+
+void ser_CmdAnswer()
+{
+        connectmode = ANSWER;
+        ser_Start();
+}
+
+command_t ser_commands[] =
+{
+        {
+                "answer",      ct_command,
+                cf_notnet,
+                NULL,ser_CmdAnswer
+        },
+        {
+                "com",         ct_variable,
+                0,
+                &var_comport,NULL
+        },
+        {
+                "dial",        ct_command,
+                cf_notnet,
+                NULL,ser_CmdDial
+        },
+        {
+                "nullmodem",   ct_command,
+                cf_notnet,
+                NULL,ser_CmdNullModem
+        },
+        {"end", ct_end}
+};
+
+void ser_AddCommands()
+{
+        C_AddCommandList(ser_commands);
 }

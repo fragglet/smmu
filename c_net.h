@@ -3,21 +3,6 @@
 
 #include "c_runcmd.h"
 
-void C_SendCmd(int dest, int, char *s,...);
-void C_queueChatChar(unsigned char c);
-unsigned char C_dequeueChatChar(void);
-void C_NetTicker();
-void C_NetInit();
-void C_SendNetData();
-void C_UpdateVar(command_t *command);
-
-extern char* default_name;
-extern int default_colour;
-extern int allowmlook;
-extern int cmdsrc;           // the source of a network console command
-
-#define CN_BROADCAST 128
-
         // net command numbers
 enum
 {
@@ -52,6 +37,22 @@ enum
         cmd_map,
         NUMNETCMDS
 };
+
+void C_SendCmd(int dest, int, char *s,...);
+void C_queueChatChar(unsigned char c);
+unsigned char C_dequeueChatChar(void);
+void C_NetTicker();
+void C_NetInit();
+void C_SendNetData();
+void C_UpdateVar(command_t *command);
+
+extern command_t *c_netcmds[NUMNETCMDS];
+extern char* default_name;
+extern int default_colour;
+extern int allowmlook;
+extern int cmdsrc;           // the source of a network console command
+
+#define CN_BROADCAST 128
 
         // use the entire ticcmd for transferring console commands when
         // in console mode ?

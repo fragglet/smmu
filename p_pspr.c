@@ -72,8 +72,8 @@ static void P_SetPsprite(player_t *player, int position, statenum_t stnum)
 {
   pspdef_t *psp = &player->psprites[position];
 
-  if(position==ps_flash) psp->trans=1;
-  else psp->trans=0;
+        // translucent gunflashes
+//  psp->trans = position == ps_flash;  // 11/8 removed: for TC's
 
   do
     {

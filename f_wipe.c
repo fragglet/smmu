@@ -48,7 +48,7 @@ void wipe_Initwipe()
 
         inwipe = 1;
 
-        starting_height = current_height;       // use console height
+        starting_height = current_height<<hires;       // use console height
         for(x=0; x<wipe_scrwidth; x++)
         {
                 worms[x] = starting_height;

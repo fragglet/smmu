@@ -114,6 +114,7 @@ angle_t R_WadToAngle(int wadangle);
 
 extern int flatskip;
 extern int viewdir;
+extern int zoom;
 
 #endif
 

@@ -50,8 +50,6 @@ rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 #include <unistd.h>
 #include <errno.h>
 
-extern int vesamode;
-
 //
 // DEFAULTS
 //
@@ -83,8 +81,11 @@ extern int hud_msg_lines;   // number of message lines in window up to 16
 extern int hud_msg_scrollup;// killough 11/98: whether message list scrolls up
 extern int hud_overlaystyle;  // sf: overlay style
 extern int hud_enabled;       // sf: fullscreen hud on/off
+extern int hud_hidestatus;      // sf
 extern int message_timer;   // killough 11/98: timer used for normal messages
 int show_vpo = 0;
+
+extern int textmode_startup;
 
 //jff 3/3/98 added min, max, and help string to all entries
 //jff 4/10/98 added isstr field to specify whether value is string or int
@@ -123,16 +124,23 @@ default_t defaults[] = {
 
   { // jff 1/18/98 allow Allegro drivers to be set,  -1 = autodetect
     "sound_card",
-    &default_snd_card, NULL,
+    &snd_card, NULL,
     -1, {-1,7}, number, ss_gen, wad_no,
     "code used by Allegro to select sounds driver, -1 is autodetect"
   },
 
   {
     "music_card",
-    &default_mus_card, NULL,
+    &mus_card, NULL,
     -1, {-1,9}, number, ss_gen, wad_no,
     "code used by Allegro to select music driver, -1 is autodetect"
+  },
+
+  {
+    "s_precache",
+    &s_precache, NULL,
+    0, {0,1}, number, ss_gen, wad_no,
+    "precache sounds at startup"
   },
 
   { // jff 3/4/98 detect # voices
@@ -142,23 +150,18 @@ default_t defaults[] = {
     "1 enables voice detection prior to calling install sound"
   },
 
-  { // killough 11/98: hires
-    "hires", &hires, NULL,
+  {
+    "v_mode",
+    &v_mode, NULL,
+    0, {0,32}, number, ss_gen, wad_no,
+    "graphics mode"
+  },
+
+  {
+    "textmode_startup",
+    &textmode_startup, NULL,
     0, {0,1}, number, ss_gen, wad_no,
-    "1 to enable 640x400 resolution for rendering scenes"
-  },
-
-  { // sf vesa mode
-    "vesamode", &vesamode, NULL,
-    0,{0,1},number,ss_gen,wad_no,
-    "1 to use a VESA screen mode, 0 to autodetect"
-  },
-
-  { // killough 8/15/98: page flipping option
-    "page_flip",
-    &page_flip, NULL,
-    1, {0,1}, number, ss_gen, wad_no,
-    "1 to enable page flipping to avoid display tearing"
+    "start up SMMU in text mode"
   },
 
   {
@@ -414,6 +417,13 @@ default_t defaults[] = {
     &showMessages, NULL,
     1, {0,1}, number, ss_none, wad_no,
     "1 to enable message display"
+  },
+
+  {
+    "mess_colour",
+    &mess_colour, NULL,
+    CR_RED, {0,CR_LIMIT-1}, number, ss_none, wad_no,
+    "messages colour"
   },
 
   { // killough 3/6/98: preserve autorun across games
@@ -1490,6 +1500,13 @@ default_t defaults[] = {
     "fullscreen hud enabled"
   },
 
+  {
+    "hud_hidestatus",
+    &hud_hidestatus, NULL,
+    0, {0,1}, 0, ss_mess, wad_yes,
+    "hide kills/items/secrets info on fullscreen hud"
+  },
+
   { // below is red
     "health_red",
     &health_red, NULL,
@@ -1632,8 +1649,8 @@ default_t defaults[] = {
 
   {
     "obcolour",
-    &death_colour, NULL,
-    0, {0,9}, number, ss_none, wad_no,
+    &obcolour, NULL,
+    0, {0,CR_LIMIT-1}, number, ss_none, wad_no,
     "obituaries colour"
   },
 

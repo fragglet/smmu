@@ -12,6 +12,8 @@
 
 #include "doomdef.h"
 #include "doomstat.h"
+#include "c_cmdlst.h"
+#include "c_net.h"
 #include "c_runcmd.h"
 #include "d_deh.h"
 #include "d_event.h"
@@ -61,7 +63,9 @@ const char* shiftxform;
 const char english_shiftxform[];
 boolean chat_on;
 int obituaries = 0;
-int death_colour = CR_BRICK;       // the colour of death messages
+int obcolour = CR_BRICK;       // the colour of death messages
+int showMessages;    // Show messages has default, 0 = off, 1 = on
+int mess_colour = CR_RED;      // the colour of normal messages
 
 // main message list
 unsigned char *levelname;
@@ -119,8 +123,13 @@ void HU_Ticker()
         HU_MessageTick();
 }
 
+boolean altdown = false;
+
 boolean HU_Responder(event_t *ev)
 {
+        if(ev->data1 == KEYD_LALT)
+                altdown = ev->type == ev_keydown;
+        
         return HU_ChatRespond(ev);
 }
 
@@ -229,6 +238,8 @@ void HU_MessageDraw()
 {
         int i;
 
+        if(!showMessages) return;
+
         for(i=0; i<current_messages; i++)
                V_WriteText(hu_messages[i], 0, i*8);
 }
@@ -263,6 +274,7 @@ patch_t *crosshair=NULL;
 char *crosshairpal;
 char *targetcolour, *notargetcolour, *friendcolour;
 int crosshairnum;       // 0= none
+char *cross_str[]= {"none", "cross", "angle"}; // for console
 
 void HU_CrossHairDraw()
 {
@@ -394,8 +406,8 @@ void HU_WidgetsDraw()
         {
             if(widgets[i]->message &&
                 (!widgets[i]->cleartic || gametic<widgets[i]->cleartic) )
-               V_WriteText(widgets[i]->message, widgets[i]->x,
-                           widgets[i]->y);
+              (widgets[i]->font ? HU_WriteText : V_WriteText)
+                       (widgets[i]->message, widgets[i]->x, widgets[i]->y);
         }
 }
 
@@ -431,7 +443,7 @@ void HU_ChatHandler();
 
         //// centre of screen 'quake-style' message ////
 
-textwidget_t hu_centremessage = {0, 0, NULL, HU_CentreMessageHandler};
+textwidget_t hu_centremessage = {0, 0, 0, NULL, HU_CentreMessageHandler};
 int centremessage_timer = 1500;         // 1.5 seconds
 
 void HU_CentreMessageHandler()
@@ -458,7 +470,7 @@ void HU_centremsg(char *s)
 
         //// level time elapsed so far (automap) ////
 
-textwidget_t hu_leveltime = {SCREENWIDTH-60, SCREENHEIGHT-ST_HEIGHT-8, NULL,
+textwidget_t hu_leveltime = {SCREENWIDTH-60, SCREENHEIGHT-ST_HEIGHT-8, 0, NULL,
         HU_LevelTimeHandler};
 
 void HU_LevelTimeHandler()
@@ -483,7 +495,7 @@ void HU_LevelTimeHandler()
 
                 //// Level Name in Automap ////
 
-textwidget_t hu_levelname = {0, SCREENHEIGHT-ST_HEIGHT-8, NULL,
+textwidget_t hu_levelname = {0, SCREENHEIGHT-ST_HEIGHT-8, 0, NULL,
         HU_LevelNameHandler};
 
 void HU_LevelNameHandler()
@@ -493,7 +505,7 @@ void HU_LevelNameHandler()
 
                 ///// Chat message typein ////////
 
-textwidget_t hu_chat = {0, SCREENHEIGHT-ST_HEIGHT-16, NULL,
+textwidget_t hu_chat = {0, SCREENHEIGHT-ST_HEIGHT-16, 0, NULL,
         HU_ChatHandler};
 char chatinput[100] = "";
 boolean chat_active = false;
@@ -533,6 +545,17 @@ boolean HU_ChatRespond(event_t *ev)
                 return false;
         }
 
+        if(altdown && ev->type == ev_keydown &&
+                ev->data1 >= '0' && ev->data1 <= '9')
+        {
+                // chat macro
+                char tempstr[100];
+                sprintf(tempstr, "say \"%s\"", chat_macros[ev->data1-'0']);
+                C_RunTextCmd(tempstr);
+                chat_active = false;
+                return true;
+        }
+
         if(ev->data1 == KEYD_ESCAPE)    // kill chat
         {
                 chat_active = false;
@@ -563,6 +586,13 @@ boolean HU_ChatRespond(event_t *ev)
                 return true;
         }
         return false;
+}
+
+        // netgame talk console
+void HU_CmdSay()
+{
+        S_StartSound(0, gamemode == commercial ? sfx_radio : sfx_tink);
+        dprintf(FC_GRAY"%s:"FC_RED" %s", players[cmdsrc].name, c_args);
 }
 
 // Widgets Init
@@ -619,3 +649,69 @@ const char english_shiftxform[] =
   'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
   '{', '|', '}', '~', 127
 };
+
+/*****************************
+        CONSOLE COMMANDS
+ *****************************/
+
+variable_t var_obcolour = 
+{&obcolour,       NULL,                 vt_int,    0,CR_LIMIT-1, textcolours};
+variable_t var_obituaries =
+{&obituaries,     NULL,                 vt_int,    0,1, onoff};
+variable_t var_crosshair =
+{&crosshairnum,   NULL,                 vt_int,    0,CROSSHAIRS, cross_str};
+variable_t var_vpo =
+{&show_vpo,       NULL,                 vt_int,    0,1, yesno};
+variable_t var_messages =
+{&showMessages,   NULL,                 vt_int,    0,1, onoff};
+variable_t var_messcolour =
+{&mess_colour,    NULL,                 vt_int,    0,CR_LIMIT-1, textcolours};
+
+command_t hu_commands[] =
+{
+        {
+                "obituaries",  ct_variable,
+                0,
+                &var_obituaries,NULL
+        },
+        {
+                "obcolour",    ct_variable,
+                0,
+                &var_obcolour, NULL
+        },
+        {
+                "crosshair",   ct_variable,
+                0,
+                &var_crosshair,HU_CrossHairConsole
+        },
+        {
+                "show_vpo",    ct_variable,
+                0,
+                &var_vpo, NULL
+        },
+        {
+                "messages",    ct_variable,
+                0,
+                &var_messages, NULL
+        },
+        {
+                "mess_colour", ct_variable,
+                0,
+                &var_messcolour, NULL
+        },
+        {
+                "say",         ct_command,
+                cf_netvar,
+                NULL,HU_CmdSay, cmd_chat
+        },
+
+        {"end", ct_end}
+};
+
+extern void HU_FragsAddCommands();
+
+void HU_AddCommands()
+{
+        C_AddCommandList(hu_commands);
+        HU_FragsAddCommands();
+}

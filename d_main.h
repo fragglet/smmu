@@ -52,8 +52,6 @@ extern boolean clfastparm; // checkparm of -fast
 extern boolean nosfxparm;
 extern boolean nomusicparm;
 
-extern int blockmapbuild;       // -blockmap command line
-
 extern boolean redrawsbar;
 
 

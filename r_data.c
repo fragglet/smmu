@@ -460,13 +460,13 @@ void R_InitTextures (void)
   char *names;
   char *name_p;
   int  *patchlookup;
-  int  totalwidth;
   int  nummappatches;
   int  offset;
   int  maxoff, maxoff2;
   int  numtextures1, numtextures2;
   int  *directory;
   int  errors = 0;
+        // sf: removed dumb texturewidth (?)
 
   // Load the patch names from pnames.lmp.
   name[8] = 0;
@@ -536,8 +536,6 @@ void R_InitTextures (void)
     Z_Malloc(numtextures*sizeof*texturewidthmask, PU_STATIC, 0);
   textureheight = Z_Malloc(numtextures*sizeof*textureheight, PU_STATIC, 0);
 
-  totalwidth = 0;
-
 
   {
     // Really complex printing shit...
@@ -572,10 +570,9 @@ void R_InitTextures (void)
 
       mtexture = (maptexture_t *) ( (byte *)maptex + offset);
 
-      texture = textures[i] =
-        Z_Malloc(sizeof(texture_t) +
-                 sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1),
-                 PU_STATIC, 0);
+
+      texture = textures[i] = Z_Malloc(  sizeof(texture_t) +
+         sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1), PU_STATIC, 0 );
 
       texture->width = SHORT(mtexture->width);
       texture->height = SHORT(mtexture->height);
@@ -610,8 +607,6 @@ void R_InitTextures (void)
         ;
       texturewidthmask[i] = j-1;
       textureheight[i] = texture->height<<FRACBITS;
-
-      totalwidth += texture->width;
     }
  
   free(patchlookup);         // killough
@@ -1055,7 +1050,6 @@ void R_FreeData()
 {
         int i;
 
-        return;
 //        for(i=0;i<numcolormaps;i++)
   //              Z_Free(colormaps[i]);
 

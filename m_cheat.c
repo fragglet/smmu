@@ -25,6 +25,7 @@ rcsid[] = "$Id: m_cheat.c,v 1.7 1998/05/12 12:47:00 phares Exp $";
 
 #include "doomstat.h"
 #include "c_runcmd.h"
+#include "c_net.h"
 #include "g_game.h"
 #include "r_data.h"
 #include "p_inter.h"
@@ -742,6 +743,120 @@ boolean M_FindCheats(int key)
             cheat[i].func(cheat[i].arg);  // call cheat handler
           }
   return ret;
+}
+
+/***************************
+           CONSOLE COMMANDS
+ ***************************/
+
+void Cheat_God()
+{
+             
+  int value=0;          // sf: choose to set to 0 or 1 
+  if(c_argc)
+    sscanf(c_argv[0], "%i", &value);
+  else
+    value = !(players[consoleplayer].cheats & CF_GODMODE);
+
+  players[consoleplayer].cheats &= ~CF_GODMODE;
+  players[consoleplayer].cheats |= value ? CF_GODMODE : 0;
+
+  if (players[consoleplayer].cheats & CF_GODMODE)
+    {
+      if (players[consoleplayer].mo)
+        players[consoleplayer].mo->health = god_health;  // Ty 03/09/98 - deh
+          
+      players[consoleplayer].health = god_health;
+      dprintf(s_STSTR_DQDON); // Ty 03/27/98 - externalized
+    }
+  else 
+      dprintf(s_STSTR_DQDOFF); // Ty 03/27/98 - externalized
+}
+
+  // no clipping mode cheat
+
+void Cheat_NoClip()
+{
+  int value=0;
+  if(c_argc)
+    sscanf(c_argv[0], "%i", &value);
+  else
+    value = !(players[consoleplayer].cheats & CF_NOCLIP);
+
+  players[consoleplayer].cheats &= ~CF_NOCLIP;
+  players[consoleplayer].cheats |= value ? CF_NOCLIP : 0;
+
+    dprintf( players[consoleplayer].cheats & CF_NOCLIP ?
+    s_STSTR_NCON : s_STSTR_NCOFF); // Ty 03/27/98 - externalized
+}
+
+void Cheat_Nuke()
+{
+  // jff 02/01/98 'em' cheat - kill all monsters
+  // partially taken from Chi's .46 port
+  //
+  // killough 2/7/98: cleaned up code and changed to use dprintf;
+  // fixed lost soul bug (LSs left behind when PEs are killed)
+
+  int killcount=0;
+  thinker_t *currentthinker=&thinkercap;
+  extern void A_PainDie(mobj_t *);
+  // killough 7/20/98: kill friendly monsters only if no others to kill
+  int mask = MF_FRIEND;
+
+  if(debugfile) fprintf(debugfile,"do massacre\n");
+
+  do
+    while ((currentthinker=currentthinker->next)!=&thinkercap)
+      if (currentthinker->function == P_MobjThinker &&
+	  !(((mobj_t *) currentthinker)->flags & mask) && // killough 7/20/98
+	  (((mobj_t *) currentthinker)->flags & MF_COUNTKILL ||
+	   ((mobj_t *) currentthinker)->type == MT_SKULL))
+	{ // killough 3/6/98: kill even if PE is dead
+	  if (((mobj_t *) currentthinker)->health > 0)
+	    {
+	      killcount++;
+	      P_DamageMobj((mobj_t *) currentthinker, NULL, NULL, 10000);
+	    }
+	  if (((mobj_t *) currentthinker)->type == MT_PAIN)
+	    {
+	      A_PainDie((mobj_t *) currentthinker);    // killough 2/8/98
+	      P_SetMobjState((mobj_t *) currentthinker, S_PAIN_DIE6);
+	    }
+	}
+  while (!killcount && mask ? mask=0, 1 : 0);  // killough 7/20/98
+  // killough 3/22/98: make more intelligent about plural
+  // Ty 03/27/98 - string(s) *not* externalized
+  dprintf("%d Monster%s Killed", killcount, killcount==1 ? "" : "s");
+  if(debugfile) fprintf(debugfile,"done massacre\n");
+}
+
+
+/******** command list *********/
+
+command_t cheat_commands[] =
+{
+        {
+                "noclip",      ct_command,
+                cf_notnet|cf_level,
+                NULL,Cheat_NoClip
+        },
+        {
+                "god",         ct_command,
+                cf_notnet|cf_level,
+                NULL,Cheat_God
+        },
+        {
+                "nuke",        ct_command,
+                cf_server|cf_level|cf_netvar,
+                NULL, Cheat_Nuke, cmd_nuke
+        },
+        {"end", ct_end}
+};
+
+void Cheat_AddCommands()
+{
+        C_AddCommandList(cheat_commands);
 }
 
 //----------------------------------------------------------------------------

@@ -315,13 +315,13 @@ void P_PlayerThink (player_t* player)
     P_MovePlayer (player);
     if (cmd->updownangle)      // wait til teleport finishes to look around
        player->updownangle += cmd->updownangle;
-        
   }
 
         // looking up/down checks
   if(player->updownangle < -50) player->updownangle = -50;
   if(player->updownangle > 50) player->updownangle = 50;
   if(!allowmlook) player->updownangle = 0;
+
   if(player->readyweapon == wp_bfg)
   {
        if(bfglook == 0) player->updownangle = 0;
@@ -329,6 +329,8 @@ void P_PlayerThink (player_t* player)
               player->updownangle = -10;
   }
 
+        // sf: do this in p_tick.c now for hyperlift-jumping fix
+        // feels different: put pack
   P_CalcHeight (player); // Determines view height and bobbing
 
   // Determine if there's anything about the sector you're in that's

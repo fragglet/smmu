@@ -683,9 +683,11 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z, mobjtype_t type)
   // killough 8/23/98: no friends, bouncers, or touchy things in old demos
   if (demo_version < 203)
     mobj->flags &= ~(MF_BOUNCES | MF_FRIEND | MF_TOUCHY); 
-  else
-    if (type == MT_PLAYER)         // Except in old demos, players
-      mobj->flags |= MF_FRIEND;    // are always friends.
+  else          // sf: not friends in deathmatch!
+                // extra version check for old (mbf) demos
+    if (demo_version < 303 || !deathmatch)
+      if (type == MT_PLAYER)         // Except in old demos, players
+        mobj->flags |= MF_FRIEND;    // are always friends.
 
   mobj->health = info->spawnhealth;
 

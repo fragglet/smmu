@@ -271,21 +271,23 @@ skin_t *P_SkinForName(char *s)
         skin_t **skin=skins;
 
         while(*s==' ') s++;
-        
-        if(!skins) return &marine;
+
+                // hack for marine
+        if(!strcasecmp(s, "marine")) return &marine;
+
+        if(!skins) return NULL;
 
         while(*skin)
         {
                 if(!strcasecmp(s,(*skin)->skinname) )
                 {
-                        C_Printf("found skin %s\n", s);
                         return *skin;
                 }
                 skin++;
         }
 
         C_Printf("no skin %s\n", s);
-        return &marine;
+        return NULL;
 }
 
 void P_SetSkin(skin_t *skin, int playernum)
@@ -321,15 +323,27 @@ void P_ListSkins()
 
 void P_ChangeSkin()
 {
+        skin_t *skin;
+
         if(!c_argc)
         {
-            C_Printf("%s is %s %s\n", players[cmdsrc].name,
-                 isvowel(players[cmdsrc].skin->skinname[0]) ? "an" : "a",
-                        players[cmdsrc].skin->skinname);
+            if(consoleplayer == cmdsrc)
+               C_Printf("%s is %s %s\n", players[cmdsrc].name,
+                  isvowel(players[cmdsrc].skin->skinname[0]) ? "an" : "a",
+                         players[cmdsrc].skin->skinname);
             return;
         }
 
-        P_SetSkin(P_SkinForName(c_argv[cmdsrc]), 0); //cmdsrc);
+        skin = P_SkinForName(c_argv[0]);
+
+        if(!skin)
+        {
+           if(consoleplayer == cmdsrc)
+                C_Printf("skin not found: '%s'\n", c_argv[0]);
+           return;
+        }
+
+        P_SetSkin(skin, cmdsrc);
         // wake up status bar for new face
         redrawsbar = true;
 }

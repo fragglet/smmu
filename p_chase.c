@@ -27,11 +27,6 @@ int chasecam_active = 0;
 long targetx, targety, targetz;
 int chasecam_turnoff = 0;
 
-        // time out eventually if the chasecam fails to get inside the
-        // marines head
-#define TURNOFF_TICS 100
-int turnoff_timeout;
-
 void P_ChaseSetupFrame()
 {
         viewx = chasecam.x;
@@ -40,20 +35,16 @@ void P_ChaseSetupFrame()
         viewangle = chasecam.angle;
 }
 
-#define CHASESPEED 33
-
                 // for simplicity
 #define playermobj players[displayplayer].mo
 #define playerangle (playermobj->angle)
 
-
-void P_ChaseTicker()
+void P_GetChasecamTarget()
 {
-        int xdist,ydist, zdist;
+        int aimfor;
         int sin, cos;
         subsector_t *ss;
         int ceilingheight, floorheight;
-        int aimfor;
 
                 // aimfor is the preferred height of the chasecam above
                 // the player
@@ -62,19 +53,9 @@ void P_ChaseTicker()
         sin = finesine[playerangle>>ANGLETOFINESHIFT];
         cos = finecosine[playerangle>>ANGLETOFINESHIFT];
 
-        if(chasecam_turnoff)    // turning off chasecam
-        {
-            targetx = playermobj->x;
-            targety = playermobj->y;
-            targetz = playermobj->z + 41*FRACUNIT;
-            turnoff_timeout--;  // decrease timeout
-        }
-        else
-        {
-            targetx = playermobj->x-(cos>>9)*FRACUNIT;
-            targety = playermobj->y-(sin>>9)*FRACUNIT;
-            targetz = playermobj->z+aimfor;
-        }
+        targetx = playermobj->x-(cos>>9)*FRACUNIT;
+        targety = playermobj->y-(sin>>9)*FRACUNIT;
+        targetz = playermobj->z+aimfor;
 
                 // check for intersections
         P_PathTraverse(playermobj->x, playermobj->y, targetx, targety,
@@ -93,39 +74,39 @@ void P_ChaseTicker()
                 targetz = ceilingheight-3*FRACUNIT;
         if(targetz < floorheight+3*FRACUNIT)
                 targetz = floorheight+3*FRACUNIT;
+}
+
+        // the 'speed' of the chasecam: the percentage closer we
+        // get to the target each tic
+int chasespeed = 33;
+
+void P_ChaseTicker()
+{
+        int xdist, ydist, zdist;
+
+                // find the target
+        P_GetChasecamTarget();
 
                 // find distance to target..
         xdist = targetx-chasecam.x;
         ydist = targety-chasecam.y;
         zdist = targetz-chasecam.z;
 
-                // and move it!
-        chasecam.x += (xdist*CHASESPEED)/100;
-        chasecam.y += (ydist*CHASESPEED)/100;
-        chasecam.z += (zdist*CHASESPEED)/100;
+                // now move chasecam
+        chasecam.x += (xdist*chasespeed)/100;
+        chasecam.y += (ydist*chasespeed)/100;
+        chasecam.z += (zdist*chasespeed)/100;
 
         chasecam.updownangle = players[displayplayer].updownangle;
         chasecam.angle =
-                // point to the player if in a demo
+
+            // point to the player if in a demo
                 demoplayback ?
         R_PointToAngle2(chasecam.x, chasecam.y, playermobj->x,
                         playermobj->y)
                 :
-        // use player angle otherwise because its hard to control (icy)
+            // use player angle otherwise because its hard to control (icy)
                 playerangle;
-
-        if(chasecam_turnoff)
-        {
-                if( ( (abs(chasecam.x-targetx) < 4*FRACUNIT) &&
-                      (abs(chasecam.y-targety) < 4*FRACUNIT) &&
-                      (abs(chasecam.z-targetz) < 4*FRACUNIT) )
-                    || turnoff_timeout == 0)
-                {
-                        chasecam_active = 0;
-                        camera = NULL;
-                        chasecam_turnoff = false;
-                }
-        }
 }
 
 // console command
@@ -138,21 +119,18 @@ void P_ToggleChasecam()
 
 void P_ChaseStart()
 {
-        if(chasecam_turnoff) chasecam_turnoff = false;
-        if(chasecam_active) return;     // already active
+//        if(chasecam_active) return;     // already active
 
         chasecam_active = true;
-        chasecam_turnoff = false;
         camera = &chasecam;
         P_ResetChasecam();
 }
 
 void P_ChaseEnd()
 {
-//        chasecam_active = 0;
-//        camera = NULL;
-        chasecam_turnoff = true;
-        turnoff_timeout = TURNOFF_TICS;
+//        if(!chasecam_active) return;
+        chasecam_active = false;
+        camera = NULL;
 }       
 
                 // Z of the line at the point of intersection.
@@ -245,13 +223,15 @@ boolean PTR_chasetraverse(intercept_t *in)
 
 void P_ResetChasecam()
 {
-        if(chasecam_turnoff) chasecam_active = false;
         if(!chasecam_active) return;
         if(gamestate != GS_LEVEL) return;       // only in level
 
-        chasecam.x = players[displayplayer].mo->x;
-        chasecam.y = players[displayplayer].mo->y;
-        chasecam.z = players[displayplayer].mo->z;
+                // find the chasecam target
+        P_GetChasecamTarget();
+
+        chasecam.x = targetx;
+        chasecam.y = targety;
+        chasecam.z = targetz;
 
                 // the intersections test mucks up the first time, but
                 // aiming at something seems to cure it

@@ -48,6 +48,7 @@ rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 #include "p_tick.h"
 #include "p_enemy.h"
 #include "p_info.h"
+#include "r_defs.h"
 #include "s_sound.h"
 
 //
@@ -716,7 +717,7 @@ void P_LoadBlockMap (int lump)
 
 	// sf: -blockmap checkparm made into variable
 	// also checking for levels without blockmaps (0 length)
-  if (blockmapbuild || W_LumpLength(lump)==0 ||
+  if (r_blockmap || W_LumpLength(lump)==0 ||
 	(count = W_LumpLength(lump)/2) >= 0x10000)
     P_CreateBlockMap();
   else
@@ -922,6 +923,45 @@ void P_RemoveSlimeTrails(void)                // killough 10/98
 }
 
 //
+// P_CheckLevel
+//
+// sf 11/9/99
+// we need to do this now because we no longer have to
+// conform to the MAPxy or ExMy standard previously
+// imposed
+//
+
+char *levellumps[] =
+{
+        "label",        // ML_LABEL,    A separator, name, ExMx or MAPxx
+        "THINGS",       // ML_THINGS,   Monsters, items..
+        "LINEDEFS",     // ML_LINEDEFS, LineDefs, from editing
+        "SIDEDEFS",     // ML_SIDEDEFS, SideDefs, from editing
+        "VERTEXES",     // ML_VERTEXES, Vertices, edited and BSP splits generated
+        "SEGS",         // ML_SEGS,     LineSegs, from LineDefs split by BSP
+        "SSECTORS",     // ML_SSECTORS, SubSectors, list of LineSegs
+        "NODES",        // ML_NODES,    BSP nodes
+        "SECTORS",      // ML_SECTORS,  Sectors, from editing
+        "REJECT",       // ML_REJECT,   LUT, sector-sector visibility
+        "BLOCKMAP"      // ML_BLOCKMAP  LUT, motion clipping, walls/grid element
+};
+
+boolean P_CheckLevel(int lumpnum)
+{
+        int i, ln;
+
+        for(i=ML_THINGS; i<=ML_BLOCKMAP; i++)
+        {
+                ln = lumpnum+i;
+                if(ln > numlumps ||     // past the last lump
+                   strncmp(lumpinfo[ln]->name, levellumps[i], 8) )
+                        return false;
+        }
+        return true;    // all right
+}
+
+
+//
 // P_SetupLevel
 //
 // killough 5/3/98: reformatted, cleaned up
@@ -955,9 +995,16 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
       // get the map name lump number
   if((lumpnum = W_CheckNumForName(mapname)) == -1)
   {
-        C_Printf("Map not found: %s\n", mapname);
+        C_Printf("Map not found: '%s'\n", mapname);
 	C_SetConsole();
 	return;
+  }
+
+  if(!P_CheckLevel(lumpnum))     // not a level
+  {
+        C_Printf("Not a level: '%s'\n", mapname);
+        C_SetConsole();
+        return;
   }
 
   strncpy(levelmapname, mapname, 8);
@@ -979,6 +1026,10 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   P_LoadLevelInfo (lumpnum);    // load level lump info(level name etc)
 
   WI_StopCamera();      // reset the intermissions camera
+
+        // if this and the other v_loadingincrease's are uncommented,
+        // a 'loading' box will appear when loading a level
+//        V_SetLoading(8, "loading");
 
   DEBUGMSG("hu_newlevel\n");
   newlevel = lumpinfo[lumpnum]->handle != iwadhandle;
@@ -1005,10 +1056,13 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   P_LoadVertexes  (lumpnum+ML_VERTEXES);
   P_LoadSectors   (lumpnum+ML_SECTORS);
+//        V_LoadingIncrease();  // update loading box
   P_LoadSideDefs  (lumpnum+ML_SIDEDEFS);             // killough 4/4/98
   P_LoadLineDefs  (lumpnum+ML_LINEDEFS);             //       |
+//        V_LoadingIncrease();  // update loading box
   P_LoadSideDefs2 (lumpnum+ML_SIDEDEFS);             //       |
   P_LoadLineDefs2 (lumpnum+ML_LINEDEFS);             // killough 4/4/98
+//        V_LoadingIncrease();  // update loading box
 
   if(level_error)       // drop to the console
   {             
@@ -1018,8 +1072,10 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   P_LoadBlockMap  (lumpnum+ML_BLOCKMAP);             // killough 3/1/98
   P_LoadSubsectors(lumpnum+ML_SSECTORS);
+//         V_LoadingIncrease();  // update loading box
   P_LoadNodes     (lumpnum+ML_NODES);
   P_LoadSegs      (lumpnum+ML_SEGS);
+//         V_LoadingIncrease();  // update loading box
 
   if(debugfile) fprintf(debugfile,"loaded level\n");
 
@@ -1034,6 +1090,8 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   bodyqueslot = 0;
   deathmatch_p = deathmatchstarts;
   P_LoadThings(lumpnum+ML_THINGS);
+
+//        V_LoadingIncrease();  // update loading box
 
   if(debugfile) fprintf(debugfile,"ok, things loaded, spawn players\n");
 
@@ -1062,6 +1120,8 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   if (precache)
     R_PrecacheLevel();
 
+//        V_LoadingIncrease();  // update loading box
+
   // psprites
   showpsprites = default_psprites;
 
@@ -1078,6 +1138,9 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
   if(debugfile) fprintf(debugfile,"P_SetupLevel: finished\n");
   if(doom1level && gamemode == commercial)
           C_Printf("doom 1 level\n");
+
+//      V_LoadingIncrease();  // update loading box
+
 }
 
 //
@@ -1120,8 +1183,6 @@ void P_LoadOlo()
 
 	olo_loaded = true;
 }
-
-
 
 //----------------------------------------------------------------------------
 //

@@ -108,8 +108,6 @@ int doom_weapon_toggles; // killough 10/98
 
 int monkeys, default_monkeys;
 
-int showticker = false;
-
 //----------------------------------------------------------------------------
 //
 // $Log: doomstat.c,v $

@@ -4,9 +4,6 @@
 
 #include "c_runcmd.h"
 
-void C_VidModeList();
-void C_VidMode();
-
 void C_CheatGod();
 void C_CheatNuke();
 void C_CheatNoClip();
@@ -31,10 +28,6 @@ void C_LineTrigger();
 void C_Cmdlist();
 void C_Echo();
 void C_Delay();
-
-void C_Alias();
-alias_t *C_NewAlias(unsigned char *aliasname, unsigned char *command);
-void C_RemoveAlias(unsigned char *aliasname);
 
 void C_Players();
 void C_Disconnect();
@@ -64,5 +57,7 @@ void C_Flood();
 
 void C_QuitGame();
 void C_Kick();
+
+void C_Trans();
 
 #endif

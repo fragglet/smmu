@@ -102,3 +102,25 @@ void T_ConsRun()
         }
         T_RunScript(sn);
 }
+
+/****** scripting command list *******/
+
+command_t t_commands[] =
+{
+        {
+                "t_dump",      ct_command,
+                0,
+                NULL,T_Dump
+        },
+        {
+                "t_run",       ct_command,
+                0,
+                NULL,T_ConsRun
+        },
+        {"end", ct_end}
+};
+
+void T_AddCommands()
+{
+        C_AddCommandList(t_commands);
+}

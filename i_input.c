@@ -14,6 +14,7 @@
 #include <sys/nearptr.h>
 #include <dos.h>
 
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "v_video.h"
 #include "d_main.h"
@@ -26,6 +27,8 @@
 #include "m_menu.h"
 #include "wi_stuff.h"
 #include "i_system.h"
+
+extern int usemouse;   // killough 10/98
 
 //
 // I_StartTic
@@ -149,7 +152,6 @@ int I_DoomCode2ScanCode (int a)
 
 void I_GetEvent()
 {
-  extern int usemouse;   // killough 10/98
   event_t event;
   int tail;
 
@@ -179,4 +181,38 @@ void I_GetEvent()
     }
 }
 
+/*************************
+        CONSOLE COMMANDS
+ *************************/
 
+variable_t var_usemouse =
+{
+       &usemouse, NULL,
+       vt_int, 0, 1, yesno
+};
+
+variable_t var_usejoystick =
+{
+        &usejoystick, NULL,
+        vt_int, 0, 1, yesno
+};
+
+command_t i_input_commands[] =
+{
+        {
+                "use_mouse", ct_variable,
+                0,
+                &var_usemouse
+        },
+        {
+                "use_joystick", ct_variable,
+                0,
+                &var_usejoystick
+        },
+        {"end", ct_end}
+};
+
+void I_Input_AddCommands()
+{
+        C_AddCommandList(i_input_commands);
+}

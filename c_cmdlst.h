@@ -6,4 +6,12 @@
 extern command_t commands[];
 extern variable_t variables[];
 extern int default_psprites;
+
+extern char *yesno[];
+extern char *onoff[];
+extern char *colournames[];
+extern char *textcolours[];
+extern char *skills[];
+
+
 #endif

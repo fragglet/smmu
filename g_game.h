@@ -150,6 +150,8 @@ extern int  automlook;
 extern int  invert_mouse;
 extern int  bfglook;
 
+extern angle_t consoleangle;
+
 extern int  defaultskill;      //jff 3/24/98 default skill
 extern boolean haswolflevels;  //jff 4/18/98 wolf levels present
 extern boolean demorecording;  // killough 12/98
@@ -163,6 +165,8 @@ extern int pars[][10];  // hardcoded array size
 extern int cpars[];     // hardcoded array size
 
 #define NUMKEYS   256
+
+extern int cooldemo;
 
 #endif
 

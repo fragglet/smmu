@@ -13,6 +13,7 @@
 #include "hu_frags.h"
 
 #include "c_io.h"
+#include "c_runcmd.h"
 #include "d_player.h"
 #include "doomdef.h"
 #include "doomstat.h"
@@ -155,3 +156,16 @@ void HU_FragsErase()
         for(i=FRAGSY; i<SCREENHEIGHT-ST_HEIGHT; i++)
                 R_VideoErase(i*SCREENWIDTH, SCREENWIDTH);
 }
+
+command_t cmd_frags = 
+{
+        "frags",       ct_command,
+        0,
+        NULL,HU_FragsDump
+};
+
+void HU_FragsAddCommands()
+{
+        C_AddCommand(&cmd_frags);
+}
+

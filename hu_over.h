@@ -30,6 +30,7 @@ enum
         ol_weap,
         ol_key,
         ol_frag,
+        ol_status,
         NUMOVERLAY
 };
 

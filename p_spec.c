@@ -53,6 +53,7 @@ rcsid[] = "$Id: p_spec.c,v 1.56 1998/05/25 10:40:30 killough Exp $";
 #include "c_runcmd.h"
 #include "hu_stuff.h"
 #include "t_script.h"
+#include "r_ripple.h"
 
 //
 // Animating textures and planes
@@ -89,7 +90,6 @@ static void P_SpawnPushers(void);     // phares 3/20/98
 
 extern int allow_pushers;
 extern int variable_friction;         // phares 3/20/98
-extern int swirly_water;
 
 //
 // P_InitPicAnims
@@ -2249,7 +2249,7 @@ void P_UpdateSpecials (void)
         if (anim->istexture)
           texturetranslation[i] = pic;
         else                    // sf: swirly water hack
-          flattranslation[i] = swirly_water ? -1 : pic;
+          flattranslation[i] = r_swirl ? -1 : pic;
                 // sf: > 65535 : swirly
         if(anim->speed >> 16) flattranslation[i] = -1;
       }

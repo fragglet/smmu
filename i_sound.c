@@ -26,12 +26,15 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 #include <stdio.h>
 #include <allegro.h>
 
+#include "c_runcmd.h"
 #include "doomstat.h"
 #include "mmus2mid.h"   //jff 1/16/98 declarations for MUS->MIDI converter
 #include "i_sound.h"
 #include "w_wad.h"
 #include "g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
 #include "d_main.h"
+
+void I_CacheSound(sfxinfo_t *sound);
 
 // Needed for calling the actual sound output.
 #define SAMPLECOUNT             512
@@ -42,15 +45,10 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 int snd_card;   // default.cfg variables for digi and midi drives
 int mus_card;   // jff 1/18/98
 
-int default_snd_card;  // killough 10/98: add default_ versions
-int default_mus_card;
+        // sf: default_snd_card and default_mus_card removed (purpose?)
 
 int detect_voices; //jff 3/4/98 enables voice detection prior to install_sound
 //jff 1/22/98 make these visible here to disable sound/music on install err
-
-boolean cached[NUMSFX];
-
-void I_CacheSound(sfxinfo_t *sound);
 
 static SAMPLE *raw2SAMPLE(unsigned char *rawdata, int len)
 {
@@ -154,8 +152,6 @@ void I_SetSfxVolume(int volume)
   //  to the state variable used in
   //  the mixing.
   snd_SfxVolume = volume;
-  set_volume(snd_SfxVolume, snd_MusicVolume);
-
 }
 
 // jff 1/21/98 moved music volume down into MUSIC API with the rest
@@ -281,14 +277,10 @@ void I_ShutdownSound(void)
 // sf: dynamic sound resource loading
 void I_CacheSound(sfxinfo_t *sound)
 {
-    if (!sound->link)   // Load data from WAD file.
-        sound->data = getsfx(sound->name, &sound->length);
+                // sf: changed
+    if(sound->link) I_CacheSound(sound->link);
     else
-      { // Alias? Example is the chaingun sound linked to pistol.
-        // Previously loaded already?
-        sound->data = sound->link->data;
-        sound->length = sound->link->length;
-      }
+    sound->data = getsfx(sound->name, &sound->length);
 }
 
 void I_InitSound(void)
@@ -328,7 +320,7 @@ void I_InitSound(void)
     }
 
   // Finished initialization.
-  puts("\tSound module ready");    // killough 8/8/98
+
 }
 
 ///
@@ -371,8 +363,7 @@ void I_SetMusicVolume(int volume)
   // Now set volume on output device.
 
   //jff 01/17/98 - add VOLSCALE-1 to get most out of volume
-  set_volume(snd_SfxVolume, snd_MusicVolume);
-//  set_volume(-1,snd_MusicVolume*VOLSCALE+VOLSCALE-1);   // jff 1/18/98
+  set_volume(-1,snd_MusicVolume*VOLSCALE+VOLSCALE-1);   // jff 1/18/98
 }
 
 void I_PauseSong (int handle)
@@ -431,6 +422,64 @@ int I_QrySongPlaying(int handle)
 {
   return 0;
 }
+
+/************************
+        CONSOLE COMMANDS
+ ************************/
+
+// system specific sound console commands
+
+char *sndcardstr[] =
+   {"autodetect","none", "SB", "SB 1.0", "SB 1.5",
+     "SB 2.0", "SB Pro", "SB16", "GUS"};
+char *muscardstr[] =
+   {"autodetect","none", "adlib", "OPL2", "2xOPL2",
+   "OPL3", "SB MIDI", "MPU-401", "GUS","DIGMID", "AWE32"};
+
+variable_t var_sndcard=
+{
+   &snd_card,      NULL,
+   vt_int,      -1, 7,
+   sndcardstr
+};
+variable_t var_muscard=
+{
+   &mus_card,      NULL,
+   vt_int,      -1, 9,
+   muscardstr
+};
+variable_t var_detectvoices=
+{
+   &detect_voices, NULL,
+   vt_int,      0,1,
+   yesno
+};
+
+command_t i_sound_commands[] =
+{
+        {
+                "snd_card", ct_variable,
+                0,
+                &var_sndcard
+        },
+        {
+                "mus_card",  ct_variable,
+                0,
+                &var_muscard
+        },
+        {
+                "detect_voices", ct_variable,
+                0,
+                &var_detectvoices
+        },
+        {"end", ct_end}
+};
+
+void I_Sound_AddCommands()
+{
+        C_AddCommandList(i_sound_commands);
+}
+
 
 //----------------------------------------------------------------------------
 //

@@ -146,26 +146,24 @@ int  oldentertics;
 
 void ResetNet()
 {
-        int i;
+  int i;
 
-        gametic = 0;
-        if(!in_textmode) C_SetConsole();
-        I_SetTime(0);
-        oldentertics = 0;       //1
-        maketic = 1;
-        levelstarttic = 0;
+  gametic = 0;
+  if(!in_textmode) C_SetConsole();
+  I_SetTime(0);
+  oldentertics = 0;       //1
+  maketic = 1;
+  levelstarttic = 0;
+  basetic = 0;
 
-        for(i=0; i<MAXNETNODES; i++)
-        {
-                nettics[i] = 0;
-                remoteresend[i] = false; 
-                resendto[i] = 0;
-//                resendto[i] = 1;
-//                nettics[i] = 1;
-        }
-        netbuffer->starttic = 0;
+  for(i=0; i<MAXNETNODES; i++)
+  {
+     nettics[i] = 0;
+     remoteresend[i] = false; 
+     resendto[i] = 0;
+  }
+  netbuffer->starttic = 0;
 }
-
 
 //
 // HSendPacket
@@ -486,30 +484,28 @@ listen:
   GetPackets ();
 }
 
+//
+// D_KickPlayer
+//
+
+void D_KickPlayer(int playernum)
+{
+  HSendPacket(nodeforplayer[playernum], NCMD_KILL);
+}
 
 
 //
 // CheckAbort
 //
-int CheckAbort (void)
+void CheckAbort (void)
 {
-        event_t *ev;
-        int stoptic;
-              
-        stoptic = I_GetTime () + 2; 
-        while (I_GetTime() < stoptic) 
-          I_StartTic (); 
-              
-        I_StartTic ();
-        for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) ) 
-        { 
-          ev = &events[eventtail]; 
-          if (ev->type == ev_keydown && ev->data1 == key_escape)      // phares
-          {                   // abort
-            I_Error ("Network game synchronization aborted.");
-          }
-        }
-        return 0;
+   int stoptic;
+
+   stoptic = I_GetTime () + 2; 
+
+   while (I_GetTime() < stoptic)
+     if(I_CheckAbort())
+        I_Error("Network game synchronisation aborted.\n");
 }
 
 
@@ -564,7 +560,7 @@ void D_ArbitrateNetStart (void)
                    HSendPacket(i, NCMD_SETUP);
                    HSendPacket(i, NCMD_SETUP);
             }
-            ResetNet();
+//            ResetNet();
             break;      // all done, start game now
         }
      }
@@ -591,7 +587,7 @@ void D_ArbitrateNetStart (void)
            if(netbuffer->starttic)  // start the game, all players ready
            {
               rngseed = netbuffer->retransmitfrom;
-              ResetNet();
+//              ResetNet();
               break;
            }
            V_LoadingSetTo(netbuffer->player);  // update loading box
@@ -602,7 +598,6 @@ void D_ArbitrateNetStart (void)
      }
    }
    usermsg("random seed: %i", rngseed);
-   M_ClearRandom();
 }
 
 //
@@ -636,6 +631,7 @@ void D_CheckNetGame (void)
   }
 
   C_NetInit();
+  atexit(D_QuitNetGame);       // killough
 }
 
 void D_InitNetGame()
@@ -679,8 +675,6 @@ void D_QuitNetGame (void)
   if (debugfile)
       fclose (debugfile);
               
-  if(ser_active) ser_Disconnect();      // hang up modem etc.
-
   if (!netgame || !usergame || consoleplayer == -1 || demoplayback)
       return;
 
@@ -695,8 +689,10 @@ void D_QuitNetGame (void)
     I_WaitVBL (1);
   }
 
+  if(ser_active) ser_Disconnect();      // hang up modem etc.
+
   consoleplayer = 0;
-  netgame = 0; deathmatch=0;
+  netgame = 0; deathmatch = 0;
   for(i=0;i<MAXPLAYERS;i++)
   {
          playeringame[i] = !i;
@@ -706,17 +702,18 @@ void D_QuitNetGame (void)
   C_SetConsole();
 }
 
-        // sf: run all the tickers that do not actually need ticcmds
-        // (menu, console, etc.)
-void Tickers()
-{
-       M_Ticker ();
-       C_Ticker ();
-}
-
 //
 // TryRunTics
 //
+
+// sf 18/9/99: split into 2 functions. TryRunTics will run all of the
+//             independent tickers, ie. menu, console. RunGameTics runs
+//             all of the game tickers and includes adapting, etc.
+//             This removes the problem of game slowdown after one pc
+//             crashes in netgames, but also ensures the menu and
+//             console run at the right speeds during demo timing and
+//             changing of the game speed.
+
 int     frametics[4];
 int     frameon;
 int     frameskip[4];
@@ -726,7 +723,7 @@ boolean opensocket;
 
 extern boolean advancedemo;
 
-void TryRunTics (void)
+void RunGameTics (void)
 {
   int         i;
   int         lowtic;
@@ -756,16 +753,6 @@ void TryRunTics (void)
     }
   }
   availabletics = lowtic - gametic/ticdup;
-
-#if 0
-  if(availabletics == 0)        //sf: check for opensockets
-  {
-        opensocket_count++;
-        opensocket = opensocket_count > 20;
-  }
-
-  opensocket_count = 0;
-#endif
 
   // decide how many tics to run
   if (realtics < availabletics-1)
@@ -810,12 +797,6 @@ void TryRunTics (void)
     }
   }// demoplayback
 
-             // sf: run the menu and console regardless of 
-             // game time. to prevent lockups
-
-  for(i = realtics; i; i--)
-        Tickers();
-
          // singletic update ?
                 // sf: moved here from d_main.c
                 // as it seemed more appropriate
@@ -838,9 +819,9 @@ void TryRunTics (void)
         // sf: reorganised to stop doom locking up
   if (lowtic < gametic/ticdup + counts)         // no more loops
   {
-        opensocket_count++;
+        opensocket_count += realtics;
         opensocket = opensocket_count >= 20;    // if no tics to run
-                        // 20 times then declare an open socket
+                        // for 20 tics then declare an open socket
 
         if(opensocket)  // dont let the pc freeze
         {
@@ -889,9 +870,87 @@ void TryRunTics (void)
   }
 }
 
-void D_KickPlayer(int playernum)
+void TryRunTics (void)
 {
-        HSendPacket(nodeforplayer[playernum], NCMD_KILL);
+  static int exittime = 0;
+       // gettime_realtime is used because the game speed can be changed
+  int realtics = I_GetTime_RealTime() - exittime;
+  int i;
+
+  exittime = I_GetTime_RealTime();  // save for next time
+
+             // sf: run the menu and console regardless of 
+             // game time. to prevent lockups
+
+  I_StartTic ();        // run these here now to get keyboard
+  D_ProcessEvents ();   // input for console/menu
+
+  for(i = 0; i<realtics; i++)   // run tics
+  {
+                // all independent tickers here
+       M_Ticker ();
+       C_Ticker ();
+       V_FPSTicker();
+  }
+
+        // run the game tickers
+  RunGameTics();
+}
+
+/************************
+        CONSOLE COMMANDS
+*************************/
+
+void C_Kick()
+{
+   if(!c_argc)
+   {
+      C_Printf("usage: kick <playernum>\n"
+               " use playerinfo to find playernum\n");
+      return;
+   }
+   D_KickPlayer(atoi(c_argv[0]));
+}
+
+        // player info
+void C_Players()
+{
+   int i;
+
+   for(i=0;i<MAXPLAYERS;i++)
+     if(playeringame[i])
+         C_Printf("%i: %s\n",i, players[i].name);
+}
+
+void C_Disconnect()
+{
+   D_QuitNetGame();
+   C_SetConsole();
+}
+
+command_t net_commands[] =
+{
+        {
+                "disconnect", ct_command,
+                cf_netonly,
+                NULL,C_Disconnect
+        },
+        {
+                "playerinfo",  ct_command,
+                0,
+                NULL,C_Players
+        },
+        {
+                "kick",        ct_command,
+                cf_server,
+                NULL,C_Kick
+        },
+        {"end", ct_end}
+};
+
+void net_AddCommands()
+{
+   C_AddCommandList(net_commands);
 }
 
 //----------------------------------------------------------------------------

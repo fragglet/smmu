@@ -398,9 +398,6 @@ static patch_t**  lnames;
 
 ***********************/
 
-        // more than enough
-#define MAXCAMERAS 128
-
 // is this just some boring picture, or a view of the level?
 static int realbackdrop=1;
 camera_t        intercam;

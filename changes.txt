@@ -1,5 +1,35 @@
-25-7-1999
 ============================================================================
+5-8-1999
+
+Got bug reports back from many different people via email. Basically fixed
+the bugs I got:
+
+* Sound too quiet (a common occurrence). Many people thought that the sound
+  was broken, although it was just so quiet that you couldn't hear it.
+  This was caused by me messing around with the sound code early in the
+  project. I had changed some of the code in I_SetMusicVolume and
+  I_SetSfxVolume. An easy fix.
+* Vertical sensitivity too high at the second setting.
+* Starting in graphics mode too early, no ctrl-c abort. You can now choose
+  from a menu to have SMMU start in text mode rather than the graphical
+  startup. Also changed some of the keyboard code so you can abort with
+  a ctrl-c on startup.
+* HUD: No status (kills/items/secrets). Togglable from console.
+* messages off toggle not working
+* extra \ in smmu.wad =)
+* pressing autorun key in console toggled autorun. autorun key was in
+  m_menu.c (weird)
+
+Anyway, they're all fixed, I've done a bit of work on other stuff as well:
+
+* slight tweaking of r_ripple.c
+* c_runcmd.c now always sets variables, the handler function if any is only
+  used to implement the change.
+* Some new console variables added (translucency etc).
+
+============================================================================
+25-7-1999
+
 It's my birthday! =). Anyway, I promised that I'd release a public beta of
 SMMU as a 'birthday beta'. Thought it would be sensible to bring the
 changelog up to date too.

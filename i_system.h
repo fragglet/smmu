@@ -27,6 +27,11 @@
 // Called by DoomMain.
 void I_Init(void);
 
+// I_InitKeyboard. Set up the keyboard
+// to allow breaks while doom is loading
+
+void I_InitKeyboard();
+
 // Called by D_DoomLoop,
 // returns current time in tics.
 // int I_GetTime (void);
@@ -96,6 +101,8 @@ void I_EndDoom(void);         // killough 2/22/98: endgame screen
 extern struct keyboard_queue_s {
   volatile int head,tail,queue[KQSIZE];
 } keyboard_queue;
+
+int I_CheckAbort();
 
 #endif
 

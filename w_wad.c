@@ -41,7 +41,7 @@ int        numlumps;         // killough
 int        iwadhandle;                  // sf: the handle of the main iwad
 //void       **lumpcache=NULL;      // killough  >> sf: =null
 
-static int filelength(int handle)
+static int W_FileLength(int handle)
 {
   struct stat fileinfo;
   if (fstat(handle,&fileinfo) == -1)
@@ -181,7 +181,7 @@ static int W_AddFile(const char *name) // killough 1/31/98: static, const
       // single lump file
       fileinfo = &singleinfo;
       singleinfo.filepos = 0;
-      singleinfo.size = LONG(filelength(handle));
+      singleinfo.size = LONG(W_FileLength(handle));
       ExtractFileBase(filename, singleinfo.name);
       numlumps++;
     }

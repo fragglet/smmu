@@ -242,6 +242,12 @@ void   *statcopy;       // for statistics driver
 
 int keylookspeed = 5;
 
+int cooldemo = false;
+int cooldemo_tics;      // number of tics until changing view
+
+void G_CoolViewPoint();
+
+
 //
 // G_BuildTiccmd
 // Builds a ticcmd from all of the available inputs
@@ -708,6 +714,13 @@ boolean G_Responder(event_t* ev)
   if (gamestate == GS_FINALE && F_Responder(ev))
     return true;  // finale ate the event
 
+        // sf: just what _was_ this doing in m_responder anyway?
+  if (ev->type == ev_keydown && ev->data1 == key_autorun)      // Autorun
+  {
+     autorun = !autorun;
+     return true;
+  }
+
   switch (ev->type)
     {
     case ev_keydown:
@@ -728,7 +741,7 @@ boolean G_Responder(event_t* ev)
       mousebuttons[1] = ev->data1 & 2;
       mousebuttons[2] = ev->data1 & 4;
       mousex = (ev->data2*(mouseSensitivity_horiz*4))/10;  // killough
-      mousey = (ev->data3*(mouseSensitivity_vert*4))/10;
+      mousey = (ev->data3*(mouseSensitivity_vert))/30; //sf: vert made slower
       return true;    // eat events
 
     case ev_joystick:
@@ -1573,8 +1586,9 @@ void G_Ticker(void)
                     C_WriteText(FC_GRAY "(%i should be %i)",
 			     cmd->consistancy, consistancy[i][buf]);
                   }
+                        // sf: include y as well as x
 		  if (players[i].mo)
-		    consistancy[i][buf] = players[i].mo->x;
+                    consistancy[i][buf] = players[i].mo->x + players[i].mo->y;
 		  else
 		    consistancy[i][buf] = 0; // killough 2/14/98
 		}
@@ -1604,6 +1618,16 @@ void G_Ticker(void)
             }
         }
     }
+
+  if(walkcam_active) P_WalkTicker();
+
+  // cooldemo countdown
+
+  if(demoplayback && cooldemo)
+          if(cooldemo_tics)
+                cooldemo_tics--;
+          else
+                G_CoolViewPoint();                
 
   // do main actions
 
@@ -1783,7 +1807,11 @@ void G_DeathMatchSpawnPlayer(int playernum)
   int j, selections = deathmatch_p - deathmatchstarts;
 
   if (selections < MAXPLAYERS)
-    I_Error("Only %i deathmatch spots, %d required", selections, MAXPLAYERS);
+  {
+    C_Printf("\aOnly %i deathmatch spots, %d required\n", selections, MAXPLAYERS);
+    C_SetConsole();
+    return;
+  }
 
   for (j=0 ; j<20 ; j++)
     {
@@ -2571,7 +2599,6 @@ boolean G_CheckDemoStatus(void)
           C_SetConsole();
           return false;
       }
-      C_Printf("Not a singledemo\n");
       D_AdvanceDemo();
       return true;
     }
@@ -2608,6 +2635,68 @@ void dprintf(const char *s, ...)
   va_end(v);
   C_WriteText(msg);  // set new message
   HU_playermsg(msg);
+}
+
+extern int numcameraviews;      // wi_stuff.c
+extern camera_t intercam;
+extern mapthing_t *camerathing[MAXCAMERAS];
+
+        // cool demo: change to new viewpoint
+void G_CoolViewPoint()
+{
+                // 2 if no cameras, 3 if cameras
+        int viewtype = M_Random() % (2 + !!numcameraviews);
+        int old_displayplayer = displayplayer;
+
+                // pick the next player
+	do
+	{ 
+	    displayplayer++; 
+	    if (displayplayer == MAXPLAYERS) 
+		displayplayer = 0; 
+        } while (!playeringame[displayplayer]);
+
+        if(displayplayer != old_displayplayer)
+        {
+                ST_Start();
+                HU_Start();
+                S_UpdateSounds(players[displayplayer].mo);
+                P_ResetChasecam();      // reset the chasecam
+        }
+
+                // turn off the chasecam?
+        if(chasecam_active && viewtype != 1)
+        {
+                chasecam_active = false;
+                P_ChaseEnd();
+        }
+
+        if(viewtype == 0)       // normal player-view
+        {
+        }
+        else if(viewtype == 1)  // view from the chasecam
+        {
+                chasecam_active = true;
+                P_ChaseStart();
+        }
+        else if(viewtype == 2) // camera view
+        {
+                int cam = M_Random() % numcameraviews;
+
+                P_ResetChasecam();      // turn off the chasecam
+                                        // if its still on
+
+                intercam.x = camerathing[cam]->x*FRACUNIT;
+                intercam.y = camerathing[cam]->y*FRACUNIT;
+                intercam.angle = R_WadToAngle(camerathing[cam]->angle);
+                intercam.updownangle = 0;
+                intercam.z = R_PointInSubsector(intercam.x, intercam.y)
+                                ->sector->floorheight + 41*FRACUNIT;
+                camera = &intercam;
+        }
+
+                // pic a random number of tics until changing the viewpoint
+        cooldemo_tics = (7 + M_Random() % 13) * 35;
 }
 
 //----------------------------------------------------------------------------

@@ -84,7 +84,7 @@ extern int monkeys, default_monkeys;
 extern int pitched_sounds;
 
 extern int general_translucency;
-
+extern int tran_filter_pct;
 extern int demo_insurance, default_demo_insurance;      // killough 4/5/98
 
 // -------------------------------------------
@@ -261,6 +261,8 @@ extern wbstartstruct_t wminfo;
 // This doubles with BackPack powerup item.
 extern int maxammo[];
 
+extern angle_t consoleangle;
+
 //-----------------------------------------
 // Internal parameters, used for engine.
 //
@@ -358,9 +360,6 @@ extern int autoaim, default_autoaim;
 extern int flashing_hom; // killough 10/98
 
 extern int doom_weapon_toggles;   // killough 10/98
-
-extern int showticker;
-
 
 #endif
 

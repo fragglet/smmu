@@ -66,7 +66,9 @@ int current_height=0;
 int consoleactive=0;
 boolean c_showprompt;
 char *backdrop;
-char inputtext[LINELENGTH];
+char inputtext[INPUTLENGTH];
+char *input_point;      // left-most point you see of the command line
+                        // for scrolling command line
 int pgup_down=0, pgdn_down=0;
 
 /* functions ***********************/
@@ -95,6 +97,15 @@ void C_InitBackdrop()
         screens[1] = oldscreen;
 }
 
+        // input_point is the leftmost point of the inputtext which
+        // we see. This function is called every time the inputtext
+        // changes to decide where input_point should be.
+void C_UpdateInputPoint()
+{
+        for(input_point=inputtext;
+                V_StringWidth(input_point) > SCREENWIDTH-20; input_point++);
+}
+
         // initialise the console
 void C_Init()
 {
@@ -109,6 +120,8 @@ void C_Init()
                 FC_GOLD "C" FC_RED "O" FC_BLUE "L" FC_ORANGE "O" FC_YELLOW "U"
                 FC_BRICK "R" FC_TAN "E" FC_GRAY "D" FC_GREEN "!");
 
+        C_AddCommands();
+        C_UpdateInputPoint();
 }
 
 // put smmu into console mode
@@ -172,7 +185,8 @@ void C_AddToHistory(char *s)
         if(!*t) return; 
 
                 // add it to the history
-        strcpy(history[history_last], s);
+                // 6/8/99 maximum linelength to prevent segfaults
+        strncpy(history[history_last], s, LINELENGTH-3);
         history_last++;
 
                 // scroll the history if neccesary
@@ -228,6 +242,7 @@ int C_Responder(event_t* ev)
         {
                 strcpy(inputtext, shiftdown ? C_NextTab(inputtext) :
                                 C_PrevTab(inputtext));
+                C_UpdateInputPoint(); // update scrolling
                 return true;
         }
         if(ev->data1 == KEYD_ENTER)
@@ -241,6 +256,7 @@ int C_Responder(event_t* ev)
                 if(!strcmp(tempcmdstr, "r0x0rz delux0rz")) C_EasterEgg();
                 C_RunTextCmd(tempcmdstr);
                 C_InitTab();
+                C_UpdateInputPoint();   // reset scrolling
 
                 free(tempcmdstr);
                 return true;
@@ -253,6 +269,7 @@ int C_Responder(event_t* ev)
                     history_current = 0;
                 strcpy(inputtext, history[history_current]);
                 C_InitTab();
+                C_UpdateInputPoint();   // update scrolling
                 return true;
         }
         if(ev->data1 == KEYD_DOWNARROW)
@@ -265,6 +282,7 @@ int C_Responder(event_t* ev)
                 strcpy(inputtext, (history_current == history_last) ?
                                "" : (char*)(history[history_current]) );
                 C_InitTab();
+                C_UpdateInputPoint();   // update scrolling
                 return true;
         }
         if(ev->data1 == KEYD_BACKSPACE)
@@ -272,6 +290,7 @@ int C_Responder(event_t* ev)
                 if(strlen(inputtext) > 0)
                         inputtext[strlen(inputtext)-1] = '\0';
                 C_InitTab();
+                C_UpdateInputPoint();   // update scrolling
                 return true;
         }
 
@@ -279,10 +298,11 @@ int C_Responder(event_t* ev)
 
         ch = shiftdown ? shiftxform[ev->data1] : ev->data1; // shifted?
 
-        if(ch>31 && ch<127)
+        if(ch>31 && ch<127 && strlen(inputtext) < INPUTLENGTH-3)
         {
                 sprintf(inputtext, "%s%c", inputtext, ch);
                 C_InitTab();
+                C_UpdateInputPoint();   // update scrolling
                 return true;
         }
         return false;
@@ -329,7 +349,7 @@ void C_Drawer()
         if(current_height > 8 && c_showprompt)    // off the screen ?
         {
                 if(message_pos == message_last)
-                        sprintf(tempstr, "%s%s_", inputprompt, inputtext);   
+                        sprintf(tempstr, "%s%s_", inputprompt, input_point);
                 else
                         sprintf(tempstr, "V V V V V V V V V V V V V V V V");
                 V_WriteText(tempstr, 0, current_height-8);
@@ -365,6 +385,10 @@ static void C_AddChar(unsigned char c)
              end = messages[message_last] + strlen(messages[message_last]);
              *end = c; end++;
              *end = 0;
+        }
+        if(c == '\a') // alert
+        {
+                S_StartSound(NULL, sfx_tink);   // 'tink'!
         }
         if(c == '\n')
         {
@@ -435,6 +459,11 @@ void C_Seperator()
         C_Printf("{|||||||||||||||||||||||||||||}\n");
 }
 
-void C_EasterEgg(){char *oldscreen;int x,y;extern unsigned char egg[];for(x=0;x<C_SCREENWIDTH; x++) for(y=0; y<C_SCREENHEIGHT; y++){unsigned char *src=egg+((y%44)*42)+(x%42);if(*src!=247) backdrop[y*C_SCREENWIDTH+x]=*src;}oldscreen=screens[0];screens[0]=backdrop;HU_WriteText(FC_BROWN"my hair looks much too\n dark in this pic.\noh well, have fun!\n      -- fraggle",160,168);screens[0]=oldscreen;}
+void C_EasterEgg(){char *oldscreen;int x,y;extern unsigned char egg[];for(x
+=0;x<C_SCREENWIDTH;x++)for(y=0;y<C_SCREENHEIGHT;y++){unsigned char *src=egg
++((y%44)*42)+(x%42);if(*src!=247)backdrop[y*C_SCREENWIDTH+x]=*src;}oldscreen
+=screens[0];screens[0]=backdrop;HU_WriteText(FC_BROWN"my hair looks much too"
+"\n dark in this pic.\noh well, have fun!\n      -- fraggle",160,168);screens
+[0]=oldscreen;}
 
 

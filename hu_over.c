@@ -48,16 +48,18 @@
         _wc_mammo(players[displayplayer].readyweapon)
 
     // set up an overlay_t
-#define setol(o,a,b)    \
+#define setol(o,a,b)          \
+        {                     \
         overlay[o].x = (a);   \
-        overlay[o].y = (b);
+        overlay[o].y = (b);   \
+        }
 #define HUDCOLOUR FC_GRAY
 
 /* globals ****************************/
 
 int hud_overlaystyle = 1;
 int hud_enabled = 1;
-
+int hud_hidestatus = 0;
 
 /********************************
   Heads up font
@@ -353,6 +355,29 @@ void HU_DrawFrag(int x, int y)
         HU_WriteText(tempstr, x, y);        
 }
 
+///////////////////////////////////////
+        // draw the status (number of kills etc)
+void HU_DrawStatus(int x, int y)
+{
+        char tempstr[50];
+
+        HU_WriteText(HUDCOLOUR "Status", x, y); // draw, leave a gap
+        x += GAP;
+
+
+        sprintf(tempstr,
+                FC_RED "K" FC_GREEN " %i/%i "
+                FC_RED "I" FC_GREEN " %i/%i "
+                FC_RED "S" FC_GREEN " %i/%i ",
+        players[displayplayer].killcount, totalkills,
+        players[displayplayer].itemcount, totalitems,
+        players[displayplayer].secretcount, totalsecret
+        );
+
+        HU_WriteText(tempstr, x, y);
+}
+
+
 overlay_t overlay[NUMOVERLAY];
 
         // toggle the overlay style
@@ -378,8 +403,23 @@ void HU_OverlaySetup()
         overlay[ol_armor].drawer = HU_DrawArmor;
         overlay[ol_key].drawer = HU_DrawKeys;
         overlay[ol_frag].drawer = HU_DrawFrag;
+        overlay[ol_status].drawer = HU_DrawStatus;
 
-        if(hud_overlaystyle == 0)        // 0 means turned off
+        //////// now decide where to put all the widgets //////////
+
+        for(i=0; i<NUMOVERLAY; i++)
+                overlay[i].x = 1;       // turn em all on
+        
+        if(hud_hidestatus) overlay[ol_status].x = -1;     // turn off status
+
+        if(deathmatch)
+                overlay[ol_key].x = -1;         // turn off keys now
+        else
+                overlay[ol_frag].x = -1;        // turn off frag
+
+        // now build according to style
+
+        if(hud_overlaystyle == 0)        // 0 means all turned off
         {
                 for(i=0; i<NUMOVERLAY; i++)
                 {
@@ -388,22 +428,32 @@ void HU_OverlaySetup()
         }
         else if(hud_overlaystyle == 1)
         {                       // 'bottom left' style
-                for(i=0; i<NUMOVERLAY; i++)
+                int y = SCREENHEIGHT-8;
+
+                for(i=NUMOVERLAY-1; i >= 0; i--)
                 {
-                        setol(i, 0, 160 + 8*i);
+                        if(overlay[i].x != -1)
+                        {
+                                setol(i, 0, y);
+                                y -= 8;
+                        }
                 }
         }
         else if(hud_overlaystyle == 2)  // all at the bottom
         {
                 int x, y;
+
                 x = 0; y = 192;
                 for(i=0; i<NUMOVERLAY; i++)
                 {
-                        setol(i, x, y);
-                        x += 160;
-                        if(x >= 300)
+                        if(overlay[i].x != -1)
                         {
-                                x = 0; y -=8;
+                                setol(i, x, y);
+                                x += 160;
+                                if(x >= 300)
+                                {
+                                        x = 0; y -=8;
+                                }
                         }
                 }
         }
@@ -414,18 +464,12 @@ void HU_OverlaySetup()
                 setol(ol_armor, 182, 8);
                 setol(ol_weap, 182, 184);
                 setol(ol_ammo, 182, 192);
-                setol(ol_key, 0, 192);
-        }
-
-        if(deathmatch)
-        {
-                        // put frag where the keys are
-                setol(ol_frag, overlay[ol_key].x, overlay[ol_key].y);
-                overlay[ol_key].x = -1;         // turn off keys now
-        }
-        else
-        {
-                overlay[ol_frag].x = -1;        // turn off frag
+                if(deathmatch)  // if dm, put frags in place of keys
+                        setol(ol_frag, 0, 192)
+                else
+                        setol(ol_key, 0, 192)
+                if(!hud_hidestatus)
+                        setol(ol_status, 0, 184);
         }
 }
 

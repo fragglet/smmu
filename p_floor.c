@@ -309,6 +309,10 @@ void T_MoveFloor(floormove_t* floor)
       }
     }
 
+    // fix for jumping-viewz-on-hyperlift bug
+    if(floor->sector == players[displayplayer].mo->subsector->sector)
+            reset_viewz = true;
+
     // make floor stop sound
     if(!silentmove(floor->sector)) //sf: silentmove
         S_StartSound((mobj_t *)&floor->sector->soundorg, sfx_pstop);
@@ -386,6 +390,10 @@ void T_MoveElevator(elevator_t* elevator)
     elevator->sector->floordata = NULL;     //jff 2/22/98
     elevator->sector->ceilingdata = NULL;   //jff 2/22/98
     P_RemoveThinker(&elevator->thinker);    // remove elevator from actives
+
+        // fix for jumping-viewz-on-hyperlift bug
+    if(elevator->sector == players[displayplayer].mo->subsector->sector)
+            reset_viewz = true;
 
     // make floor stop sound
     if(!silentmove(elevator->sector))   //sf: silentmove

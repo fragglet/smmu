@@ -108,7 +108,6 @@ void C_SendCmd(int dest, int cmdnum, char *s,...)
 void C_NetInit()
 {
         int i;
-        command_t *current;
 
         for(i=0; i<MAXPLAYERS; i++)
         {
@@ -118,13 +117,6 @@ void C_NetInit()
 
         players[consoleplayer].colormap = default_colour;
         strcpy(players[consoleplayer].name, default_name);
-
-        current = commands;             // load in the netcmds
-        while(current->type != ct_end)
-        {
-                c_netcmds[current->netcmd] = current;
-                current++;
-        }
 }
 
 void C_DealWithChar(unsigned char c, int source);
@@ -229,7 +221,6 @@ void C_SendNetData()
          sprintf(tempstr, "map %s", G_GetNameForMap(startepisode, startmap));
          C_RunTextCmd(tempstr);
     }
-    C_Printf("finished C_SendNetData\n"); C_Update();
 }
 
 

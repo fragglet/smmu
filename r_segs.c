@@ -238,14 +238,6 @@ static void R_RenderSegLoop (void)
       if (yl < top)
         yl = top;
 
-      if(0)//rw_x & 1)
-      {
-         rw_scale += rw_scalestep;
-         topfrac += topstep;
-         bottomfrac += bottomstep;
-         continue;
-      }
-
       if (markceiling)
         {
           bottom = yl-1;
@@ -431,6 +423,7 @@ static fixed_t R_PointToDist(fixed_t x, fixed_t y)
 {
   fixed_t dx = abs(x - viewx);
   fixed_t dy = abs(y - viewy);
+
   if (dy > dx)
     {
       fixed_t t = dx;

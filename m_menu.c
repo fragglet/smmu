@@ -61,8 +61,8 @@ extern boolean chat_active;
 int mouseSensitivity_horiz; // has default   //  killough
 int mouseSensitivity_vert;  // has default
 
-int showMessages;    // Show messages has default, 0 = off, 1 = on
-  
+extern int showMessages;
+
 int traditional_menu;
 
 int hide_setup=1; // killough 5/15/98
@@ -1040,7 +1040,6 @@ void M_SaveGame (int choice)
 
 enum
 {
-  general, // killough 10/98
   // killough 4/6/98: move setup to be a sub-menu of OPTIONs
   setup,                                                    // phares 3/21/98
   endgame,
@@ -1059,7 +1058,6 @@ enum
 menuitem_t OptionsMenu[]=
 {
   // killough 4/6/98: move setup to be a sub-menu of OPTIONs
-  {1,"M_GENERL", M_General, 'g'},      // killough 10/98
   {1,"M_SETUP",  M_Setup,   's'},                          // phares 3/21/98
   {1,"M_ENDGAM", M_EndGame,'e'},
   {1,"M_MESSG",  M_ChangeMessages,'m'},
@@ -1480,7 +1478,7 @@ void M_ChangeMessages(int choice)
 {
   // warning: unused parameter `int choice'
   choice = 0;
-  showMessages = 1 - showMessages;
+  showMessages = !showMessages;
   
         // sf: dprintf
   dprintf(showMessages ? s_MSGON : s_MSGOFF);
@@ -1585,6 +1583,7 @@ static char menu_buffer[64];
 
 enum
 {
+  set_general, // sf: moved here
   set_compat,
   set_key_bindings,                                     
   set_weapons,                                           
@@ -1608,6 +1607,7 @@ int setup_screen; // the current setup screen. takes values from setup_e
 
 menuitem_t SetupMenu[]=
 {
+  {1,"M_GENERL",M_General,    'g'},      // sf moved here
   {1,"M_COMPAT",M_Compat,     'p'},
   {1,"M_KEYBND",M_KeyBindings,'k'},
   {1,"M_WEAP"  ,M_Weapons,    'w'},
@@ -1811,13 +1811,55 @@ void M_DrawBackground(char* patchname, byte *back_dest)
 	}
 }
 
+        // sf:
+void M_DrawDistortedBackground(char* patchname, byte *back_dest)
+{
+  int x,y;
+  byte *back_src, *src;
+
+  V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+  src = back_src = R_DistortedFlat(R_FlatNumForName(patchname));
+
+  if (hires)       // killough 11/98: hires support
+#if 0              // this tiles it in hires:
+    for (y = 0 ; y < SCREENHEIGHT*2 ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH*2/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}
+#endif
+
+              // while this pixel-doubles it
+      for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src,
+	     back_dest += SCREENWIDTH*2)
+	for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+	  {
+	    int i = 63;
+	    do
+	      back_dest[i*2] = back_dest[i*2+SCREENWIDTH*2] =
+		back_dest[i*2+1] = back_dest[i*2+SCREENWIDTH*2+1] = src[i];
+	    while (--i>=0);
+	    back_dest += 128;
+	  }
+  else
+    for (y = 0 ; y < SCREENHEIGHT ; src = ((++y & 63)<<6) + back_src)
+      for (x = 0 ; x < SCREENWIDTH/64 ; x++)
+	{
+	  memcpy (back_dest,back_src+((y & 63)<<6),64);
+	  back_dest += 64;
+	}
+}
+
+
 /////////////////////////////
 //
 // Draws the Title for the main Setup screen
 
 void M_DrawSetup(void)
 {
-  V_DrawPatchDirect(124,15,0,W_CacheLumpName("M_SETUP",PU_CACHE));
+  V_DrawPatchDirect(124,5,0,W_CacheLumpName("M_SETUP",PU_CACHE));
 }
 
 /////////////////////////////
@@ -2671,14 +2713,15 @@ setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings screen
 
   {"HEADS-UP DISPLAY"  ,S_SKIP|S_TITLE,m_null,MST_X,MST_Y+ 6*8},
 
-  {"HEALTH LOW/OK"     ,S_NUM       ,m_null,MST_X,MST_Y+ 7*8, {"health_red"}},
-  {"HEALTH OK/GOOD"    ,S_NUM       ,m_null,MST_X,MST_Y+ 8*8, {"health_yellow"}},
-  {"HEALTH GOOD/EXTRA" ,S_NUM       ,m_null,MST_X,MST_Y+ 9*8, {"health_green"}},
-  {"ARMOR LOW/OK"      ,S_NUM       ,m_null,MST_X,MST_Y+10*8, {"armor_red"}},
-  {"ARMOR OK/GOOD"     ,S_NUM       ,m_null,MST_X,MST_Y+11*8, {"armor_yellow"}},
-  {"ARMOR GOOD/EXTRA"  ,S_NUM       ,m_null,MST_X,MST_Y+12*8, {"armor_green"}},
-  {"AMMO LOW/OK"       ,S_NUM       ,m_null,MST_X,MST_Y+13*8, {"ammo_red"}},
-  {"AMMO OK/GOOD"      ,S_NUM       ,m_null,MST_X,MST_Y+14*8, {"ammo_yellow"}},
+  {"HIDE STATUS"       ,S_YESNO     ,m_null,MST_X,MST_Y+ 7*8, {"hud_hidestatus"}},
+  {"HEALTH LOW/OK"     ,S_NUM       ,m_null,MST_X,MST_Y+ 8*8, {"health_red"}},
+  {"HEALTH OK/GOOD"    ,S_NUM       ,m_null,MST_X,MST_Y+ 9*8, {"health_yellow"}},
+  {"HEALTH GOOD/EXTRA" ,S_NUM       ,m_null,MST_X,MST_Y+10*8, {"health_green"}},
+  {"ARMOR LOW/OK"      ,S_NUM       ,m_null,MST_X,MST_Y+11*8, {"armor_red"}},
+  {"ARMOR OK/GOOD"     ,S_NUM       ,m_null,MST_X,MST_Y+12*8, {"armor_yellow"}},
+  {"ARMOR GOOD/EXTRA"  ,S_NUM       ,m_null,MST_X,MST_Y+13*8, {"armor_green"}},
+  {"AMMO LOW/OK"       ,S_NUM       ,m_null,MST_X,MST_Y+14*8, {"ammo_red"}},
+  {"AMMO OK/GOOD"      ,S_NUM       ,m_null,MST_X,MST_Y+15*8, {"ammo_yellow"}},
 
   // Button for resetting to defaults
   {0,S_RESET,m_null,X_BUTTON,Y_BUTTON},
@@ -3032,15 +3075,14 @@ setup_menu_t* gen_settings[] =
 };
 
 enum {
-  general_hires,  
-  general_pageflip,
-  general_vesa,
+  general_vidmode,
   general_vsync,
   general_trans,
   general_transpct,
   general_pcx,
   general_diskicon,
-  general_hom
+  general_hom,
+  general_textmode
 };
 
 enum {
@@ -3062,17 +3104,11 @@ setup_menu_t gen_settings1[] = { // General Settings screen1
 
   {"Video"       ,S_SKIP|S_TITLE, m_null, G_X, G_Y - 12},
 
-  {"High Resolution", S_YESNO, m_null, G_X, G_Y + general_hires*8,
-   {"hires"}, 0, 0, I_ResetScreen},
-
-  {"Use Page-Flipping", S_YESNO, m_null, G_X, G_Y + general_pageflip*8,
-   {"page_flip"}, 0, 0, I_ResetScreen},
-
-  {"Use VESA mode",S_YESNO,m_null, G_X, G_Y+general_vesa*8,
-   {"vesamode"}, 0, 0, I_ResetScreen},
+  {"Graphics mode",S_NUM,m_null, G_X, G_Y+general_vidmode*8,
+   {"v_mode"}, 0, 0, V_ResetMode},
 
   {"Wait for Vertical Retrace", S_YESNO, m_null, G_X,
-   G_Y + general_vsync*8, {"use_vsync"}, 0, 0, I_ResetScreen},
+   G_Y + general_vsync*8, {"use_vsync"}, 0, 0, V_ResetMode},
 
   {"Enable Translucency", S_YESNO, m_null, G_X,
    G_Y + general_trans*8, {"translucency"}, 0, 0, M_Trans},
@@ -3088,6 +3124,9 @@ setup_menu_t gen_settings1[] = { // General Settings screen1
 
   {"Flashing HOM indicator", S_YESNO, m_null, G_X,
    G_Y + general_hom*8, {"flashing_hom"}},
+
+  {"start in text mode", S_YESNO, m_null, G_X,
+   G_Y + general_textmode*8, {"textmode_startup"}},
 
   {"Sound & Music", S_SKIP|S_TITLE, m_null, G_X, G_Y2 - 12},
 
@@ -3397,6 +3436,9 @@ enum {
   mess_hud_timer,
   mess_lines,
   mess_scrollup,
+  mess_messcolour,
+  mess_obituaries,
+  mess_obcolour
 };
 
 setup_menu_t mess_settings1[];
@@ -3420,6 +3462,15 @@ setup_menu_t mess_settings1[] =  // Messages screen
 
   {"Message Listing Scrolls Upwards",  S_YESNO,  m_null,  M_X,
    M_Y + mess_scrollup*8, {"hud_msg_scrollup"}},
+
+  {"message colour", S_CRITEM, m_null, M_X,
+   M_Y + mess_messcolour*8, {"mess_colour"}},
+
+  {"show obituaries", S_YESNO, m_null, M_X,
+   M_Y + mess_obituaries*8, {"obituaries"}},
+
+  {"obituary colour", S_CRITEM, m_null, M_X,
+   M_Y + mess_obcolour*8, {"obcolour"}},
 
   // Button for resetting to defaults
   {0,S_RESET,m_null,X_BUTTON,Y_BUTTON},
@@ -4100,53 +4151,31 @@ enum {
   cr_special,
 };
 
-#define CR_S 9
-#define CR_X 152
-#define CR_X2 (CR_X+8)
-#define CR_Y 31
-#define CR_SH 2
-
-setup_menu_t cred_settings[]={
-
-  {"Programmer",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*prog + CR_SH*cr_prog},
-  {"Lee Killough",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*prog + CR_SH*cr_prog},
-
-  {"Artist",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*art + CR_SH*cr_art},
-  {"Len Pitre",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*art + CR_SH*cr_art},
-
-  {"PlayTesters",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*test + CR_SH*cr_test},
-  {"Ky (Rez) Moffet",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*test + CR_SH*cr_test},
-  {"Len Pitre",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(test+1) + CR_SH*cr_test},
-  {"James (Quasar) Haley",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(test+2) + CR_SH*cr_test},
-
-  {"Canine Consulting",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*canine + CR_SH*cr_canine},
-  {"Longplain Kennels, Reg'd",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*canine + CR_SH*cr_canine},
-
-  {"Sound Code",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*musicsfx + CR_SH*cr_musicsfx},
-  {"Shawn Hargreaves\n& Allegro Team",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*musicsfx + CR_SH*cr_musicsfx},
-
-  {"Additional Credit To",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*adcr + CR_SH*cr_adcr},
-  {"id Software",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*adcr+CR_SH*cr_adcr},
-  {"TeamTNT",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(adcr+1)+CR_SH*cr_adcr},
-
-  {"Special Thanks To",S_SKIP|S_CREDIT,m_null, CR_X, CR_Y + CR_S*special + CR_SH*cr_special},
-  {"John Romero",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(special+0)+CR_SH*cr_special},
-  {"Joel Murdoch",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(special+1)+CR_SH*cr_special},
-
-  {0,S_SKIP|S_END,m_null}
-};
-
 void M_DrawCredits(void)     // killough 10/98: credit screen
 {
   inhelpscreens = true;
-#if 0
-  M_DrawBackground(gamemode==shareware ? "CEIL5_1" : "MFLR8_4", screens[0]);
-  V_DrawPatchTranslated(42,9,0, W_CacheLumpName("MBFTEXT",PU_CACHE),
-			colrngs[CR_GOLD],0);
-  V_MarkRect(0,0,SCREENWIDTH,SCREENHEIGHT);
-  M_DrawScreenItems(cred_settings);
-#endif
-        V_DrawPatch(0,0,0,W_CacheLumpName("CREDIT",PU_CACHE));
+
+  M_DrawDistortedBackground(gamemode==commercial ? "SLIME05" : "LAVA1",
+                                screens[0]);
+
+        // sf: SMMU credits
+  V_WriteText(
+        FC_GRAY "SMMU:" FC_RED " \"Smack my marine up\"\n"
+        "\n"
+        "Port by Simon Howard 'Fraggle'\n"
+        "\n"
+        "Based on the MBF port by Lee Killough\n"
+        "\n"
+        FC_GRAY "Programming:" FC_RED " Simon Howard\n"
+        FC_GRAY "Graphics:" FC_RED " Bob Satori\n"
+        FC_GRAY "Level editing/start map:" FC_RED " Derek MacDonald\n"
+        "\n"
+        "\n"
+        "Copyright(C) 1999 Simon Howard\n"
+        FC_GRAY"         http://fraggle.tsx.org/",
+        10, 60);
+
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -4382,12 +4411,6 @@ boolean M_Responder (event_t* ev)
   if (!menuactive)                                            // phares
     {                                                         //  |
                                                               //  V
-      if (ch == key_autorun)      // Autorun
-	{
-	  autorun = !autorun;
-	  return true;
-	}
-
       if (ch == key_help)      // Help key
 	{
 	  M_StartControlPanel ();

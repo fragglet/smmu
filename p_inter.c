@@ -636,7 +636,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 
   // sf: display message
   if(message && player == players+displayplayer)
-        dprintf(message);
+        dprintf("%c%s", 128+mess_colour, message);
   if(removeobj)
     P_RemoveMobj (special);
 
@@ -820,7 +820,7 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
 
         if(!source || !source->player) // killed by a monster or environment
         {
-                dprintf("%c%s died", 128+death_colour,
+                dprintf("%c%s died", 128+obcolour,
                         target->player->name);
                 return;
         }
@@ -845,18 +845,18 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
             if(inflictor)
                 if(killweapon == wp_missile)
                 {
-                   dprintf("%c%s should have stood back", 128+death_colour,
+                   dprintf("%c%s should have stood back", 128+obcolour,
                           source->player->name);
                    return;
                 }
                 else if(killweapon == wp_bfg)
                 {
                    dprintf("%c%s used a bfg close-up",
-                        128+death_colour, source->player->name);
+                        128+obcolour, source->player->name);
                    return;
                 }
 
-            dprintf("%c%s suicides", 128+death_colour,
+            dprintf("%c%s suicides", 128+obcolour,
                         source->player->name);
             return;
         }
@@ -865,10 +865,10 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
         messtype = M_Random() % 2;
 
         if(messtype)
-            dprintf(deathmess1[killweapon], 128+death_colour,
+            dprintf(deathmess1[killweapon], 128+obcolour,
                         target->player->name, source->player->name);
         else
-            dprintf(deathmess2[killweapon], 128+death_colour,
+            dprintf(deathmess2[killweapon], 128+obcolour,
                         source->player->name, target->player->name);
 }
 

@@ -54,6 +54,7 @@ typedef struct patch_s patch_t;
 #define MAXLIGHTZ        128
 #define MAXLIGHTSCALE     48
 
+extern int r_blockmap;
 
 //
 // INTERNAL MAP TYPES

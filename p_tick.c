@@ -30,6 +30,7 @@ rcsid[] = "$Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $";
 #include "p_tick.h"
 
 int leveltime;
+boolean reset_viewz;
 
 //
 // THINKERS
@@ -232,18 +233,28 @@ void P_Ticker (void)
 		 players[consoleplayer].viewz != 1))
     return;
 
-  if(gamestate==GS_LEVEL)       // not if this is an intermission screen
-    for (i=0; i<MAXPLAYERS; i++)
-      if (playeringame[i])
-        P_PlayerThink(&players[i]);
+               // not if this is an intermission screen
+  if(gamestate==GS_LEVEL)
+      for (i=0; i<MAXPLAYERS; i++)
+        if (playeringame[i])
+          P_PlayerThink(&players[i]);
+
+  reset_viewz = false;  // sf
 
   if(chasecam_active) P_ChaseTicker();
-  if(walkcam_active) P_WalkTicker();
 
   P_RunThinkers();
   P_UpdateSpecials();
   P_RespawnSpecials();
   leveltime++;                       // for par times
+
+        // sf: on original doom, sometimes if you activated a hyperlift
+        // while standing on it, your viewz was left behind and appeared
+        // to "jump". code in p_floor.c detects if a hyperlift has been
+        // activated and viewz is reset appropriately here.
+
+  if(reset_viewz && gamestate == GS_LEVEL)
+      P_CalcHeight (players+displayplayer); // Determines view height and bobbing
 }
 
 //----------------------------------------------------------------------------
