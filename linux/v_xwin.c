@@ -1444,10 +1444,6 @@ boolean XWin_InitGraphics(void)
   else if (x_bpp==4)
     x_colormap4 = malloc(4*256);
 
-  // add console cmds
-
-  XWin_AddCommands();
-
   return true;                     // initted ok
 }
 
@@ -1640,8 +1636,11 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-04-30 19:38:33  fraggle
+// fix linux build
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------
