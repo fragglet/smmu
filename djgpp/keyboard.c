@@ -1,3 +1,4 @@
+// Emacs style mode select -*- C++ -*-
 /*         ______   ___    ___ 
  *        /\  _  \ /\_ \  /\_ \ 
  *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___ 
@@ -34,6 +35,17 @@
  *      See readme.txt for copyright information.
  */
 
+//
+// sf 9/6/2000:
+//
+// Some problems getting keyboard working in v2 DJGPP.
+// Functions in this file share a lot of their names with the ones in
+// the keyboard.c in allegro (as this is a derivative) and it was
+// causing problems. I made a lot of functions static or renamed them
+// from (function name) to boom_(function name). Hopefully this should
+// fix the problems but i dont know for sure if I've seen the last of
+// the troubles.
+//
 
 #ifndef DJGPP
 #error This file should only be used by the djgpp version of Allegro
@@ -48,9 +60,10 @@
 #include <dir.h>
 #include <sys/movedata.h>
 
-#include "allegro.h"
+// #include "allegro.h"
 #include "internal.h"
 
+static void boom_remove_keyboard();
 
 #define KEYBOARD_INT          9
 
@@ -58,21 +71,21 @@
 #define KB_CTRL_ALT_FLAG      (KB_CTRL_FLAG | KB_ALT_FLAG)
 
 
-int three_finger_flag = TRUE;
-int key_led_flag = TRUE;
+static int three_finger_flag = TRUE;
+static int key_led_flag = TRUE;
 
-int (*keyboard_callback)(int key) = NULL;
+static int (*keyboard_callback)(int key) = NULL;
 
-void (*keyboard_lowlevel_callback)(int key) = NULL;  /* killough 3/21/98 */
+void (*boom_keyboard_lowlevel_callback)(int key) = NULL;  /* killough 3/21/98 */
 
 static int keyboard_installed = FALSE; 
 
-volatile char key[128];                   /* key pressed flags */
+static volatile char key[128];                   /* key pressed flags */
 
-volatile int key_shifts = 0;
+static volatile int key_shifts = 0;
 
 
-unsigned char key_ascii_table[128] =
+unsigned char boom_key_ascii_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   27,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 8,   9,       /* 0 */
@@ -86,7 +99,7 @@ unsigned char key_ascii_table[128] =
 };
 
 
-unsigned char key_capslock_table[128] =
+unsigned char boom_key_capslock_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   27,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 8,   9,       /* 0 */
@@ -100,7 +113,7 @@ unsigned char key_capslock_table[128] =
 };
 
 
-unsigned char key_shift_table[128] =
+unsigned char boom_key_shift_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   27,  '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', 126, 126,     /* 0 */
@@ -114,7 +127,7 @@ unsigned char key_shift_table[128] =
 };
 
 
-unsigned char key_control_table[128] =
+static unsigned char key_control_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   0,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   0,   0,   127, 127,     /* 0 */
@@ -141,61 +154,61 @@ unsigned char key_control_table[128] =
    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0        /* 7 */
 
 
-unsigned char key_altgr_table[128] =
+static unsigned char key_altgr_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent1_lower_table[128] =
+static unsigned char key_accent1_lower_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent1_upper_table[128] =
+static unsigned char key_accent1_upper_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent1_shift_lower_table[128] =
+static unsigned char key_accent1_shift_lower_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent1_shift_upper_table[128] =
+static unsigned char key_accent1_shift_upper_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent2_lower_table[128] =
+static unsigned char key_accent2_lower_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent2_upper_table[128] =
+static unsigned char key_accent2_upper_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent2_shift_lower_table[128] =
+static unsigned char key_accent2_shift_lower_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_accent2_shift_upper_table[128] =
+static unsigned char key_accent2_shift_upper_table[128] =
 {
    EMPTY_TABLE
 };
 
 
-unsigned char key_numlock_table[128] =
+static unsigned char key_numlock_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,       /* 0 */
@@ -245,7 +258,7 @@ unsigned char key_numlock_table[128] =
  *    E1 1D 52 E1 9D D2). It must also change the key[KEY_PAUSE] flag when 
  *    it received the extended code 46 (CtrlPause).
  */
-unsigned char key_extended_table[128] =
+static unsigned char key_extended_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,       /* 0 */
@@ -259,7 +272,7 @@ unsigned char key_extended_table[128] =
 };
 
 
-unsigned short key_special_table[128] =
+static unsigned short key_special_table[128] =
 {
 /* 0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F             */
    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,       /* 0 */
@@ -282,8 +295,8 @@ static volatile int key_extended = 0;
 static volatile int key_pad_seq = 0;
 static volatile int key_pause_loop = 0;
 
-static int (*keypressed_hook)() = NULL;
-static int (*readkey_hook)() = NULL;
+static int (*boom_keypressed_hook)() = NULL;
+static int (*boom_readkey_hook)() = NULL;
 
 
 
@@ -312,10 +325,10 @@ static inline void add_key(int c)
 
 
 
-/* clear_keybuf:
+/* boom_clear_keybuf:
  *  Clears the keyboard buffer.
  */
-void clear_keybuf()
+void boom_clear_keybuf()
 {
    int c;
 
@@ -329,21 +342,21 @@ void clear_keybuf()
 
    ENABLE();
 
-   if ((keypressed_hook) && (readkey_hook))
-      while (keypressed_hook())
-	 readkey_hook();
+   if ((boom_keypressed_hook) && (boom_readkey_hook))
+      while (boom_keypressed_hook())
+         boom_readkey_hook();
 }
 
 
 
-/* keypressed:
+/* boom_keypressed:
  *  Returns TRUE if there are keypresses waiting in the keyboard buffer.
  */
-int keypressed()
+int boom_keypressed()
 {
    if (key_buffer_start == key_buffer_end) {
-      if (keypressed_hook)
-	 return keypressed_hook();
+      if (boom_keypressed_hook)
+         return boom_keypressed_hook();
       else
 	 return FALSE;
    }
@@ -353,21 +366,21 @@ int keypressed()
 
 
 
-/* readkey:
+/* boom_readkey:
  *  Returns the next character code from the keyboard buffer. If the
  *  buffer is empty, it waits until a key is pressed. The low byte of
  *  the return value contains the ASCII code of the key, and the high
  *  byte the scan code. 
  */
-int readkey()
+int boom_readkey()
 {
    int r;
 
-   if ((!keyboard_installed) && (!readkey_hook))
+   if ((!keyboard_installed) && (!boom_readkey_hook))
       return 0;
 
-   if ((readkey_hook) && (key_buffer_start == key_buffer_end))
-      return readkey_hook();
+   if ((boom_readkey_hook) && (key_buffer_start == key_buffer_end))
+      return boom_readkey_hook();
 
    do {
    } while (key_buffer_start == key_buffer_end);  /* wait for a press */
@@ -386,10 +399,10 @@ int readkey()
 
 
 
-/* simulate_keypress:
+/* boom_simulate_keypress:
  *  Pushes a key into the keyboard buffer, as if it has just been pressed.
  */
-void simulate_keypress(int key)
+void boom_simulate_keypress(int key)
 {
    DISABLE();
 
@@ -491,8 +504,8 @@ static int my_keyint()
       add_key(t);
 
       /* killough 3/22/98: Allow low-level handler */
-      if (keyboard_lowlevel_callback)
-	keyboard_lowlevel_callback(KEY_PAUSE);
+      if (boom_keyboard_lowlevel_callback)
+        boom_keyboard_lowlevel_callback(KEY_PAUSE);
    }
    else if (temp == 0xE0) {
       key_extended = 1; 
@@ -529,8 +542,8 @@ static int my_keyint()
 	    case 2:
 
 	      /* killough 3/22/98: Allow low-level handler */
-	      if (keyboard_lowlevel_callback)
-		keyboard_lowlevel_callback(scan);
+              if (boom_keyboard_lowlevel_callback)
+                boom_keyboard_lowlevel_callback(scan);
 
 	       if (release) {
 		  key[temp] &= ~mask;
@@ -560,8 +573,8 @@ static int my_keyint()
       } 
 
       /* killough 3/22/98: Allow low-level handler */
-      if (keyboard_lowlevel_callback)
-	keyboard_lowlevel_callback(scan);
+      if (boom_keyboard_lowlevel_callback)
+        boom_keyboard_lowlevel_callback(scan);
 
       if (release) {                /* key was released */
 	 key[temp] &= ~mask;
@@ -863,7 +876,7 @@ static void read_keyboard_config()
  *  over the keyboard, so the debugger will not work properly, and under 
  *  DOS even ctrl-alt-del will have no effect. Returns -1 on failure.
  */
-int install_keyboard()
+int boom_install_keyboard()
 {
    int c;
    unsigned short shifts;
@@ -900,7 +913,7 @@ int install_keyboard()
    LOCK_VARIABLE(key_pad_seq);
    LOCK_VARIABLE(key_pause_loop);
    LOCK_VARIABLE(keyboard_callback);
-   LOCK_VARIABLE(keyboard_lowlevel_callback);         /* killough 3/22/98 */
+   LOCK_VARIABLE(boom_keyboard_lowlevel_callback);         /* killough 3/22/98 */
    LOCK_FUNCTION(my_keyint);
 
    /* killough 3/22/98: we must disable interrupts during entire setup */
@@ -913,9 +926,9 @@ int install_keyboard()
    for (c=0; c<128; c++)
       key[c] = FALSE;
 
-   if ((keypressed_hook) && (readkey_hook))
-      while (keypressed_hook())
-	 readkey_hook();
+   if ((boom_keypressed_hook) && (boom_readkey_hook))
+      while (boom_keypressed_hook())
+         boom_readkey_hook();
 
    /* transfer keys from keyboard buffer */
    while ((kbhit()) && (key_buffer_end < KEY_BUFFER_SIZE-1))
@@ -953,7 +966,7 @@ int install_keyboard()
 
    update_leds();
 
-   _add_exit_func(remove_keyboard);
+   _add_exit_func(boom_remove_keyboard);
    keyboard_installed = TRUE;
    ENABLE();
    return 0;
@@ -965,7 +978,7 @@ int install_keyboard()
  *  Removes the keyboard handler, returning control to the BIOS. You don't
  *  normally need to call this, because allegro_exit() will do it for you.
  */
-void remove_keyboard()
+static void boom_remove_keyboard()
 {
    int c;
    unsigned short shifts;
@@ -1005,11 +1018,11 @@ void remove_keyboard()
    for (c=0; c<128; c++)
       key[c] = FALSE;
 
-   if ((keypressed_hook) && (readkey_hook))
-      while (keypressed_hook())
-	 readkey_hook();
+   if ((boom_keypressed_hook) && (boom_readkey_hook))
+      while (boom_keypressed_hook())
+         boom_readkey_hook();
 
-   _remove_exit_func(remove_keyboard);
+   _remove_exit_func(boom_remove_keyboard);
    keyboard_installed = FALSE;
 
    ENABLE();
@@ -1021,7 +1034,7 @@ void remove_keyboard()
  *  Overrides the state of the keyboard LED indicators.
  *  Set to -1 to return to default behavior.
  */
-void set_leds(int leds)
+void boom_set_leds(int leds)
 {
    if (os_type == OSTYPE_WINNT)
       return;
@@ -1039,19 +1052,19 @@ void set_leds(int leds)
 }
 
 
-
+#if 0
 /* install_keyboard_hooks:
  *  You should only use this function if you *aren't* using the rest of the 
  *  keyboard handler. It can be called in the place of install_keyboard(), 
  *  and lets you provide callback routines to detect and read keypresses, 
- *  which will be used by the main keypressed() and readkey() functions. This 
+ *  which will be used by the main boom_keypressed() and boom_readkey() functions. This 
  *  can be useful if you want to use Allegro's GUI code with a custom 
  *  keyboard handler, as it provides a way for the GUI to access keyboard 
  *  input from your own code.
  */
-void install_keyboard_hooks(int (*keypressed)(), int (*readkey)())
+void install_keyboard_hooks(int (*boom_keypressed)(), int (*boom_readkey)())
 {
-   keypressed_hook = keypressed;
-   readkey_hook = readkey;
+   boom_keypressed_hook = boom_keypressed;
+   boom_readkey_hook = boom_readkey;
 }
-
+#endif 

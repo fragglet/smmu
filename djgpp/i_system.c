@@ -32,10 +32,12 @@ rcsid[] = "$Id$";
 #include <stdio.h>
 
 #include <allegro.h>
-extern void (*keyboard_lowlevel_callback)(int);  // should be in <allegro.h>
 #include <stdarg.h>
 #include <gppconio.h>
 #include <sys/nearptr.h>
+#include <signal.h>
+
+#include "keyboard.h"
 
 #include "../c_runcmd.h"
 #include "../i_system.h"
@@ -114,7 +116,7 @@ int (*I_GetTime)() = I_GetTime_Error;                           // killough
 
 struct keyboard_queue_s keyboard_queue;
 
-static void keyboard_handler(int scancode)
+void keyboard_handler(int scancode)
 {
   keyboard_queue.queue[keyboard_queue.head++] = scancode;
   keyboard_queue.head &= KQSIZE-1;
@@ -124,7 +126,7 @@ static END_OF_FUNCTION(keyboard_handler);
 int mousepresent;
 int joystickpresent;                                         // phares 4/3/98
 
-int keyboard_installed = 0;
+static int keyboard_installed = 0;
 static int orig_key_shifts;  // killough 3/6/98: original keyboard shift state
 extern int autorun;          // Autorun state
 int leds_always_off;         // Tells it not to update LEDs
@@ -150,7 +152,7 @@ void I_ResetLEDs(void)
   //
   // killough 10/98: moved to here
 
-  set_leds(leds_always_off ? 0 : -1);
+  boom_set_leds(leds_always_off ? 0 : -1);
 }
 
 void I_InitKeyboard()
@@ -158,9 +160,9 @@ void I_InitKeyboard()
   // killough 3/21/98: Install handler to handle interrupt-driven keyboard IO
   LOCK_VARIABLE(keyboard_queue);
   LOCK_FUNCTION(keyboard_handler);
-  keyboard_lowlevel_callback = keyboard_handler;
+  boom_keyboard_lowlevel_callback = keyboard_handler;
 
-  install_keyboard();
+  boom_install_keyboard();
   keyboard_installed = true;
 
   // killough 3/6/98: save keyboard state, initialize shift state and LEDs:
@@ -400,8 +402,11 @@ void I_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-06-09 20:55:14  fraggle
+// fix keyboard
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
