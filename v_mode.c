@@ -272,6 +272,7 @@ void V_SetMode(int i)
   // change v_mode to new mode
 
   current_mode = v_mode = i;
+  modenames = viddriver->modenames;
   
   // set correct palette
 
@@ -300,11 +301,9 @@ CONSOLE_COMMAND(v_modelist, 0)
   
   C_Printf(FC_GRAY "video modes:\n" FC_RED);
   
-  while(modenames[i])
-    {
+  for(i=0; modenames[i]; i++)
       C_Printf("%i: %s\n", i, modenames[i]);
-      i++;
-    }
+
 }
 
 unsigned char *gamma_xlate;      // gamma translation table
@@ -493,7 +492,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.9  2001-01-13 14:49:19  fraggle
+// Revision 1.10  2001-01-14 19:22:45  fraggle
+// fix v_modelist
+//
+// Revision 1.9  2001/01/13 14:49:19  fraggle
 // fix checking for modes not supported
 //
 // Revision 1.8  2001/01/13 02:29:46  fraggle
