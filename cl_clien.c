@@ -856,7 +856,7 @@ boolean CL_WaitResponder(event_t *ev)
   
   // chat input
 
-  if(isprint(ev->data1) && strlen(chat_input) < CHAT_MAXINPUT)
+  if(V_IsPrint(ev->data1) && strlen(chat_input) < CHAT_MAXINPUT)
     {
       chat_input[strlen(chat_input) + 1] = '\0';
       chat_input[strlen(chat_input)] = ch;
@@ -1987,7 +1987,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.14  2000-06-04 17:19:02  fraggle
+// Revision 1.15  2000-06-20 21:04:44  fraggle
+// V_IsPrint function for portable isprint()
+//
+// Revision 1.14  2000/06/04 17:19:02  fraggle
 // easier reliable-packet send interface
 //
 // Revision 1.13  2000/05/24 13:29:10  fraggle

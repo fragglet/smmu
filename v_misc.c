@@ -132,6 +132,39 @@ void V_WriteText(unsigned char *s, int x, int y)
     }
 }
 
+// isprint() function (win32 doesnt like it, seems)
+
+boolean V_IsPrint(unsigned char c)
+{
+  if (c >= 128)     // new colour
+    {
+      if(c == *(unsigned char *)FC_TRANS) // translucent toggle
+	return true;
+      else
+	{
+	  int colnum = c - 128;
+
+	  if(colnum < 0 || colnum >= CR_LIMIT)
+	    return false;
+	  else
+	    return true;
+	}
+    }
+
+  // hack to make spacebar work
+  
+  if(c == ' ')
+    return true;
+  
+  c = toupper(c) - V_FONTSTART;
+  if (c >= V_FONTSIZE)
+    {
+      return false;
+    }
+  
+  return v_font[c] != NULL;
+}
+
 // write text in a particular colour
 
 void V_WriteTextColoured(unsigned char *s, int colour, int x, int y)
@@ -582,8 +615,11 @@ void V_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:04:44  fraggle
+// V_IsPrint function for portable isprint()
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

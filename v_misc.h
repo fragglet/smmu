@@ -50,6 +50,7 @@ void V_WriteTextColoured(unsigned char *s, int colour, int x, int y);
 void V_LoadFont();
 int V_StringWidth(unsigned char *s);
 int V_StringHeight(unsigned char *s);
+boolean V_IsPrint(unsigned char c);
 
 //--------------------------------------------------------------------------
 //
@@ -94,8 +95,11 @@ void V_LoadingSetTo(int amount);
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:06:43  fraggle
+// V_IsPrint function for portable isprint()
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
