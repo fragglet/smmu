@@ -53,7 +53,6 @@ int default_weapon_speed = 6;
 #define LOWERSPEED   (FRACUNIT*weapon_speed)
 #define RAISESPEED   (FRACUNIT*weapon_speed)
 #define WEAPONBOTTOM (FRACUNIT*128)
-#define WEAPONTOP    (FRACUNIT*32)
 
 #define BFGCELLS bfgcells        /* Ty 03/09/98 externalized in p_inter.c */
 
@@ -1028,7 +1027,10 @@ void P_MovePsprites(player_t *player)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:41  fraggle
+// Revision 1.3  2000-06-20 21:06:10  fraggle
+// predict psprite bob
+//
+// Revision 1.2  2000/05/02 15:43:41  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
