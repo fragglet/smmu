@@ -36,7 +36,7 @@ rcsid[] = "$Id: m_cheat.c,v 1.7 1998/05/12 12:47:00 phares Exp $";
 #include "dstrings.h"
 #include "d_deh.h"  // Ty 03/27/98 - externalized strings
 
-#define plyr (players+consoleplayer)     /* the console player */
+#define plyr (&players[consoleplayer])     /* the console player */
 
 //-----------------------------------------------------------------------------
 //
@@ -62,7 +62,6 @@ static void cheat_tran();
 static void cheat_massacre();
 static void cheat_ddt();
 static void cheat_hom();
-static void cheat_fast();
 static void cheat_key();
 static void cheat_keyx();
 static void cheat_keyxx();
@@ -70,8 +69,6 @@ static void cheat_weap();
 static void cheat_weapx();
 static void cheat_ammo();
 static void cheat_ammox();
-static void cheat_smart();
-static void cheat_pitch();
 static void cheat_nuke();
 
 #ifdef INSTRUMENTED
@@ -208,18 +205,9 @@ struct cheat_s cheat[] = {
   {"tran",    NULL,                   always,
    cheat_tran  },     // invoke translucency         // phares
 
-  {"smart",   NULL,                   not_net | not_demo,
-   cheat_smart},         // killough 2/21/98: smart monster toggle
-
-  {"pitch",   NULL,                   always,
-   cheat_pitch},         // killough 2/21/98: pitched sound toggle
-
   // killough 2/21/98: reduce RSI injury by adding simpler alias sequences:
   {"mbfran",     NULL,                always, 
    cheat_tran    },   // killough 2/21/98: same as mbftran
-
-  {"fast",    NULL,                   not_net | not_demo,
-   cheat_fast       },   // killough 3/6/98: -fast toggle
 
   {"ice",     NULL,                   not_net | not_demo,
    cheat_friction   },   // phares 3/10/98: toggle variable friction effects
@@ -300,7 +288,6 @@ char buf[3];
 static void cheat_choppers()
 {
   plyr->weaponowned[wp_chainsaw] = true;
-  plyr->powers[pw_invulnerability] = INVULNTICS;
         //sf : dprintf
   dprintf(s_STSTR_CHOPPERS); // Ty 03/27/98 - externalized
 }
@@ -453,10 +440,7 @@ static void cheat_comp()
 // variable friction cheat
 static void cheat_friction()
 {
-        // sf : dprintf
-  dprintf(                      // Ty 03/27/98 - *not* externalized
-    (variable_friction = !variable_friction) ? "Variable Friction enabled" : 
-                                               "Variable Friction disabled" );
+  C_RunTextCmd("varfriction /");        //sf
 }
 
 
@@ -464,22 +448,13 @@ static void cheat_friction()
 // phares 3/10/98
 static void cheat_pushers()
 {
-        // sf : dprintf
-  dprintf(                      // Ty 03/27/98 - *not* externalized
-    (allow_pushers = !allow_pushers) ? "Pushers enabled" : "Pushers disabled");
+  C_RunTextCmd("pushers /");            // sf
 }
 
 // translucency cheat
 static void cheat_tran()
 {
-        // sf : dprintf
-  dprintf(                        // Ty 03/27/98 - *not* externalized
-    (general_translucency = !general_translucency) ? "Translucency enabled" :
-                                                     "Translucency disabled");
-
-  // killough 3/1/98, 4/11/98: cache translucency map on a demand basis
-  if (general_translucency && !main_tranmap)
-    R_InitTranMap(0);
+  C_RunTextCmd("r_trans /");    // sf
 }
 
 static void cheat_massacre()    // jff 2/01/98 kill all monsters
@@ -501,16 +476,7 @@ static void cheat_ddt()
 
 static void cheat_hom()
 {
-   C_RunTextCmd("r_showhom"); //sf
-}
-
-// killough 3/6/98: -fast parameter toggle
-static void cheat_fast()
-{
-        // sf : dprintf
-  dprintf( (fastparm = !fastparm) ? "Fast Monsters On" :
-    "Fast Monsters Off");  // Ty 03/27/98 - *not* externalized
-  G_SetFastParms(fastparm); // killough 4/10/98: set -fast parameter correctly
+   C_RunTextCmd("r_showhom /"); //sf
 }
 
 // killough 2/16/98: keycard/skullkey cheat functions
@@ -598,25 +564,11 @@ char buf[1];
       }
 }
 
-static void cheat_smart()
-{
-  extern int monsters_remember;  // Ty 03/27/98 - *not* externalized
-  dprintf( (monsters_remember = !monsters_remember) ? 
-    "Smart Monsters Enabled" : "Smart Monsters Disabled");
-}
-
-static void cheat_pitch()
-{
-  extern int pitched_sounds;  // Ty 03/27/98 - *not* externalized
-  dprintf((pitched_sounds = !pitched_sounds) ? "Pitch Effects Enabled" :
-    "Pitch Effects Disabled");
-}
-
 static void cheat_nuke()
 {
-  extern int disable_nuke;
-  dprintf( (disable_nuke = !disable_nuke) ? "Nukage Disabled" :
-    "Nukage Enabled");
+  extern int enable_nuke;
+  dprintf( (enable_nuke = !enable_nuke) ? "Nukage Enabled" :
+                                          "Nukage Disabled");
 }
 
 //-----------------------------------------------------------------------------

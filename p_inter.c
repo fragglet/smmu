@@ -602,9 +602,9 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       return;      // killough 12/98: suppress error message
     }
 
-  // sf: display message
-  if(message && player == players+displayplayer)
-        dprintf("%c%s", 128+mess_colour, message);
+  // sf: display message usign player_printf
+  if(message)
+        player_printf(player, "%c%s", 128+mess_colour, message);
   if(removeobj)
     P_RemoveMobj (special);
 

@@ -22,7 +22,7 @@
 
 static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough Exp $";
 
-#include "z_zone.h"  /* memory allocation wrappers -- killough */
+#include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
 #include <stdio.h>
 #include <signal.h>
@@ -33,20 +33,20 @@ static const char rcsid[] = "$Id: i_video.c,v 1.12 1998/05/03 22:40:35 killough 
 #include <dos.h>
 #include <go32.h>
 
-#include "c_io.h"
-#include "c_runcmd.h"
-#include "doomstat.h"
-#include "v_video.h"
-#include "d_main.h"
-#include "m_bbox.h"
-#include "st_stuff.h"
-#include "m_argv.h"
-#include "w_wad.h"
-#include "r_draw.h"
-#include "am_map.h"
-#include "m_menu.h"
-#include "wi_stuff.h"
-#include "i_video.h"
+#include "../c_io.h"
+#include "../c_runcmd.h"
+#include "../doomstat.h"
+#include "../v_video.h"
+#include "../d_main.h"
+#include "../m_bbox.h"
+#include "../st_stuff.h"
+#include "../m_argv.h"
+#include "../w_wad.h"
+#include "../r_draw.h"
+#include "../am_map.h"
+#include "../m_menu.h"
+#include "../wi_stuff.h"
+#include "../i_video.h"
 
 //
 // I_UpdateNoBlit
@@ -271,7 +271,7 @@ static void I_InitGraphicsMode(void)
 	  if (page_flip)
 	    if (set_gfx_mode(gfx_type, 640, 400, 640, 800))
 	      {
-		warn_about_changes(S_BADVID);      // Revert to no pageflipping
+//                warn_about_changes(S_BADVID);      // Revert to no pageflipping
 		page_flip = 0;
 	      }
 	    else
@@ -281,7 +281,7 @@ static void I_InitGraphicsMode(void)
 	    {
 	      hires = 0;                           // Revert to lowres
 	      page_flip = in_page_flip;            // Restore orig pageflipping
-	      warn_about_changes(S_BADVID);
+//              warn_about_changes(S_BADVID);
 	      I_InitGraphicsMode();                // Start all over
 	      return;
 	    }

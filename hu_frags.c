@@ -40,6 +40,7 @@ extern boolean gamekeydown[NUMKEYS];
 player_t *sortedplayers[MAXPLAYERS];
 
 int num_players;
+int show_scores;                // enable scores
 
 static patch_t *fragspic;
 static patch_t *fragbox;
@@ -60,6 +61,8 @@ void HU_FragsDrawer()
         if(((players[displayplayer].playerstate!=PST_DEAD || walkcam_active)
             && !gamekeydown[key_frags]) || !deathmatch )
                 return;
+
+        if(!show_scores) return;
 
                 // "frags"
         V_DrawPatch(FRAGSX, FRAGSY, 0, fragspic);
@@ -156,8 +159,12 @@ CONSOLE_COMMAND(frags, 0)
         }
 }
 
+VARIABLE_BOOLEAN(show_scores,       NULL,           onoff);
+CONSOLE_VARIABLE(show_scores,   show_scores,    0)      {}
+
 void HU_FragsAddCommands()
 {
         C_AddCommand(frags);
+        C_AddCommand(show_scores);
 }
 

@@ -231,7 +231,7 @@ void SF_Tip()
               else    // assume int
                      sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
 
-        HU_centremsg(tempstr);
+        HU_CentreMsg(tempstr);
 }
 
         // tip to a particular player
@@ -244,7 +244,6 @@ void SF_PlayerTip()
         { script_error("player not specified\n"); return;}
 
         plnum = intvalue(t_argv[0]);
-        if(plnum != displayplayer) return;      // not this player
 
         for(i=1; i<t_argc; i++)
                 if(t_argv[i].type == svt_string)
@@ -252,7 +251,7 @@ void SF_PlayerTip()
                 else    // assume int
                         sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
 
-        HU_centremsg(tempstr);
+        player_printf(&players[plnum], tempstr);
 }
 
         // message player
@@ -283,7 +282,6 @@ void SF_PlayerMsg()
         { script_error("player not specified\n"); return;}
 
         plnum = intvalue(t_argv[0]);
-        if(plnum != displayplayer) return;      // not this player
 
         for(i=1; i<t_argc; i++)
                 if(t_argv[i].type == svt_string)
@@ -291,7 +289,7 @@ void SF_PlayerMsg()
                 else    // assume int
                         sprintf(tempstr,"%s%i", tempstr, (int)t_argv[i].value.i);
 
-        dprintf(tempstr);
+        player_printf(&players[plnum], tempstr);
 }
 
 void SF_PlayerInGame()

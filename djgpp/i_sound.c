@@ -26,14 +26,15 @@ rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 #include <stdio.h>
 #include <allegro.h>
 
-#include "c_runcmd.h"
-#include "doomstat.h"
 #include "mmus2mid.h"   //jff 1/16/98 declarations for MUS->MIDI converter
-#include "i_sound.h"
-#include "i_system.h"
-#include "w_wad.h"
-#include "g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
-#include "d_main.h"
+
+#include "../c_runcmd.h"
+#include "../doomstat.h"
+#include "../i_sound.h"
+#include "../i_system.h"
+#include "../w_wad.h"
+#include "../g_game.h"     //jff 1/21/98 added to use dprintf in I_RegisterSong
+#include "../d_main.h"
 
 void I_CacheSound(sfxinfo_t *sound);
 

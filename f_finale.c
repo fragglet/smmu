@@ -67,7 +67,6 @@ void F_StartFinale (void)
 {
   gameaction = ga_nothing;
   gamestate = GS_FINALE;
-  viewactive = false;
   automapactive = false;
 
   // killough 3/28/98: clear accelerative text flags
@@ -598,7 +597,7 @@ void F_CastDrawer (void)
   // draw the current frame in the middle of the screen
   sprdef = sprites + caststate->sprite;
   if(castorder[castnum].type == MT_PLAYER)
-        sprdef = sprites + players[displayplayer].skin->sprite;
+        sprdef = &sprites[players[displayplayer].skin->sprite];
   sprframe = &sprdef->spriteframes[ caststate->frame & FF_FRAMEMASK];
   lump = sprframe->lump[0];
   flip = (boolean)sprframe->flip[0];

@@ -38,7 +38,6 @@ static const char rcsid[] =
 #include "r_draw.h"
 #include "p_skin.h"
 #include "g_game.h"
-#include "ser_main.h"
 #include "v_video.h"
 
 #define NCMD_EXIT               0x80000000
@@ -61,6 +60,8 @@ doomdata_t*     netbuffer;             // points inside doomcom
 //
 #define RESENDCOUNT     10
 #define PL_DRONE        0x80    /* bit flag in doomdata->player */
+
+void (*netdisconnect)() = NULL;  // function ptr for disconnect function
 
 ticcmd_t localcmds[BACKUPTICS];
 
@@ -507,6 +508,23 @@ void CheckAbort (void)
         I_Error("Network game synchronisation aborted.\n");
 }
 
+//
+// D_InitPlayers
+//
+
+// sf: init players, set names, skins, colours etc
+
+void D_InitPlayers (void)
+{
+  int i;
+
+  for(i=0; i<MAXPLAYERS; i++)
+  {
+        sprintf(players[i].name, "player %i", i+1);
+        players[i].colormap = i % TRANSLATIONCOLOURS;
+        players[i].skin = &marine;
+  }
+}
 
 //
 // D_ArbitrateNetStart
@@ -597,6 +615,8 @@ void D_ArbitrateNetStart (void)
      }
    }
    usermsg("random seed: %i", rngseed);
+
+   D_InitPlayers();
 }
 
 //
@@ -622,12 +642,7 @@ void D_CheckNetGame (void)
 
   D_InitNetGame();
 
-  for(i=0; i<MAXPLAYERS; i++)
-  {
-        sprintf(players[i].name, "player %i", i+1);
-        players[i].colormap = i % TRANSLATIONCOLOURS;
-        players[i].skin = &marine;
-  }
+  D_InitPlayers();      
 
   C_NetInit();
   atexit(D_QuitNetGame);       // killough
@@ -688,7 +703,11 @@ void D_QuitNetGame (void)
     I_WaitVBL (1);
   }
 
-  if(ser_active) Ser_Disconnect();      // hang up modem etc.
+  if(netdisconnect)
+  {
+        netdisconnect();                // disconnect (hang up modem etc)
+        netdisconnect = NULL;
+  }
 
   consoleplayer = 0;
   netgame = 0; deathmatch = 0;

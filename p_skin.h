@@ -42,5 +42,6 @@ void P_InitSkins();
 void P_ListSkins();
 void P_ChangeSkin();
 void P_ParseSkin(int lumpnum);
+void P_SetSkin(skin_t *skin, int playernum);
 
 #endif

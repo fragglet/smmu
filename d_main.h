@@ -52,7 +52,7 @@ extern boolean clfastparm; // checkparm of -fast
 extern boolean nosfxparm;
 extern boolean nomusicparm;
 
-extern boolean redrawsbar;
+extern boolean redrawsbar, redrawborder;
 
 
 // Called by IO functions when input is detected.

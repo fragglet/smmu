@@ -23,8 +23,13 @@
 static const char
 rcsid[] = "$Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $";
 
+#include <stdio.h>
+#include <stdarg.h>
+#include <time.h>
+
 #include "doomstat.h"
 #include "c_io.h"
+#include "d_main.h"
 #include "w_wad.h"
 #include "p_skin.h"
 #include "p_setup.h"
@@ -34,7 +39,9 @@ rcsid[] = "$Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $";
 
 static void R_LoadDoom1();
 static int R_Doom1Texture(const char *name);
-
+void error_printf(char *s, ...);
+FILE *error_file = NULL;
+char *error_filename;
 
 //
 // Graphics.
@@ -355,7 +362,8 @@ static void R_GenerateLookup(int texnum, int *const errors)
 		      if (badcol)
 			{
 			  badcol = 0;
-			  printf("\nWarning: Texture %8.8s "
+                          // sf: changed to usermsg
+                          usermsg("\nWarning: Texture %8.8s "
 				 "(height %d) has bad column(s)"
 				 " starting at x = %d.",
 				 texture->name, texture->height, x);
@@ -384,9 +392,10 @@ static void R_GenerateLookup(int texnum, int *const errors)
 	  if (devparm)
 	    {
 	      // killough 8/8/98
-	      printf("\nR_GenerateLookup:"
-		     " Column %d is without a patch in texture %.8s",
-		     x, texture->name);
+              // sf: changed to use error_printf for graphical startup
+              error_printf("\nR_GenerateLookup:"
+                           " Column %d is without a patch in texture %.8s",
+                           x, texture->name);
 	      ++*errors;
 	    }
 	  else
@@ -415,8 +424,9 @@ static void R_GenerateLookup(int texnum, int *const errors)
     
     if (err)       // killough 10/98: non-verbose output
       {
-	printf("\nR_GenerateLookup: Column without a patch in texture %.8s",
-	       texture->name);
+                // sf: error_printf
+        error_printf("\nR_GenerateLookup: Column without a patch in texture %.8s",
+                      texture->name);
 	++*errors;
       }
   }
@@ -492,7 +502,8 @@ void R_InitTextures (void)
           patchlookup[i] = (W_CheckNumForName)(name, ns_sprites);
 
           if (patchlookup[i] == -1 && devparm)	    // killough 8/8/98
-            printf("\nWarning: patch %.8s, index %d does not exist",name,i);
+                // sf: changed to usermsg
+            usermsg("\nWarning: patch %.8s, index %d does not exist",name,i);
         }
     }
   Z_Free(names);
@@ -589,7 +600,8 @@ void R_InitTextures (void)
           patch->patch = patchlookup[SHORT(mpatch->patch)];
           if (patch->patch == -1)
             {	      // killough 8/8/98
-              printf("\nR_InitTextures: Missing patch %d in texture %.8s",
+                // sf: error_printf
+              error_printf("\nR_InitTextures: Missing patch %d in texture %.8s",
                      SHORT(mpatch->patch), texture->name); // killough 4/17/98
               ++errors;
             }
@@ -616,8 +628,11 @@ void R_InitTextures (void)
     Z_Free(maptex2);
 
   if (errors)
-    I_Error("\n\n%d errors.", errors);
-    
+  {
+    fclose(error_file);
+    I_Error("\n\n%d errors.\nerrors dumped to %s\n", errors, error_filename);
+  }
+
   // Precalculate whatever possible.
   for (i=0 ; i<numtextures ; i++)
     R_GenerateLookup(i, &errors);
@@ -1162,7 +1177,7 @@ static int R_Doom1Texture(const char *name)
 
         for(i=0; i<numconvs; i++)
         {
-                if(!strncmp(name, txtrconv[i].doom1, 8))   // found it
+                if(!strncasecmp(name, txtrconv[i].doom1, 8))   // found it
                 {
                    doom1level = true;
                    return R_CheckTextureNumForName(txtrconv[i].doom2);
@@ -1170,6 +1185,30 @@ static int R_Doom1Texture(const char *name)
         }
 
         return -1;
+}
+
+// sf: error printf
+// for use w/graphical startup
+
+void error_printf(char *s, ...)
+{
+  static char tmp[1024];
+  va_list v;
+  va_start(v,s);
+  vsprintf(tmp,s,v);                  // print message in buffer
+  va_end(v);
+
+  if(!error_file)
+  {
+     time_t nowtime = time(NULL);
+
+     error_filename = "smmu_err.txt";
+     error_file = fopen(error_filename, "w");
+     fprintf(error_file, "SMMU textures error file\n%s\n",
+        ctime(&nowtime));
+  }
+
+  fprintf(error_file, tmp);
 }
 
 //-----------------------------------------------------------------------------

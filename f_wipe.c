@@ -38,15 +38,15 @@ int worms[MAX_SCREENWIDTH];
 #define wipe_scrheight (SCREENHEIGHT<<hires)
 #define wipe_scrwidth (SCREENWIDTH<<hires)
 int            wipe_speed = 12;
-int            inwipe = 0;
+boolean        inwipe = false;
 int            syncmove = 0;
 int            starting_height;
 
-void wipe_Initwipe()
+void Wipe_Initwipe()
 {
         int x;
 
-        inwipe = 1;
+        inwipe = true;
 
         starting_height = current_height<<hires;       // use console height
         for(x=0; x<wipe_scrwidth; x++)
@@ -57,9 +57,9 @@ void wipe_Initwipe()
         syncmove = 0;
 }
 
-void wipe_StartScreen()
+void Wipe_StartScreen()
 {
-        wipe_Initwipe();
+        Wipe_Initwipe();
 
         if(!start_screen[0])
         {
@@ -78,7 +78,7 @@ void wipe_StartScreen()
         return;
 }
 
-void wipe_Drawer()
+void Wipe_Drawer()
 {
         int x;
 
@@ -100,7 +100,7 @@ void wipe_Drawer()
         redrawsbar = true; // clean up status bar
 }
 
-void wipe_Ticker()
+void Wipe_Ticker()
 {
         int done, x;
         int keepsyncmove = 0;
@@ -127,7 +127,7 @@ void wipe_Ticker()
         }
 
         if(done)
-                inwipe = 0;
+                inwipe = false;
         syncmove = keepsyncmove;
 }
 

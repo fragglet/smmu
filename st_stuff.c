@@ -303,8 +303,8 @@ void ST_refreshBackground(void)
       // killough 3/7/98: make face background change with displayplayer
       if (netgame)                      //sf: new colours
         V_DrawPatchTranslated(ST_FX, 0, BG, faceback,
-                        players[displayplayer].colormap ?
-                (char*)translationtables + 256*(players[displayplayer].colormap-1) :
+                        plyr->colormap ?
+                (char*)translationtables + 256*(plyr->colormap-1) :
                         cr_red, -1);
 
 
@@ -636,7 +636,7 @@ void ST_doPaletteStuff(void)
         palette = 0;
 
   if (camera) palette = 0;     //sf
-
+  
   if (palette != st_palette)
     {
       st_palette = palette;

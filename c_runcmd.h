@@ -151,8 +151,8 @@ extern char c_args[128];
 void C_RunCommand(command_t *command, char *options);
 void C_RunTextCmd(char *cmdname);
 
-char *C_VariableValue(command_t *command);
-char *C_VariableStringValue(command_t *command);
+char *C_VariableValue(variable_t *command);
+char *C_VariableStringValue(variable_t *command);
 
 /**** tab completion ****/
 

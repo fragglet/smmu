@@ -27,6 +27,7 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "doomstat.h"
 #include "c_runcmd.h"
 #include "g_game.h"
+#include "m_menu.h" 
 #include "r_main.h"
 #include "r_things.h"
 #include "r_plane.h"
@@ -35,6 +36,7 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "r_draw.h"
 #include "m_bbox.h"
 #include "r_sky.h"
+#include "s_sound.h"
 #include "v_video.h"
 
 // Fineangles in the SCREENWIDTH wide window.
@@ -59,6 +61,8 @@ extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
 camera_t *viewcamera;
 int zoom = 1;   // sf: fov/zooming
+
+extern int screenSize;
 
 void R_HOMdrawer();
 
@@ -426,13 +430,10 @@ void R_ExecuteSetViewSize (void)
 // R_Init
 //
 
-extern int screenblocks;
-extern int screenSize;
-
 void R_Init (void)
 {
   R_InitData();
-  R_SetViewSize(screenblocks);
+  R_SetViewSize(screenSize+3);
   R_InitPlanes();
   R_InitLightTables();
   R_InitSkyMap();
@@ -667,7 +668,9 @@ void R_ResetTrans()
 //  Console Commands
 //
 
-VARIABLE_BOOLEAN(lefthanded, NULL,                  yesno);
+char *handedstr[]       = {"right", "left"};
+
+VARIABLE_BOOLEAN(lefthanded, NULL,                  handedstr);
 VARIABLE_BOOLEAN(r_blockmap, NULL,                  onoff);
 VARIABLE_INT(flatskip, NULL,                    0, 100, NULL);
 VARIABLE_BOOLEAN(flashing_hom, NULL,                onoff);
@@ -690,7 +693,10 @@ CONSOLE_VARIABLE(r_planeview, visplane_view, 0) {}
 CONSOLE_VARIABLE(r_zoom, zoom, 0) {}
 CONSOLE_VARIABLE(r_precache, r_precache, 0) {}
 CONSOLE_VARIABLE(r_showgun, showpsprites, 0) {}
-CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0) {}
+CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0)
+{
+        dprintf("hom detection %s", autodetect_hom ? "on" : "off");
+}
 CONSOLE_VARIABLE(r_stretchsky, stretchsky, 0) {}
 CONSOLE_VARIABLE(r_swirl, r_swirl, 0) {}
 CONSOLE_VARIABLE(r_trans, general_translucency, 0)
@@ -704,15 +710,13 @@ CONSOLE_VARIABLE(r_tranpct, tran_filter_pct, 0)
 
 CONSOLE_VARIABLE(screensize, screenSize, 0)
 {
-  screenblocks = screenSize + 3;
+  S_StartSound(NULL,sfx_stnmov);
 
   if(gamestate == GS_LEVEL) // not in intercam
-     R_SetViewSize (screenblocks);
-}
-
-CONSOLE_COMMAND(listskins, 0)
-{
-   P_ListSkins();
+  {
+     hide_menu = 20;             // hide the menu for a few tics
+     R_SetViewSize (screenSize+3);
+  }
 }
 
 void R_AddCommands()
@@ -730,7 +734,6 @@ void R_AddCommands()
    C_AddCommand(r_trans);
    C_AddCommand(r_tranpct);
    C_AddCommand(screensize);
-   C_AddCommand(listskins);
 }
 
 //----------------------------------------------------------------------------

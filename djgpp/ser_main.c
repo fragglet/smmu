@@ -5,19 +5,22 @@
 // this is a hacked up piece of shit
 //
 
-#include "ser_main.h"
-#include "d_net.h"
-#include "c_net.h"
-#include "d_event.h"
-#include "d_main.h"
-#include "g_game.h"
-#include "i_video.h"
-#include "c_io.h"
-#include "c_runcmd.h"
-#include "doomdef.h"
-#include "doomstat.h"
+#include "../doomdef.h"
+#include "../doomstat.h"
 
-void (*netdisconnect)();
+#include "ser_main.h"
+
+#include "../c_io.h"
+#include "../c_runcmd.h"
+#include "../c_net.h"
+#include "../d_event.h"
+#include "../d_main.h"
+#include "../d_net.h"
+#include "../g_game.h"
+#include "../i_video.h"
+#include "../m_menu.h"
+
+extern void (*netdisconnect)();
 
 int CheckForEsc();
 void Ser_Disconnect();
@@ -90,6 +93,9 @@ void Ser_Error (char *error, ...)
                 usermsg(tempstr);
                 usermsg("");
 		va_end (argptr);
+
+                strcpy(menu_error_message, tempstr);
+                menu_error_time = -1;
 	}
         ser_active = 0;
 }
@@ -101,7 +107,7 @@ void Ser_Disconnect()
         if(!usemodem) return;
 
         usermsg("");
-        usermsg(FC_GRAY "Dropping DTR.. ");
+        usermsg("Dropping DTR.. ");
         usermsg("");
 
         OUTPUT( uart + MODEM_CONTROL_REGISTER
@@ -268,8 +274,8 @@ void Ser_Connect (void)
 // wait for a good packet
 //
         usermsg("");
-        usermsg(FC_GRAY "Attempting to connect across serial");
-        usermsg(FC_GRAY "link, press escape to abort.");
+        usermsg("Attempting to connect across serial");
+        usermsg("link, press escape to abort.");
         usermsg("");
 
 	oldsec = -1;
@@ -279,7 +285,7 @@ void Ser_Connect (void)
 	{
                 if(CheckForEsc())
                 {
-                        Ser_Error(FC_GRAY "connection aborted.");
+                        Ser_Error("connection aborted.");
                         return;
                 }
                 while (Ser_ReadPacket ())
@@ -331,7 +337,7 @@ void ModemCommand (char *str)
 {
         if(!ser_active) return;         // aborted
 
-        usermsg (">> %s",str);
+        usermsg ("%s",str);
 	write_buffer (str,strlen(str));
 	write_buffer ("\r",1);
 }
@@ -383,7 +389,7 @@ void ModemResponse (char *resp)
 		{
                         if(CheckForEsc())
                         {
-                                Ser_Error(FC_GRAY "modem response aborted.");
+                                Ser_Error("modem response aborted.");
                                 return;
                         }
 			c = read_byte ();
@@ -392,7 +398,7 @@ void ModemResponse (char *resp)
 			if (c=='\n' || respptr == 79)
 			{
 				response[respptr] = 0;
-                                usermsg("%s",response);
+                                usermsg(FC_GOLD"%s",response);
 				break;
 			}
 			if (c>=' ')
@@ -473,7 +479,7 @@ void Dial (void)
         if(!ser_active) return; // aborted
 
         usermsg ("");
-        usermsg (FC_GRAY "Dialing...");
+        usermsg ("Dialing...");
         usermsg ("");
 
         sprintf (cmd,"ATDT%s",phonenum);
@@ -504,7 +510,7 @@ void Answer (void)
         if(!ser_active) return;         // aborted
 
         usermsg ("");
-        usermsg (FC_GRAY "Waiting for ring...");
+        usermsg ("Waiting for ring...");
         usermsg ("");
 
 	ModemResponse ("RING");
@@ -528,9 +534,11 @@ extern void    (*netsend) (void);
 void Ser_Start()
 {
         c_showprompt = false;
+
         C_SetConsole();
 
         ser_active = true;
+        usemodem = false;               // default usemodem to false
 //
 // set network characteristics
 //
@@ -593,6 +601,8 @@ void Ser_Start()
                 return;
         }
         ResetNet();
+
+        M_ClearMenus();         // clear menus now connected
 }
 
 extern event_t events[MAXEVENTS];
@@ -601,7 +611,7 @@ extern int eventhead, eventtail;
 int CheckForEsc()
 {
     event_t *ev;
-    int escape=0;
+    int escape=false;
 
     I_StartTic (); 
 
@@ -609,7 +619,7 @@ int CheckForEsc()
     {
         ev = events + eventtail;
         if((ev->type==ev_keydown) && (ev->data1==KEYD_ESCAPE))
-                return 1;
+                escape = true;
     }
     return escape;
 }

@@ -447,14 +447,18 @@ translat_t translations[] = {
   {96,  16},     // indigo
   {64,  16},     // brown
   {32,  16},     // red
-  {16,  16},     // pink                 /*** NEW COLOURS ***/
+                 /*** NEW COLOURS ***/
   {176, 16},     // tomato
-  {56,  8},      // cream
-  {88,  8},      // white
   {128, 16},     // dirt
   {200, 8},      // blue
+  {160, 8},      // gold
+  {152, 8},      // felt?
+  {0,   1},      // bleeacckk!!
+  {250, 5},      // purple
   {216, 8},      // vomit yellow
-  {0,   1}       // bleeacckk!!
+  {16,  16},     // pink
+  {56,  8},      // cream
+  {88,  8},      // white
 };
         // sf : rewritten
 

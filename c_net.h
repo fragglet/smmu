@@ -36,6 +36,7 @@ enum
         netcmd_mondistfriend,
         netcmd_map,
         netcmd_weapspeed,
+        netcmd_nukage,
         NUMNETCMDS,
 };
 

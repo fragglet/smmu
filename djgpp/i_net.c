@@ -19,21 +19,21 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "z_zone.h"  /* memory allocation wrappers -- killough */
+#include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
 static const char
 rcsid[] = "$Id: i_net.c,v 1.4 1998/05/16 09:41:03 jim Exp $";
 
-#include "doomstat.h"
-#include "i_system.h"
-#include "d_event.h"
-#include "d_net.h"
-#include "m_argv.h"
+#include "../doomstat.h"
+#include "../i_system.h"
+#include "../d_event.h"
+#include "../d_net.h"
+#include "../m_argv.h"
 
 #include <dpmi.h>
 #include <sys/nearptr.h>
 
-#include "i_net.h"
+#include "../i_net.h"
 
 void    NetSend (void);
 boolean NetListen (void);

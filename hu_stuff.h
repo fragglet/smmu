@@ -25,6 +25,7 @@ extern int obituaries;
 extern int obcolour;       // the colour of death messages
 extern int showMessages;   // Show messages has default, 0 = off, 1 = on
 extern int mess_colour;    // the colour of normal messages
+extern char *chat_macros[10];
 
 void HU_Init();
 void HU_Drawer();
@@ -36,8 +37,8 @@ void HU_Start();
 void HU_End();
 
 void HU_WriteText(unsigned char *s, int x, int y);
-void HU_playermsg(char *s);
-void HU_centremsg();
+void HU_PlayerMsg(char *s);
+void HU_CentreMsg();
 void HU_Erase();
 
 #define CROSSHAIRS 3

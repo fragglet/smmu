@@ -5,7 +5,7 @@
 // joystick etc). I didn't think it really fell under the 'video'
 // category =).
 
-#include "z_zone.h"  /* memory allocation wrappers -- killough */
+#include "../z_zone.h"  /* memory allocation wrappers -- killough */
 
 #include <stdio.h>
 #include <signal.h>
@@ -14,19 +14,19 @@
 #include <sys/nearptr.h>
 #include <dos.h>
 
-#include "c_runcmd.h"
-#include "doomstat.h"
-#include "v_video.h"
-#include "d_main.h"
-#include "m_bbox.h"
-#include "st_stuff.h"
-#include "m_argv.h"
-#include "w_wad.h"
-#include "r_draw.h"
-#include "am_map.h"
-#include "m_menu.h"
-#include "wi_stuff.h"
-#include "i_system.h"
+#include "../c_runcmd.h"
+#include "../doomstat.h"
+#include "../v_video.h"
+#include "../d_main.h"
+#include "../m_bbox.h"
+#include "../st_stuff.h"
+#include "../m_argv.h"
+#include "../w_wad.h"
+#include "../r_draw.h"
+#include "../am_map.h"
+#include "../m_menu.h"
+#include "../wi_stuff.h"
+#include "../i_system.h"
 
 extern int usemouse;   // killough 10/98
 

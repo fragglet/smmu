@@ -1142,7 +1142,7 @@ void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 
   HU_FragsUpdate();     // reset frag counter
 
-  R_SetViewSize (screenblocks); //sf
+  R_SetViewSize (screenSize+3); //sf
 
   T_PreprocessScripts();        // preprocess FraggleScript scripts
 

@@ -745,8 +745,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
           !player->cards[it_yellowcard] &&
           !player->cards[it_yellowskull])
         {
-          if(player==players+consoleplayer)  //sf
-                HU_centremsg(s_PD_ANY);
+          player_printf(player, s_PD_ANY);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -755,8 +754,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_redcard] &&
           (!skulliscard || !player->cards[it_redskull]))
         {
-          if(player==players+consoleplayer)     //sf
-                HU_centremsg(skulliscard? s_PD_REDK : s_PD_REDC);
+          player_printf(player, skulliscard? s_PD_REDK : s_PD_REDC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -765,8 +763,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_bluecard] &&
           (!skulliscard || !player->cards[it_blueskull]))
         {
-          if(player==players+consoleplayer)  //sf
-                HU_centremsg(skulliscard? s_PD_BLUEK : s_PD_BLUEC);
+          player_printf(player, skulliscard ? s_PD_BLUEK : s_PD_BLUEC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -775,8 +772,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_yellowcard] &&
           (!skulliscard || !player->cards[it_yellowskull]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(skulliscard? s_PD_YELLOWK : s_PD_YELLOWC);
+          player_printf(player, skulliscard? s_PD_YELLOWK : s_PD_YELLOWC);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -785,8 +781,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_redskull] &&
           (!skulliscard || !player->cards[it_redcard]))
         {
-          if(player==players+consoleplayer)  //sf
-                HU_centremsg(skulliscard? s_PD_REDK : s_PD_REDS);
+          player_printf(player, skulliscard? s_PD_REDK : s_PD_REDS);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -795,8 +790,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_blueskull] &&
           (!skulliscard || !player->cards[it_bluecard]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(skulliscard? s_PD_BLUEK : s_PD_BLUES);
+          player_printf(player, skulliscard? s_PD_BLUEK : s_PD_BLUES);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -805,8 +799,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
       if (!player->cards[it_yellowskull] &&
           (!skulliscard || !player->cards[it_yellowcard]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(skulliscard? s_PD_YELLOWK : s_PD_YELLOWS);
+          player_printf(player, skulliscard? s_PD_YELLOWK : s_PD_YELLOWS);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -820,8 +813,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
            !player->cards[it_yellowcard] ||
            !player->cards[it_yellowskull]))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(s_PD_ALL6);
+          player_printf(player, s_PD_ALL6);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -830,8 +822,7 @@ boolean P_CanUnlockGenDoor(line_t *line, player_t *player)
            !(player->cards[it_bluecard] | player->cards[it_blueskull]) ||
            !(player->cards[it_yellowcard] | !player->cards[it_yellowskull])))
         {
-          if(player==players+consoleplayer) //sf
-                HU_centremsg(s_PD_ALL3);
+          player_printf(player, s_PD_ALL3);
           S_StartSound(player->mo,sfx_oof);             // killough 3/20/98
           return false;
         }
@@ -2097,7 +2088,8 @@ void P_ShootSpecialLine(mobj_t *thing, line_t *line)
     }
 }
 
-int disable_nuke;  // killough 12/98: nukage disabling cheat
+        // sf: changed to enable_nuke for console
+int enable_nuke;  // killough 12/98: nukage disabling cheat
 
 //
 // P_PlayerInSpecialSector()
@@ -2128,7 +2120,7 @@ void P_PlayerInSpecialSector (player_t *player)
           sector->special = 0;
 	}
       else
-	if (!disable_nuke)  // killough 12/98: nukage disabling cheat
+        if (enable_nuke)  // killough 12/98: nukage disabling cheat
 	  switch (sector->special)
 	    {
 	    case 5:
@@ -2176,7 +2168,7 @@ void P_PlayerInSpecialSector (player_t *player)
     }
   else //jff 3/14/98 handle extended sector types for secrets and damage
     {
-      if (!disable_nuke)  // killough 12/98: nukage disabling cheat
+      if (enable_nuke)  // killough 12/98: nukage disabling cheat
 	switch ((sector->special&DAMAGE_MASK)>>DAMAGE_SHIFT)
 	  {
 	  case 0: // no damage

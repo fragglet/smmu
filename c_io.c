@@ -43,7 +43,7 @@ extern const char* shiftxform;
 
 /* prototypes **********************/
 
-void C_EasterEgg();     // shhh!
+void Egg();
 
 /* local variables *****************/
         // the messages (what you see in the console window)
@@ -67,6 +67,7 @@ char inputtext[INPUTLENGTH];
 char *input_point;      // left-most point you see of the command line
                         // for scrolling command line
 int pgup_down=0, pgdn_down=0;
+int console_enabled = true;
 
 /* functions ***********************/
 
@@ -146,7 +147,6 @@ void C_Ticker()
         else
         {
                 // console gamestate: no moving consoles!
-
                current_target = current_height;
         }
 
@@ -223,7 +223,7 @@ int C_Responder(event_t* ev)
                   // detect activating of console etc.
 
                 // activate console?
-        if(ev->data1 == KEYD_CONSOLE)
+        if(ev->data1 == KEYD_CONSOLE && console_enabled)
         {
                   // set console
                 current_target =
@@ -255,7 +255,7 @@ int C_Responder(event_t* ev)
                 C_AddToHistory(inputtext);      // add to history
 
                         // shh!
-                if(!strcmp(inputtext, "r0x0rz delux0rz")) C_EasterEgg();
+                if(!strcmp(inputtext, "r0x0rz delux0rz")) Egg();
 
                         // run the command
                 cmdtype = c_typed;
@@ -427,7 +427,7 @@ static void C_AddChar(unsigned char c)
 {
         char *end;
 
-        if( (c>31 && c<127) || c>=128)  // >=128 for colours
+        if( c=='\t' || (c>31 && c<127) || c>=128)  // >=128 for colours
         {
              if(V_StringWidth(messages[message_last]) > SCREENWIDTH-9)
              {
@@ -495,7 +495,7 @@ void C_SetConsole()
         current_height = SCREENHEIGHT;
         current_target = SCREENHEIGHT;
 
-        C_Update();
+//        C_Update();
         C_ClearBuffer(c_script);        // clear level scripting buffer
         S_StopMusic();                  // stop music if any
         S_StopSounds();                 // and sounds
@@ -514,9 +514,18 @@ void C_InstaPopup()
         current_target = current_height = 0;
 }
 
-void C_EasterEgg(){char *oldscreen;int x,y;extern unsigned char egg[];for(x
-=0;x<C_SCREENWIDTH;x++)for(y=0;y<C_SCREENHEIGHT;y++){unsigned char *src=egg
-+((y%44)*42)+(x%42);if(*src!=247)backdrop[y*C_SCREENWIDTH+x]=*src;}oldscreen
-=screens[0];screens[0]=backdrop;HU_WriteText(FC_BROWN"my hair looks much too"
-"\n dark in this pic.\noh well, have fun!\n      -- fraggle",160,168);screens
-[0]=oldscreen;}
+#define E extern
+#define U unsigned
+#define C char
+#define I int
+#define V void
+#define F for
+#define C_W C_SCREENWIDTH
+#define C_H C_SCREENHEIGHT
+#define s0 screens[0]
+#define WT HU_WriteText
+#define bd backdrop
+V Egg(V){C *os;I x,y;E U C egg[];F(x=0;x<C_W;x++)F(y=0;y<C_H;y
+++){U C *s=egg+((y%44)*42)+(x%42);if(*s!=247)bd[y*C_W+x]=*s;}os=s0;
+s0=bd;WT(FC_BROWN"my hair looks much too\n dark in this pic.\noh we"
+"ll, have fun!\n      -- fraggle",160,168);s0=os;}

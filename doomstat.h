@@ -53,7 +53,8 @@ extern  boolean respawnparm;  // checkparm of -respawn
 extern  boolean fastparm; // checkparm of -fast
 extern  boolean devparm;  // DEBUG: launched with -devparm
 
-extern  int screenblocks;     // killough 11/98
+                // sf: screenblocks removed, replaced w/screenSize
+extern  int screenSize;     // killough 11/98
 
 // -----------------------------------------------------
 // Game Mode - identify IWAD as shareware, retail etc.

@@ -27,9 +27,9 @@
 skin_t marine={"PLAY", "marine", SPR_PLAY, {}, "STF", 0};
 skin_t **skins = NULL;
 char **spritelist = NULL;
+char *default_skin = NULL;     // name of currently selected skin
 
 boolean isvowel(char c);
-void sf_strupr(char *s);
 
 void P_AddSkins();
 void P_AddSkin(skin_t *newskin);
@@ -71,15 +71,12 @@ void P_InitSkins()
         if(skins)
         {
                       // add the skins
-            currentskin = skins;
-        
-            while(*currentskin)
+            for(currentskin = skins; *currentskin; currentskin++)
             {
                  *currentsprite = (*currentskin)->spritename;
                  (*currentskin)->sprite = currentsprite-spritelist;
                  P_CacheFaces(*currentskin);
                  currentsprite++;
-                 currentskin++;
             }
         }
 
@@ -92,11 +89,20 @@ void P_InitSkins()
 void P_CreateMarine()
 {
         int i;
+        static int marine_created = false;
+
+        if(marine_created) return;      // dont make twice
         
         for(i=0; i<NUMSKINSOUNDS; i++)
                 marine.sounds[i] = NULL;
         marine.faces = default_faces;
         marine.facename = "STF";
+
+        if(default_skin == NULL) default_skin = Z_Strdup("marine", PU_STATIC, 0);
+
+        P_AddSkin(&marine);
+
+        marine_created = true;
 }
 
         // add a new skin to the skins list
@@ -133,7 +139,7 @@ void P_AddSpriteLumps(char *named)
 
         for(i=0;i<numlumps;i++)
         {
-                if(!strncmp(lumpinfo[i]->name, named, n))
+                if(!strncasecmp(lumpinfo[i]->name, named, n))
                 {
                         // mark as sprites so that W_CoalesceMarkedResource
                         // will group them as sprites
@@ -149,34 +155,32 @@ void P_ParseSkinCmd(char *line)
         while(*line==' ') line++;
         if(!*line) return;      // maybe nothing left now
 
-        if(!strncmp(line, "name", 4))
+        if(!strncasecmp(line, "name", 4))
         {
                 char *skinname = line+4;
                 while(*skinname == ' ') skinname++;
                 newskin->skinname = strdup(skinname);
         }
-        if(!strncmp(line, "sprite", 6))
+        if(!strncasecmp(line, "sprite", 6))
         {
                 char *spritename = line+6;
                 while(*spritename == ' ') spritename++;
                 strncpy(newskin->spritename, spritename, 4);
                 newskin->spritename[4] = 0;
-                sf_strupr(newskin->spritename);
         }
-        if(!strncmp(line, "face", 4))
+        if(!strncasecmp(line, "face", 4))
         {
                 char *facename = line+4;
                 while(*facename == ' ') facename++;
                 newskin->facename = strdup(facename);
                 newskin->facename[3] = 0;
-                sf_strupr(newskin->facename);
         }
 
         // is it a sound?
 
         for(i=0; i<NUMSKINSOUNDS; i++)
         {
-           if(!strncmp(line, skinsoundnames[i], strlen(skinsoundnames[i])))
+           if(!strncasecmp(line, skinsoundnames[i], strlen(skinsoundnames[i])))
            {                    // yes!
               char *newsoundname = line + strlen(skinsoundnames[i]);
               while(*newsoundname == ' ') newsoundname++;
@@ -241,7 +245,7 @@ void P_CacheFaces(skin_t *skin)
 {
         if(skin->faces) return; // already cached
 
-        if(!strcmp(skin->facename,"STF"))
+        if(!strcasecmp(skin->facename,"STF"))
         {
                 skin->faces = default_faces;
         }
@@ -262,9 +266,6 @@ skin_t *P_SkinForName(char *s)
 
         while(*s==' ') s++;
 
-                // hack for marine
-        if(!strcasecmp(s, "marine")) return &marine;
-
         if(!skins) return NULL;
 
         while(*skin)
@@ -283,20 +284,67 @@ void P_SetSkin(skin_t *skin, int playernum)
 {
         if(!playeringame[playernum]) return;
 
-        players[playernum].skin =
-          players[playernum].mo->skin = skin;
-        players[playernum].mo->sprite = skin->sprite;
+        players[playernum].skin = skin;
+        if(gamestate == GS_LEVEL)
+        {
+                players[playernum].mo->skin = skin;
+                players[playernum].mo->sprite = skin->sprite;
+        }
+
+        if(playernum == consoleplayer) default_skin = skin->skinname;
 }
+
+        // change to previous skin
+skin_t * P_PrevSkin(int player)
+{
+        int numskins;
+        int skinnum;
+
+        for(numskins=0; skins[numskins]; numskins++);
+
+        // find the skin in the list first
+
+        for(skinnum=0; skins[skinnum]; skinnum++)
+                if(players[player].skin == skins[skinnum]) break;
+
+        if(skinnum == numskins) return NULL;         // not found (?)
+
+        --skinnum;      // previous skin
+
+        if(skinnum < 0) skinnum = numskins-1;   // loop around
+
+        return skins[skinnum];
+}
+
+        // change to next skin
+skin_t * P_NextSkin(int player)
+{
+        int numskins;
+        int skinnum;
+
+        for(numskins=0; skins[numskins]; numskins++);
+
+        // find the skin in the list first
+
+        for(skinnum=0; skins[skinnum]; skinnum++)
+                if(players[player].skin == skins[skinnum]) break;
+
+        if(skinnum == numskins) return NULL;         // not found (?)
+
+        ++skinnum;      // next skin
+
+        if(skinnum >= numskins) skinnum = 0;    // loop around
+
+        return skins[skinnum];
+}
+
 
 /**** console stuff ******/
 
-extern spritedef_t *sprites;
-
-void P_ListSkins()
+CONSOLE_COMMAND(listskins, 0)
 {
         skin_t **skin=skins;
 
-        C_Printf("marine\n");  // hack
         if(!skins) return;
 
         while(*skin)
@@ -310,7 +358,15 @@ void P_ListSkins()
         }
 }
 
-void P_ChangeSkin()
+//      helper macro to ensure grammatical correctness :)
+
+#define isvowel(c)              \
+          ( (c)=='a' || (c)=='e' || (c)=='i' || (c)=='o' || (c)=='u' )
+
+VARIABLE_STRING(default_skin, NULL, 50);
+
+        // player skin
+CONSOLE_NETVAR(skin, default_skin, cf_handlerset, netcmd_skin)
 {
         skin_t *skin;
 
@@ -323,7 +379,11 @@ void P_ChangeSkin()
             return;
         }
 
-        if(!(skin = P_SkinForName(c_argv[0])))
+        if(!strcmp(c_argv[0], "+"))
+                skin = P_NextSkin(cmdsrc);
+        else if(!strcmp(c_argv[0], "-"))
+                skin = P_PrevSkin(cmdsrc);
+        else if(!(skin = P_SkinForName(c_argv[0])))
         {
            if(consoleplayer == cmdsrc)
                 C_Printf("skin not found: '%s'\n", c_argv[0]);
@@ -335,20 +395,8 @@ void P_ChangeSkin()
         redrawsbar = true;
 }
 
-// stupid string stuff
-
-boolean isvowel(char c)
+void P_Skin_AddCommands()
 {
-        if(c=='a' || c=='e' || c=='i' || c=='o' || c=='u' ) return true;
-        return false;
+   C_AddCommand(skin);
+   C_AddCommand(listskins);
 }
-
-void sf_strupr(char *s)
-{
-        while(*s)
-        {
-                *s=toupper(*s);
-                s++;
-        }
-}
-

@@ -677,7 +677,6 @@ boolean AM_Responder
     if (ev->type == ev_keydown && ev->data1 == key_map)         // phares
     {
       AM_Start ();
-      viewactive = false;
       rc = true;
     }
   }
@@ -718,7 +717,6 @@ boolean AM_Responder
     else if (ch == key_map)
     {
       bigstate = 0;
-      viewactive = true;
       AM_Stop ();
     }
     else if (ch == key_map_gobig)
@@ -1413,7 +1411,8 @@ void AM_drawWalls(void)
     } // now draw the lines only visible because the player has computermap
     else if (plr->powers[pw_allmap]) // computermap visible lines
     {
-      if (!(lines[i].flags & ML_DONTDRAW)) // invisible flag lines do not show
+      if(1)
+//      if (!(lines[i].flags & ML_DONTDRAW)) // invisible flag lines do not show
       {
         if
         (

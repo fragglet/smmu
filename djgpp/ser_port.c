@@ -1,8 +1,8 @@
 // port.c
 
-#include "d_net.h"
 #include "ser_main.h"
-#include "c_io.h"
+#include "../d_net.h"
+#include "../c_io.h"
 #include <dos.h>
 #include <pc.h>
 #include <go32.h>

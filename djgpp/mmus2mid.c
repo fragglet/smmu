@@ -35,7 +35,7 @@ static const char rcsid[] = "$Id: mmus2mid.c,v 1.10 1998/05/10 23:00:43 jim Exp 
 
 //#define STANDALONE  /* uncomment this to make MMUS2MID.EXE */
 #ifndef STANDALONE
-#include "z_zone.h"
+#include "../z_zone.h"
 #endif
 
 // some macros to decode mus event bit fields

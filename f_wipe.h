@@ -26,11 +26,11 @@
 // SCREEN WIPE PACKAGE
 //
 
-void wipe_Drawer();
-void wipe_Ticker();
-void wipe_StartScreen();
+void Wipe_Drawer();
+void Wipe_Ticker();
+void Wipe_StartScreen();
 
-extern int inwipe;
+extern boolean inwipe;
 extern int wipe_speed;
 
 #endif

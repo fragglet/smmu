@@ -413,6 +413,8 @@ CONSOLE_COMMAND(v_modelist, 0)
 {
      videomode_t* videomode = videomodes;
 
+     C_Printf(FC_GRAY "video modes:\n" FC_RED);
+
      while(videomode->description)
      {
          C_Printf("%i: %s\n",(int)(videomode-videomodes),

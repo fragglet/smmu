@@ -30,8 +30,8 @@
 char *yesno[]={"no","yes"};
 char *onoff[]={"off","on"};
 
-char *colournames[]= {"green","indigo","brown","red","pink","tomato","cream",
-                      "white","dirt","blue","vomit", "black"};
+char *colournames[]= {"green","indigo","brown","red","tomato","dirt","blue",
+                      "gold","sea","black","purple","vomit", "pink", "cream","white"};
 char *textcolours[]={
         FC_BRICK  "brick" FC_RED,
         FC_TAN    "tan"   FC_RED,
@@ -50,27 +50,12 @@ char *skills[]=
 char *bfgtypestr[3]= {"bfg9000", "classic", "bfg11k"};
 char *dmstr[] = {"co-op", "dm", "altdeath", "trideath"};
 
-// version hack
-
-char *verdate_hack = (char*)version_date;
-char *vername_hack = (char*)version_name;
-extern char *cmdoptions;
-
 /*************************************************************************
         Constants
  *************************************************************************/
 
 CONST_STRING(info_creator);
 CONSOLE_CONST(creator, info_creator);
-
-CONST_INT(VERSION);
-CONSOLE_CONST(version, VERSION);
-
-CONST_STRING(verdate_hack);
-CONSOLE_CONST(ver_date, verdate_hack);
-
-CONST_STRING(vername_hack);
-CONSOLE_CONST(ver_name, vername_hack);
 
 /*************************************************************************
                 Game variables
@@ -131,12 +116,26 @@ CONSOLE_NETVAR(recoil, weapon_recoil, cf_server, netcmd_recoil) {}
         // allow pushers
 
 VARIABLE_BOOLEAN(allow_pushers, &default_allow_pushers, onoff);
-CONSOLE_NETVAR(pushers, allow_pushers, cf_server, netcmd_pushers) {}
+CONSOLE_NETVAR(pushers, allow_pushers, cf_server, netcmd_pushers)
+{
+  dprintf(allow_pushers ? "pushers enabled" : "pushers disabled");
+}
 
         // varying friction
 
 VARIABLE_BOOLEAN(variable_friction, &default_variable_friction, onoff);
-CONSOLE_NETVAR(varfriction, variable_friction, cf_server, netcmd_varfriction) {}
+CONSOLE_NETVAR(varfriction, variable_friction, cf_server, netcmd_varfriction)
+{
+        // sf : dprintf
+  dprintf(variable_friction ? "Variable Friction enabled" : 
+                              "Variable Friction disabled" );
+}
+
+        // enable nukage
+
+extern int enable_nuke;         // p_spec.c
+VARIABLE_BOOLEAN(enable_nuke, NULL, onoff);
+CONSOLE_NETVAR(nukage, enable_nuke, cf_server, netcmd_nukage) {}
 
         // weapon changing speed
 
@@ -153,7 +152,11 @@ CONSOLE_NETVAR(bfglook, bfglook, cf_server, netcmd_bfglook) {}
         // fast monsters
 
 VARIABLE_BOOLEAN(fastparm, NULL,                    onoff);
-CONSOLE_NETVAR(fast, fastparm, cf_server, netcmd_fast) {}
+CONSOLE_NETVAR(fast, fastparm, cf_server, netcmd_fast)
+{
+  dprintf("fast monsters %s", fastparm ? "on" : "off");
+  G_SetFastParms(fastparm); // killough 4/10/98: set -fast parameter correctly
+}
 
         // no monsters
 
@@ -205,121 +208,13 @@ CONSOLE_NETVAR(mon_helpfriends, help_friends, cf_server, netcmd_monhelpfriends) 
 VARIABLE_INT(distfriend, &default_distfriend,   0, 1024, NULL);
 CONSOLE_NETVAR(mon_distfriend, distfriend, cf_server, netcmd_mondistfriend) {}
 
-    /************ console control **********/
-        // these should be in c_??.c
-
-        // command aliases
-
-CONSOLE_COMMAND(alias, 0)
-{
-        alias_t *alias;
-        char *temp;
-
-        if(!c_argc)
-        {
-                // list em
-                C_Printf(FC_GRAY"alias list:" FC_RED "\n\n");
-                alias = aliases;
-                while(alias->name)
-                {
-                        C_Printf("\"%s\": \"%s\"\n", alias->name,
-					alias->command);
-                        alias++;
-                }
-                if(alias==aliases) C_Printf("(empty)\n");
-                return;
-        }
-
-        if(c_argc == 1)  // only one, remove alias
-        {
-                C_RemoveAlias(c_argv[0]);
-                return;
-        }
-
-       // find it or make a new one
-
-        temp = c_args + strlen(c_argv[0]);
-        while(*temp == ' ') temp++;
-
-        C_NewAlias(c_argv[0], temp);
-}
-
-        // %opt for aliases
-CONST_STRING(cmdoptions);
-CONSOLE_CONST(opt, cmdoptions);
-
-        // command list
-CONSOLE_COMMAND(cmdlist, 0)
-{
-        int numonline = 0;
-        command_t *current;
-        int i;
-        int charnum;
-
-                // list each command from the hash chains
-
-                //  5/8/99 change: use hash table and 
-                //  alphabetical order by first letter
-        for(charnum=33; charnum < 'z'; charnum++)
-          for(i=0; i<CMDCHAINS; i++)
-            for(current = cmdroots[i]; current; current = current->next)
-            {
-              if(current->name[0]==charnum && !(current->flags & cf_hidden))
-              {
-                 C_Printf("%s ", current->name);
-                 numonline++;
-                 if(numonline >= 3)
-                 {
-                   numonline = 0;
-                   C_Printf("\n");
-                 }
-               }
-            }
-        C_Printf("\n");
-}
-
-        // console height
-VARIABLE_INT(c_height,  NULL,                   20, 200, NULL);
-CONSOLE_VARIABLE(c_height, c_height, 0) {}
-
-        // console speed
-VARIABLE_INT(c_speed,   NULL,                   1, 200, NULL);
-CONSOLE_VARIABLE(c_speed, c_speed, 0) {}
-
-        // echo string to console
-CONSOLE_COMMAND(echo, 0)
-{
-        C_Puts(c_args);
-}
-
-        // delay in console
-CONSOLE_COMMAND(delay, 0)
-{
-        int tics;
-
-        if(c_argc) tics = atoi(c_argv[0]);
-        else tics = 1;
-
-        C_BufferDelay(cmdtype, tics);
-}
-
-        // flood the console with crap
-CONSOLE_COMMAND(flood, 0)
-{
-        int a;
-
-        for(a=0; a<300; a++)
-                C_Printf("%c\n", a%64 + 32);
-}
-
 void P_Chase_AddCommands();
+void P_Skin_AddCommands();
 
 void P_AddCommands()
 {
         C_AddCommand(creator);
-        C_AddCommand(version);
-        C_AddCommand(ver_date);
-        C_AddCommand(ver_name);
+
         C_AddCommand(colour);
         C_AddCommand(deathmatch);
         C_AddCommand(skill);
@@ -329,6 +224,7 @@ void P_AddCommands()
         C_AddCommand(recoil);
         C_AddCommand(pushers);
         C_AddCommand(varfriction);
+        C_AddCommand(nukage);
         C_AddCommand(weapspeed);
         C_AddCommand(bfglook);
 
@@ -344,14 +240,6 @@ void P_AddCommands()
         C_AddCommand(mon_helpfriends);
         C_AddCommand(mon_distfriend);
 
-        C_AddCommand(alias);
-        C_AddCommand(opt);
-        C_AddCommand(cmdlist);
-        C_AddCommand(c_height);
-        C_AddCommand(c_speed);
-        C_AddCommand(echo);
-        C_AddCommand(delay);
-        C_AddCommand(flood);
-
         P_Chase_AddCommands();
+        P_Skin_AddCommands();
 }

@@ -21,6 +21,7 @@
 
 #include "doomdef.h"
 #include "doomstat.h"
+#include "m_menu.h"
 #include "t_script.h"
 #include "g_game.h"
 #include "z_zone.h"
@@ -135,18 +136,19 @@ boolean C_CheckFlags(command_t *command)
         errormsg = NULL;
 
         if((command->flags & cf_notnet) && (netgame && !demoplayback))
-                errormsg = "command not available in netgame";
+                errormsg = "not available in netgame";
         if((command->flags & cf_netonly) && !netgame && !demoplayback)
-                errormsg = "command only available in netgame";
+                errormsg = "only available in netgame";
         if((command->flags & cf_server) && consoleplayer && !demoplayback
                 && cmdtype!=c_netcmd)
-                errormsg = "command for server only";
+                errormsg = "for server only";
         if((command->flags & cf_level) && gamestate!=GS_LEVEL)
-                errormsg = "command can be run in levels only";
+                errormsg = "can be run in levels only";
 
         if(errormsg)
         {
-                C_Puts(errormsg);
+                C_Printf("%s: %s\n", command->name, errormsg);
+                M_ErrorMsg(errormsg);   // menu error
                 return true;
         }
 
@@ -193,8 +195,8 @@ void C_DoRunCommand(command_t *command, char *options)
                 }
 
                 strcpy(c_argv[i],
-                        c_argv[i][0]=='%' ? C_VariableValue(variable) :
-                                C_VariableStringValue(variable) );
+                        c_argv[i][0]=='%' ? C_VariableValue(variable->variable) :
+                                C_VariableStringValue(variable->variable) );
             }
         }
 
@@ -317,21 +319,21 @@ void C_RunTextCmd(char *command)
 
         // get the literal value of a variable (ie. "1" not "on")
 
-char *C_VariableValue(command_t *command)
+char *C_VariableValue(variable_t *variable)
 {
     static char value[128];
 
-    if(!command->variable) return NULL;
+    if(!variable) return "";
 
-    switch(command->variable->type)
+    switch(variable->type)
     {
           case vt_int:
           case vt_toggle:
-          sprintf(value, "%i", *(int*)command->variable->variable);
+          sprintf(value, "%i", *(int*)variable->variable);
           break;
 
           case vt_string:
-          sprintf(value, "%s", *(char**)command->variable->variable);
+          sprintf(value, "%s", *(char**)variable->variable);
           break;
 
           default:
@@ -344,21 +346,20 @@ char *C_VariableValue(command_t *command)
 
         // get the string value (ie. "on" not "1")
 
-char *C_VariableStringValue(command_t *command)
+char *C_VariableStringValue(variable_t *variable)
 {
     static char value[128];
 
-    if(!command->variable) return NULL;
+    if(!variable) return "";
 
                 // does the variable have alternate 'defines' ?
-    strcpy(value, command->variable->defines ?
+    strcpy(value, variable->defines ?
 
               // print the 'define' (string representing the value)
-    command->variable->defines[*(int*)command->variable->variable
-                                -command->variable->min] :
+        variable->defines[*(int*)variable->variable-variable->min] :
 
               // otherwise print the literal value
-        C_VariableValue(command) );
+        C_VariableValue(variable) );
 
     return value;
 }
@@ -368,7 +369,7 @@ char *C_VariableStringValue(command_t *command)
 void C_EchoValue(command_t *command)
 {
     C_Printf("\"%s\" is \"%s\"\n", command->name,
-        C_VariableStringValue(command) );
+        C_VariableStringValue(command->variable) );
 }
 
         // is a string a number?
@@ -382,7 +383,7 @@ boolean isnum(char *text)
         // take a string and see if it matches a define for a
         // variable. Replace with the literal value if so.
 
-char* C_valuefordefine(variable_t *variable, char *s)
+char* C_ValueForDefine(variable_t *variable, char *s)
 {
         int count;
         static char returnstr[10];
@@ -397,9 +398,32 @@ char* C_valuefordefine(variable_t *variable, char *s)
               }
            }
 
-        if(variable->type == vt_int && !isnum(s))
-                return NULL;
+        if(variable->type == vt_int)    // int values only
+        {
+           if(!strcmp(s, "+"))     // increase value
+           {
+               int value = *(int *)variable->variable + 1;
+               if(value > variable->max) value = variable->max;
+               sprintf(returnstr, "%i", value);
+               return returnstr;
+           }
+           if(!strcmp(s, "-"))     // decrease value
+           {
+               int value = *(int *)variable->variable - 1;
+               if(value < variable->min) value = variable->min;
+               sprintf(returnstr, "%i", value);
+               return returnstr;
+           }
+           if(!strcmp(s, "/"))     // toggle value
+           {
+               int value = *(int *)variable->variable + 1;
+               if(value > variable->max) value = variable->min; // wrap around
+               sprintf(returnstr, "%i", value);
+               return returnstr;
+           }
 
+           if(!isnum(s)) return NULL;
+        }
         return s;
 }
         // set a variable
@@ -424,7 +448,7 @@ void C_SetVariable(command_t *command)
                 // ok, set the value
         variable = command->variable;
 
-        temp = C_valuefordefine(variable, c_argv[0]);
+        temp = C_ValueForDefine(variable, c_argv[0]);
 
         if(temp)
                 strcpy(c_argv[0], temp);
@@ -831,35 +855,6 @@ void C_AddCommandList(command_t *list)
         for(;list->type != ct_end; list++)
                 (C_AddCommand)(list);
 }
-
-extern void Cheat_AddCommands();
-extern void     G_AddCommands();
-extern void    HU_AddCommands();
-extern void     R_AddCommands();
-extern void     I_AddCommands();
-extern void     S_AddCommands();
-extern void   net_AddCommands();
-extern void     V_AddCommands();
-extern void     T_AddCommands();
-extern void     P_AddCommands();
-extern void    ST_AddCommands();
-
-void C_AddCommands()
-{
-                // add commands in other modules
-        Cheat_AddCommands();    // m_cheat.c
-        G_AddCommands();        // g_cmd.c
-        HU_AddCommands();       // hu_stuff.c
-        R_AddCommands();        // r_main.c
-        I_AddCommands();        // i_system.c
-        S_AddCommands();        // s_sound.c
-        net_AddCommands();      // d_net.c
-        P_AddCommands();        // p_cmd.c
-        V_AddCommands();        // v_misc.c
-        T_AddCommands();        // t_script.c
-        ST_AddCommands();       // st_stuff.c
-}
-
 
         // get a command from a string if possible
         

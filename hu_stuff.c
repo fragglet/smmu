@@ -175,7 +175,8 @@ void HU_NewLevel()
   C_Printf("\n");
   C_Seperator();
   C_Printf("%c  %s\n\n", 128+CR_GRAY, levelname);
-  C_Update();
+  C_InstaPopup();       // put console away
+//  C_Update();
 }
 
         // erase text that can be trashed by small screens
@@ -189,9 +190,9 @@ void HU_Erase()
         HU_FragsErase();
 }
 
-/*****************
- NORMAL MESSAGES
- *****************/
+/************************
+        NORMAL MESSAGES
+ ************************/
 
 // 'picked up a clip' etc.
 // seperate from the widgets (below)
@@ -199,13 +200,12 @@ void HU_Erase()
 char hu_messages[MAXHUDMESSAGES][256];
 int hud_msg_lines;   // number of message lines in window up to 16
 int current_messages;   // the current number of messages
-int hud_msg_timer;   // timer used for review messages
 int hud_msg_scrollup;// whether message list scrolls up
 int message_timer;   // timer used for normal messages
 int scrolltime;         // the gametic when the message list next needs
                         // to scroll up
 
-void HU_playermsg(char *s)
+void HU_PlayerMsg(char *s)
 {
         if(current_messages == hud_msg_lines)  // display full
         {
@@ -220,7 +220,7 @@ void HU_playermsg(char *s)
                 strcpy(hu_messages[current_messages], s);
                 current_messages++;
         }
-        scrolltime = gametic + (message_timer * 35) / 1000;
+        scrolltime = (message_timer * 35) / 1000;
 }
 
         // erase the text before drawing
@@ -251,14 +251,14 @@ void HU_MessageTick()
 {
         int i;
 
-        if(!hud_msg_scrollup) return;   // messages dont scroll
+        if(!hud_msg_scrollup) return;   // messages not to scroll
 
-        if(gametic >= scrolltime)
+        if(!--scrolltime)
         {
                 for(i=0; i<current_messages-1; i++)
                         strcpy(hu_messages[i], hu_messages[i+1]);
                 current_messages = current_messages ? current_messages-1 : 0;
-                scrolltime = gametic + (message_timer * 35) / 1000;
+                scrolltime = (message_timer * 35) / 1000;
         }
 }
 
@@ -357,7 +357,7 @@ void HU_WarningsInit()
 }
 
 extern int num_visplanes;
-int show_vpo;
+int show_vpo = 0;
 
 void HU_WarningsDrawer()
 {
@@ -428,7 +428,7 @@ void HU_CentreMessageHandler();
 void HU_LevelNameHandler();
 void HU_ChatHandler();
 
-        //// centre of screen 'quake-style' message ////
+        /*** centre of screen 'quake-style' message ***/
 
 textwidget_t hu_centremessage = {0, 0, 0, NULL, HU_CentreMessageHandler};
 int centremessage_timer = 1500;         // 1.5 seconds
@@ -443,7 +443,7 @@ void HU_CentreMessageClear()
         hu_centremessage.message = NULL;
 }
 
-void HU_centremsg(char *s)
+void HU_CentreMsg(char *s)
 {
         static char centremsg[256];
         strcpy(centremsg, s);
@@ -636,12 +636,18 @@ const char english_shiftxform[] =
         CONSOLE COMMANDS
  *****************************/
 
-VARIABLE_BOOLEAN(showMessages, NULL,    onoff);
-VARIABLE_INT(mess_colour, NULL,         0, CR_LIMIT-1, textcolours);
-VARIABLE_INT(obcolour, NULL,            0, CR_LIMIT-1, textcolours);
-VARIABLE_BOOLEAN(obituaries, NULL,      onoff);
-VARIABLE_INT(crosshairnum, NULL,        0, CROSSHAIRS, cross_str);
-VARIABLE_BOOLEAN(show_vpo, NULL,        yesno);
+VARIABLE_BOOLEAN(showMessages,  NULL,                   onoff);
+VARIABLE_INT(mess_colour,       NULL, 0, CR_LIMIT-1,    textcolours);
+
+VARIABLE_BOOLEAN(obituaries,    NULL,                   onoff);
+VARIABLE_INT(obcolour,          NULL, 0, CR_LIMIT-1,    textcolours);
+
+VARIABLE_INT(crosshairnum,      NULL, 0, CROSSHAIRS-1,  cross_str);
+VARIABLE_BOOLEAN(show_vpo,      NULL,                   yesno);
+
+VARIABLE_INT(hud_msg_lines,     NULL, 0, 14,            NULL);
+VARIABLE_INT(message_timer,     NULL, 0, 100000,        NULL);
+VARIABLE_BOOLEAN(hud_msg_scrollup,  NULL,               yesno);
 
 CONSOLE_VARIABLE(obituaries, obituaries, 0) {}
 CONSOLE_VARIABLE(obcolour, obcolour, 0) {}
@@ -654,6 +660,7 @@ CONSOLE_VARIABLE(crosshair, crosshairnum, 0)
         crosshair = a ? crosshairs[a-1] : NULL;
         crosshairnum = a;
 }
+
 CONSOLE_VARIABLE(show_vpo, show_vpo, 0) {}
 CONSOLE_VARIABLE(messages, showMessages, 0) {}
 CONSOLE_VARIABLE(mess_colour, mess_colour, 0) {}
@@ -663,6 +670,10 @@ CONSOLE_NETCMD(say, cf_netvar, netcmd_chat)
 
         dprintf(FC_GRAY"%s:"FC_RED" %s", players[cmdsrc].name, c_args);
 }
+
+CONSOLE_VARIABLE(mess_lines, hud_msg_lines, 0) {}
+CONSOLE_VARIABLE(mess_scrollup, hud_msg_scrollup, 0) {}
+CONSOLE_VARIABLE(mess_timer, message_timer, 0) {}
 
 extern void HU_FragsAddCommands();
 
@@ -675,6 +686,10 @@ void HU_AddCommands()
         C_AddCommand(messages);
         C_AddCommand(mess_colour);
         C_AddCommand(say);
+
+        C_AddCommand(mess_lines);
+        C_AddCommand(mess_scrollup);
+        C_AddCommand(mess_timer);
 
         HU_FragsAddCommands();
 }

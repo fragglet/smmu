@@ -178,8 +178,12 @@ void C_DealWithChar(unsigned char c, int source)
                   if(netcmdnum >= NUMNETCMDS || netcmdnum == 0)
                         C_Printf("unknown netcmd: %i\n", netcmdnum);
                   else
+                  {
+//                        C_Printf("%s, %s", c_netcmds[netcmdnum].name,
+//                                           incomingmsg[source]+1);
                         C_RunCommand(c_netcmds[netcmdnum],
                                incomingmsg[source] + 1);
+                  }
               }
               *incomingmsg[source] = 0;
               incomingdest[source] = -1;
@@ -253,7 +257,7 @@ void C_UpdateVar(command_t *command)
 {
         char tempstr[100];
 
-        sprintf(tempstr,"\"%s\"", C_VariableValue(command) );
+        sprintf(tempstr,"\"%s\"", C_VariableValue(command->variable) );
 
         C_SendCmd(CN_BROADCAST, command->netcmd, tempstr);
 }

@@ -4,59 +4,125 @@
 #
 ################################################################
 
-CC = gcc
-
-# the command you use to delete files
-RM = del
-
-# the command you use to copy files
-CP = copy /y
-
-# the exe file name -sf
-EXE = smmu.exe
-
-# options common to all builds
-CFLAGS_COMMON = -Wall -g
-
-# new features; comment out what you don't want at the moment
-CFLAGS_NEWFEATURES = -DDOGS
-
-# debug options
-CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
-LDFLAGS_DEBUG =
-
-# optimized (release) options
-CFLAGS_RELEASE = -O3 -ffast-math -fomit-frame-pointer -m486 -mreg-alloc=adcbSDB
-LDFLAGS_RELEASE = 
-# -s
-
-# libraries to link in
-LIBS = -lalleg -lm -lemu
-
-# this selects flags based on debug and release tagets
 MODE = RELEASE
-CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
-LDFLAGS = $(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
+O = $(O_$(MODE))
+O_RELEASE = obj
+O_DEBUG = objdebug
+DEPENDENCIES = 1
+
+# 15/10/99 sf: added multi-platform support
+
+# select platform here:
+DJGPPDOS=1
+# LINUX=1
+
+ifdef DJGPPDOS
+        
+	PLATFORM = DJGPP
+        # compiler
+	CC = gcc
+        
+        # the command you use to delete files
+	RM = del
+        
+        # the command you use to copy files
+	CP = copy /y
+        
+        # the exe file name -sf
+	EXE = smmu.exe
+        
+        # options common to all builds
+	CFLAGS_COMMON = -Wall -g
+        
+        # new features; comment out what you don't want at the moment
+	CFLAGS_NEWFEATURES = -DDOGS
+        
+        # debug options
+	CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
+        LDFLAGS_DEBUG =
+        
+        # optimized (release) options
+        CFLAGS_RELEASE = -O3 -ffast-math -fomit-frame-pointer -m486 -mreg-alloc=adcbSDB
+        LDFLAGS_RELEASE = 
+        # -s
+        
+        # libraries to link in
+        LIBS = -lalleg -lm -lemu
+        
+        # this selects flags based on debug and release tagets
+        CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
+        LDFLAGS = $(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
+        
+        # system-specific object files
+        PLATOBJS =                  \
+                $(O)/ser_main.o     \
+                $(O)/ser_port.o     \
+                $(O)/keyboard.o     \
+                $(O)/mmus2mid.o     \
+                $(O)/pproblit.o     \
+                $(O)/drawspan.o     \
+                $(O)/drawcol.o      \
+                $(O)/emu8kmid.o
+        
+endif
+
+# nb. linux support not yet finished :(
+ifdef LINUX
+	PLATFORM = LINUX
+        # compiler
+	CC = gcc
+        
+        # the command you use to delete files
+	RM = rm
+        
+        # the command you use to copy files
+	CP = cp
+        
+        # the exe file name -sf
+	EXE = xsmmu
+        
+        # options common to all builds
+	CFLAGS_COMMON = -Wall -g
+        
+        # new features; comment out what you don't want at the moment
+	CFLAGS_NEWFEATURES = -DDOGS
+        
+        # debug options
+	CFLAGS_DEBUG = -g -O2 -DRANGECHECK -DINSTRUMENTED
+        LDFLAGS_DEBUG =
+        
+        # optimized (release) options
+        CFLAGS_RELEASE = -O3
+        LDFLAGS_RELEASE = 
+        # -s
+        
+        # libraries to link in
+        LIBS = 
+        
+        # this selects flags based on debug and release tagets
+        CFLAGS =  $(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
+        LDFLAGS = $(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
+        
+        # system-specific object files
+        PLATOBJS = 
+endif
 
 # subdirectory for objects (depends on target, to allow you
 # to build debug and release versions simultaneously)
 
-O = $(O_$(MODE))
-O_RELEASE = obj
-O_DEBUG = objdebug
-
 # object files
-OBJS=	\
-	$(O)/ser_main.o	    \
-	$(O)/ser_port.o	    \
+OBJS=   \
+	$(PLATOBJS)	    \
 	$(O)/p_info.o	    \
 	$(O)/lumps.o        \
+	$(O)/c_cmd.o	    \
 	$(O)/c_io.o	    \
 	$(O)/c_runcmd.o	    \
 	$(O)/c_net.o	    \
 	$(O)/doomdef.o      \
         $(O)/doomstat.o     \
         $(O)/dstrings.o     \
+        $(O)/i_main.o       \
 	$(O)/i_input.o	    \
         $(O)/i_system.o     \
         $(O)/i_sound.o      \
@@ -118,17 +184,10 @@ OBJS=	\
 	$(O)/hu_frags.o	    \
         $(O)/s_sound.o      \
         $(O)/z_zone.o       \
-	$(O)/keyboard.o     \
         $(O)/info.o         \
         $(O)/sounds.o       \
-        $(O)/mmus2mid.o     \
-        $(O)/i_main.o       \
-        $(O)/pproblit.o     \
-        $(O)/drawspan.o     \
-        $(O)/drawcol.o      \
         $(O)/p_genlin.o     \
         $(O)/d_deh.o	    \
-	$(O)/emu8kmid.o     \
 	$(O)/v_misc.o	    \
 	$(O)/t_script.o     \
 	$(O)/t_parse.o      \
@@ -136,25 +195,23 @@ OBJS=	\
 	$(O)/t_vari.o	    \
 	$(O)/t_func.o       \
 	$(O)/t_oper.o	    \
-	$(O)/t_spec.o       
-
-#        $(O)/hu_lib.o       \
+        $(O)/t_spec.o
 
 doom all: $(O)/$(EXE)
 
 release: clean
 	$(RM) tranmap.dat
-	$(RM) mbf.cfg
-	$(RM) mbfsrc.zip
+	$(RM) smmu.cfg
+	$(RM) smmu-src.zip
 	$(RM) examples.zip
-	$(RM) mbf.zip
-	pkzip -a -ex -rp mbfsrc
+	$(RM) smmu.zip
+	pkzip -a -ex -rp smmu-src
 	$(MAKE) all
 	pkzip -a -ex examples examples\*.*
-	pkzip -a -ex mbf mbf.exe mbffaq.txt mbfedit.txt mbf.txt options.txt
-	pkzip -a -Ex mbf doomlic.txt copying copying.dj snddrvr.txt doom17.dat
-	pkzip -a -Ex mbf common.cfg examples.zip betalevl.wad betagrph.wad
-	pkzip -a -Ex mbf asetup.exe cwsdpmi.exe copying copying.dj readme.1st
+	pkzip -a -ex smmu smmu.exe smmu.txt smmuedit.txt
+	pkzip -a -Ex smmu doomlic.txt copying copying.dj
+	#        pkzip -a -Ex smmu common.cfg examples.zip betalevl.wad betagrph.wad
+	#        pkzip -a -Ex smmu asetup.exe cwsdpmi.exe copying copying.dj readme.1st
 	$(RM) examples.zip
 
 debug:
@@ -169,12 +226,15 @@ clean:
 
 $(O)/$(EXE): $(OBJS) $(O)/version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/version.o -o $@ $(LIBS)
-	$(RM) $(O)\version.o
+	$(RM) $(O)/version.o
 
 $(O)/%.o:   %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(O)/%.o:   %.s
+$(O)/%.o:   $(PLATFORM)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(O)/%.o:   $(PLATFORM)/%.s
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Very important that all sources #include this one
@@ -185,6 +245,9 @@ $(OBJS): z_zone.h
 
 # individual file depedencies follow
 
+# dependencies currently broken :(
+ifdef DEPENDENCIES
+
 $(O)/doomdef.o: doomdef.c doomdef.h z_zone.h m_swap.h version.h
 
 $(O)/doomstat.o: doomstat.c doomstat.h doomdata.h doomtype.h d_net.h \
@@ -193,23 +256,26 @@ $(O)/doomstat.o: doomstat.c doomstat.h doomdata.h doomtype.h d_net.h \
 
 $(O)/dstrings.o: dstrings.c dstrings.h d_englsh.h
 
-$(O)/i_system.o: i_system.c i_system.h d_ticcmd.h doomtype.h i_sound.h \
+$(O)/i_system.o: $(PLATFORM)/i_system.c i_system.h d_ticcmd.h doomtype.h \
+ i_sound.h \
  sounds.h doomstat.h doomdata.h d_net.h d_player.h d_items.h doomdef.h \
  z_zone.h m_swap.h version.h p_pspr.h m_fixed.h tables.h info.h \
  d_think.h p_mobj.h m_misc.h g_game.h d_event.h w_wad.h v_video.h
 
-$(O)/i_sound.o: i_sound.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
+$(O)/i_sound.o: $(PLATFORM)/i_sound.c z_zone.h doomstat.h doomdata.h \
+ doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
- i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h mmus2mid.h \
+ i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h DJGPP/mmus2mid.h \
  i_sound.h sounds.h w_wad.h g_game.h d_event.h d_main.h s_sound.h
 
-$(O)/i_video.o: i_video.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
+$(O)/i_video.o: $(PLATFORM)/i_video.c z_zone.h doomstat.h doomdata.h \
+ doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h v_video.h \
  r_data.h r_defs.h r_state.h d_main.h d_event.h st_stuff.h m_argv.h w_wad.h \
  sounds.h s_sound.h r_draw.h am_map.h m_menu.h wi_stuff.h
 
-$(O)/i_net.o: i_net.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
+$(O)/i_net.o: $(PLATFORM)/i_net.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h d_event.h \
  m_argv.h i_net.h
@@ -472,15 +538,9 @@ $(O)/st_stuff.o: st_stuff.c doomdef.h z_zone.h m_swap.h version.h \
 $(O)/hu_stuff.o: hu_stuff.c doomstat.h doomdata.h doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
- hu_stuff.h d_event.h hu_lib.h r_defs.h v_video.h r_data.h r_state.h \
+ hu_stuff.h d_event.h  r_defs.h v_video.h r_data.h r_state.h \
  st_stuff.h w_wad.h s_sound.h dstrings.h d_englsh.h sounds.h d_deh.h \
  r_draw.h
-
-$(O)/hu_lib.o: hu_lib.c doomdef.h z_zone.h m_swap.h version.h v_video.h \
- doomtype.h r_data.h r_defs.h m_fixed.h i_system.h d_ticcmd.h \
- d_think.h p_mobj.h tables.h doomdata.h info.h r_state.h d_player.h \
- d_items.h p_pspr.h hu_lib.h r_main.h r_bsp.h r_segs.h r_plane.h \
- r_things.h r_draw.h
 
 $(O)/s_sound.o: s_sound.c doomstat.h doomdata.h doomtype.h d_net.h \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
@@ -498,9 +558,9 @@ $(O)/info.o: info.c doomdef.h z_zone.h m_swap.h version.h sounds.h \
 
 $(O)/sounds.o: sounds.c doomtype.h sounds.h
 
-$(O)/mmus2mid.o: mmus2mid.c mmus2mid.h z_zone.h
+$(O)/mmus2mid.o: $(PLATFORM)/mmus2mid.c DJGPP/mmus2mid.h z_zone.h
 
-$(O)/i_main.o: i_main.c doomdef.h z_zone.h m_swap.h version.h m_argv.h \
+$(O)/i_main.o: $(PLATFORM)/i_main.c doomdef.h z_zone.h m_swap.h version.h m_argv.h \
  d_main.h d_event.h doomtype.h i_system.h d_ticcmd.h
 
 $(O)/p_genlin.o: p_genlin.c r_main.h d_player.h d_items.h doomdef.h \
@@ -518,10 +578,14 @@ $(O)/version.o: version.c version.h z_zone.h
 
 # Allegro patches required to function satisfactorily
 
-$(O)/emu8kmid.o: emu8kmid.c emu8k.h internal.h interndj.h allegro.h
+$(O)/emu8kmid.o: $(PLATFORM)/emu8kmid.c DJGPP/emu8k.h DJGPP/internal.h \
+  DJGPP/interndj.h DJGPP/allegro.h
 
-$(O)/keyboard.o: keyboard.c internal.h interndj.h allegro.h
+$(O)/keyboard.o: $(PLATFORM)/keyboard.c DJGPP/internal.h DJGPP/interndj.h \
+  DJGPP/allegro.h
 	$(CC) $(CFLAGS_COMMON) -O $(CFLAGS_NEWFEATURES) -c $< -o $@
+
+endif
 
 # bin2c utility
 
@@ -532,6 +596,7 @@ $(O)/bin2c.exe: $(O)/bin2c.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(O)/bin2c.o -o $@ $(LIBS)
 
 $(O)/bin2c.o: bin2c.c
+
 
 ###############################################################################
 # $Log: makefile,v $

@@ -146,7 +146,7 @@ void P_UnArchivePlayers (void)
         players[i].mo = NULL;
 //        players[i].message = NULL;
         players[i].attacker = NULL;
-        players[i].skin = &marine;      // reset skin
+        P_SetSkin(&marine, i);      // reset skin
 
         for (j=0 ; j<NUMPSPRITES ; j++)
           if (players[i]. psprites[j].state)
@@ -954,12 +954,10 @@ void P_ArchiveMap(void)
 {
   CheckSaveGame(sizeof followplayer + sizeof markpointnum +
                 markpointnum * sizeof *markpoints +
-                sizeof automapactive + sizeof viewactive);
+                sizeof automapactive);
 
   memcpy(save_p, &automapactive, sizeof automapactive);
   save_p += sizeof automapactive;
-  memcpy(save_p, &viewactive, sizeof viewactive);
-  save_p += sizeof viewactive;
   memcpy(save_p, &followplayer, sizeof followplayer);
   save_p += sizeof followplayer;
   memcpy(save_p, &automap_grid, sizeof automap_grid);
@@ -978,8 +976,6 @@ void P_UnArchiveMap(void)
 {
   memcpy(&automapactive, save_p, sizeof automapactive);
   save_p += sizeof automapactive;
-  memcpy(&viewactive, save_p, sizeof viewactive);
-  save_p += sizeof viewactive;
   memcpy(&followplayer, save_p, sizeof followplayer);
   save_p += sizeof followplayer;
   memcpy(&automap_grid, save_p, sizeof automap_grid);

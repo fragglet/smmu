@@ -11,6 +11,8 @@
 #include "c_net.h"
 #include "f_wipe.h"
 #include "g_game.h"
+#include "hu_stuff.h"
+#include "m_menu.h"
 #include "m_random.h"
 #include "p_inter.h"
 #include "w_wad.h"
@@ -19,6 +21,7 @@
 
 extern int automlook;
 extern int invert_mouse;
+extern int screenshot_pcx;
 extern boolean sendpause;
 extern int forwardmove[2];
 extern int sidemove[2];
@@ -32,6 +35,7 @@ CONSOLE_COMMAND(i_error, 0)
 
 CONSOLE_COMMAND(starttitle, cf_notnet)
 {
+        M_ClearMenus();         // put menu away
         D_StartTitle();
 }
 
@@ -47,7 +51,7 @@ CONSOLE_COMMAND(pause, cf_server)
 
 CONSOLE_COMMAND(quit, 0)
 {
-     I_Quit();
+     exit(0);
 }
 
 CONSOLE_COMMAND(animshot, 0)
@@ -72,6 +76,14 @@ CONSOLE_VARIABLE(alwaysmlook, automlook, 0) {}
 
 VARIABLE_BOOLEAN(invert_mouse, NULL,        onoff);
 CONSOLE_VARIABLE(invertmouse, invert_mouse, 0) {}
+
+        // horizontal mouse sensitivity
+VARIABLE_INT(mouseSensitivity_horiz, NULL, 0, 500, NULL);
+CONSOLE_VARIABLE(sens_horiz, mouseSensitivity_horiz, 0) {}
+
+        // vertical mouse sensitivity
+VARIABLE_INT(mouseSensitivity_vert, NULL, 0, 500, NULL);
+CONSOLE_VARIABLE(sens_vert, mouseSensitivity_vert, 0) {}
 
         // player bobbing
 
@@ -204,17 +216,87 @@ CONSOLE_NETVAR(name, default_name, cf_handlerset, netcmd_name)
         }
 }
 
-        // player skin
-CONSOLE_NETCMD(skin, 0, netcmd_skin)
-{
-     P_ChangeSkin();
-}
 
         // screen wipe speed
 VARIABLE_INT(wipe_speed, NULL,                  1, 200, NULL);
 CONSOLE_VARIABLE(wipe_speed, wipe_speed, 0) {}
 
+        // screenshot type
+char *str_pcx[] = {"bmp", "pcx"};
+VARIABLE_BOOLEAN(screenshot_pcx, NULL,     str_pcx);
+CONSOLE_VARIABLE(shot_type,     screenshot_pcx, 0) {}
 
+extern int textmode_startup;            // d_main.c
+        // textmode startup
+VARIABLE_BOOLEAN(textmode_startup, NULL,        onoff);
+CONSOLE_VARIABLE(textmode_startup, textmode_startup, 0) {}
+
+        /********* chat macros ************/
+
+        // must be done with variable_t :(
+variable_t var_chatmacro0 = {&chat_macros[0], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro1 = {&chat_macros[1], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro2 = {&chat_macros[2], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro3 = {&chat_macros[3], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro4 = {&chat_macros[4], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro5 = {&chat_macros[5], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro6 = {&chat_macros[6], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro7 = {&chat_macros[7], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro8 = {&chat_macros[8], NULL, vt_string, 0, 128, NULL};
+variable_t var_chatmacro9 = {&chat_macros[9], NULL, vt_string, 0, 128, NULL};
+
+CONSOLE_VARIABLE(chatmacro0, chatmacro0, 0) {}
+CONSOLE_VARIABLE(chatmacro1, chatmacro1, 0) {}
+CONSOLE_VARIABLE(chatmacro2, chatmacro2, 0) {}
+CONSOLE_VARIABLE(chatmacro3, chatmacro3, 0) {}
+CONSOLE_VARIABLE(chatmacro4, chatmacro4, 0) {}
+CONSOLE_VARIABLE(chatmacro5, chatmacro5, 0) {}
+CONSOLE_VARIABLE(chatmacro6, chatmacro6, 0) {}
+CONSOLE_VARIABLE(chatmacro7, chatmacro7, 0) {}
+CONSOLE_VARIABLE(chatmacro8, chatmacro8, 0) {}
+CONSOLE_VARIABLE(chatmacro9, chatmacro9, 0) {}
+
+        /********** weapon prefs **************/
+
+extern int weapon_preferences[2][NUMWEAPONS+1];                   
+
+void G_SetWeapPref(int prefnum, int newvalue)
+{
+        int i;
+
+        // find the pref which has the new value
+
+        for(i=0; i<NUMWEAPONS; i++)
+          if(weapon_preferences[0][i] == newvalue) break;
+
+        weapon_preferences[0][i] = weapon_preferences[0][prefnum];
+        weapon_preferences[0][prefnum] = newvalue;
+}
+
+char *weapon_str[] =
+{"fist", "pistol", "shotgun", "chaingun", "rocket launcher", "plasma gun",
+ "bfg", "chainsaw", "double shotgun"};
+
+variable_t var_weaponpref1 = {&weapon_preferences[0][0], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref2 = {&weapon_preferences[0][1], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref3 = {&weapon_preferences[0][2], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref4 = {&weapon_preferences[0][3], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref5 = {&weapon_preferences[0][4], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref6 = {&weapon_preferences[0][5], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref7 = {&weapon_preferences[0][6], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref8 = {&weapon_preferences[0][7], NULL, vt_int, 1,9, weapon_str};
+variable_t var_weaponpref9 = {&weapon_preferences[0][8], NULL, vt_int, 1,9, weapon_str};
+
+CONSOLE_VARIABLE(weappref_1, weaponpref1, cf_handlerset) {G_SetWeapPref(0, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_2, weaponpref2, cf_handlerset) {G_SetWeapPref(1, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_3, weaponpref3, cf_handlerset) {G_SetWeapPref(2, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_4, weaponpref4, cf_handlerset) {G_SetWeapPref(3, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_5, weaponpref5, cf_handlerset) {G_SetWeapPref(4, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_6, weaponpref6, cf_handlerset) {G_SetWeapPref(5, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_7, weaponpref7, cf_handlerset) {G_SetWeapPref(6, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_8, weaponpref8, cf_handlerset) {G_SetWeapPref(7, atoi(c_argv[0]));}
+CONSOLE_VARIABLE(weappref_9, weaponpref9, cf_handlerset) {G_SetWeapPref(8, atoi(c_argv[0]));}
+                                                   
 void G_AddCommands()
 {
       C_AddCommand(i_error);
@@ -223,13 +305,17 @@ void G_AddCommands()
       C_AddCommand(pause);
       C_AddCommand(quit);
       C_AddCommand(animshot);
+      C_AddCommand(shot_type);
       C_AddCommand(alwaysmlook);
       C_AddCommand(bobbing);
+      C_AddCommand(sens_vert);
+      C_AddCommand(sens_horiz);
       C_AddCommand(invertmouse);
       C_AddCommand(turbo);
       C_AddCommand(playdemo);
       C_AddCommand(timedemo);
       C_AddCommand(cooldemo);
+      C_AddCommand(stopdemo);
       C_AddCommand(exitlevel);
       C_AddCommand(addfile);
       C_AddCommand(listwads);
@@ -237,6 +323,27 @@ void G_AddCommands()
       C_AddCommand(kill);
       C_AddCommand(map);
       C_AddCommand(name);
-      C_AddCommand(skin);
       C_AddCommand(wipe_speed);
-}
+      C_AddCommand(textmode_startup);
+
+      C_AddCommand(chatmacro0);
+      C_AddCommand(chatmacro1);
+      C_AddCommand(chatmacro2);
+      C_AddCommand(chatmacro3);
+      C_AddCommand(chatmacro4);
+      C_AddCommand(chatmacro5);
+      C_AddCommand(chatmacro6);
+      C_AddCommand(chatmacro7);
+      C_AddCommand(chatmacro8);
+      C_AddCommand(chatmacro9);
+
+      C_AddCommand(weappref_1);
+      C_AddCommand(weappref_2);
+      C_AddCommand(weappref_3);
+      C_AddCommand(weappref_4);
+      C_AddCommand(weappref_5);
+      C_AddCommand(weappref_6);
+      C_AddCommand(weappref_7);
+      C_AddCommand(weappref_8);
+      C_AddCommand(weappref_9);
+}                           

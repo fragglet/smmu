@@ -70,6 +70,9 @@ unsigned long long G_Signature(void);      // killough 12/98
 // killough 1/18/98: Doom-style printf;   killough 4/25/98: add gcc attributes
 void dprintf(const char *, ...) __attribute__((format(printf,1,2)));
 
+        // sf: player_printf
+void player_printf(player_t *player, const char *s, ...);
+
 // killough 5/2/98: moved from m_misc.c:
 
 extern int  key_right;

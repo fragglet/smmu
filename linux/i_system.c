@@ -23,23 +23,19 @@ static const char
 rcsid[] = "$Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $";
 
 #include <stdio.h>
-
-#include <allegro.h>
-extern void (*keyboard_lowlevel_callback)(int);  // should be in <allegro.h>
 #include <stdarg.h>
-#include <gppconio.h>
-#include <sys/nearptr.h>
+#include <sys/time.h>
 
-#include "c_runcmd.h"
-#include "i_system.h"
-#include "i_sound.h"
-#include "i_video.h"
-#include "doomstat.h"
-#include "m_misc.h"
-#include "g_game.h"
-#include "w_wad.h"
-#include "v_video.h"
-#include "m_argv.h"
+#include "../c_runcmd.h"
+#include "../i_system.h"
+#include "../i_sound.h"
+#include "../i_video.h"
+#include "../doomstat.h"
+#include "../m_misc.h"
+#include "../g_game.h"
+#include "../w_wad.h"
+#include "../v_video.h"
+#include "../m_argv.h"
 
 ticcmd_t *I_BaseTiccmd(void)
 {
@@ -49,7 +45,7 @@ ticcmd_t *I_BaseTiccmd(void)
 
 void I_WaitVBL(int count)
 {
-  rest((count*500)/TICRATE);
+  //  rest((count*500)/TICRATE);
 }
 
 // Most of the following has been rewritten by Lee Killough
@@ -61,20 +57,35 @@ static volatile int realtic;
 
 void I_timer(void)
 {
-  realtic++;
 }
-END_OF_FUNCTION(I_timer);
 
-int  I_GetTime_RealTime (void)
+static unsigned long lasttimereply;
+static unsigned long basetime;
+
+int I_GetTime_RealTime (void)
 {
-  return realtic;
+  struct timeval tv;
+  struct timezone tz;
+  unsigned long thistimereply;
+
+  gettimeofday(&tv, &tz);
+
+  thistimereply = (tv.tv_sec * TICRATE + (tv.tv_usec * TICRATE) / 1000000);
+
+  // Fix for time problem
+  if (!basetime) {
+    basetime = thistimereply; thistimereply = 0;
+  } else thistimereply -= basetime;
+
+  if (thistimereply < lasttimereply)
+    thistimereply = lasttimereply;
+
+  return (lasttimereply = thistimereply);
 }
 
 void I_SetTime(int newtime)
 {
-        asm("cli");
-        realtic = newtime;
-        asm("sti");
+  realtic = newtime;
 }
 
         //sf: made a #define, changed to 16
@@ -104,96 +115,39 @@ int (*I_GetTime)() = I_GetTime_Error;                           // killough
 
 // killough 3/21/98: Add keyboard queue
 
-struct keyboard_queue_s keyboard_queue;
-
 static void keyboard_handler(int scancode)
 {
-  keyboard_queue.queue[keyboard_queue.head++] = scancode;
-  keyboard_queue.head &= KQSIZE-1;
 }
-static END_OF_FUNCTION(keyboard_handler);
 
 int mousepresent;
 int joystickpresent;                                         // phares 4/3/98
 
 int keyboard_installed = 0;
-static int orig_key_shifts;  // killough 3/6/98: original keyboard shift state
+// static int orig_key_shifts;  // killough 3/6/98: original keyboard shift state
 extern int autorun;          // Autorun state
 int leds_always_off;         // Tells it not to update LEDs
 
 void I_Shutdown(void)
 {
-  if (mousepresent!=-1)
-    remove_mouse();
-
-  // killough 3/6/98: restore keyboard shift state
-  key_shifts = orig_key_shifts;
-
-  remove_keyboard();
-  keyboard_installed = false;
-
-  remove_timer();
 }
 
 void I_ResetLEDs(void)
 {
-  // Either keep the keyboard LEDs off all the time, or update them
-  // right now, and in the future, with respect to key_shifts flag.
-  //
-  // killough 10/98: moved to here
-
-  set_leds(leds_always_off ? 0 : -1);
 }
 
 void I_InitKeyboard()
 {
-  // killough 3/21/98: Install handler to handle interrupt-driven keyboard IO
-  LOCK_VARIABLE(keyboard_queue);
-  LOCK_FUNCTION(keyboard_handler);
-  keyboard_lowlevel_callback = keyboard_handler;
-
-  install_keyboard();
-  keyboard_installed = true;
-
-  // killough 3/6/98: save keyboard state, initialize shift state and LEDs:
-
-  orig_key_shifts = key_shifts;  // save keyboard state
-
-  key_shifts = 0;        // turn off all shifts by default
-
-  if (autorun)  // if autorun is on initially, turn on any corresponding shifts
-    switch (key_autorun)
-      {
-      case KEYD_CAPSLOCK:
-        key_shifts = KB_CAPSLOCK_FLAG;
-        break;
-      case KEYD_NUMLOCK:
-        key_shifts = KB_NUMLOCK_FLAG;
-        break;
-      case KEYD_SCROLLLOCK:
-        key_shifts = KB_SCROLOCK_FLAG;
-        break;
-      }
-
-  I_ResetLEDs();
 }
 
 
 void I_Init(void)
 {
-  extern int key_autorun;
   int clock_rate = realtic_clock_rate, p;
 
   if ((p = M_CheckParm("-speed")) && p < myargc-1 &&
       (p = atoi(myargv[p+1])) >= 10 && p <= 1000)
     clock_rate = p;
     
-  //init timer
-  LOCK_VARIABLE(realtic);
-  LOCK_FUNCTION(I_timer);
-  install_timer();
-  install_int_ex(I_timer,BPS_TO_TIMER(TICRATE));
-
   // killough 4/14/98: Adjustable speedup based on realtic_clock_rate
   if (fastdemo)
     I_GetTime = I_GetTime_FastDemo;
@@ -206,23 +160,6 @@ void I_Init(void)
     else
       I_GetTime = I_GetTime_RealTime;
 
-  // killough 3/6/98: end of keyboard / autorun state changes
-
-  //init the mouse
-  mousepresent=install_mouse();
-  if (mousepresent!=-1)
-    show_mouse(NULL);
-
-  // phares 4/3/98:
-  // Init the joystick
-  // For now, we'll require that joystick data is present in allegro.cfg.
-  // The ASETUP program can be used to obtain the joystick data.
-
-  if (load_joystick_data(NULL) == 0)
-    joystickpresent = true;
-  else
-    joystickpresent = false;
-
   atexit(I_Shutdown);
 
   { // killough 2/21/98: avoid sound initialization if no sound & no music
@@ -230,8 +167,6 @@ void I_Init(void)
     if (!(nomusicparm && nosfxparm))
       I_InitSound();
   }
-
-  I_CheckVESA();
 }
 
 //
@@ -284,13 +219,6 @@ void I_Error(const char *error, ...) // killough 3/20/98: add const
 
 void I_EndDoom(void)
 {
-  int lump;
-  if (lumpinfo && (lump = W_CheckNumForName("ENDOOM")) != -1) // killough 10/98
-    {  // killough 8/19/98: simplify
-      memcpy(0xb8000 + (byte *) __djgpp_conventional_base,
-	     W_CacheLumpNum(lump, PU_CACHE), 0xf00);
-      gotoxy(1,24);
-    }
 }
 
         // check for ESC button pressed, regardless of keyboard handler
@@ -315,7 +243,7 @@ int I_CheckAbort()
         else
         {
                 // check normal keyboard handler
-           while(kbhit()) if(getch() == 27) return true;
+           while(1) if(getchar() == 27) return true;
         }
         return false;
 }
@@ -324,42 +252,16 @@ int I_CheckAbort()
         CONSOLE COMMANDS
  *************************/
 
-VARIABLE_BOOLEAN(leds_always_off, NULL,     yesno);
-VARIABLE_INT(realtic_clock_rate, NULL,  0, 500, NULL);
-
-CONSOLE_VARIABLE(i_gamespeed, realtic_clock_rate, 0)
-{
-    if (realtic_clock_rate != 100)
-      {
-        I_GetTime_Scale = ((long long) realtic_clock_rate << CLOCK_BITS) / 100;
-        I_GetTime = I_GetTime_Scaled;
-      }
-    else
-      I_GetTime = I_GetTime_RealTime;
-
-    ResetNet();         // reset the timers and stuff
-}
-
-CONSOLE_VARIABLE(i_ledsoff, leds_always_off, 0)
-{
-   I_ResetLEDs();
-}
-
 extern void I_Sound_AddCommands();
 extern void I_Video_AddCommands();
 extern void I_Input_AddCommands();
-extern void Ser_AddCommands();
 
         // add system specific commands
 void I_AddCommands()
 {
-        C_AddCommand(i_ledsoff);
-        C_AddCommand(i_gamespeed);
-
         I_Video_AddCommands();
         I_Sound_AddCommands();
         I_Input_AddCommands();
-        Ser_AddCommands();
 }
 
 //----------------------------------------------------------------------------

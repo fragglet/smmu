@@ -47,8 +47,8 @@
 #include <dpmi.h>
 #include <dir.h>
 #include <sys/movedata.h>
-#include "allegro.h"
 
+#include "allegro.h"
 #include "internal.h"
 
 

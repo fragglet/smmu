@@ -175,7 +175,7 @@ void D_PostEvent(event_t *ev)
 void D_ProcessEvents (void)
 {
   // IF STORE DEMO, DO NOT ACCEPT INPUT
-  // sf: I don't think SMMU is going to be player in any store any
+  // sf: I don't think SMMU is going to be played in any store any
   //     time soon =)
 //  if (gamemode != commercial || W_CheckNumForName("map01") >= 0)
     for (; eventtail != eventhead; eventtail = (eventtail+1) & (MAXEVENTS-1))
@@ -190,72 +190,52 @@ void D_ProcessEvents (void)
 //
 
 // wipegamestate can be set to -1 to force a wipe on the next draw
+
+gamestate_t    oldgamestate = -1;  // sf: globaled
 gamestate_t    wipegamestate = GS_DEMOSCREEN;
-extern boolean setsizeneeded;
-extern int     showMessages;
 void           R_ExecuteSetViewSize(void);
 camera_t       *camera;
-gamestate_t oldgamestate = -1;  // sf: globaled
+extern boolean setsizeneeded;
 boolean        redrawsbar;      // sf: globaled
+boolean        redrawborder;    // sf: cleaned up border redraw
 
 void D_Display (void)
 {
-  static boolean viewactivestate = false;
-  static boolean menuactivestate = false;
-  static boolean inhelpscreensstate = false;
-  static boolean fullscreen = false;
-  static int borderdrawcount;
-  boolean wipe;
-
   if (nodrawers)                    // for comparative timing / profiling
     return;
 
   if (setsizeneeded)                // change the view size if needed
     {
       R_ExecuteSetViewSize();
-      oldgamestate = -1;            // force background redraw
-      borderdrawcount = 3;
+      R_FillBackScreen();       // redraw backscreen
     }
 
-  // save the current screen if about to wipe
-  if ((wipe = gamestate != wipegamestate && wipegamestate != GS_CONSOLE))
-    wipe_StartScreen();
+        // save the current screen if about to wipe
+        // no melting consoles
+  if (gamestate != wipegamestate && wipegamestate != GS_CONSOLE)
+  {
+    Wipe_StartScreen();
+  }
 
-  // see if the border needs to be initially drawn
-  if (gamestate == GS_LEVEL &&
-        (oldgamestate != GS_LEVEL || inwipe || c_moving) )
-    {
-      viewactivestate = false;        // view was not active
-      R_FillBackScreen ();    // draw the pattern into the back screen
-    }
-
-  // see if the border needs to be updated to the screen
-  if (gamestate == GS_LEVEL && !automapactive && scaledviewwidth != 320)
-    {
-      if (menuactive || menuactivestate || !viewactivestate || c_moving)
-	borderdrawcount = 3;
-      if (borderdrawcount)
-	{
-	  R_DrawViewBorder ();    // erase old menu stuff
-	  borderdrawcount--;
-	}
-    }
+  if (inwipe || c_moving)
+    redrawsbar = redrawborder = true;   // redraw status bar and border
 
   switch (gamestate)                // do buffered drawing
     {
     case GS_LEVEL:
-      if (!gametic)
-	break;
+          // see if the border needs to be initially drawn
+      if(oldgamestate != GS_LEVEL)
+          R_FillBackScreen ();    // draw the pattern into the back screen
       HU_Erase();
-      if (inwipe || wipe || (scaledviewheight != 200 && fullscreen) // killough 11/98
-          || (inhelpscreensstate && !inhelpscreens) || c_moving)
-	redrawsbar = true;              // just put away the help screen
-      fullscreen = scaledviewheight == 200;               // killough 11/98
 
       if (automapactive)
           AM_Drawer();
       else
-          R_RenderPlayerView (players+displayplayer, camera);
+      {
+          // see if the border needs to be updated to the screen
+          if(redrawborder) R_DrawViewBorder ();    // redraw border
+          R_RenderPlayerView (&players[displayplayer], camera);
+      }
 
       ST_Drawer(scaledviewheight == 200, redrawsbar );    // killough 11/98
       HU_Drawer ();
@@ -274,14 +254,12 @@ void D_Display (void)
     }
 
   redrawsbar = false; // reset this now
+  redrawborder = false;
 
   // clean up border stuff
   if (gamestate != oldgamestate && gamestate != GS_LEVEL)
     I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 
-  menuactivestate = menuactive;
-  viewactivestate = viewactive;
-  inhelpscreensstate = inhelpscreens;
   oldgamestate = wipegamestate = gamestate;
 
   // draw pause pic
@@ -294,10 +272,8 @@ void D_Display (void)
 			y,0,W_CacheLumpName ("M_PAUSE", PU_CACHE));
     }
 
-  if (wipe || inwipe)
-  {
-    wipe_Drawer();
-  }
+  if (inwipe)
+      Wipe_Drawer();
 
   C_Drawer();
   // menus go directly to the screen
@@ -307,6 +283,9 @@ void D_Display (void)
     //sf : now system independent
   if(v_ticker)
     V_FPSDrawer();
+
+        // sf: wipe changed: runs alongside the rest of the game rather
+        //     than in its own loop
 
   I_FinishUpdate ();              // page flip or blit buffer
 }
@@ -1219,9 +1198,9 @@ void D_DoomMain(void)
 
   setbuf(stdout,NULL);
 
-  devparm = !!M_CheckParm ("-devparm");         //sf: move up here
-
   FindResponseFile();         // Append response file arguments to command-line
+
+  devparm = !!M_CheckParm ("-devparm");         //sf: move up here
 
   // killough 10/98: set default savename based on executable's name
   sprintf(savegamename = malloc(16), "%.4ssav", D_DoomExeName());
@@ -1251,12 +1230,6 @@ void D_DoomMain(void)
     deathmatch = 3;     
 
 #ifdef GAMEBAR
-  clrscr();
-
-  textbackground(RED); textcolor(WHITE);
-  cprintf("                                   SMMU                                         ");
-  gotoxy(41,1); cprintf("v%i.%02i\n",VERSION/100,VERSION%100);
-  textbackground(BLACK); textcolor(LIGHTGRAY);
 
   switch ( gamemode )
     {
@@ -1294,9 +1267,8 @@ void D_DoomMain(void)
       sprintf (title, "Public DOOM");
       break;
     }
-    gotoxy(40-strlen(title)/2,2); puts(title);
-
-//  printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
+    printf("%s\n", title);
+    printf("%s\nBuilt on %s\n", title, version_date);    // killough 2/1/98
 #endif /* GAMEBAR */
 
   if (devparm)
@@ -1334,15 +1306,13 @@ void D_DoomMain(void)
       sidemove[1] = sidemove[1]*turbo_scale/100;
     }
 
-  // sf: add smmu.wad only if predefines not being used
-#ifndef USEPREDEFINES
     {
         char filestr[128];
                 // get smmu.wad from the same directory as smmu.exe
-        sprintf(filestr, "%ssmmu.wad", D_DoomExeDir());
+                // 25/10/99: use same name as exe
+        sprintf(filestr, "%s%s.wad", D_DoomExeDir(), D_DoomExeName());
         D_AddFile(filestr);
     }
-#endif
 
   modifiedgame = false;         // reset, ignoring smmu.wad etc.
 
@@ -1435,10 +1405,6 @@ void D_DoomMain(void)
   // killough 3/2/98: allow -nodraw -noblit generally
   nodrawers = !!M_CheckParm ("-nodraw");
   noblit = !!M_CheckParm ("-noblit");
-
-  // jff 4/21/98 allow writing predefined lumps out as a wad
-  if ((p = M_CheckParm("-dumplumps")) && p < myargc-1)
-    WritePredefinedLumpWad(myargv[p+1]);
 
   if (M_CheckParm ("-debugfile"))       // sf: debugfile check earlier
     {
@@ -1702,61 +1668,59 @@ void D_ReInitWadfiles()
 
 void D_NewWadLumps(int handle)
 {
-        int i;
-        char firstlevel[9] = "";
+    int i;
+    char firstlevel[9] = "";
 
-        for(i=0; i<numlumps; i++)
-        {
-            if(lumpinfo[i]->handle != handle) continue;
+    for(i=0; i<numlumps; i++)
+    {
+       if(lumpinfo[i]->handle != handle) continue;
 
-            if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
-            {
-                char *name = lumpinfo[i-1]->name; // previous lump
+       if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
+       {
+           char *name = lumpinfo[i-1]->name; // previous lump
                     
-                        // 'ExMy'
-                if(isExMy(name) && isExMy(firstlevel))
-                {
-                    if(name[1] < firstlevel[1] ||       // earlier episode?
-                        // earlier level in the same episode?
-                      (name[1] == firstlevel[1] && name[3] < firstlevel[3]) )
-                            strncpy(firstlevel, name, 8);
-                }
-                if(isMAPxy(name) && isMAPxy(firstlevel))
-                {
-                    if(name[3] < firstlevel[3] || // earlier 10 levels
+                   // 'ExMy'
+           if(isExMy(name) && isExMy(firstlevel))
+           {
+               if(name[1] < firstlevel[1] ||       // earlier episode?
+                      // earlier level in the same episode?
+                 (name[1] == firstlevel[1] && name[3] < firstlevel[3]) )
+                       strncpy(firstlevel, name, 8);
+           }
+           if(isMAPxy(name) && isMAPxy(firstlevel))
+           {
+               if(name[3] < firstlevel[3] || // earlier 10 levels
                         // earlier in the same 10 levels?
-                       (name[3] == firstlevel[3] && name[4] < firstlevel[4]))
-                            strncpy(firstlevel, name, 8);
-                }
-                        // none set yet
-                        // ignore ones called 'start' as these are checked
-                        // elsewhere (m_menu.c)
-                if(!*firstlevel && strcmp(name, "START") )
-                        strncpy(firstlevel, name, 8);
-            }
+                 (name[3] == firstlevel[3] && name[4] < firstlevel[4]))
+                       strncpy(firstlevel, name, 8);
+           }
+                   // none set yet
+                   // ignore ones called 'start' as these are checked
+                   // elsewhere (m_menu.c)
+           if(!*firstlevel && strcmp(name, "START") )
+                strncpy(firstlevel, name, 8);
+       }
                 
-                // new sound
-            if(!strncmp(lumpinfo[i]->name, "DSCHGUN",8)) // chaingun sound
-            {
-                    S_Chgun();
-            }
-            if(!strncmp(lumpinfo[i]->name, "DS", 2))
-            {
-                    S_UpdateSound(i);
-            }
+            // new sound
+       if(!strncmp(lumpinfo[i]->name, "DSCHGUN",8)) // chaingun sound
+          S_Chgun();
+       if(!strncmp(lumpinfo[i]->name, "DS", 2))
+       {
+           S_UpdateSound(i);
+       }
                 // skins
-            if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
-            {
-                    P_ParseSkin(i);
-            }
-            if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
-            {
-                    D_ProcessDehInWad(i);
-            }
-        } 
+       if(!strncmp(lumpinfo[i]->name, "S_SKIN", 6))
+       {
+           P_ParseSkin(i);
+       }
+       if(!strncmp(lumpinfo[i]->name, "DEHACKED", 8))
+       {
+           D_ProcessDehInWad(i);
+       }
+    } 
 
-        if(*firstlevel) // a new first level?
-                strcpy(startlevel, firstlevel);
+    if(*firstlevel) // a new first level?
+       strcpy(startlevel, firstlevel);
 }
 
 void usermsg(char *s, ...)
@@ -1782,13 +1746,13 @@ void usermsg(char *s, ...)
         // returns 1 if successfully loaded
 int D_AddNewFile(char *s)
 {
-        c_showprompt = false;
-        if(W_AddNewFile(c_argv[0])) return 0;
-        modifiedgame = true;
-        D_AddFile(c_argv[0]);   // add to the list of wads
-        C_SetConsole();
-        D_ReInitWadfiles();
-        return 1;
+  c_showprompt = false;
+  if(W_AddNewFile(c_argv[0])) return false;
+  modifiedgame = true;
+  D_AddFile(c_argv[0]);   // add to the list of wads
+  C_SetConsole();
+  D_ReInitWadfiles();
+  return true;
 }
 
 //----------------------------------------------------------------------------

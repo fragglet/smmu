@@ -91,7 +91,6 @@ boolean         nodrawers;     // for comparative timing purposes
 boolean         noblit;        // for comparative timing purposes
 int             startgametic;
 int             starttime;     // for comparative timing purposes
-boolean         viewactive;
 boolean         deathmatch;    // only if started as net death
 boolean         netgame;       // only true if packets are broadcast
 boolean         playeringame[MAXPLAYERS];
@@ -112,6 +111,9 @@ byte            *savebuffer;
 int             autorun = false;      // always running?          // phares
 int             automlook = false;
 int             bfglook = 1;
+        // sf: moved sensitivity here
+int             mouseSensitivity_horiz; // has default   //  killough
+int             mouseSensitivity_vert;  // has default
 int             invert_mouse = true;
 int             animscreenshot = 0;       // animated screenshots
 
@@ -634,7 +636,7 @@ static void G_DoLoadLevel(void)
   ST_Start();
 
   C_Popup();  // pop up the console
-  if(oldgamestate != GS_CONSOLE) wipe_StartScreen();
+  if(oldgamestate != GS_CONSOLE) Wipe_StartScreen();
 
 }
 
@@ -702,7 +704,8 @@ boolean G_Responder(event_t* ev)
       // Don't suck up keys, which may be cheats
 
       if(!walkcam_active)       // sf: check for walkcam
-      return gamestate == GS_DEMOSCREEN &&
+      return                    // sf: fixed menu popup in demos
+        (gamestate==GS_DEMOSCREEN || (demoplayback && !singledemo)) &&
 	!(paused & 2) && !automapactive &&
 	((ev->type == ev_keydown) ||
 	 (ev->type == ev_mouse && ev->data1) ||
@@ -962,7 +965,6 @@ static void G_DoCompleted(void)
     }
 
   gamestate = GS_INTERMISSION;
-  viewactive = false;
   automapactive = false;
 
   if (statcopy)
@@ -981,7 +983,6 @@ static void G_DoWorldDone(void)
                    G_GetNameForMap(gameepisode, gamemap) );
   G_DoLoadLevel();
   gameaction = ga_nothing;
-  viewactive = true;
   AM_clearMarks();           //jff 4/12/98 clear any marks on the automap
 }
 
@@ -1544,11 +1545,11 @@ void G_Ticker(void)
 
   if(animscreenshot)    // animated screen shots
   {
-        if(gametic % 16 == 0)
-        {
-                animscreenshot--;
-                M_ScreenShot();
-        }
+     if(gametic % 16 == 0)
+     {
+        animscreenshot--;
+        M_ScreenShot();
+     }
   }
 
   // killough 10/6/98: allow games to be saved during demo
@@ -1665,9 +1666,9 @@ void G_Ticker(void)
 
                 // call other tickers
   C_NetTicker();        // sf: console network commands
-  if(inwipe) wipe_Ticker();
+  if(inwipe) Wipe_Ticker();
 
-  if(gamestate == GS_LEVEL)     // sf: slightly more understandable, hate ?:
+  if(gamestate == GS_LEVEL)     // sf: slightly more understandable,
   {                             // killoughs system was pointlessly complex
 	P_Ticker();
 	ST_Ticker(); 
@@ -2238,7 +2239,6 @@ void G_InitNew(skill_t skill, char *name)
   }
 
   automapactive = false;
-  viewactive = true;
   gameepisode = episode;
   gamemap = map;
   gameskill = skill;
@@ -2535,10 +2535,10 @@ void G_DeferedPlayDemo(char *s)
     strcpy(name,s);
 
     G_StopDemo();          // stop any previous demos
+
     defdemoname = name;
     gameaction = ga_playdemo;
     singledemo = false;      // sf: moved from reloaddefaults
-
 }
 
 // G_TimeDemo - sf
@@ -2546,6 +2546,7 @@ void G_DeferedPlayDemo(char *s)
 void G_TimeDemo(char *name)
 {
     G_DeferedPlayDemo(name);
+    M_ClearMenus();        // turn off menus -- sf
     singletics = true;
     timingdemo = true;            // show stats after quit
     singledemo = true;            // quit after one demo
@@ -2582,9 +2583,7 @@ boolean G_CheckDemoStatus(void)
       // killough -- added fps information and made it work for longer demos:
       unsigned realtics = endtime-starttime;
       unsigned gametics = gametic-startgametic;
-//      C_WriteText ("Timed %u gametics in %u realtics",
-//               (unsigned) gametics,realtics);
-      C_Printf ("%-.1f frames per second\n",
+      C_Printf ("\n" FC_GRAY "%-.1f frames per second\n",
                (unsigned) gametics * (double) TICRATE / realtics);
       singletics = false;
       demoplayback = false;
@@ -2646,9 +2645,25 @@ void dprintf(const char *s, ...)
   va_start(v,s);
   vsprintf(msg,s,v);                  // print message in buffer
   va_end(v);
-  C_WriteText(msg);  // set new message
-  HU_playermsg(msg);
+  C_Puts(msg);  // set new message
+  HU_PlayerMsg(msg);
 }
+
+        // sf: printf to a particular player only
+        // to make up for the loss of player->msg = ...
+
+void player_printf(player_t *player, const char *s, ...)
+{
+  static char msg[MAX_MESSAGE_SIZE];
+  va_list v;
+  va_start(v,s);
+  vsprintf(msg,s,v);                  // print message in buffer
+  va_end(v);
+
+  if(player == &players[consoleplayer])
+        dprintf(msg);
+}
+
 
 extern int numcameraviews;      // wi_stuff.c
 extern camera_t intercam;
