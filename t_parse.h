@@ -23,16 +23,12 @@
 #ifndef __PARSE_H__
 #define __PARSE_H__
 
+#include "m_fixed.h"
 #include "p_mobj.h"     // for mobj_t
 
 #define T_MAXTOKENS 64
 #define TOKENLENGTH 128
-
-        // furthered to include support for svt_mobj
-#define intvalue(v)     \
-        ( (v).type == svt_string ? atoi((v).value.s) :  \
-          (v).type == svt_mobj ? -1 : (v).value.i )
-
+ 
 typedef struct script_s script_t;
 typedef struct svalue_s svalue_t;
 typedef struct operator_s operator_t;
@@ -45,9 +41,23 @@ struct svalue_s
     long i;
     char *s;
     char *labelptr; // goto() label
+    fixed_t f;
     mobj_t *mobj;
   } value;
 };
+
+        // furthered to include support for svt_mobj
+#define intvalue(v)                                               \
+  ( (v).type == svt_string ? atoi((v).value.s) :                  \
+    (v).type == svt_fixed ? ((v).value.f / FRACUNIT) :            \
+    (v).type == svt_mobj ? -1 : (v).value.i )
+  
+#define fixedvalue(v)                                             \
+  ( (v).type == svt_fixed ? (v).value.f :                         \
+    (v).type == svt_string ? (atof((v).value.s) * FRACUNIT) :     \
+    intvalue(v) * FRACUNIT )
+
+char *stringvalue(svalue_t v);
 
 #include "t_vari.h"
 #include "t_prepro.h"
@@ -156,8 +166,11 @@ extern script_t hub_script;
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

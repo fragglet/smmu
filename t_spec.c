@@ -245,6 +245,11 @@ boolean spec_variable()
       newvar_type = svt_mobj;
       start++;
     }
+  else if(!strcmp(tokens[start], "float"))
+    {
+      newvar_type = svt_fixed;
+      start++;
+    }
   else if(!strcmp(tokens[start], "script"))     // check for script creation
     {
       spec_script();
@@ -267,8 +272,11 @@ boolean spec_variable()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:52:00  fraggle
+// floating point math in FraggleScript
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------
