@@ -92,6 +92,7 @@ typedef struct
   
   //------------ Input Functions ----------
   void (*StartTic)();           // get key/mouse events
+  void (*StartFrame)();         // frame-syncronous events
   
   char **modenames;             // names of video modes - NULL terminated
 } viddriver_t;
@@ -120,8 +121,11 @@ extern BITMAP *screens0_bitmap;   // killough 12/98
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-09 20:54:53  fraggle
+// add I_StartFrame frame-syncronous stuff (joystick)
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

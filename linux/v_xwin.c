@@ -1628,6 +1628,7 @@ viddriver_t xwin_driver =
     XWin_SetPalette,
 
     XWin_StartTic,
+    XWin_StartFrame,
     xwin_modenames
   };
 
@@ -1636,7 +1637,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-04-30 19:38:33  fraggle
+// Revision 1.3  2000-06-09 20:53:50  fraggle
+// add I_StartFrame frame-syncronous stuff (joystick)
+//
+// Revision 1.2  2000/04/30 19:38:33  fraggle
 // fix linux build
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
