@@ -34,7 +34,6 @@
 #include "ser_port.h"
 
 #include "../d_main.h"
-#include "../d_net.h"
 #include "../c_io.h"
 
 void jump_start( void );
@@ -370,8 +369,11 @@ void jump_start( void )
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-04-30 19:45:32  fraggle
+// remove d_net.c
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
