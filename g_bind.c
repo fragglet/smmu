@@ -35,8 +35,10 @@
 
 #include "c_io.h"
 #include "c_runcmd.h"
+#include "d_deh.h"
 #include "g_game.h"
 #include "mn_engin.h"
+#include "mn_misc.h"
 #include "m_misc.h"
 #include "w_wad.h"
 
@@ -369,10 +371,30 @@ void G_InitKeyBindings()
 
 boolean G_KeyResponder(event_t *ev)
 {
+  static boolean ctrldown;
+
+  if(ev->data1 == KEYD_RCTRL)      // ctrl
+    {
+      ctrldown = ev->type == ev_keydown;
+      return false;
+    }    
+ 
   if(ev->type == ev_keydown)
     {
       int key = tolower(ev->data1);
 
+      if(ctrldown && ev->data1 == 'd')      // netgame disconnect binding
+	{
+	  char buffer[128];
+
+	  sprintf(buffer, "disconnect from server?\n\n%s", s_PRESSYN);
+	  MN_Question(buffer, "disconnect leaving");
+
+	  // dont get stuck thinking ctrl is down
+	  ctrldown = false;
+	  return true;
+	}
+      
       if(!keys[key].keydown)
 	{
 	  keys[key].keydown = true;
@@ -691,7 +713,10 @@ void G_Bind_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-10 13:11:37  fraggle
+// Revision 1.3  2000-05-12 16:42:20  fraggle
+// ctrl-d to disconnect from server
+//
+// Revision 1.2  2000/05/10 13:11:37  fraggle
 // fix demos
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
