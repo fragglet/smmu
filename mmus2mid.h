@@ -23,21 +23,19 @@ typedef enum
   BADMIDHDR,     // bad midi header detected 
 } error_code_t;
 
-// some names for integers of various sizes, all unsigned 
-
-typedef unsigned char UBYTE;  // a one-byte int 
-typedef unsigned short UWORD; // a two-byte int 
-typedef unsigned long ULONG;   // a four-byte int (assumes int 4 bytes) 
-
-extern int mmus2mid(UBYTE *mus,MIDI *mid, UWORD division, int nocomp);
-extern int MIDIToMidi(MIDI *mididata,UBYTE **mid,int *midlen);
-extern int MidiToMIDI(UBYTE *mid,MIDI *mididata);
+extern int mmus2mid(unsigned char *mus, MIDI *mid, unsigned short division,
+		    int nocomp);
+extern int MIDIToMidi(MIDI *mididata, unsigned char **mid,int *midlen);
+extern int MidiToMIDI(unsigned char *mid, MIDI *mididata);
 
 #endif
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2001-01-15 01:34:33  fraggle
+// Revision 1.3  2001-01-15 01:40:06  fraggle
+// remove conflicting mmus2mid typedefs
+//
+// Revision 1.2  2001/01/15 01:34:33  fraggle
 // fix ULONG typedef - need to remove this if possible to get rid of the
 // conflicts with the windows.h version
 //
