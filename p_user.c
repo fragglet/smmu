@@ -136,9 +136,14 @@ void P_CalcHeight (player_t* player)
       return;
     }
 
-  angle = (FINEANGLES/20*leveltime)&FINEMASK;
+  // sf: use player->bobtime rather than leveltime
+  // stop shakyness when using player prediction
+  
+  angle = (FINEANGLES/20*player->bobtime)&FINEMASK;
   bob = FixedMul(player->bob/2,finesine[angle]);
 
+  player->bobtime++;
+  
   // move viewheight
 
   if (player->playerstate == PST_LIVE)
@@ -540,7 +545,10 @@ void P_RunPredictedTic(ticcmd_t *ticcmd)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-05-22 10:14:02  fraggle
+// Revision 1.5  2000-05-24 13:29:11  fraggle
+// fix jerkiness problem w/client prediction
+//
+// Revision 1.4  2000/05/22 10:14:02  fraggle
 // nothing
 //
 // Revision 1.3  2000/05/07 13:01:12  fraggle

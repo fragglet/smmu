@@ -105,6 +105,13 @@ struct player_s
   // bounded/scaled total momentum.
   fixed_t             bob;    
 
+  // sf: for bobbing prediction
+  // bob height used to depend on leveltime but with the introduction of
+  // movement prediction we need to change this. We use this variable
+  // bobtime and increment it for each tic we run
+
+  int bobtime;
+  
   // killough 10/98: used for realistic bobbing (i.e. not simply overall speed)
   // mo->momx and mo->momy represent true momenta experienced by player.
   // This only represents the thrust that the player applies himself.
@@ -236,7 +243,10 @@ typedef struct
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:40  fraggle
+// Revision 1.3  2000-05-24 13:29:10  fraggle
+// fix jerkiness problem w/client prediction
+//
+// Revision 1.2  2000/05/02 15:43:40  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
