@@ -448,7 +448,7 @@ static struct in_addr broadcast;
 
 static void UDP_GetBroadcast()
 {
-#ifdef DJGPP
+#if defined(DJGPP) || defined(_WIN32)
 
   // libsocket packet broadcast is shaky.
   // To get address to send for broadcast
@@ -688,7 +688,10 @@ void UDP_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-06-19 14:58:55  fraggle
+// Revision 1.6  2000-06-20 21:05:30  fraggle
+// fix broadcast in win32
+//
+// Revision 1.5  2000/06/19 14:58:55  fraggle
 // cygwin (win32) support
 //
 // Revision 1.4  2000/05/06 14:05:39  fraggle
