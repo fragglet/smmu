@@ -29,6 +29,8 @@
 
 #ifndef DJGPP
 
+#define MIDI_TRACKS           32       /* able to handle this many */
+
 typedef struct MIDI                    /* a midi file */
 {
    int divisions;                      /* number of ticks per quarter note */
