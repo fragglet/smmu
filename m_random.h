@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: m_random.h,v 1.9 1998/05/01 14:20:31 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -146,33 +146,9 @@ void M_ClearRandom(void);
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_random.h,v $
-// Revision 1.9  1998/05/01  14:20:31  killough
-// beautification
-//
-// Revision 1.8  1998/03/31  10:43:07  killough
-// Fix (supposed) RNG problems, add new demo_insurance
-//
-// Revision 1.7  1998/03/28  17:56:02  killough
-// Improve RNG by adding external seed
-//
-// Revision 1.6  1998/03/09  07:16:39  killough
-// Remove unused pr_class (don't do this after 1st release)
-//
-// Revision 1.5  1998/03/02  11:37:47  killough
-// fix misspelling in comment
-//
-// Revision 1.4  1998/02/23  04:42:01  killough
-// Add pr_atracer type
-//
-// Revision 1.3  1998/02/17  05:40:12  killough
-// Make RNGs local to each calling block, for demo sync
-//
-// Revision 1.2  1998/01/26  19:27:14  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:58  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select -*- C++ -*-
 //--------------------------------------------------------------------
 //
-// $Id: d_deh.h,v 1.5 1998/05/04 21:36:33 thldrmn Exp $
+// $Id$
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1066,13 +1066,10 @@ extern boolean deh_loaded; // sf
 
 //--------------------------------------------------------------------
 //
-// $Log: d_deh.h,v $
-// Revision 1.5  1998/05/04  21:36:33  thldrmn
-// commenting, reformatting and savegamename change
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.4  1998/04/10  06:47:29  killough
-// Fix CVS stuff
-//   
 //
 //--------------------------------------------------------------------
 

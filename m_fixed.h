@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: m_fixed.h,v 1.5 1998/05/10 23:42:22 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -165,21 +165,10 @@ __inline__ static fixed_t FixedDiv(fixed_t a, fixed_t b)
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_fixed.h,v $
-// Revision 1.5  1998/05/10  23:42:22  killough
-// Add inline assembly for djgpp (x86) target
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.4  1998/04/27  01:53:37  killough
-// Make gcc extensions #ifdef'ed
-//
-// Revision 1.3  1998/02/02  13:30:35  killough
-// move fixed point arith funcs to m_fixed.h
-//
-// Revision 1.2  1998/01/26  19:27:09  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:53  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------
 

@@ -17,11 +17,11 @@
 //
 //--------------------------------------------------------------------------
 //
-// $Id: version.c,v 1.2 1998/05/03 22:59:31 killough Exp $
+// $Id$
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: version.c,v 1.2 1998/05/03 22:59:31 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include "version.h"
 
@@ -32,11 +32,9 @@ const char version_name[] = "christmas"; // sf : version names
 
 //----------------------------------------------------------------------------
 //
-// $Log: version.c,v $
-// Revision 1.2  1998/05/03  22:59:31  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.1  1998/02/02  13:21:58  killough
-// version information files
 //
 //----------------------------------------------------------------------------

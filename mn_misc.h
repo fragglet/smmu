@@ -42,3 +42,12 @@ void MN_StartHelpScreen();
 void MN_SelectColour(char *variable_name);
 
 #endif /** __MN_MISC_H__ **/
+
+//-------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
+//
+//-------------------------------------------------------------------------

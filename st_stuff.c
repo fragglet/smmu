@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -1133,143 +1133,9 @@ void ST_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: st_stuff.c,v $
-// Revision 1.46  1998/05/06  16:05:40  jim
-// formatting and documenting
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.45  1998/05/03  22:50:58  killough
-// beautification, move external declarations, remove cheats
-//
-// Revision 1.44  1998/04/27  17:30:39  jim
-// Fix DM demo/newgame status, remove IDK (again)
-//
-// Revision 1.43  1998/04/27  02:30:12  killough
-// fuck you
-//
-// Revision 1.42  1998/04/24  23:52:31  thldrmn
-// Removed idk cheat
-//
-// Revision 1.41  1998/04/24  11:39:23  killough
-// Fix cheats while demo is played back
-//
-// Revision 1.40  1998/04/19  01:10:19  killough
-// Generalize cheat engine to add deh support
-//
-// Revision 1.39  1998/04/16  06:26:06  killough
-// Prevent cheats from working inside menu
-//
-// Revision 1.38  1998/04/12  10:58:24  jim
-// IDMUSxy for DOOM 1 fix
-//
-// Revision 1.37  1998/04/12  10:23:52  jim
-// IDMUS00 ok in DOOM 1
-//
-// Revision 1.36  1998/04/12  02:00:39  killough
-// Change tranmap to main_tranmap
-//
-// Revision 1.35  1998/04/12  01:08:51  jim
-// Fixed IDMUS00 crash
-//
-// Revision 1.34  1998/04/11  14:48:11  thldrmn
-// Replaced IDK with TNTKA cheat
-//
-// Revision 1.33  1998/04/10  06:36:45  killough
-// Fix -fast parameter bugs
-//
-// Revision 1.32  1998/03/31  10:37:17  killough
-// comment clarification
-//
-// Revision 1.31  1998/03/28  18:09:19  killough
-// Fix deh-cheat self-annihilation bug, make iddt closer to Doom
-//
-// Revision 1.30  1998/03/28  05:33:02  jim
-// Text enabling changes for DEH
-//
-// Revision 1.29  1998/03/23  15:24:54  phares
-// Changed pushers to linedef control
-//
-// Revision 1.28  1998/03/23  06:43:26  jim
-// linedefs reference initial version
-//
-// Revision 1.27  1998/03/23  03:40:46  killough
-// Fix idclip bug, make monster kills message smart
-//
-// Revision 1.26  1998/03/20  00:30:37  phares
-// Changed friction to linedef control
-//
-// Revision 1.25  1998/03/17  20:44:32  jim
-// fixed idmus non-restore, space bug
-//
-// Revision 1.24  1998/03/12  14:35:01  phares
-// New cheat codes
-//
-// Revision 1.23  1998/03/10  07:14:38  jim
-// Initial DEH support added, minus text
-//
-// Revision 1.22  1998/03/09  07:31:48  killough
-// Fix spy mode to display player correctly, add TNTFAST
-//
-// Revision 1.21  1998/03/06  05:31:02  killough
-// PEst control, from the TNT'EM man
-//
-// Revision 1.20  1998/03/02  15:35:03  jim
-// Enabled Lee's status changes, added new types to common.cfg
-//
-// Revision 1.19  1998/03/02  12:09:18  killough
-// blue status bar color, monsters_remember, traditional_keys
-//
-// Revision 1.18  1998/02/27  11:00:58  phares
-// Can't own weapons that don't exist
-//
-// Revision 1.17  1998/02/26  22:57:45  jim
-// Added message review display to HUD
-//
-// Revision 1.16  1998/02/24  08:46:45  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.15  1998/02/24  04:14:19  jim
-// Added double keys to status
-//
-// Revision 1.14  1998/02/23  04:57:29  killough
-// Fix TNTEM cheat again, add new cheats
-//
-// Revision 1.13  1998/02/20  21:57:07  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.12  1998/02/19  23:15:52  killough
-// Add TNTAMMO in addition to TNTAMO
-//
-// Revision 1.11  1998/02/19  16:55:22  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.10  1998/02/18  00:59:20  jim
-// Addition of HUD
-//
-// Revision 1.9  1998/02/17  06:15:48  killough
-// Add TNTKEYxx, TNTAMOx, TNTWEAPx cheats, and cheat engine support for them.
-//
-// Revision 1.8  1998/02/15  02:48:01  phares
-// User-defined keys
-//
-// Revision 1.7  1998/02/09  03:19:04  killough
-// Rewrite cheat code engine, add IDK and TNTHOM
-//
-// Revision 1.6  1998/02/02  22:19:01  jim
-// Added TNTEM cheat to kill every monster alive
-//
-// Revision 1.5  1998/01/30  18:48:10  phares
-// Changed textspeed and textwait to functions
-//
-// Revision 1.4  1998/01/30  16:09:03  phares
-// Faster end-mission text display
-//
-// Revision 1.3  1998/01/28  12:23:05  phares
-// TNTCOMP cheat code added
-//
-// Revision 1.2  1998/01/26  19:24:58  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:03  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -42,3 +42,12 @@ netmodule_t *Net_ModuleForName(char *name);
 netnode_t *Net_Resolve(char *name);
 
 #endif /* NET_SEND */
+
+//-------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
+//
+//-------------------------------------------------------------------------

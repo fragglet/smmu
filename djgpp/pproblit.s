@@ -557,20 +557,10 @@ L3p:
         ret
 
 //----------------------------------------------------------------------------
-// $Id: pproblit.s,v 1.4 1998/02/23 04:53:25 killough Exp $
-//----------------------------------------------------------------------------
 //
-// $Log: pproblit.s,v $
-// Revision 1.4  1998/02/23  04:53:25  killough
-// Performance tuning, add Pentium routine
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
 //
-// Revision 1.3  1998/02/09  03:12:04  killough
-// Change blit to forward direction
-//
-// Revision 1.2  1998/01/26  19:31:17  phares
-// First rev w/o ^Ms
-//
-// Revision 1.1  1998/01/26  05:51:52  killough
-// PPro tuned blit
 //
 //----------------------------------------------------------------------------

@@ -265,3 +265,13 @@ void External_SendBroadcast(void *data, int datalen)
   for(i=0; i<doomcom->numnodes; i++)
     External_SendPacket(i, data, datalen);
 }
+
+//---------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
+//
+//
+//---------------------------------------------------------------------------
+

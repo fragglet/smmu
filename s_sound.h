@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: s_sound.h,v 1.4 1998/05/03 22:57:36 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -99,17 +99,9 @@ extern int idmusnum;
 
 //----------------------------------------------------------------------------
 //
-// $Log: s_sound.h,v $
-// Revision 1.4  1998/05/03  22:57:36  killough
-// beautification, add external declarations
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.3  1998/04/27  01:47:32  killough
-// Fix pickups silencing player weapons
-//
-// Revision 1.2  1998/01/26  19:27:51  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

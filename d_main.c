@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: d_main.c,v 1.47 1998/05/16 09:16:51 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -1811,122 +1811,9 @@ boolean D_AddNewFile(char *s)
 
 //----------------------------------------------------------------------------
 //
-// $Log: d_main.c,v $
-// Revision 1.47  1998/05/16  09:16:51  killough
-// Make loadgame checksum friendlier
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.46  1998/05/12  10:32:42  jim
-// remove LEESFIXES from d_main
-//
-// Revision 1.45  1998/05/06  15:15:46  jim
-// Documented IWAD routines
-//
-// Revision 1.44  1998/05/03  22:26:31  killough
-// beautification, declarations, headers
-//
-// Revision 1.43  1998/04/24  08:08:13  jim
-// Make text translate tables lumps
-//
-// Revision 1.42  1998/04/21  23:46:01  jim
-// Predefined lump dumper option
-//
-// Revision 1.39  1998/04/20  11:06:42  jim
-// Fixed print of IWAD found
-//
-// Revision 1.37  1998/04/19  01:12:19  killough
-// Fix registered check to work with new lump namespaces
-//
-// Revision 1.36  1998/04/16  18:12:50  jim
-// Fixed leak
-//
-// Revision 1.35  1998/04/14  08:14:18  killough
-// Remove obsolete adaptive_gametics code
-//
-// Revision 1.34  1998/04/12  22:54:41  phares
-// Remaining 3 Setup screens
-//
-// Revision 1.33  1998/04/11  14:49:15  thldrmn
-// Allow multiple deh/bex files
-//
-// Revision 1.32  1998/04/10  06:31:50  killough
-// Add adaptive gametic timer
-//
-// Revision 1.31  1998/04/09  09:18:17  thldrmn
-// Added generic startup strings for BEX use
-//
-// Revision 1.30  1998/04/06  04:52:29  killough
-// Allow demo_insurance=2, fix fps regression wrt redrawsbar
-//
-// Revision 1.29  1998/03/31  01:08:11  phares
-// Initial Setup screens and Extended HELP screens
-//
-// Revision 1.28  1998/03/28  15:49:37  jim
-// Fixed merge glitches in d_main.c and g_game.c
-//
-// Revision 1.27  1998/03/27  21:26:16  jim
-// Default save dir offically . now
-//
-// Revision 1.26  1998/03/25  18:14:21  jim
-// Fixed duplicate IWAD search in .
-//
-// Revision 1.25  1998/03/24  16:16:00  jim
-// Fixed looking for wads message
-//
-// Revision 1.23  1998/03/24  03:16:51  jim
-// added -iwad and -save parms to command line
-//
-// Revision 1.22  1998/03/23  03:07:44  killough
-// Use G_SaveGameName, fix some remaining default.cfg's
-//
-// Revision 1.21  1998/03/18  23:13:54  jim
-// Deh text additions
-//
-// Revision 1.19  1998/03/16  12:27:44  killough
-// Remember savegame slot when loading
-//
-// Revision 1.18  1998/03/10  07:14:58  jim
-// Initial DEH support added, minus text
-//
-// Revision 1.17  1998/03/09  07:07:45  killough
-// print newline after wad files
-//
-// Revision 1.16  1998/03/04  08:12:05  killough
-// Correctly set defaults before recording demos
-//
-// Revision 1.15  1998/03/02  11:24:25  killough
-// make -nodraw -noblit work generally, fix ENDOOM
-//
-// Revision 1.14  1998/02/23  04:13:55  killough
-// My own fix for m_misc.c warning, plus lots more (Rand's can wait)
-//
-// Revision 1.11  1998/02/20  21:56:41  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.10  1998/02/20  00:09:00  killough
-// change iwad search path order
-//
-// Revision 1.9  1998/02/17  06:09:35  killough
-// Cache D_DoomExeDir and support basesavegame
-//
-// Revision 1.8  1998/02/02  13:20:03  killough
-// Ultimate Doom, -fastdemo -nodraw -noblit support, default_compatibility
-//
-// Revision 1.7  1998/01/30  18:48:15  phares
-// Changed textspeed and textwait to functions
-//
-// Revision 1.6  1998/01/30  16:08:59  phares
-// Faster end-mission text display
-//
-// Revision 1.5  1998/01/26  19:23:04  phares
-// First rev with no ^Ms
-//
-// Revision 1.4  1998/01/26  05:40:12  killough
-// Fix Doom 1 crashes on -warp with too few args
-//
-// Revision 1.3  1998/01/24  21:03:04  jim
-// Fixed disappearence of nomonsters, respawn, or fast mode after demo play or IDCLEV
-//
-// Revision 1.1.1.1  1998/01/19  14:02:53  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

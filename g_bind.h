@@ -65,3 +65,12 @@ extern int action_weapon7, action_weapon8, action_weapon9;
 extern int action_nextweapon;
 
 #endif /* G_BIND */
+
+//-----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
+//
+//-----------------------------------------------------------------------------

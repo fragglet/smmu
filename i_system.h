@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_system.h,v 1.7 1998/05/03 22:33:43 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -116,27 +116,9 @@ void I_Sleep(int time);
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_system.h,v $
-// Revision 1.7  1998/05/03  22:33:43  killough
-// beautification, remove unnecessary #includes
-//
-// Revision 1.6  1998/04/27  01:52:47  killough
-// Add __attribute__ to I_Error for gcc checking
-//
-// Revision 1.5  1998/04/10  06:34:07  killough
-// Add adaptive gametic timer
-//
-// Revision 1.4  1998/03/23  03:17:19  killough
-// Add keyboard FIFO queue and make I_Error arg const
-//
-// Revision 1.3  1998/02/23  04:28:30  killough
-// Add ENDOOM support
-//
-// Revision 1.2  1998/01/26  19:26:59  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:10  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

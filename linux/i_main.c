@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_main.c,v 1.8 1998/05/15 00:34:03 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: i_main.c,v 1.8 1998/05/15 00:34:03 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "../doomdef.h"
 #include "../m_argv.h"
@@ -100,29 +100,9 @@ int main(int argc, char **argv)
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_main.c,v $
-// Revision 1.8  1998/05/15  00:34:03  killough
-// Remove unnecessary crash hack
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.7  1998/05/13  22:58:04  killough
-// Restore Doom bug compatibility for demos
-//
-// Revision 1.6  1998/05/03  22:38:36  killough
-// beautification
-//
-// Revision 1.5  1998/04/27  02:03:11  killough
-// Improve signal handling, to use Z_DumpHistory()
-//
-// Revision 1.4  1998/03/09  07:10:47  killough
-// Allow CTRL-BRK during game init
-//
-// Revision 1.3  1998/02/03  01:32:58  stan
-// Moved __djgpp_nearptr_enable() call from I_video.c to i_main.c
-//
-// Revision 1.2  1998/01/26  19:23:24  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: r_data.c,v 1.23 1998/05/23 08:05:57 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -1240,71 +1240,9 @@ static void error_printf(char *s, ...)
 
 //-----------------------------------------------------------------------------
 //
-// $Log: r_data.c,v $
-// Revision 1.23  1998/05/23  08:05:57  killough
-// Reformatting
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.21  1998/05/07  00:52:03  killough
-// beautification
-//
-// Revision 1.20  1998/05/03  22:55:15  killough
-// fix #includes at top
-//
-// Revision 1.19  1998/05/01  18:23:06  killough
-// Make error messages look neater
-//
-// Revision 1.18  1998/04/28  22:56:07  killough
-// Improve error handling of bad textures
-//
-// Revision 1.17  1998/04/27  01:58:08  killough
-// Program beautification
-//
-// Revision 1.16  1998/04/17  10:38:58  killough
-// Tag lumps with namespace tags to resolve collisions
-//
-// Revision 1.15  1998/04/16  10:47:40  killough
-// Improve missing flats error message
-//
-// Revision 1.14  1998/04/14  08:12:31  killough
-// Fix seg fault
-//
-// Revision 1.13  1998/04/12  09:52:51  killough
-// Fix ?bad merge? causing seg fault
-//
-// Revision 1.12  1998/04/12  02:03:51  killough
-// rename tranmap main_tranmap, better colormap support
-//
-// Revision 1.11  1998/04/09  13:19:35  killough
-// Fix Medusa for transparent middles, and remove 64K composite texture size limit
-//
-// Revision 1.10  1998/04/06  04:39:58  killough
-// Support multiple colormaps and C_START/C_END
-//
-// Revision 1.9  1998/03/23  03:33:29  killough
-// Add support for an arbitrary number of colormaps, e.g. WATERMAP
-//
-// Revision 1.8  1998/03/09  07:26:03  killough
-// Add translucency map caching
-//
-// Revision 1.7  1998/03/02  11:54:26  killough
-// Don't initialize tranmap until needed
-//
-// Revision 1.6  1998/02/23  04:54:03  killough
-// Add automatic translucency filter generator
-//
-// Revision 1.5  1998/02/02  13:35:36  killough
-// Improve hashing algorithm
-//
-// Revision 1.4  1998/01/26  19:24:38  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/26  06:11:42  killough
-// Fix Medusa bug, tune hash function
-//
-// Revision 1.2  1998/01/22  05:55:56  killough
-// Improve hashing algorithm
-//
-// Revision 1.3  1997/01/29 20:10
-// ???
 //
 //-----------------------------------------------------------------------------

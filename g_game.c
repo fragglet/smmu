@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: g_game.c,v 1.59 1998/06/03 20:23:10 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -26,7 +26,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: g_game.c,v 1.59 1998/06/03 20:23:10 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <time.h>
 #include <stdarg.h>
@@ -2415,187 +2415,12 @@ void G_CoolViewPoint()
   cooldemo_tics = (7 + M_Random() % 13) * 35;
 }
 
-//----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
 //
-// $Log: g_game.c,v $
-// Revision 1.59  1998/06/03  20:23:10  killough
-// fix v2.00 demos
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.58  1998/05/16  09:16:57  killough
-// Make loadgame checksum friendlier
 //
-// Revision 1.57  1998/05/15  00:32:28  killough
-// Remove unnecessary crash hack
-//
-// Revision 1.56  1998/05/13  22:59:23  killough
-// Restore Doom bug compatibility for demos, fix multiplayer status bar
-//
-// Revision 1.55  1998/05/12  12:46:16  phares
-// Removed OVER_UNDER code
-//
-// Revision 1.54  1998/05/07  00:48:51  killough
-// Avoid displaying uncalled for precision
-//
-// Revision 1.53  1998/05/06  15:32:24  jim
-// document g_game.c, change externals
-//
-// Revision 1.52  1998/05/05  16:29:06  phares
-// Removed RECOIL and OPT_BOBBING defines
-//
-// Revision 1.51  1998/05/04  22:00:33  thldrmn
-// savegamename globalization
-//
-// Revision 1.50  1998/05/03  22:15:19  killough
-// beautification, decls & headers, net consistency fix
-//
-// Revision 1.49  1998/04/27  17:30:12  jim
-// Fix DM demo/newgame status, remove IDK (again)
-//
-// Revision 1.48  1998/04/25  12:03:44  jim
-// Fix secret level fix
-//
-// Revision 1.46  1998/04/24  12:09:01  killough
-// Clear player cheats before demo starts
-//
-// Revision 1.45  1998/04/19  19:24:19  jim
-// Improved IWAD search
-//
-// Revision 1.44  1998/04/16  16:17:09  jim
-// Fixed disappearing marks after new level
-//
-// Revision 1.43  1998/04/14  10:55:13  phares
-// Recoil, Bobbing, Monsters Remember changes in Setup now take effect immediately
-//
-// Revision 1.42  1998/04/13  21:36:12  phares
-// Cemented ESC and F1 in place
-//
-// Revision 1.41  1998/04/13  10:40:58  stan
-// Now synch up all items identified by Lee Killough as essential to
-// game synch (including bobbing, recoil, rngseed).  Commented out
-// code in g_game.c so rndseed is always set even in netgame.
-//
-// Revision 1.40  1998/04/13  00:39:29  jim
-// Fix automap marks carrying over thru levels
-//
-// Revision 1.39  1998/04/10  06:33:00  killough
-// Fix -fast parameter bugs
-//
-// Revision 1.38  1998/04/06  04:51:32  killough
-// Allow demo_insurance=2
-//
-// Revision 1.37  1998/04/05  00:50:48  phares
-// Joystick support, Main Menu re-ordering
-//
-// Revision 1.36  1998/04/02  16:15:24  killough
-// Fix weapons switch
-//
-// Revision 1.35  1998/04/02  04:04:27  killough
-// Fix DM respawn sticking problem
-//
-// Revision 1.34  1998/04/02  00:47:19  killough
-// Fix net consistency errors
-//
-// Revision 1.33  1998/03/31  10:36:41  killough
-// Fix crash caused by last change, add new RNG options
-//
-// Revision 1.32  1998/03/28  19:15:48  killough
-// fix DM spawn bug (Stan's fix)
-//
-// Revision 1.31  1998/03/28  17:55:06  killough
-// Fix weapons switch bug, improve RNG while maintaining sync
-//
-// Revision 1.30  1998/03/28  15:49:47  jim
-// Fixed merge glitches in d_main.c and g_game.c
-//
-// Revision 1.29  1998/03/28  05:32:00  jim
-// Text enabling changes for DEH
-//
-// Revision 1.28  1998/03/27  21:27:00  jim
-// Fixed sky bug for Ultimate DOOM
-//
-// Revision 1.27  1998/03/27  16:11:43  stan
-// (SG) Commented out lines in G_ReloadDefaults that reset netgame and
-//      deathmatch to zero.
-//
-// Revision 1.26  1998/03/25  22:51:25  phares
-// Fixed headsecnode bug trashing memory
-//
-// Revision 1.25  1998/03/24  15:59:17  jim
-// Added default_skill parameter to config file
-//
-// Revision 1.24  1998/03/23  15:23:39  phares
-// Changed pushers to linedef control
-//
-// Revision 1.23  1998/03/23  03:14:27  killough
-// Fix savegame checksum, net/demo consistency w.r.t. weapon switch
-//
-// Revision 1.22  1998/03/20  00:29:39  phares
-// Changed friction to linedef control
-//
-// Revision 1.21  1998/03/18  16:16:47  jim
-// Fix to idmusnum handling
-//
-// Revision 1.20  1998/03/17  20:44:14  jim
-// fixed idmus non-restore, space bug
-//
-// Revision 1.19  1998/03/16  12:29:14  killough
-// Add savegame checksum test
-//
-// Revision 1.18  1998/03/14  17:17:24  jim
-// Fixes to deh
-//
-// Revision 1.17  1998/03/11  17:48:01  phares
-// New cheats, clean help code, friction fix
-//
-// Revision 1.16  1998/03/09  18:29:17  phares
-// Created separately bound automap and menu keys
-//
-// Revision 1.15  1998/03/09  07:09:20  killough
-// Avoid realloc() in doom_printf(), fix savegame -nomonsters bug
-//
-// Revision 1.14  1998/03/02  11:27:45  killough
-// Forward and backward demo sync compatibility
-//
-// Revision 1.13  1998/02/27  08:09:22  phares
-// Added gamemode checks to weapon selection
-//
-// Revision 1.12  1998/02/24  08:45:35  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.11  1998/02/23  04:19:35  killough
-// Fix Internal and v1.9 Demo sync problems
-//
-// Revision 1.10  1998/02/20  22:50:51  killough
-// Fix doom_printf for multiplayer games
-//
-// Revision 1.9  1998/02/20  06:15:08  killough
-// Turn turbo messages on in demo playbacks
-//
-// Revision 1.8  1998/02/17  05:53:41  killough
-// Suppress "green is turbo" in non-net games
-// Remove dependence on RNG for net consistency (intereferes with RNG)
-// Use new RNG calling method, with keys assigned to blocks
-// Friendlier savegame version difference message (instead of nothing)
-// Remove futile attempt to make Boom v1.9-savegame-compatibile
-//
-// Revision 1.7  1998/02/15  02:47:41  phares
-// User-defined keys
-//
-// Revision 1.6  1998/02/09  02:57:08  killough
-// Make player corpse limit user-configurable
-// Fix ExM8 level endings
-// Stop 'q' from ending demo recordings
-//
-// Revision 1.5  1998/02/02  13:44:45  killough
-// Fix doom_printf and CheckSaveGame realloc bugs
-//
-// Revision 1.4  1998/01/26  19:23:18  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/24  21:03:07  jim
-// Fixed disappearence of nomonsters, respawn, or fast mode after demo play or IDCLEV
-//
-// Revision 1.1.1.1  1998/01/19  14:02:54  rand
-// Lee's Jan 19 sources
-//
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------

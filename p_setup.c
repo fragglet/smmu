@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "c_io.h"
 #include "c_runcmd.h"
@@ -1202,53 +1202,9 @@ void C_DumpThings()
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_setup.c,v $
-// Revision 1.16  1998/05/07  00:56:49  killough
-// Ignore translucency lumps that are not exactly 64K long
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.15  1998/05/03  23:04:01  killough
-// beautification
-//
-// Revision 1.14  1998/04/12  02:06:46  killough
-// Improve 242 colomap handling, add translucent walls
-//
-// Revision 1.13  1998/04/06  04:47:05  killough
-// Add support for overloading sidedefs for special uses
-//
-// Revision 1.12  1998/03/31  10:40:42  killough
-// Remove blockmap limit
-//
-// Revision 1.11  1998/03/28  18:02:51  killough
-// Fix boss spawner savegame crash bug
-//
-// Revision 1.10  1998/03/20  00:30:17  phares
-// Changed friction to linedef control
-//
-// Revision 1.9  1998/03/16  12:35:36  killough
-// Default floor light level is sector's
-//
-// Revision 1.8  1998/03/09  07:21:48  killough
-// Remove use of FP for point/line queries and add new sector fields
-//
-// Revision 1.7  1998/03/02  11:46:10  killough
-// Double blockmap limit, prepare for when it's unlimited
-//
-// Revision 1.6  1998/02/27  11:51:05  jim
-// Fixes for stairs
-//
-// Revision 1.5  1998/02/17  22:58:35  jim
-// Fixed bug of vanishinb secret sectors in automap
-//
-// Revision 1.4  1998/02/02  13:38:48  killough
-// Comment out obsolete reload hack
-//
-// Revision 1.3  1998/01/26  19:24:22  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/26  05:02:21  killough
-// Generalize and simplify level name generation
-//
-// Revision 1.1.1.1  1998/01/19  14:03:00  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

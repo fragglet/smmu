@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_maputl.h,v 1.1 1998/05/03 22:19:26 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -85,9 +85,9 @@ extern divline_t trace;
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_maputl.h,v $
-// Revision 1.1  1998/05/03  22:19:26  killough
-// External declarations formerly in p_local.h
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

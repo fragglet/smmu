@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: doomstat.h,v 1.13 1998/05/12 12:47:28 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -373,41 +373,9 @@ extern int doom_weapon_toggles;   // killough 10/98
 
 //----------------------------------------------------------------------------
 //
-// $Log: doomstat.h,v $
-// Revision 1.13  1998/05/12  12:47:28  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.12  1998/05/06  16:05:34  jim
-// formatting and documenting
-//
-// Revision 1.11  1998/05/05  16:28:51  phares
-// Removed RECOIL and OPT_BOBBING defines
-//
-// Revision 1.10  1998/05/03  23:12:52  killough
-// beautify, move most global switch variable decls here
-//
-// Revision 1.9  1998/04/06  04:54:55  killough
-// Add demo_insurance
-//
-// Revision 1.8  1998/03/02  11:26:25  killough
-// Remove now-dead monster_ai mask idea
-//
-// Revision 1.7  1998/02/23  04:17:38  killough
-// fix bad translucency flag
-//
-// Revision 1.5  1998/02/20  21:56:29  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.4  1998/02/19  16:55:30  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.3  1998/02/18  00:58:54  jim
-// Addition of HUD
-//
-// Revision 1.2  1998/01/26  19:26:41  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

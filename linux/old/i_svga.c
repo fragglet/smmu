@@ -543,7 +543,10 @@ void I_Video_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_video.c,v $
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
 // Revision 1.12  1998/05/03  22:40:35  killough
 // beautification
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 
 
 static const char
-rcsid[] = "$Id: f_finale.c,v 1.16 1998/05/10 23:39:25 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "d_event.h"
@@ -756,54 +756,9 @@ void F_Drawer (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: f_finale.c,v $
-// Revision 1.16  1998/05/10  23:39:25  killough
-// Restore v1.9 demo sync on text intermission screens
-//
-// Revision 1.15  1998/05/04  21:34:30  thldrmn
-// commenting and reformatting
-//
-// Revision 1.14  1998/05/03  23:25:05  killough
-// Fix #includes at the top, nothing else
-//
-// Revision 1.13  1998/04/19  01:17:18  killough
-// Tidy up last fix's code
-//
-// Revision 1.12  1998/04/17  15:14:10  killough
-// Fix showstopper flat bug
-//
-// Revision 1.11  1998/03/31  16:19:25  killough
-// Fix minor merge glitch
-//
-// Revision 1.10  1998/03/31  11:41:21  jim
-// Fix merge glitch in f_finale.c
-//
-// Revision 1.9  1998/03/31  00:37:56  jim
-// Ty's finale.c fixes
-//
-// Revision 1.8  1998/03/28  17:51:33  killough
-// Allow use/fire to accelerate teletype messages
-//
-// Revision 1.7  1998/02/05  12:15:06  phares
-// cleaned up comments
-//
-// Revision 1.6  1998/02/02  13:43:30  killough
-// Relax endgame message speed to demo_compatibility
-//
-// Revision 1.5  1998/01/31  01:47:39  phares
-// Removed textspeed and textwait externs
-//
-// Revision 1.4  1998/01/30  18:48:18  phares
-// Changed textspeed and textwait to functions
-//
-// Revision 1.3  1998/01/30  16:08:56  phares
-// Faster end-mission text display
-//
-// Revision 1.2  1998/01/26  19:23:14  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:54  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: v_video.h,v 1.9 1998/05/06 11:12:54 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -129,33 +129,9 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest);
 
 //----------------------------------------------------------------------------
 //
-// $Log: v_video.h,v $
-// Revision 1.9  1998/05/06  11:12:54  jim
-// Formattted v_video.*
-//
-// Revision 1.8  1998/05/03  22:53:58  killough
-// beautification
-//
-// Revision 1.7  1998/04/24  08:09:44  jim
-// Make text translate tables lumps
-//
-// Revision 1.6  1998/03/02  11:43:06  killough
-// Add cr_blue_status for blue statusbar numbers
-//
-// Revision 1.5  1998/02/27  19:22:11  jim
-// Range checked hud/sound card variables
-//
-// Revision 1.4  1998/02/19  16:55:06  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.3  1998/02/17  23:00:41  jim
-// Added color translation machinery and data
-//
-// Revision 1.2  1998/01/26  19:27:59  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:05  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

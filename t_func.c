@@ -1355,3 +1355,13 @@ void init_functions()
   new_function("runcommand", SF_RunCommand);
   new_function("linetrigger", SF_LineTrigger);
 }
+
+//---------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//---------------------------------------------------------------------------
+

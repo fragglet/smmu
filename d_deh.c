@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $
+// $Id$
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 //--------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $";
+rcsid[] = "$Id$";
 
 // killough 5/2/98: fixed headers, removed rendunant external declarations:
 #include "doomdef.h"
@@ -2755,38 +2755,9 @@ boolean deh_GetData(char *s, char *k, long *l, char **strval, FILE *fpout)
 
 //---------------------------------------------------------------------
 //
-// $Log: d_deh.c,v $
-// Revision 1.20  1998/06/01  22:30:38  thldrmn
-// fix .acv pointer for new GCC version
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.19  1998/05/17  09:39:48  thldrmn
-// Bug fix to avoid processing last line twice
-//
-// Revision 1.17  1998/05/04  21:36:21  thldrmn
-// commenting, reformatting and savegamename change
-//
-// Revision 1.16  1998/05/03  22:09:59  killough
-// use p_inter.h for extern declarations and fix a pointer cast
-//
-// Revision 1.15  1998/04/26  14:46:24  thldrmn
-// BEX code pointer additions
-//
-// Revision 1.14  1998/04/24  23:49:35  thldrmn
-// Strings continuation fix
-//
-// Revision 1.13  1998/04/19  01:18:58  killough
-// Change deh cheat code handling to use new cheat table
-//
-// Revision 1.12  1998/04/11  14:47:31  thldrmn
-// Added include, fixed pars
-//
-// Revision 1.11  1998/04/10  06:49:15  killough
-// Fix CVS stuff
-//
-// Revision 1.10  1998/04/09  09:17:00  thldrmn
-// Update to text handling
-//
-// Revision 1.00  1998/04/07  04:43:59  ty
-// First time with cvs revision info
 //
 //---------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: am_map.c,v 1.24 1998/05/10 12:05:24 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char rcsid[] =
-  "$Id: am_map.c,v 1.24 1998/05/10 12:05:24 jim Exp $";
+  "$Id$";
 
 #include "c_io.h"
 #include "c_runcmd.h"
@@ -1837,72 +1837,9 @@ void AM_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: am_map.c,v $
-// Revision 1.24  1998/05/10  12:05:24  jim
-// formatted/documented am_map
-//
-// Revision 1.23  1998/05/03  22:13:49  killough
-// Provide minimal headers at top; no other changes
-//
-// Revision 1.22  1998/04/23  13:06:53  jim
-// Add exit line to automap
-//
-// Revision 1.21  1998/04/16  16:16:56  jim
-// Fixed disappearing marks after new level
-//
-// Revision 1.20  1998/04/03  14:45:17  jim
-// Fixed automap disables at 0, mouse sens unbounded
-//
-// Revision 1.19  1998/03/28  05:31:40  jim
-// Text enabling changes for DEH
-//
-// Revision 1.18  1998/03/23  03:06:22  killough
-// I wonder
-//
-// Revision 1.17  1998/03/15  14:36:46  jim
-// fixed secrets transfer bug in automap
-//
-// Revision 1.16  1998/03/10  07:06:21  jim
-// Added secrets on automap after found only option
-//
-// Revision 1.15  1998/03/09  18:29:22  phares
-// Created separately bound automap and menu keys
-//
-// Revision 1.14  1998/03/02  11:22:30  killough
-// change grid to automap_grid and make external
-//
-// Revision 1.13  1998/02/23  04:08:11  killough
-// Remove limit on automap marks, save them in savegame
-//
-// Revision 1.12  1998/02/17  22:58:40  jim
-// Fixed bug of vanishinb secret sectors in automap
-//
-// Revision 1.11  1998/02/15  03:12:42  phares
-// Jim's previous comment: Fixed bug in automap from mistaking framebuffer index for mark color
-//
-// Revision 1.10  1998/02/15  02:47:33  phares
-// User-defined keys
-//
-// Revision 1.8  1998/02/09  02:50:13  killough
-// move ddt cheat to st_stuff.c and some cleanup
-//
-// Revision 1.7  1998/02/02  22:16:31  jim
-// Fixed bug in automap that showed secret lines
-//
-// Revision 1.6  1998/01/26  20:57:54  phares
-// Second test of checkin/checkout
-//
-// Revision 1.5  1998/01/26  20:28:15  phares
-// First checkin/checkout script test
-//
-// Revision 1.4  1998/01/26  19:23:00  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/24  11:21:25  jim
-// Changed disables in automap to -1 and -2 (nodraw)
-//
-// Revision 1.1.1.1  1998/01/19  14:02:53  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_map.h,v 1.2 1998/05/07 00:53:07 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -83,12 +83,9 @@ extern line_t *blockline;   // killough 8/11/98
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_map.h,v $
-// Revision 1.2  1998/05/07  00:53:07  killough
-// Add more external declarations
-//
-// Revision 1.1  1998/05/03  22:19:23  killough
-// External declarations formerly in p_local.h
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

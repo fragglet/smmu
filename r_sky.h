@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: r_sky.h,v 1.4 1998/05/03 22:56:25 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -51,18 +51,9 @@ void R_StartSky();
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_sky.h,v $
-// Revision 1.4  1998/05/03  22:56:25  killough
-// Add m_fixed.h #include
-//
-// Revision 1.3  1998/05/01  14:15:29  killough
-// beautification
-//
-// Revision 1.2  1998/01/26  19:27:46  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

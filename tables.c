@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: tables.c,v 1.3 1998/05/03 22:58:48 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -40,7 +40,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: tables.c,v 1.3 1998/05/03 22:58:48 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "tables.h"
 
@@ -2118,14 +2118,9 @@ const angle_t tantoangle[2049] = {
 
 //----------------------------------------------------------------------------
 //
-// $Log: tables.c,v $
-// Revision 1.3  1998/05/03  22:58:48  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.2  1998/01/26  19:25:03  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:04  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

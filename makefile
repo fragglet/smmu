@@ -61,9 +61,6 @@ LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
         
 # system-specific object files
 
-# 	i_net.o        \
-#	i_video.o      \
-
 PLATOBJS =             \
 	i_main.o       \
 	i_system.o     \
@@ -215,7 +212,7 @@ nothing :
 
 # subdirectory for objects (depends on target, to allow you
 # to build debug and release versions simultaneously)
-#         d_net.o        \
+
 # object files
 OBJS=   \
 	$(PLATOBJS)    \
@@ -338,7 +335,7 @@ version.o: version.c $(OBJS)
 
 doomdef.o: doomdef.c doomdef.h z_zone.h m_swap.h version.h
 
-doomstat.o: doomstat.c doomstat.h doomdata.h doomtype.h d_net.h \
+doomstat.o: doomstat.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h
 
@@ -346,32 +343,26 @@ dstrings.o: dstrings.c dstrings.h d_englsh.h
 
 i_system.o: $(PLATFORM)/i_system.c i_system.h d_ticcmd.h doomtype.h \
  i_sound.h \
- sounds.h doomstat.h doomdata.h d_net.h d_player.h d_items.h doomdef.h \
+ sounds.h doomstat.h doomdata.h  d_player.h d_items.h doomdef.h \
  z_zone.h m_swap.h version.h p_pspr.h m_fixed.h tables.h info.h \
  d_think.h p_mobj.h m_misc.h g_game.h d_event.h w_wad.h v_video.h
 
 i_sound.o: $(PLATFORM)/i_sound.c z_zone.h doomstat.h doomdata.h \
- doomtype.h d_net.h \
+ doomtype.h  \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h djgpp/mmus2mid.h \
  i_sound.h sounds.h w_wad.h g_game.h d_event.h d_main.h s_sound.h
 
 i_video.o: $(PLATFORM)/i_video.c z_zone.h doomstat.h doomdata.h \
- doomtype.h d_net.h \
+ doomtype.h  \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h v_video.h \
  r_data.h r_defs.h r_state.h d_main.h d_event.h st_stuff.h m_argv.h w_wad.h \
  sounds.h s_sound.h r_draw.h am_map.h mn_engin.h wi_stuff.h
 
-i_net.o: $(PLATFORM)/i_net.c z_zone.h doomstat.h doomdata.h doomtype.h \
- d_net.h \
- d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
- i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h d_event.h \
- m_argv.h i_net.h
-
 tables.o: tables.c tables.h m_fixed.h i_system.h d_ticcmd.h doomtype.h
 
-f_finale.o: f_finale.c doomstat.h doomdata.h doomtype.h d_net.h \
+f_finale.o: f_finale.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  d_event.h v_video.h r_data.h r_defs.h r_state.h w_wad.h s_sound.h \
@@ -383,22 +374,17 @@ f_wipe.o: f_wipe.c doomdef.h z_zone.h m_swap.h version.h v_mode.h \
  d_player.h d_items.h p_pspr.h m_random.h f_wipe.h
 
 d_main.o: d_main.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
- doomdata.h doomtype.h d_net.h d_player.h d_items.h p_pspr.h m_fixed.h \
+ doomdata.h doomtype.h  d_player.h d_items.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h dstrings.h \
  d_englsh.h sounds.h w_wad.h s_sound.h v_video.h r_data.h r_defs.h \
  r_state.h f_finale.h d_event.h f_wipe.h m_argv.h m_misc.h mn_engin.h \
  i_sound.h v_mode.h g_game.h hu_stuff.h wi_stuff.h st_stuff.h \
  am_map.h p_setup.h r_draw.h r_main.h d_main.h d_deh.h
 
-d_net.o: d_net.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
- d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
- i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h mn_engin.h \
- d_event.h v_mode.h i_net.h g_game.h
-
 d_items.o: d_items.c info.h d_think.h d_items.h doomdef.h z_zone.h \
  m_swap.h version.h
 
-g_game.o: g_game.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+g_game.o: g_game.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h f_finale.h \
  d_event.h m_argv.h m_misc.h mn_engin.h m_random.h p_setup.h p_saveg.h \
@@ -407,13 +393,13 @@ g_game.o: g_game.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
  dstrings.h d_englsh.h sounds.h r_sky.h d_deh.h p_inter.h g_game.h
 
 mn_menus.o: mn_menus.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
- doomdata.h doomtype.h d_net.h d_player.h d_items.h p_pspr.h m_fixed.h \
+ doomdata.h doomtype.h  d_player.h d_items.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h dstrings.h \
  d_englsh.h d_main.h d_event.h v_mode.h v_video.h r_data.h r_defs.h \
  r_state.h w_wad.h r_main.h hu_stuff.h g_game.h s_sound.h sounds.h \
  mn_engin.h d_deh.h m_misc.h
 
-m_misc.o: m_misc.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+m_misc.o: m_misc.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h m_argv.h \
  g_game.h d_event.h mn_engin.h am_map.h w_wad.h i_sound.h sounds.h \
@@ -425,84 +411,84 @@ m_argv.o: m_argv.c
 m_bbox.o: m_bbox.c m_bbox.h z_zone.h m_fixed.h i_system.h d_ticcmd.h \
  doomtype.h
 
-m_cheat.o: m_cheat.c doomstat.h doomdata.h doomtype.h d_net.h \
+m_cheat.o: m_cheat.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  g_game.h d_event.h r_data.h r_defs.h r_state.h p_inter.h m_cheat.h \
  m_argv.h s_sound.h sounds.h dstrings.h d_englsh.h d_deh.h
 
-m_random.o: m_random.c doomstat.h doomdata.h doomtype.h d_net.h \
+m_random.o: m_random.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  m_random.h
 
-am_map.o: am_map.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+am_map.o: am_map.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h st_stuff.h \
  d_event.h r_main.h r_data.h r_defs.h r_state.h p_setup.h p_maputl.h \
  w_wad.h v_video.h p_spec.h am_map.h dstrings.h d_englsh.h d_deh.h
 
-p_ceilng.o: p_ceilng.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_ceilng.o: p_ceilng.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  r_main.h r_data.h r_defs.h r_state.h p_spec.h p_tick.h s_sound.h \
  sounds.h
 
-p_doors.o: p_doors.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_doors.o: p_doors.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  r_main.h r_data.h r_defs.h r_state.h p_spec.h p_tick.h s_sound.h \
  sounds.h dstrings.h d_englsh.h d_deh.h
 
-p_enemy.o: p_enemy.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_enemy.o: p_enemy.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  m_random.h r_main.h r_data.h r_defs.h r_state.h p_maputl.h p_map.h \
  p_setup.h p_spec.h s_sound.h sounds.h p_inter.h g_game.h d_event.h \
  p_enemy.h p_tick.h m_bbox.h
 
-p_floor.o: p_floor.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_floor.o: p_floor.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  r_main.h r_data.h r_defs.h r_state.h p_map.h p_spec.h p_tick.h \
  s_sound.h sounds.h
 
-p_inter.o: p_inter.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_inter.o: p_inter.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  dstrings.h d_englsh.h m_random.h am_map.h d_event.h r_main.h r_data.h \
  r_defs.h r_state.h s_sound.h sounds.h d_deh.h p_inter.h p_tick.h
 
 p_lights.o: p_lights.c doomdef.h z_zone.h m_swap.h version.h \
- m_random.h doomtype.h r_main.h d_player.h d_items.h p_pspr.h d_net.h \
+ m_random.h doomtype.h r_main.h d_player.h d_items.h p_pspr.h  \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  doomdata.h r_data.h r_defs.h r_state.h p_spec.h p_tick.h doomstat.h
 
-p_map.o: p_map.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+p_map.o: p_map.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h r_main.h \
  r_data.h r_defs.h r_state.h p_maputl.h p_map.h p_setup.h p_spec.h \
  s_sound.h sounds.h p_inter.h m_random.h m_bbox.h
 
-p_maputl.o: p_maputl.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_maputl.o: p_maputl.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  m_bbox.h r_main.h r_data.h r_defs.h r_state.h p_maputl.h p_map.h \
  p_setup.h
 
-p_plats.o: p_plats.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_plats.o: p_plats.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  m_random.h r_main.h r_data.h r_defs.h r_state.h p_spec.h p_tick.h \
  s_sound.h sounds.h
 
-p_pspr.o: p_pspr.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+p_pspr.o: p_pspr.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h r_main.h \
  r_data.h r_defs.h r_state.h p_map.h p_inter.h p_enemy.h m_random.h \
  s_sound.h sounds.h d_event.h p_tick.h
 
-p_setup.o: p_setup.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_setup.o: p_setup.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  m_bbox.h m_argv.h g_game.h d_event.h w_wad.h r_main.h r_data.h \
@@ -514,21 +500,21 @@ p_sight.o: p_sight.c r_main.h d_player.h d_items.h doomdef.h z_zone.h \
  doomtype.h tables.h info.h d_think.h p_mobj.h doomdata.h r_data.h \
  r_defs.h r_state.h p_maputl.h p_setup.h m_bbox.h
 
-p_spec.o: p_spec.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+p_spec.o: p_spec.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h p_spec.h \
  r_defs.h p_tick.h p_setup.h m_random.h d_englsh.h m_argv.h w_wad.h \
  r_main.h r_data.h r_state.h p_maputl.h p_map.h g_game.h d_event.h \
  p_inter.h s_sound.h sounds.h m_bbox.h d_deh.h r_plane.h
 
-p_switch.o: p_switch.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_switch.o: p_switch.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  w_wad.h r_main.h r_data.h r_defs.h r_state.h p_spec.h g_game.h \
  d_event.h s_sound.h sounds.h
 
 p_mobj.o: p_mobj.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
- doomdata.h doomtype.h d_net.h d_player.h d_items.h p_pspr.h m_fixed.h \
+ doomdata.h doomtype.h  d_player.h d_items.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h m_random.h \
  r_main.h r_data.h r_defs.h r_state.h p_maputl.h p_map.h p_tick.h \
  sounds.h st_stuff.h d_event.h hu_stuff.h s_sound.h g_game.h p_inter.h
@@ -537,52 +523,52 @@ p_telept.o: p_telept.c doomdef.h z_zone.h m_swap.h version.h p_spec.h \
  r_defs.h m_fixed.h i_system.h d_ticcmd.h doomtype.h d_think.h p_user.h \
  p_mobj.h tables.h doomdata.h info.h d_player.h d_items.h p_pspr.h \
  p_maputl.h p_map.h r_main.h r_data.h r_state.h p_tick.h s_sound.h \
- sounds.h doomstat.h d_net.h
+ sounds.h doomstat.h 
 
-p_tick.o: p_tick.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
+p_tick.o: p_tick.c z_zone.h doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h p_user.h \
  p_spec.h r_defs.h p_tick.h
 
-p_saveg.o: p_saveg.c doomstat.h doomdata.h doomtype.h d_net.h \
+p_saveg.o: p_saveg.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  r_main.h r_data.h r_defs.h r_state.h p_maputl.h p_spec.h p_tick.h \
  p_saveg.h m_random.h am_map.h d_event.h p_enemy.h
 
-p_user.o: p_user.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+p_user.o: p_user.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h d_event.h \
  r_main.h r_data.h r_defs.h r_state.h p_map.h p_spec.h p_user.h
 
-r_bsp.o: r_bsp.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+r_bsp.o: r_bsp.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h m_bbox.h \
  r_main.h r_data.h r_defs.h r_state.h r_segs.h r_plane.h r_things.h
 
-r_data.o: r_data.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+r_data.o: r_data.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h w_wad.h \
  r_main.h r_data.h r_defs.h r_state.h r_sky.h
 
-r_draw.o: r_draw.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+r_draw.o: r_draw.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h w_wad.h \
  r_main.h r_data.h r_defs.h r_state.h v_video.h mn_engin.h
 
-r_main.o: r_main.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+r_main.o: r_main.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h r_data.h \
  r_defs.h r_state.h r_main.h r_bsp.h r_segs.h r_plane.h r_things.h \
  r_draw.h m_bbox.h r_sky.h v_video.h
 
 r_plane.o: r_plane.c z_zone.h i_system.h d_ticcmd.h doomtype.h w_wad.h \
- doomdef.h m_swap.h version.h doomstat.h doomdata.h d_net.h d_player.h \
+ doomdef.h m_swap.h version.h doomstat.h doomdata.h  d_player.h \
  d_items.h p_pspr.h m_fixed.h tables.h info.h d_think.h p_mobj.h \
  r_plane.h r_data.h r_defs.h r_state.h r_main.h r_bsp.h r_segs.h \
  r_things.h r_draw.h r_sky.h
 
-r_segs.o: r_segs.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+r_segs.o: r_segs.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h r_main.h \
  r_data.h r_defs.h r_state.h r_bsp.h r_plane.h r_things.h r_draw.h \
@@ -590,17 +576,17 @@ r_segs.o: r_segs.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
 
 r_sky.o: r_sky.c r_sky.h m_fixed.h i_system.h d_ticcmd.h doomtype.h
 
-r_things.o: r_things.c doomstat.h doomdata.h doomtype.h d_net.h \
+r_things.o: r_things.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  w_wad.h r_main.h r_data.h r_defs.h r_state.h r_bsp.h r_segs.h \
  r_draw.h r_things.h
 
-w_wad.o: w_wad.c doomstat.h doomdata.h doomtype.h d_net.h d_player.h \
+w_wad.o: w_wad.c doomstat.h doomdata.h doomtype.h  d_player.h \
  d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h w_wad.h
 
-wi_stuff.o: wi_stuff.c doomstat.h doomdata.h doomtype.h d_net.h \
+wi_stuff.o: wi_stuff.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  m_random.h w_wad.h g_game.h d_event.h r_main.h r_data.h r_defs.h \
@@ -618,26 +604,26 @@ st_lib.o: st_lib.c doomdef.h z_zone.h m_swap.h version.h v_video.h \
  r_bsp.h r_segs.h r_plane.h r_things.h r_draw.h
 
 st_stuff.o: st_stuff.c doomdef.h z_zone.h m_swap.h version.h \
- doomstat.h doomdata.h doomtype.h d_net.h d_player.h d_items.h \
+ doomstat.h doomdata.h doomtype.h  d_player.h d_items.h \
  p_pspr.h m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h \
  p_mobj.h m_random.h v_mode.h w_wad.h st_stuff.h d_event.h st_lib.h \
  r_defs.h v_video.h r_data.h r_state.h r_main.h am_map.h m_cheat.h \
  s_sound.h sounds.h dstrings.h d_englsh.h
 
-hu_stuff.o: hu_stuff.c doomstat.h doomdata.h doomtype.h d_net.h \
+hu_stuff.o: hu_stuff.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  hu_stuff.h d_event.h  r_defs.h v_video.h r_data.h r_state.h \
  st_stuff.h w_wad.h s_sound.h dstrings.h d_englsh.h sounds.h d_deh.h \
  r_draw.h
 
-s_sound.o: s_sound.c doomstat.h doomdata.h doomtype.h d_net.h \
+s_sound.o: s_sound.c doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h z_zone.h m_swap.h version.h p_pspr.h \
  m_fixed.h i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h \
  s_sound.h i_sound.h sounds.h r_main.h r_data.h r_defs.h r_state.h \
  m_random.h w_wad.h
 
-z_zone.o: z_zone.c z_zone.h doomstat.h doomdata.h doomtype.h d_net.h \
+z_zone.o: z_zone.c z_zone.h doomstat.h doomdata.h doomtype.h  \
  d_player.h d_items.h doomdef.h m_swap.h version.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h
 
@@ -659,7 +645,7 @@ p_genlin.o: p_genlin.c r_main.h d_player.h d_items.h doomdef.h \
  doomstat.h
 
 d_deh.o: d_deh.c doomdef.h z_zone.h m_swap.h version.h doomstat.h \
- doomdata.h doomtype.h d_net.h d_player.h d_items.h p_pspr.h m_fixed.h \
+ doomdata.h doomtype.h d_player.h d_items.h p_pspr.h m_fixed.h \
  i_system.h d_ticcmd.h tables.h info.h d_think.h p_mobj.h sounds.h \
  m_cheat.h p_inter.h g_game.h d_event.h dstrings.h d_englsh.h w_wad.h
 
@@ -685,4 +671,3 @@ bin2c.exe: bin2c.o
 	$(CC) $(CFLAGS) $(LDFLAGS) bin2c.o -o $@ $(LIBS)
 
 bin2c.o: bin2c.c
-# DO NOT DELETE

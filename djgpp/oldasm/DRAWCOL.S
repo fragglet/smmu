@@ -478,10 +478,13 @@ powerof2_tl_hi:
  ret
 
 //----------------------------------------------------------------------------
-// $Id: drawcol.s,v 1.3 1998/03/04 12:33:29 killough Exp $
+// $Id$
 //----------------------------------------------------------------------------
 //
-// $Log: drawcol.s,v $
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
+//
 // Revision 1.3  1998/03/04  12:33:29  killough
 // Fix problem with last translucent pixel being drawn
 //

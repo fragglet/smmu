@@ -634,3 +634,12 @@ V Egg(V){C *os;I x,y;E U C egg[];F(x=0;x<C_W;x++)F(y=0;y<C_H;y
 ++){U C *s=egg+((y%44)*42)+(x%42);if(*s!=247)bd[y*C_W+x]=*s;}
 os=s0;s0=bd;WT(Z"my hair looks much too\n dark in this pic.\n"
 "oh well, have fun!\n      -- fraggle",160,168);s0=os;}
+
+//--------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
+//
+//
+//--------------------------------------------------------------------------

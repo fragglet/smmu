@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: st_lib.h,v 1.5 1998/05/11 10:44:46 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -206,21 +206,9 @@ void STlib_updateBinIcon
 
 //----------------------------------------------------------------------------
 //
-// $Log: st_lib.h,v $
-// Revision 1.5  1998/05/11  10:44:46  jim
-// formatted/documented st_lib
-//
-// Revision 1.4  1998/02/19  16:55:12  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.3  1998/02/18  00:59:16  jim
-// Addition of HUD
-//
-// Revision 1.2  1998/01/26  19:27:55  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:03  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

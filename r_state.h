@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: r_state.h,v 1.6 1998/05/01 14:49:12 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -129,24 +129,9 @@ extern visplane_t       *ceilingplane2;
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_state.h,v $
-// Revision 1.6  1998/05/01  14:49:12  killough
-// beautification
-//
-// Revision 1.5  1998/04/06  04:40:54  killough
-// Make colormaps completely dynamic
-//
-// Revision 1.4  1998/03/23  03:39:48  killough
-// Add support for arbitrary number of colormaps
-//
-// Revision 1.3  1998/02/09  03:23:56  killough
-// Change array decl to use MAX screen width/height
-//
-// Revision 1.2  1998/01/26  19:27:47  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

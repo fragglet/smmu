@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_inter.c,v 1.10 1998/05/03 23:09:29 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_inter.c,v 1.10 1998/05/03 23:09:29 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "c_io.h"
 #include "doomstat.h"
@@ -1038,35 +1038,9 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_inter.c,v $
-// Revision 1.10  1998/05/03  23:09:29  killough
-// beautification, fix #includes, move some global vars here
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/04/27  01:54:43  killough
-// Prevent pickup sounds from silencing player weapons
-//
-// Revision 1.8  1998/03/28  17:58:27  killough
-// Fix spawn telefrag bug
-//
-// Revision 1.7  1998/03/28  05:32:41  jim
-// Text enabling changes for DEH
-//
-// Revision 1.6  1998/03/23  03:25:44  killough
-// Fix weapon pickup sounds in spy mode
-//
-// Revision 1.5  1998/03/10  07:15:10  jim
-// Initial DEH support added, minus text
-//
-// Revision 1.4  1998/02/23  04:44:33  killough
-// Make monsters smarter
-//
-// Revision 1.3  1998/02/17  06:00:54  killough
-// Save last enemy, change RNG calling sequence
-//
-// Revision 1.2  1998/01/26  19:24:05  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

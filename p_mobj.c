@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_mobj.c,v 1.26 1998/05/16 00:24:12 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_mobj.c,v 1.26 1998/05/16 00:24:12 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -1372,83 +1372,9 @@ mobj_t *P_SpawnPlayerMissile(mobj_t* source, mobjtype_t type)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_mobj.c,v $
-// Revision 1.26  1998/05/16  00:24:12  phares
-// Unknown things now flash warning msg instead of causing abort
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.25  1998/05/15  00:33:19  killough
-// Change function used in thing deletion check
-//
-// Revision 1.24  1998/05/14  08:01:56  phares
-// Added Player Starts 5-8 (4001-4004)
-//
-// Revision 1.23  1998/05/12  12:47:21  phares
-// Removed OVER_UNDER code
-//
-// Revision 1.22  1998/05/12  06:09:32  killough
-// Prevent voodoo dolls from causing player bopping
-//
-// Revision 1.21  1998/05/07  00:54:23  killough
-// Remove dependence on evaluation order, fix (-1) ptr bug
-//
-// Revision 1.20  1998/05/05  15:35:16  phares
-// Documentation and Reformatting changes
-//
-// Revision 1.19  1998/05/03  23:16:49  killough
-// Remove unnecessary declarations, fix #includes
-//
-// Revision 1.18  1998/04/27  02:02:12  killough
-// Fix crashes caused by mobjs targeting deleted thinkers
-//
-// Revision 1.17  1998/04/10  06:35:56  killough
-// Fix mobj state machine cycle hangs
-//
-// Revision 1.16  1998/03/30  12:05:57  jim
-// Added support for not-dm not-coop thing flags
-//
-// Revision 1.15  1998/03/28  18:00:58  killough
-// Remove old dead code which is commented out
-//
-// Revision 1.14  1998/03/23  15:24:30  phares
-// Changed pushers to linedef control
-//
-// Revision 1.13  1998/03/20  00:30:06  phares
-// Changed friction to linedef control
-//
-// Revision 1.12  1998/03/16  12:43:41  killough
-// Use new P_TryMove() allowing dropoffs in certain cases
-//
-// Revision 1.11  1998/03/12  14:28:46  phares
-// friction and IDCLIP changes
-//
-// Revision 1.10  1998/03/11  17:48:28  phares
-// New cheats, clean help code, friction fix
-//
-// Revision 1.9  1998/03/09  18:27:04  phares
-// Fixed bug in neighboring variable friction sectors
-//
-// Revision 1.8  1998/03/04  07:40:04  killough
-// comment out noclipping hack for now
-//
-// Revision 1.7  1998/02/26  21:15:30  killough
-// Fix thing type 0 crashes, e.g. MAP25
-//
-// Revision 1.6  1998/02/24  09:20:11  phares
-// Removed 'onground' local variable
-//
-// Revision 1.5  1998/02/24  08:46:21  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.4  1998/02/23  04:46:21  killough
-// Preserve no-clipping cheat across idclev
-//
-// Revision 1.3  1998/02/17  05:47:11  killough
-// Change RNG calls to use keys for each block
-//
-// Revision 1.2  1998/01/26  19:24:15  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:00  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -4,7 +4,7 @@ SRC=src
 all :
 	@echo enter platform type, eg.
 	@echo make djgpp             -- for djgpp dos
-	@echo make linux             -- for linux
+	@echo make unix              -- for unix (linux etc)
 
 djgpp :
 	make $(MAKEFLGS) build EXTENSION=".exe" 

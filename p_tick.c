@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "d_main.h"
@@ -254,10 +254,10 @@ void P_Ticker (void)
   P_RespawnSpecials();
   leveltime++;                       // for par times
 
-        // sf: on original doom, sometimes if you activated a hyperlift
-        // while standing on it, your viewz was left behind and appeared
-        // to "jump". code in p_floor.c detects if a hyperlift has been
-        // activated and viewz is reset appropriately here.
+  // sf: on original doom, sometimes if you activated a hyperlift
+  // while standing on it, your viewz was left behind and appeared
+  // to "jump". code in p_floor.c detects if a hyperlift has been
+  // activated and viewz is reset appropriately here.
 
   if(reset_viewz && gamestate == GS_LEVEL)
       P_CalcHeight (&players[displayplayer]); // Determines view height and bobbing
@@ -267,26 +267,9 @@ void P_Ticker (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_tick.c,v $
-// Revision 1.7  1998/05/15  00:37:56  killough
-// Remove unnecessary crash hack, fix demo sync
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.6  1998/05/13  22:57:59  killough
-// Restore Doom bug compatibility for demos
-//
-// Revision 1.5  1998/05/03  22:49:01  killough
-// Get minimal includes at top
-//
-// Revision 1.4  1998/04/29  16:19:16  killough
-// Fix typo causing game to not pause correctly
-//
-// Revision 1.3  1998/04/27  01:59:58  killough
-// Fix crashes caused by thinkers being used after freed
-//
-// Revision 1.2  1998/01/26  19:24:32  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:01  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: m_misc.h,v 1.4 1998/05/05 19:56:06 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -79,18 +79,9 @@ typedef struct default_s
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_misc.h,v $
-// Revision 1.4  1998/05/05  19:56:06  phares
-// Formatting and Doc changes
-//
-// Revision 1.3  1998/04/22  13:46:17  phares
-// Added Setup screen Reset to Defaults
-//
-// Revision 1.2  1998/01/26  19:27:12  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:58  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_enemy.c,v 1.22 1998/05/12 12:47:10 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -2607,75 +2607,12 @@ void A_RunScript(mobj_t *mo)
   T_RunThingScript(mo->state->misc1);
 }
 
+
 //----------------------------------------------------------------------------
 //
-// $Log: p_enemy.c,v $
-// Revision 1.22  1998/05/12  12:47:10  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.21  1998/05/07  00:50:55  killough
-// beautification, remove dependence on evaluation order
-//
-// Revision 1.20  1998/05/03  22:28:02  killough
-// beautification, move declarations and includes around
-//
-// Revision 1.19  1998/04/01  12:58:44  killough
-// Disable boss brain if no targets
-//
-// Revision 1.18  1998/03/28  17:57:05  killough
-// Fix boss spawn savegame bug
-//
-// Revision 1.17  1998/03/23  15:18:03  phares
-// Repaired AV ghosts stuck together bug
-//
-// Revision 1.16  1998/03/16  12:33:12  killough
-// Use new P_TryMove()
-//
-// Revision 1.15  1998/03/09  07:17:58  killough
-// Fix revenant tracer bug
-//
-// Revision 1.14  1998/03/02  11:40:52  killough
-// Use separate monsters_remember flag instead of bitmask
-//
-// Revision 1.13  1998/02/24  08:46:12  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.12  1998/02/23  04:43:44  killough
-// Add revenant p_atracer, optioned monster ai_vengence
-//
-// Revision 1.11  1998/02/17  06:04:55  killough
-// Change RNG calling sequences
-// Fix minor icon landing bug
-// Use lastenemy to make monsters remember former targets, and fix player look
-//
-// Revision 1.10  1998/02/09  03:05:22  killough
-// Remove icon landing limit
-//
-// Revision 1.9  1998/02/05  12:15:39  phares
-// tighten lost soul wall fix to compatibility
-//
-// Revision 1.8  1998/02/02  13:42:54  killough
-// Relax lost soul wall fix to demo_compatibility
-//
-// Revision 1.7  1998/01/28  13:21:01  phares
-// corrected Option3 in AV bug
-//
-// Revision 1.6  1998/01/28  12:22:17  phares
-// AV bug fix and Lost Soul trajectory bug fix
-//
-// Revision 1.5  1998/01/26  19:24:00  phares
-// First rev with no ^Ms
-//
-// Revision 1.4  1998/01/23  14:51:51  phares
-// No content change. Put ^Ms back.
-//
-// Revision 1.3  1998/01/23  14:42:14  phares
-// No content change. Removed ^Ms for experimental checkin.
-//
-// Revision 1.2  1998/01/19  14:45:01  rand
-// Temporary line for checking checkins
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

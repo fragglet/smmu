@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: g_game.h,v 1.10 1998/05/16 09:17:02 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -187,37 +187,11 @@ extern boolean hub_changelevel;
 
 #endif
 
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 //
-// $Log: g_game.h,v $
-// Revision 1.10  1998/05/16  09:17:02  killough
-// Make loadgame checksum friendlier
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/05/06  15:15:59  jim
-// Documented IWAD routines
 //
-// Revision 1.8  1998/05/03  22:15:50  killough
-// Add all external declarations in g_game.c
-//
-// Revision 1.7  1998/04/27  02:00:53  killough
-// Add gcc __attribute__ to check doom_printf() format string
-//
-// Revision 1.6  1998/04/10  06:34:35  killough
-// Fix -fast parameter bugs
-//
-// Revision 1.5  1998/03/23  03:15:02  killough
-// Add G_SaveGameName()
-//
-// Revision 1.4  1998/03/16  12:29:53  killough
-// Remember savegame slot when loading
-//
-// Revision 1.3  1998/03/02  11:28:46  killough
-// Add G_ReloadDefaults() prototype
-//
-// Revision 1.2  1998/01/26  19:26:51  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:55  rand
-// Lee's Jan 19 sources
-//
-//----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------

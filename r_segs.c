@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_segs.c,v 1.16 1998/05/03 23:02:01 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 // 4/25/98, 5/2/98 killough: reformatted, beautified
 
 static const char
-rcsid[] = "$Id: r_segs.c,v 1.16 1998/05/03 23:02:01 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -862,53 +862,9 @@ void R_StoreWallRange(const int start, const int stop)
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_segs.c,v $
-// Revision 1.16  1998/05/03  23:02:01  killough
-// Move R_PointToDist from r_main.c, fix #includes
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.15  1998/04/27  01:48:37  killough
-// Program beautification
 //
-// Revision 1.14  1998/04/17  10:40:31  killough
-// Fix 213, 261 (floor/ceiling lighting)
-//
-// Revision 1.13  1998/04/16  06:24:20  killough
-// Prevent 2s sectors from bleeding across deep water or fake floors
-//
-// Revision 1.12  1998/04/14  08:17:16  killough
-// Fix light levels on 2s textures
-//
-// Revision 1.11  1998/04/12  02:01:41  killough
-// Add translucent walls, add insurance against SIGSEGV
-//
-// Revision 1.10  1998/04/07  06:43:05  killough
-// Optimize: use external doorclosed variable
-//
-// Revision 1.9  1998/03/28  18:04:31  killough
-// Reduce texture offsets vertically
-//
-// Revision 1.8  1998/03/16  12:41:09  killough
-// Fix underwater / dual ceiling support
-//
-// Revision 1.7  1998/03/09  07:30:25  killough
-// Add primitive underwater support, fix scrolling flats
-//
-// Revision 1.6  1998/03/02  11:52:58  killough
-// Fix texturemapping overflow, add scrolling walls
-//
-// Revision 1.5  1998/02/09  03:17:13  killough
-// Make closed door clipping more consistent
-//
-// Revision 1.4  1998/02/02  13:27:02  killough
-// fix openings bug
-//
-// Revision 1.3  1998/01/26  19:24:47  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/26  06:10:42  killough
-// Discard old Medusa hack -- fixed in r_data.c now
-//
-// Revision 1.1.1.1  1998/01/19  14:03:03  rand
-// Lee's Jan 19 sources
-//
-//----------------------------------------------------------------------------
+//--------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: doomdata.h,v 1.4 1998/05/03 22:39:10 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -185,17 +185,9 @@ typedef struct {
 
 //----------------------------------------------------------------------------
 //
-// $Log: doomdata.h,v $
-// Revision 1.4  1998/05/03  22:39:10  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.3  1998/03/23  06:42:57  jim
-// linedefs reference initial version
-//
-// Revision 1.2  1998/01/26  19:26:37  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:51  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_sound.h,v 1.4 1998/05/03 22:31:58 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -119,17 +119,9 @@ void I_UnRegisterSong(int handle);
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_sound.h,v $
-// Revision 1.4  1998/05/03  22:31:58  killough
-// beautification, add some external declarations
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.3  1998/02/23  04:27:08  killough
-// Add variable pitched sound support
-//
-// Revision 1.2  1998/01/26  19:26:57  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:58  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

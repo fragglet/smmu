@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_bsp.c,v 1.17 1998/05/03 22:47:33 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: r_bsp.c,v 1.17 1998/05/03 22:47:33 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_bbox.h"
@@ -746,56 +746,9 @@ void R_RenderBSPNode(int bspnum)
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_bsp.c,v $
-// Revision 1.17  1998/05/03  22:47:33  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.16  1998/04/23  12:19:50  killough
-// Testing untabify feature
-//
-// Revision 1.15  1998/04/17  10:22:22  killough
-// Fix 213, 261 (floor/ceiling lighting)
-//
-// Revision 1.14  1998/04/14  08:15:55  killough
-// Fix light levels on 2s textures
-//
-// Revision 1.13  1998/04/13  09:44:40  killough
-// Fix head-over ceiling effects
-//
-// Revision 1.12  1998/04/12  01:57:18  killough
-// Fix deep water effects
-//
-// Revision 1.11  1998/04/07  06:41:14  killough
-// Fix disappearing things, AASHITTY sky wall HOM, remove obsolete HOM detector
-//
-// Revision 1.10  1998/04/06  04:37:48  killough
-// Make deep water / fake ceiling handling more consistent
-//
-// Revision 1.9  1998/03/28  18:14:27  killough
-// Improve underwater support
-//
-// Revision 1.8  1998/03/16  12:40:11  killough
-// Fix underwater effects, floor light levels from other sectors
-//
-// Revision 1.7  1998/03/09  07:22:41  killough
-// Add primitive underwater support
-//
-// Revision 1.6  1998/03/02  11:50:53  killough
-// Add support for scrolling flats
-//
-// Revision 1.5  1998/02/17  06:21:57  killough
-// Change commented-out code to #if'ed out code
-//
-// Revision 1.4  1998/02/09  03:14:55  killough
-// Make HOM detector under control of TNTHOM cheat
-//
-// Revision 1.3  1998/02/02  13:31:23  killough
-// Performance tuning, add HOM detector
-//
-// Revision 1.2  1998/01/26  19:24:36  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:02  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

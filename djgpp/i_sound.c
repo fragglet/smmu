@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <allegro.h>
@@ -474,47 +474,9 @@ void I_Sound_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_sound.c,v $
-// Revision 1.15  1998/05/03  22:32:33  killough
-// beautification, use new headers/decls
+// $Log$
+// Revision 1.1  2000-04-30 19:12:12  fraggle
+// Initial revision
 //
-// Revision 1.14  1998/03/09  07:11:29  killough
-// Lock sound sample data
-//
-// Revision 1.13  1998/03/05  00:58:46  jim
-// fixed autodetect not allowed in allegro detect routines
-//
-// Revision 1.12  1998/03/04  11:51:37  jim
-// Detect voices in sound init
-//
-// Revision 1.11  1998/03/02  11:30:09  killough
-// Make missing sound lumps non-fatal
-//
-// Revision 1.10  1998/02/23  04:26:44  killough
-// Add variable pitched sound support
-//
-// Revision 1.9  1998/02/09  02:59:51  killough
-// Add sound sample locks
-//
-// Revision 1.8  1998/02/08  15:15:51  jim
-// Added native midi support
-//
-// Revision 1.7  1998/01/26  19:23:27  phares
-// First rev with no ^Ms
-//
-// Revision 1.6  1998/01/23  02:43:07  jim
-// Fixed failure to not register I_ShutdownSound with atexit on install_sound error
-//
-// Revision 1.4  1998/01/23  00:29:12  killough
-// Fix SSG reload by using frequency stored in lump
-//
-// Revision 1.3  1998/01/22  05:55:12  killough
-// Removed dead past changes, changed destroy_sample to stop_sample
-//
-// Revision 1.2  1998/01/21  16:56:18  jim
-// Music fixed, defaults for cards added
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_user.c,v 1.14 1998/05/12 12:47:25 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_user.c,v 1.14 1998/05/12 12:47:25 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "d_event.h"
@@ -451,7 +451,7 @@ void P_PlayerThink (player_t* player)
 
   player->fixedcolormap = 
 
-        // sf: removed MBF beta stuff
+    // sf: removed MBF beta stuff
 
   player->powers[pw_invulnerability] > 4*32 ||    /* Regular Doom */
   player->powers[pw_invulnerability] & 8 ? INVERSECOLORMAP :
@@ -460,47 +460,9 @@ void P_PlayerThink (player_t* player)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_user.c,v $
-// Revision 1.14  1998/05/12  12:47:25  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.13  1998/05/10  23:38:04  killough
-// Add #include p_user.h to ensure consistent prototypes
-//
-// Revision 1.12  1998/05/05  15:35:20  phares
-// Documentation and Reformatting changes
-//
-// Revision 1.11  1998/05/03  23:21:04  killough
-// Fix #includes and remove unnecessary decls at the top, nothing else
-//
-// Revision 1.10  1998/03/23  15:24:50  phares
-// Changed pushers to linedef control
-//
-// Revision 1.9  1998/03/23  03:35:24  killough
-// Move weapons changes to G_BuildTiccmd, fix idclip
-//
-// Revision 1.8  1998/03/12  14:28:50  phares
-// friction and IDCLIP changes
-//
-// Revision 1.7  1998/03/09  18:26:55  phares
-// Fixed bug in neighboring variable friction sectors
-//
-// Revision 1.6  1998/02/27  08:10:08  phares
-// Added optional player bobbing
-//
-// Revision 1.5  1998/02/24  08:46:42  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.4  1998/02/15  02:47:57  phares
-// User-defined keys
-//
-// Revision 1.3  1998/02/09  03:13:20  killough
-// Improve weapon control and add preferences
-//
-// Revision 1.2  1998/01/26  19:24:34  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:01  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

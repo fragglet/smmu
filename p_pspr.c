@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_pspr.c,v 1.13 1998/05/07 00:53:36 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_pspr.c,v 1.13 1998/05/07 00:53:36 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "d_event.h"
@@ -1025,44 +1025,9 @@ void P_MovePsprites(player_t *player)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_pspr.c,v $
-// Revision 1.13  1998/05/07  00:53:36  killough
-// Remove dependence on order of evaluation
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.12  1998/05/05  16:29:17  phares
-// Removed RECOIL and OPT_BOBBING defines
-//
-// Revision 1.11  1998/05/03  22:35:21  killough
-// Fix weapons switch bug again, beautification, headers
-//
-// Revision 1.10  1998/04/29  10:01:55  killough
-// Fix buggy weapons switch code
-//
-// Revision 1.9  1998/03/28  18:01:38  killough
-// Prevent weapon recoil in no-clipping mode
-//
-// Revision 1.8  1998/03/23  03:28:29  killough
-// Move weapons changes to G_BuildTiccmd()
-//
-// Revision 1.7  1998/03/10  07:14:47  jim
-// Initial DEH support added, minus text
-//
-// Revision 1.6  1998/02/24  08:46:27  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.5  1998/02/17  05:59:41  killough
-// Use new RNG calling sequence
-//
-// Revision 1.4  1998/02/15  02:47:54  phares
-// User-defined keys
-//
-// Revision 1.3  1998/02/09  03:06:15  killough
-// Add player weapon preference options
-//
-// Revision 1.2  1998/01/26  19:24:18  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:00  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

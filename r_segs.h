@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_segs.h,v 1.5 1998/05/03 23:02:40 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -38,20 +38,9 @@ fixed_t R_PointToDist2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2);
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_segs.h,v $
-// Revision 1.5  1998/05/03  23:02:40  killough
-// beautification, add R_StoreWallRange() decl
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.4  1998/04/27  02:01:28  killough
-// Program beautification
-//
-// Revision 1.3  1998/03/02  11:53:29  killough
-// add scrolling walls
-//
-// Revision 1.2  1998/01/26  19:27:44  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

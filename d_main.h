@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: d_main.h,v 1.7 1998/05/06 15:32:19 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -88,23 +88,9 @@ void usermsg(char *s, ...);
 
 //----------------------------------------------------------------------------
 //
-// $Log: d_main.h,v $
-// Revision 1.7  1998/05/06  15:32:19  jim
-// document g_game.c, change externals
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.5  1998/05/03  22:27:08  killough
-// Add external declarations
-//
-// Revision 1.4  1998/02/23  04:15:01  killough
-// Remove obsolete function prototype
-//
-// Revision 1.3  1998/02/17  06:10:39  killough
-// Add D_DoomExeDir prototype, basesavegame decl.
-//
-// Revision 1.2  1998/01/26  19:26:28  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

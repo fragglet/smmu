@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_pspr.h,v 1.5 1998/05/03 22:54:44 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -88,20 +88,9 @@ void P_DropWeapon(struct player_s *player);
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_pspr.h,v $
-// Revision 1.5  1998/05/03  22:54:44  killough
-// beautification, add external decls formerly in p_local.h
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.4  1998/02/15  02:48:15  phares
-// User-defined keys
-//
-// Revision 1.3  1998/02/09  03:06:18  killough
-// Add player weapon preference options
-//
-// Revision 1.2  1998/01/26  19:27:25  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:09  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

@@ -484,18 +484,10 @@ powerof2_tl_hi:
 #endif /* #ifdef USEASM */
 	
 //----------------------------------------------------------------------------
-// $Id: drawcol.s,v 1.3 1998/03/04 12:33:29 killough Exp $
-//----------------------------------------------------------------------------
 //
-// $Log: drawcol.s,v $
-// Revision 1.3  1998/03/04  12:33:29  killough
-// Fix problem with last translucent pixel being drawn
-//
-// Revision 1.2  1998/02/23  04:18:24  killough
-// Add translucency support, more tuning
-//
-// Revision 1.1  1998/02/17  06:37:37  killough
-// Initial version
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

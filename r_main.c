@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "c_runcmd.h"
@@ -71,6 +71,7 @@ player_t *viewplayer;
 sector_t *viewsector;              // sf: sector the viewpoint is in
 extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
+mobj_t   *viewobj;
 camera_t *viewcamera;
 fixed_t  zoomscale = FRACUNIT;     // sf: changed to fixed_t for %age zoom
 int fov = 90;   // sf: fov/zooming
@@ -522,27 +523,28 @@ void R_SetupFrame (player_t *player, camera_t *camera)
 
   // cameras
   
-  viewcamera = camera;
-  if(!camera)
-    {
-      viewx = mobj->x;
-      viewy = mobj->y;
-      viewz = player->viewz;
-      viewangle = mobj->angle;// + viewangleoffset;
-      // y shearing
-      updownangle = player->updownangle;
-      extralight = player->extralight;
-    }
-  else
+  if(camera)
     {
       viewx = camera->x;
       viewy = camera->y;
       viewz = camera->z;
       viewangle = camera->angle;
+      viewcamera = camera;  viewobj = NULL;
       updownangle = camera->updownangle;
       extralight = 0;
     }
-
+  else
+    {
+      viewx = mobj->x + 3*mobj->momx;
+      viewy = mobj->y + 3*mobj->momy;
+      viewz = player->viewz;
+      viewangle = mobj->angle;// + viewangleoffset;
+      viewobj = mobj; viewcamera = NULL;
+      // y shearing
+      updownangle = player->updownangle;
+      extralight = player->extralight;
+    }
+  
   viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
   viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
 
@@ -797,45 +799,9 @@ void R_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_main.c,v $
-// Revision 1.13  1998/05/07  00:47:52  killough
-// beautification
-//
-// Revision 1.12  1998/05/03  23:00:14  killough
-// beautification, fix #includes and declarations
-//
-// Revision 1.11  1998/04/07  15:24:15  killough
-// Remove obsolete HOM detector
-//
-// Revision 1.10  1998/04/06  04:47:46  killough
-// Support dynamic colormaps
-//
-// Revision 1.9  1998/03/23  03:37:14  killough
-// Add support for arbitrary number of colormaps
-//
-// Revision 1.8  1998/03/16  12:44:12  killough
-// Optimize away some function pointers
-//
-// Revision 1.7  1998/03/09  07:27:19  killough
-// Avoid using FP for point/line queries
-//
-// Revision 1.6  1998/02/17  06:22:45  killough
-// Comment out audible HOM alarm for now
-//
-// Revision 1.5  1998/02/10  06:48:17  killough
-// Add flashing red HOM indicator for TNTHOM cheat
-//
-// Revision 1.4  1998/02/09  03:22:17  killough
-// Make TNTHOM control HOM detector, change array decl to MAX_*
-//
-// Revision 1.3  1998/02/02  13:29:41  killough
-// comment out dead code, add HOM detector
-//
-// Revision 1.2  1998/01/26  19:24:42  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:02  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

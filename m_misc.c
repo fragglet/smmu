@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -29,7 +29,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_argv.h"
@@ -2385,171 +2385,10 @@ void M_ScreenShot (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_misc.c,v $
-// Revision 1.60  1998/06/03  20:32:12  jim
-// Fixed mispelling of key_chat string
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.59  1998/05/21  12:12:28  jim
-// Removed conditional from net code
-//
-// Revision 1.58  1998/05/16  09:41:15  jim
-// formatted net files, installed temp switch for testing Stan/Lee's version
-//
-// Revision 1.57  1998/05/12  12:47:04  phares
-// Removed OVER_UNDER code
-//
-// Revision 1.56  1998/05/05  19:56:01  phares
-// Formatting and Doc changes
-//
-// Revision 1.55  1998/05/05  16:29:12  phares
-// Removed RECOIL and OPT_BOBBING defines
-//
-// Revision 1.54  1998/05/03  23:05:19  killough
-// Fix #includes, remove external decls duplicated elsewhere, fix LONG() conflict
-//
-// Revision 1.53  1998/04/23  13:07:27  jim
-// Add exit line to automap
-//
-// Revision 1.51  1998/04/22  13:46:12  phares
-// Added Setup screen Reset to Defaults
-//
-// Revision 1.50  1998/04/19  01:13:50  killough
-// Fix freeing memory before use in savegame code
-//
-// Revision 1.49  1998/04/17  10:35:50  killough
-// Add traditional_menu option for main menu
-//
-// Revision 1.48  1998/04/14  08:18:11  killough
-// replace obsolete adaptive_gametic with realtic_clock_rate
-//
-// Revision 1.47  1998/04/13  21:36:33  phares
-// Cemented ESC and F1 in place
-//
-// Revision 1.46  1998/04/13  12:30:02  phares
-// Resolved Z_Free error msg when no boom.cfg file
-//
-// Revision 1.45  1998/04/12  22:55:33  phares
-// Remaining 3 Setup screens
-//
-// Revision 1.44  1998/04/10  23:21:41  jim
-// fixed string/int differentiation by value
-//
-// Revision 1.43  1998/04/10  06:37:54  killough
-// Add adaptive gametic timer option
-//
-// Revision 1.42  1998/04/06  11:05:00  jim
-// Remove LEESFIXES, AMAP bdg->247
-//
-// Revision 1.41  1998/04/06  04:50:00  killough
-// Support demo_insurance=2
-//
-// Revision 1.40  1998/04/05  00:51:13  phares
-// Joystick support, Main Menu re-ordering
-//
-// Revision 1.39  1998/04/03  14:45:49  jim
-// Fixed automap disables at 0, mouse sens unbounded
-//
-// Revision 1.38  1998/03/31  10:44:31  killough
-// Add demo insurance option
-//
-// Revision 1.37  1998/03/31  00:39:44  jim
-// Screenshots in BMP format added
-//
-// Revision 1.36  1998/03/25  16:31:23  jim
-// Fixed bad default value for defaultskill
-//
-// Revision 1.34  1998/03/23  15:24:17  phares
-// Changed pushers to linedef control
-//
-// Revision 1.33  1998/03/20  00:29:47  phares
-// Changed friction to linedef control
-//
-// Revision 1.32  1998/03/11  17:48:16  phares
-// New cheats, clean help code, friction fix
-//
-// Revision 1.31  1998/03/10  07:06:30  jim
-// Added secrets on automap after found only option
-//
-// Revision 1.30  1998/03/09  18:29:12  phares
-// Created separately bound automap and menu keys
-//
-// Revision 1.29  1998/03/09  11:00:20  jim
-// allowed -1 in mouse bindings and map functions
-//
-// Revision 1.28  1998/03/09  07:35:18  killough
-// Rearrange order of cfg options, add capslock options
-//
-// Revision 1.27  1998/03/06  21:41:04  jim
-// fixed erroneous range for gamma in config
-//
-// Revision 1.26  1998/03/05  00:57:47  jim
-// Scattered HUD
-//
-// Revision 1.25  1998/03/04  11:55:42  jim
-// Add range checking, help strings to BOOM.CFG
-//
-// Revision 1.24  1998/03/02  15:34:15  jim
-// Added Rand's HELP screen as lump and loaded and displayed it
-//
-// Revision 1.23  1998/03/02  11:36:44  killough
-// clone defaults, add sts_traditional_keys
-//
-// Revision 1.22  1998/02/27  19:22:05  jim
-// Range checked hud/sound card variables
-//
-// Revision 1.21  1998/02/27  08:10:02  phares
-// Added optional player bobbing
-//
-// Revision 1.20  1998/02/26  22:58:39  jim
-// Added message review display to HUD
-//
-// Revision 1.19  1998/02/24  22:00:57  killough
-// turn translucency back on by default
-//
-// Revision 1.18  1998/02/24  08:46:05  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.17  1998/02/23  14:21:14  jim
-// Merged HUD stuff, fixed p_plats.c to support elevators again
-//
-// Revision 1.16  1998/02/23  04:40:48  killough
-// Lots of new options
-//
-// Revision 1.14  1998/02/20  21:57:00  phares
-// Preliminarey sprite translucency
-//
-// Revision 1.13  1998/02/20  18:46:58  jim
-// cleanup of HUD control
-//
-// Revision 1.12  1998/02/19  16:54:33  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.11  1998/02/18  11:56:11  jim
-// Fixed issues with HUD and reduced screen size
-//
-// Revision 1.9  1998/02/15  03:21:20  phares
-// Jim's comment: Fixed bug in automap from mistaking framebuffer index for mark color
-//
-// Revision 1.8  1998/02/15  03:17:56  phares
-// User-defined keys
-//
-// Revision 1.6  1998/02/09  03:04:12  killough
-// Add weapon preferences, player corpse, vsync options
-//
-// Revision 1.5  1998/02/02  13:37:26  killough
-// Clone compatibility flag, for TNTCOMP to work
-//
-// Revision 1.4  1998/01/26  19:23:49  phares
-// First rev with no ^Ms
-//
-// Revision 1.3  1998/01/26  04:59:07  killough
-// Fix DOOM 1 screenshot acknowledgement
-//
-// Revision 1.2  1998/01/21  16:56:16  jim
-// Music fixed, defaults for cards added
-//
-// Revision 1.1.1.1  1998/01/19  14:02:57  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: s_sound.c,v 1.11 1998/05/03 22:57:06 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -26,7 +26,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: s_sound.c,v 1.11 1998/05/03 22:57:06 killough Exp $";
+rcsid[] = "$Id$";
 
 // killough 3/7/98: modified to allow arbitrary listeners in spy mode
 // killough 5/2/98: reindented, removed useless code, beautified
@@ -991,38 +991,9 @@ void S_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: s_sound.c,v $
-// Revision 1.11  1998/05/03  22:57:06  killough
-// beautification, #include fix
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.10  1998/04/27  01:47:28  killough
-// Fix pickups silencing player weapons
-//
-// Revision 1.9  1998/03/23  03:39:12  killough
-// Fix spy-mode sound effects
-//
-// Revision 1.8  1998/03/17  20:44:25  jim
-// fixed idmus non-restore, space bug
-//
-// Revision 1.7  1998/03/09  07:32:57  killough
-// ATTEMPT to support hearing with displayplayer's hears
-//
-// Revision 1.6  1998/03/04  07:46:10  killough
-// Remove full-volume sound hack from MAP08
-//
-// Revision 1.5  1998/03/02  11:45:02  killough
-// Make missing sounds non-fatal
-//
-// Revision 1.4  1998/02/02  13:18:48  killough
-// stop incorrect looping of music (e.g. bunny scroll)
-//
-// Revision 1.3  1998/01/26  19:24:52  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/23  01:50:49  jim
-// Added music/sound options, and enables
-//
-// Revision 1.1.1.1  1998/01/19  14:03:04  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

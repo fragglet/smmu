@@ -102,3 +102,12 @@ extern int cmdsrc;           // the player which started the current command
 #define CONSHUGE
 
 #endif
+
+//--------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//--------------------------------------------------------------------------

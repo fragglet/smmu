@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: sounds.h,v 1.3 1998/05/03 22:44:30 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -323,14 +323,9 @@ extern sfxinfo_t chgun;
 
 //----------------------------------------------------------------------------
 //
-// $Log: sounds.h,v $
-// Revision 1.3  1998/05/03  22:44:30  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.2  1998/01/26  19:27:53  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:03  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

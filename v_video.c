@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -30,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: v_video.c,v 1.10 1998/05/06 11:12:48 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "c_io.h"
 #include "doomdef.h"
@@ -1032,39 +1032,11 @@ void V_GetBlock(int x, int y, int scrn, int width, int height, byte *dest)
 }
 
 
-
 //----------------------------------------------------------------------------
 //
-// $Log: v_video.c,v $
-// Revision 1.10  1998/05/06  11:12:48  jim
-// Formattted v_video.*
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.9  1998/05/03  22:53:16  killough
-// beautification, simplify translation lookup
-//
-// Revision 1.8  1998/04/24  08:09:39  jim
-// Make text translate tables lumps
-//
-// Revision 1.7  1998/03/02  11:41:58  killough
-// Add cr_blue_status for blue statusbar numbers
-//
-// Revision 1.6  1998/02/24  01:40:12  jim
-// Tuned HUD font
-//
-// Revision 1.5  1998/02/23  04:58:17  killough
-// Fix performance problems
-//
-// Revision 1.4  1998/02/19  16:55:00  jim
-// Optimized HUD and made more configurable
-//
-// Revision 1.3  1998/02/17  23:00:36  jim
-// Added color translation machinery and data
-//
-// Revision 1.2  1998/01/26  19:25:08  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:05  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------
-

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: r_sky.c,v 1.6 1998/05/03 23:01:06 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -30,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: r_sky.c,v 1.6 1998/05/03 23:01:06 killough Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "r_sky.h"
@@ -113,23 +113,9 @@ char egg[]={247,247,247,247,247,247,247,247,247,247,247,247,247,247,247,247,247,
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_sky.c,v $
-// Revision 1.6  1998/05/03  23:01:06  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.5  1998/05/01  14:14:24  killough
-// beautification
-//
-// Revision 1.4  1998/02/05  12:14:31  phares
-// removed dummy comment
-//
-// Revision 1.3  1998/01/26  19:24:49  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/19  16:17:59  rand
-// Added dummy line to be removed later.
-//
-// Revision 1.1.1.1  1998/01/19  14:03:07  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

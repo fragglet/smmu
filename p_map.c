@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_map.c,v 1.35 1998/05/12 12:47:16 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_map.c,v 1.35 1998/05/12 12:47:16 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -2094,108 +2094,9 @@ void P_CreateSecNodeList(mobj_t *thing,fixed_t x,fixed_t y)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_map.c,v $
-// Revision 1.35  1998/05/12  12:47:16  phares
-// Removed OVER_UNDER code
-//
-// Revision 1.34  1998/05/07  00:52:38  killough
-// beautification
-//
-// Revision 1.33  1998/05/05  15:35:10  phares
-// Documentation and Reformatting changes
-//
-// Revision 1.32  1998/05/04  12:29:27  phares
-// Eliminate player bobbing when stuck against wall
-//
-// Revision 1.31  1998/05/03  23:22:19  killough
-// Fix #includes and remove unnecessary decls at the top, make some vars static
-//
-// Revision 1.30  1998/04/20  11:12:59  killough
-// Make topslope, bottomslope local
-//
-// Revision 1.29  1998/04/12  01:56:51  killough
-// Prevent no-clipping objects from blocking things
-//
-// Revision 1.28  1998/04/07  11:39:21  jim
-// Skip MF_NOBLOCK things in P_CheckSector to get puffs back
-//
-// Revision 1.27  1998/04/07  06:52:36  killough
-// Simplify sector_thinglist traversal to use simpler markers
-//
-// Revision 1.26  1998/04/06  11:05:11  jim
-// Remove LEESFIXES, AMAP bdg->247
-//
-// Revision 1.25  1998/04/06  04:46:13  killough
-// Fix CheckSector problems
-//
-// Revision 1.24  1998/04/05  10:08:51  jim
-// changed crusher check back to old code
-//
-// Revision 1.23  1998/04/03  14:44:14  jim
-// Fixed P_CheckSector problem
-//
-// Revision 1.21  1998/04/01  14:46:48  jim
-// Prevent P_CheckSector from passing NULL things
-//
-// Revision 1.20  1998/03/29  20:14:35  jim
-// Fixed use of deleted link in P_CheckSector
-//
-// Revision 1.19  1998/03/28  18:00:14  killough
-// Fix telefrag/spawnfrag bug, and use sidedefs rather than 2s flag
-//
-// Revision 1.18  1998/03/23  15:24:25  phares
-// Changed pushers to linedef control
-//
-// Revision 1.17  1998/03/23  06:43:14  jim
-// linedefs reference initial version
-//
-// Revision 1.16  1998/03/20  02:10:43  jim
-// Improved crusher code with new mobj data structures
-//
-// Revision 1.15  1998/03/20  00:29:57  phares
-// Changed friction to linedef control
-//
-// Revision 1.14  1998/03/16  12:25:17  killough
-// Allow conveyors to push things off ledges
-//
-// Revision 1.13  1998/03/12  14:28:42  phares
-// friction and IDCLIP changes
-//
-// Revision 1.12  1998/03/11  17:48:24  phares
-// New cheats, clean help code, friction fix
-//
-// Revision 1.11  1998/03/09  22:27:23  phares
-// Fixed friction problem when teleporting
-//
-// Revision 1.10  1998/03/09  18:27:00  phares
-// Fixed bug in neighboring variable friction sectors
-//
-// Revision 1.9  1998/03/02  12:05:56  killough
-// Add demo_compatibility switch around moveangle+=10
-//
-// Revision 1.8  1998/02/24  08:46:17  phares
-// Pushers, recoil, new friction, and over/under work
-//
-// Revision 1.7  1998/02/17  06:01:51  killough
-// Use new RNG calling sequence
-//
-// Revision 1.6  1998/02/05  12:15:03  phares
-// cleaned up comments
-//
-// Revision 1.5  1998/01/28  23:42:02  phares
-// Bug fix to PE->LS code; better line checking
-//
-// Revision 1.4  1998/01/28  17:36:06  phares
-// Expanded comments on Pit_CrossLine
-//
-// Revision 1.3  1998/01/28  12:22:21  phares
-// AV bug fix and Lost Soul trajectory bug fix
-//
-// Revision 1.2  1998/01/26  19:24:09  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

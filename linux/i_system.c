@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $";
+rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -281,47 +281,9 @@ void I_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: i_system.c,v $
-// Revision 1.14  1998/05/03  22:33:13  killough
-// beautification
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.13  1998/04/27  01:51:37  killough
-// Increase errmsg size to 2048
-//
-// Revision 1.12  1998/04/14  08:13:39  killough
-// Replace adaptive gametics with realtic_clock_rate
-//
-// Revision 1.11  1998/04/10  06:33:46  killough
-// Add adaptive gametic timer
-//
-// Revision 1.10  1998/04/05  00:51:06  phares
-// Joystick support, Main Menu re-ordering
-//
-// Revision 1.9  1998/04/02  05:02:31  jim
-// Added ENDOOM, BOOM.TXT mods
-//
-// Revision 1.8  1998/03/23  03:16:13  killough
-// Change to use interrupt-driver keyboard IO
-//
-// Revision 1.7  1998/03/18  16:17:32  jim
-// Change to avoid Allegro key shift handling bug
-//
-// Revision 1.6  1998/03/09  07:12:21  killough
-// Fix capslock bugs
-//
-// Revision 1.5  1998/03/03  00:21:41  jim
-// Added predefined ENDBETA lump for beta test
-//
-// Revision 1.4  1998/03/02  11:31:14  killough
-// Fix ENDOOM message handling
-//
-// Revision 1.3  1998/02/23  04:28:14  killough
-// Add ENDOOM support, allow no sound FX at all
-//
-// Revision 1.2  1998/01/26  19:23:29  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:07  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

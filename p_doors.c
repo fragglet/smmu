@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_doors.c,v 1.13 1998/05/09 12:16:29 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_doors.c,v 1.13 1998/05/09 12:16:29 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "g_game.h"
@@ -732,41 +732,9 @@ void P_SpawnDoorRaiseIn5Mins(sector_t *sec, int secnum)
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_doors.c,v $
-// Revision 1.13  1998/05/09  12:16:29  jim
-// formatted/documented p_doors
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.12  1998/05/03  23:07:16  killough
-// Fix #includes at the top, remove #if 0, nothing else
-//
-// Revision 1.11  1998/04/16  06:28:34  killough
-// Remove double-closing sound of blazing doors
-//
-// Revision 1.10  1998/03/28  05:32:36  jim
-// Text enabling changes for DEH
-//
-// Revision 1.9  1998/03/23  03:24:53  killough
-// Make door-opening 'oof' sound have true source
-//
-// Revision 1.8  1998/03/10  07:08:16  jim
-// Extended manual door lighting to generalized doors
-//
-// Revision 1.7  1998/02/23  23:46:40  jim
-// Compatibility flagged multiple thinker support
-//
-// Revision 1.6  1998/02/23  00:41:36  jim
-// Implemented elevators
-//
-// Revision 1.5  1998/02/13  03:28:25  jim
-// Fixed W1,G1 linedefs clearing untriggered special, cosmetic changes
-//
-// Revision 1.4  1998/02/08  05:35:23  jim
-// Added generalized linedef types
-//
-// Revision 1.2  1998/01/26  19:23:58  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

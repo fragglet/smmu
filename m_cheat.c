@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: m_cheat.c,v 1.7 1998/05/12 12:47:00 phares Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: m_cheat.c,v 1.7 1998/05/12 12:47:00 phares Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "c_runcmd.h"
@@ -773,26 +773,9 @@ void Cheat_AddCommands()
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_cheat.c,v $
-// Revision 1.7  1998/05/12  12:47:00  phares
-// Removed OVER_UNDER code
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.6  1998/05/07  01:08:11  killough
-// Make TNTAMMO ammo ordering more natural
-//
-// Revision 1.5  1998/05/03  22:10:53  killough
-// Cheat engine, moved from st_stuff
-//
-// Revision 1.4  1998/05/01  14:38:06  killough
-// beautification
-//
-// Revision 1.3  1998/02/09  03:03:05  killough
-// Rendered obsolete by st_stuff.c
-//
-// Revision 1.2  1998/01/26  19:23:44  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:58  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

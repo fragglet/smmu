@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: wi_stuff.c,v 1.11 1998/05/04 21:36:02 thldrmn Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: wi_stuff.c,v 1.11 1998/05/04 21:36:02 thldrmn Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -2193,38 +2193,9 @@ void WI_Start(wbstartstruct_t* wbstartstruct)
 
 //----------------------------------------------------------------------------
 //
-// $Log: wi_stuff.c,v $
-// Revision 1.11  1998/05/04  21:36:02  thldrmn
-// commenting and reformatting
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.10  1998/05/03  22:45:35  killough
-// Provide minimal correct #include's at top; nothing else
-//
-// Revision 1.9  1998/04/27  02:11:44  killough
-// Fix lnames being freed too early causing crashes
-//
-// Revision 1.8  1998/04/26  14:55:38  jim
-// Fixed animated back bug
-//
-// Revision 1.7  1998/04/11  14:49:52  thldrmn
-// Fixed par display logic
-//
-// Revision 1.6  1998/03/28  18:12:03  killough
-// Make acceleratestage external so it can be used for teletype
-//
-// Revision 1.5  1998/03/28  05:33:12  jim
-// Text enabling changes for DEH
-//
-// Revision 1.4  1998/03/18  23:14:14  jim
-// Deh text additions
-//
-// Revision 1.3  1998/02/23  05:00:19  killough
-// Fix Secret percentage, avoid par times on pwads
-//
-// Revision 1.2  1998/01/26  19:25:12  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:05  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

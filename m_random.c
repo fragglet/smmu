@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: m_random.c,v 1.6 1998/05/03 23:13:18 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -32,7 +32,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: m_random.c,v 1.6 1998/05/03 23:13:18 killough Exp $";
+static const char rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -137,23 +137,9 @@ void M_ClearRandom (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log: m_random.c,v $
-// Revision 1.6  1998/05/03  23:13:18  killough
-// Fix #include
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
-// Revision 1.5  1998/03/31  10:43:05  killough
-// Fix (supposed) RNG problems, add new demo_insurance
-//
-// Revision 1.4  1998/03/28  17:56:05  killough
-// Improve RNG by adding external seed
-//
-// Revision 1.3  1998/02/17  05:40:08  killough
-// Make RNGs local to each calling block, for demo sync
-//
-// Revision 1.2  1998/01/26  19:23:51  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:58  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

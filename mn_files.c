@@ -384,3 +384,12 @@ void MN_File_AddCommands()
   C_AddCommand(mn_selectlmp);
   C_AddCommand(wad_directory);
 }
+
+//-------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
+//
+//-------------------------------------------------------------------------

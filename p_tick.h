@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id: p_tick.h,v 1.5 1998/05/15 00:36:22 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -58,20 +58,9 @@ extern boolean reset_viewz;
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_tick.h,v $
-// Revision 1.5  1998/05/15  00:36:22  killough
-// Remove unnecessary crash hack
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
-// Revision 1.4  1998/05/13  22:58:01  killough
-// Restore Doom bug compatibility for demos
-//
-// Revision 1.3  1998/05/03  22:49:29  killough
-// Add external declarations, formerly in p_local.h
-//
-// Revision 1.2  1998/01/26  19:27:31  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:08  rand
-// Lee's Jan 19 sources
 //
 //----------------------------------------------------------------------------

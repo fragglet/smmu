@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: d_textur.h,v 1.3 1998/05/04 21:34:18 thldrmn Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -52,15 +52,9 @@ typedef struct
 
 //----------------------------------------------------------------------------
 //
-// $Log: d_textur.h,v $
-// Revision 1.3  1998/05/04  21:34:18  thldrmn
-// commenting and reformatting
-//
-// Revision 1.2  1998/01/26  19:26:33  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:54  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

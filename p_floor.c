@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: p_floor.c,v 1.23 1998/05/23 10:23:16 jim Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: p_floor.c,v 1.23 1998/05/23 10:23:16 jim Exp $";
+rcsid[] = "$Id$";
 
 #include "doomstat.h"
 #include "c_io.h"
@@ -985,66 +985,9 @@ int EV_DoElevator
 
 //----------------------------------------------------------------------------
 //
-// $Log: p_floor.c,v $
-// Revision 1.23  1998/05/23  10:23:16  jim
-// Fix numeric changer loop corruption
-//
-// Revision 1.22  1998/05/07  17:01:25  jim
-// documented/formatted p_floor
-//
-// Revision 1.21  1998/05/04  02:21:58  jim
-// formatted p_specs, moved a coupla routines to p_floor
-//
-// Revision 1.20  1998/05/03  23:08:04  killough
-// Fix #includes at the top, nothing else
-//
-// Revision 1.19  1998/04/07  11:55:08  jim
-// fixed elevators to block properly
-//
-// Revision 1.18  1998/03/31  16:52:03  jim
-// Fixed uninited type field in stair builders
-//
-// Revision 1.17  1998/03/20  02:10:30  jim
-// Improved crusher code with new mobj data structures
-//
-// Revision 1.16  1998/03/15  14:40:20  jim
-// added pure texture change linedefs & generalized sector types
-//
-// Revision 1.15  1998/03/13  14:06:03  jim
-// Fixed arith overflow in some linedef types
-//
-// Revision 1.14  1998/03/04  11:56:25  jim
-// Fix multiple sector stair raise
-//
-// Revision 1.13  1998/02/27  11:50:54  jim
-// Fixes for stairs
-//
-// Revision 1.12  1998/02/23  23:46:45  jim
-// Compatibility flagged multiple thinker support
-//
-// Revision 1.11  1998/02/23  00:41:41  jim
-// Implemented elevators
-//
-// Revision 1.10  1998/02/13  03:28:31  jim
-// Fixed W1,G1 linedefs clearing untriggered special, cosmetic changes
-//
-// Revision 1.9  1998/02/08  05:35:28  jim
-// Added generalized linedef types
-//
-// Revision 1.6  1998/02/02  13:42:11  killough
-// Program beautification
-//
-// Revision 1.5  1998/01/30  14:44:16  jim
-// Added gun exits, right scrolling walls and ceiling mover specials
-//
-// Revision 1.3  1998/01/26  19:24:03  phares
-// First rev with no ^Ms
-//
-// Revision 1.2  1998/01/25  20:24:42  jim
-// Fixed crusher floor, lowerandChange floor types, and unknown sector special error
-//
-// Revision 1.1.1.1  1998/01/19  14:02:59  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------

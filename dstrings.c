@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -27,7 +27,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
+rcsid[] = "$Id$";
 
 
 #ifdef __GNUG__
@@ -47,7 +47,7 @@ char* endmsg[/*NUM_QUITMESSAGES+1*/]=
   "i wouldn't leave if i were you.\ndos is much worse.",
   "you're trying to say you like dos\nbetter than me, right?",
 #else
-  "i wouldn't leave if i were you.\nbash is much worse.",
+  "i wouldn't leave if i were you.\nthe shell is much worse.",
   "you're trying to say you like your shell\nbetter than me, right?",
 #endif
   "don't leave yet -- there's a\ndemon around that corner!",
@@ -73,7 +73,10 @@ char* endmsg[/*NUM_QUITMESSAGES+1*/]=
 
 //---------------------------------------------------------------------------
 //
-// $Log:$
+// $Log$
+// Revision 1.1  2000-04-30 19:12:08  fraggle
+// Initial revision
+//
 //
 //---------------------------------------------------------------------------
   

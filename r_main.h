@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id: r_main.h,v 1.7 1998/05/03 23:00:42 killough Exp $
+// $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -45,6 +45,7 @@ extern int        viewheight;
 extern int        viewwindowx;
 extern int        viewwindowy;
 extern sector_t  *viewsector;
+extern mobj_t    *viewobj;        // sf
 extern int        centerx;
 extern int        centery;
 extern fixed_t    centerxfrac;
@@ -128,27 +129,9 @@ extern fixed_t zoomscale;
 
 //----------------------------------------------------------------------------
 //
-// $Log: r_main.h,v $
-// Revision 1.7  1998/05/03  23:00:42  killough
-// beautification
-//
-// Revision 1.6  1998/04/06  04:43:17  killough
-// Make colormaps fully dynamic
-//
-// Revision 1.5  1998/03/23  03:37:44  killough
-// Add support for arbitrary number of colormaps
-//
-// Revision 1.4  1998/03/09  07:27:23  killough
-// Avoid using FP for point/line queries
-//
-// Revision 1.3  1998/02/02  13:29:10  killough
-// performance tuning
-//
-// Revision 1.2  1998/01/26  19:27:41  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:08  rand
-// Lee's Jan 19 sources
+// $Log$
+// Revision 1.1  2000-04-30 19:12:09  fraggle
+// Initial revision
 //
 //
 //----------------------------------------------------------------------------
