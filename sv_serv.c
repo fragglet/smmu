@@ -699,7 +699,7 @@ static void SV_CheckResendTics()
 // Send Chat message to nodes in chat room
 //
 
-void SV_SendChatMsg(char *s, ...)
+static void SV_SendChatMsg(char *s, ...)
 {
   char buffer[128];
   va_list args;
@@ -732,6 +732,83 @@ void SV_SendChatMsg(char *s, ...)
 
 //-------------------------------------------------------------------------
 //
+// SV_SendPrivMsg
+//
+// Send private msg to a particular player
+//
+
+static void SV_SendPrivMsg(int node, char *s, ...)
+{
+  char buffer[128];
+  va_list args;
+  netpacket_t packet;
+  nodeinfo_t *ni = &server_nodes[node];
+
+  va_start(args, s);
+  vsprintf(buffer, s, args);
+  va_end(args);
+
+  if(!ni->waiting)       // only send to waiting players
+    return;
+  
+  // build new packet
+  
+  packet.type = pt_chat;
+  strcpy(packet.data.messagepacket.message, buffer);
+
+  // reliable send
+
+  SV_ReliableSend(ni, &packet);
+}
+
+//-------------------------------------------------------------------------
+//
+// SV_ParsePrivateMsg
+//
+// Parse /msg commands
+//
+
+static void SV_ParsePrivateMsg(int src, char *cmd)
+{
+  char dest_player[20];
+  int i;
+
+  while(*cmd == ' ')  // strip leading spaces
+    cmd++;
+
+  // read out player name
+  
+  for(i=0; *cmd && *cmd != ' '; i++, cmd++)
+    dest_player[i] = *cmd;
+  dest_player[i] = '\0';
+
+  for(i=0; i<server_numnodes; i++)
+    {
+      nodeinfo_t *ni = &server_nodes[i];
+      
+      if(!strcasecmp(dest_player, ni->name))
+	{
+	  if(!ni->waiting)
+	    SV_SendPrivMsg(src, FC_GOLD"%s"FC_RED" is in game", dest_player);
+	  else
+	    {
+	      SV_SendPrivMsg(i, FC_GRAY"[/msg]"FC_GOLD"%s"FC_RED"%s",
+			     server_nodes[src].name,
+			     cmd);
+	      SV_SendPrivMsg(src, FC_GRAY">>"FC_GOLD"%s"FC_RED"%s",
+			     dest_player,
+			     cmd);
+	    }
+
+	  return;
+	}
+    }
+
+  SV_SendPrivMsg(src, "unknown player %s", dest_player);
+}
+
+//-------------------------------------------------------------------------
+//
 // SV_ChatMsg
 //
 // Forward chat messages between waiting nodes
@@ -745,10 +822,18 @@ static void SV_ChatMsg(msgpacket_t *msg)
     return;
 
   node = SV_ServerNode();
+
+  // action
   
-  SV_SendChatMsg(FC_GRAY "<" FC_GOLD "%s" FC_GRAY ">" FC_RED " %s",
-		 server_nodes[node].name,
-		 msg->message);		 
+  if(!strncasecmp(msg->message, "/me", 3))
+    SV_SendChatMsg(FC_GOLD "%s" FC_RED " %s",
+		   server_nodes[node].name, msg->message+3);
+  else if(!strncasecmp(msg->message, "/msg", 4))
+    SV_ParsePrivateMsg(node, msg->message+4);
+  else
+    SV_SendChatMsg(FC_GRAY "<" FC_GOLD "%s" FC_GRAY ">" FC_RED " %s",
+		   server_nodes[node].name,
+		   msg->message);		 
 }
 
 //=========================================================================
@@ -1670,7 +1755,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.8  2000-05-12 16:41:59  fraggle
+// Revision 1.9  2000-05-22 09:59:04  fraggle
+// /msg, /me commands for chat room
+//
+// Revision 1.8  2000/05/12 16:41:59  fraggle
 // even better speeddup algorithm
 //
 // Revision 1.7  2000/05/07 14:10:28  fraggle
