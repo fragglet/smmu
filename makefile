@@ -10,8 +10,8 @@ DEPENDENCIES = 1
 # 15/10/99 sf: added multi-platform support
 
 # select platform here:
-#DJGPPDOS=1
-CYGWIN32=1
+DJGPPDOS=1
+#CYGWIN32=1
 #LINUX=1
 
 #-------------------------------------------------------------------------
@@ -69,6 +69,7 @@ PLATOBJS =             \
 	i_system.o     \
 	i_sound.o      \
 	v_alleg.o      \
+	v_vga.o        \
 	net_ser.o      \
 	net_ext.o      \
 	ser_port.o     \
