@@ -1001,7 +1001,9 @@ void IdentifyVersion (void)
       D_AddFile(iwad);
     }
   else
-    I_Error("IWAD not found\n");
+    I_Error("IWAD not found\n"
+	    "Make sure you place this program in your Doom directory\n"
+	    "or use the -iwad parameter to specift the location of an IWAD.\n");
 }
 
 // killough 5/3/98: old code removed
@@ -1608,7 +1610,7 @@ void D_DoomMain(void)
   else
     if ((p = M_CheckParm("-timedemo")) && ++p < myargc)
       {
-	  G_TimeDemo(myargv[p]);
+	G_TimeDemo(myargv[p]);
       }
     else
       if ((p = M_CheckParm("-playdemo")) && ++p < myargc)
@@ -1645,7 +1647,7 @@ void D_DoomMain(void)
 	}
       else
 	{
-	  //          D_StartTitle();                 // start up intro loop
+	  D_StartTitle();                 // start up intro loop
 	}
     }
 
@@ -1812,7 +1814,12 @@ boolean D_AddNewFile(char *s)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-07 14:14:09  fraggle
+// Revision 1.3  2000-06-22 18:28:58  fraggle
+// polish various things
+//  more useful message when no iwad found
+//  fix title screen
+//
+// Revision 1.2  2000/05/07 14:14:09  fraggle
 // default to graphic startup
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
