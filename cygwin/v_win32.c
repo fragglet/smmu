@@ -14,7 +14,7 @@
 
 // proff 07/04/98: Added for CYGWIN32 compatibility
 #ifdef _MSC_VER
-//#define DIRECTX
+#define DIRECTX
 #endif
 #ifdef DIRECTX
 #define __BYTEBOOL__
@@ -22,6 +22,7 @@
 #define true !false
 #include <ddraw.h>
 #endif
+
 #include "../doomtype.h"
 #include "../doomdef.h"
 #include "../m_argv.h"
@@ -32,8 +33,6 @@
 #include "../v_mode.h"
 #include "../v_video.h"
 #include "../z_zone.h"
-
-//#include "../lprintf.h"
 
 // i_main.c
 
@@ -67,17 +66,18 @@ static BYTE *ScaledVMem;
 static int ViewMemPitch;
 static RECT ViewRect;
 static HDC ViewDC = 0;
-enum {
+enum
+  {
     Scale_None,
     Scale_Windows,
     Scale_Own
-} ViewScale;
+  } ViewScale;
 
 static boolean fActive = false;
 // proff: Removed fFullscreen
 static int vidFullScreen = 0;
 
-extern int grabMouse;
+static boolean mouse_grabbed;
 
 static boolean noMouse = false;
 static int MouseButtons = 0;
@@ -154,7 +154,7 @@ static void (*FullscreenProc)(int fullscreen);
 static void WinFullscreen(int fullscreen)
 {
   vidFullScreen=0;
-  doom_printf("Fullscreen-Mode not available\n");
+  doom_printf("Fullscreen-Mode not available");
 }
 
 static CALLBACK
@@ -165,9 +165,6 @@ WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
   event_t event;
   boolean AltDown;
-  RECT rect;
-  RECT rectc;
-  RECT rectw;
   
   switch (iMsg)
     {
@@ -177,19 +174,7 @@ WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	break;
       case WM_MOVE:
       case WM_SIZE:
-	/*
-	  if ((!noMouse) && (grabMouse))
-	  {
-	  ClipCursor(NULL);
-	  GetWindowRect(ghWnd, &rectw);
-	  GetClientRect(ghWnd, &rectc);
-	  rect.left = rectw.left + frameX;
-	  rect.top = rectw.top + frameY + capY;
-	  rect.right = rect.left + (rectc.right - rectc.left);
-	  rect.bottom = rect.top + (rectc.bottom - rectc.top);
-	  ClipCursor(&rect);
-	  }
-	  */        
+	mouse_grabbed = false;
 	break;
       case WM_KILLFOCUS:
 	// proff 08/18/98: This sets the priority-class
@@ -209,7 +194,7 @@ WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	fActive = (boolean)LOWORD(wParam);
 	if (fActive)
 	  {
-	    doom_printf ("WM_ACTIVATE true\n");
+	    doom_printf ("WM_ACTIVATE true");
 	    event.type = ev_keyup;
 	    event.data1 = KEYD_RCTRL;
 	    event.data2 = 0;
@@ -223,27 +208,11 @@ WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	    event.data2 = 0;
 	    event.data3 = 0;
 	    D_PostEvent(&event);
-	    ShowCursor(FALSE);
-	    if ((!noMouse) && (grabMouse))
-	      {
-		ClipCursor(NULL);
-		GetWindowRect(ghWnd, &rectw);
-		GetClientRect(ghWnd, &rectc);
-		rect.left = rectw.left + frameX;
-		rect.top = rectw.top + frameY + capY;
-		rect.right = rect.left + (rectc.right - rectc.left);
-		rect.bottom = rect.top + (rectc.bottom - rectc.top);
-		ClipCursor(&rect);
-	      }
+	    mouse_grabbed = false;
 	  }
 	else
 	  {
-	    doom_printf ("WM_ACTIVATE false\n");
-	    ShowCursor(TRUE);
-	    if ((!noMouse) && (grabMouse))
-	      {
-                ClipCursor(NULL);
-	      }
+	    doom_printf ("WM_ACTIVATE false");
 	  }
 	break;
       case WM_SYSKEYDOWN:
@@ -331,7 +300,7 @@ WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
   return 0;
 }
 
-#if 0
+#ifdef CONSOLE
 
 // Variables for the console
 static HWND con_hWnd;
@@ -570,33 +539,33 @@ static void Set_Title(void)
 
 static void Init_Dib(void)
 {
-    View_bmi=malloc(sizeof(BITMAPINFO)+256*4);
-    memset(View_bmi,0,40);
-    View_bmi->bmiHeader.biSize = 40;
-    View_bmi->bmiHeader.biPlanes = 1;
-    View_bmi->bmiHeader.biBitCount = 8;
-    View_bmi->bmiHeader.biCompression = BI_RGB;
-    if (ViewScale==Scale_Own)
-      {
-        View_bmi->bmiHeader.biWidth = SCREENWIDTH*2;
-        View_bmi->bmiHeader.biHeight = SCREENHEIGHT*2;
-        ViewMem = malloc((SCREENWIDTH*2)*(SCREENHEIGHT*2));
-      }
-    else if (ViewScale==Scale_Windows)
-      {
-        View_bmi->bmiHeader.biWidth = SCREENWIDTH;
-        View_bmi->bmiHeader.biHeight = -SCREENHEIGHT;
-        ViewMem=NULL;
-      }
-    else
-      {
-	// sf: *multiply for hires
-	View_bmi->bmiHeader.biWidth = SCREENWIDTH*multiply; 
-	View_bmi->bmiHeader.biHeight = -SCREENHEIGHT*multiply;
-	ViewMem=NULL;
-      }
-    ViewDC = GetDC(ghWnd);
-    SetStretchBltMode(ViewDC,COLORONCOLOR);
+  View_bmi=malloc(sizeof(BITMAPINFO)+256*4);
+  memset(View_bmi,0,40);
+  View_bmi->bmiHeader.biSize = 40;
+  View_bmi->bmiHeader.biPlanes = 1;
+  View_bmi->bmiHeader.biBitCount = 8;
+  View_bmi->bmiHeader.biCompression = BI_RGB;
+  if (ViewScale==Scale_Own)
+    {
+      View_bmi->bmiHeader.biWidth = SCREENWIDTH*2;
+      View_bmi->bmiHeader.biHeight = SCREENHEIGHT*2;
+      ViewMem = malloc((SCREENWIDTH*2)*(SCREENHEIGHT*2));
+    }
+  else if (ViewScale==Scale_Windows)
+    {
+      View_bmi->bmiHeader.biWidth = SCREENWIDTH;
+      View_bmi->bmiHeader.biHeight = -SCREENHEIGHT;
+      ViewMem=NULL;
+    }
+  else
+    {
+      // sf: *multiply for hires
+      View_bmi->bmiHeader.biWidth = SCREENWIDTH*multiply; 
+      View_bmi->bmiHeader.biHeight = -SCREENHEIGHT*multiply;
+      ViewMem=NULL;
+    }
+  ViewDC = GetDC(ghWnd);
+  SetStretchBltMode(ViewDC,COLORONCOLOR);
 }
 
 static boolean Win32_SetMode(int mode)
@@ -638,35 +607,34 @@ static boolean Win32_SetMode(int mode)
   // proff 08/18/98: This disables the setting of the priority-class
   if (M_CheckParm("-noidle"))
     noidle=true;
-    
+
+  MainWinWidth=SCREENWIDTH;
+  MainWinHeight=SCREENHEIGHT;
+
   ghWnd = CreateWindow(szAppName, szAppName, 
 		       WS_CAPTION | WS_POPUP,
 	 // proff 06/30/98: Changed form constant value to variable
 		       0, 0, MainWinWidth, MainWinHeight,
 		       NULL, NULL, win_hInstance, NULL);
+
   ShowWindow(ghWnd, SW_SHOW);
   UpdateWindow(ghWnd);
-
+  
   // ---- stuff moved from Init_Winstuff
 
-   // Set the windowtitle
+  BringWindowToTop(ghWnd);
+
+  // Set the windowtitle
   Set_Title();
-#ifdef DIRECTX
-  if (!M_CheckParm("-noddraw"))
-    Init_DDraw();
-#endif
-  
+
   Init_Dib();
-  
-  frameX = GetSystemMetrics(SM_CXFIXEDFRAME);
-  frameY = GetSystemMetrics(SM_CYFIXEDFRAME);
-  capY = GetSystemMetrics(SM_CYCAPTION);
+      
   GetClientRect(ghWnd, &ViewRect);
   
   //    lprintf (LO_DEBUG, "I_InitGraphics: Client area: %ux%u\n",
   //            ViewRect.right-ViewRect.left, ViewRect.bottom-ViewRect.top);
   if ( (ViewRect.right-ViewRect.left) != (SCREENWIDTH *multiply) )
-    MainWinWidth += (SCREENWIDTH *multiply) - (ViewRect.right -ViewRect.left);
+    MainWinWidth += (SCREENWIDTH*multiply) - (ViewRect.right -ViewRect.left);
   if ( (ViewRect.bottom-ViewRect.top) != (SCREENHEIGHT*multiply) )
     MainWinHeight+= (SCREENHEIGHT*multiply) - (ViewRect.bottom-ViewRect.top );
   
@@ -700,9 +668,9 @@ static void Win32_SetPalette(unsigned char *pal)
       col = 0;
       for (c=0; c<256; c++)
         {
-	  ADDPal[c].peRed = pal[col++];
-	  ADDPal[c].peGreen = pal[col++];
-	  ADDPal[c].peBlue = pal[col++];
+	  ADDPal[c].peRed = gamma_xlate[pal[col++]];
+	  ADDPal[c].peGreen = gamma_xlate[pal[col++]];
+	  ADDPal[c].peBlue = gamma_xlate[pal[col++]];
 	  ADDPal[c].peFlags = 0;
         }
       IDirectDrawPalette_SetEntries(lpDDPal,0,0,256,ADDPal);
@@ -713,9 +681,9 @@ static void Win32_SetPalette(unsigned char *pal)
       col = 0;
       for (c=0; c<256; c++)
         {
-	  View_bmi->bmiColors[c].rgbRed = pal[col++];
-	  View_bmi->bmiColors[c].rgbGreen = pal[col++];
-	  View_bmi->bmiColors[c].rgbBlue = pal[col++];
+	  View_bmi->bmiColors[c].rgbRed = gamma_xlate[pal[col++]];
+	  View_bmi->bmiColors[c].rgbGreen = gamma_xlate[pal[col++]];
+	  View_bmi->bmiColors[c].rgbBlue = gamma_xlate[pal[col++]];
 	  View_bmi->bmiColors[c].rgbReserved = 0;
         }
     }
@@ -765,7 +733,7 @@ static void DDrawFullscreen(int fullscreen)
     error = DirectDrawCreate(NULL,&lpDD,NULL);
     if (error != DD_OK)
     {
-      doom_printf("Error: DirectDrawCreate failed!\n");
+      doom_printf("Error: DirectDrawCreate failed!");
       FullscreenProc=WinFullscreen;
       Done_DDraw();
       return;
@@ -773,7 +741,7 @@ static void DDrawFullscreen(int fullscreen)
     error = IDirectDraw_SetCooperativeLevel(lpDD,ghWnd,DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
     if (error != DD_OK)
     {
-      doom_printf("Error: DirectDraw_SetCooperativeLevel failed!\n");
+      doom_printf("Error: DirectDraw_SetCooperativeLevel failed!");
       FullscreenProc=WinFullscreen;
       Done_DDraw();
       return;
@@ -781,7 +749,7 @@ static void DDrawFullscreen(int fullscreen)
     error = IDirectDraw_SetDisplayMode(lpDD,BestWidth,BestHeight,8);
     if (error != DD_OK)
     {
-      doom_printf("Error: DirectDraw_SetDisplayMode %ix%ix8 failed!\n",BestWidth,BestHeight);
+      doom_printf("Error: DirectDraw_SetDisplayMode %ix%ix8 failed!",BestWidth,BestHeight);
       FullscreenProc=WinFullscreen;
       Done_DDraw();
       return;
@@ -796,7 +764,7 @@ static void DDrawFullscreen(int fullscreen)
     if (error != DD_OK)
     {
       lpDDPSF = NULL;
-      doom_printf("Error: DirectDraw_CreateSurface failed!\n");
+      doom_printf("Error: DirectDraw_CreateSurface failed!");
       FullscreenProc=WinFullscreen;
       Done_DDraw();
       return;
@@ -806,7 +774,7 @@ static void DDrawFullscreen(int fullscreen)
     if (error != DD_OK)
     {
       lpDDBSF = NULL;
-      doom_printf("Error: DirectDraw_GetAttachedSurface failed!\n");
+      doom_printf("Error: DirectDraw_GetAttachedSurface failed!");
       FullscreenProc=WinFullscreen;
       Done_DDraw();
       return;
@@ -815,7 +783,7 @@ static void DDrawFullscreen(int fullscreen)
     if (error != DD_OK)
     {
       lpDDPal = NULL;
-      doom_printf("Error: DirectDraw_CreatePal failed!\n");
+      doom_printf("Error: DirectDraw_CreatePal failed!");
       FullscreenProc=WinFullscreen;
       Done_DDraw();
       return;
@@ -831,7 +799,7 @@ static void DDrawFullscreen(int fullscreen)
     }
     IDirectDrawPalette_SetEntries(lpDDPal,0,0,256,ADDPal);
     vidFullScreen = 1;
-    doom_printf("Fullscreen-Mode\n");
+    doom_printf("Fullscreen-Mode");
   }
   else
   {
@@ -846,7 +814,7 @@ static void DDrawFullscreen(int fullscreen)
       View_bmi->bmiColors[c].rgbGreen = ADDPal[c].peGreen;
       View_bmi->bmiColors[c].rgbBlue = ADDPal[c].peBlue;
     }
-    doom_printf("Windows-Mode\n");
+    doom_printf("Windows-Mode");
   }
 }
 
@@ -930,18 +898,27 @@ static boolean Win32_Init()
   wndclass.hInstance     = win_hInstance;
   wndclass.hIcon         = LoadIcon (win_hInstance, IDI_WINLOGO);
   wndclass.hCursor       = LoadCursor (NULL,IDC_ARROW);
-  //    wndclass.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+  wndclass.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
   wndclass.hbrBackground = NULL;
   wndclass.lpszMenuName  = szAppName;
   wndclass.lpszClassName = szAppName;
   
   if (!RegisterClass(&wndclass))
     return FALSE;
-  
+
+  frameX = GetSystemMetrics(SM_CXFIXEDFRAME);
+  frameY = GetSystemMetrics(SM_CYFIXEDFRAME);
+  capY = GetSystemMetrics(SM_CYCAPTION);
+
   // ----- end -----
   
   FullscreenProc = WinFullscreen;
 
+#ifdef DIRECTX
+  if (!M_CheckParm("-noddraw"))
+    Init_DDraw();
+#endif
+  
   //  BringWindowToTop(ghWnd);
   Init_Mouse();
 
@@ -965,7 +942,7 @@ static void Win32_Shutdown(void)
   if (ViewDC)
     ReleaseDC(ghWnd,ViewDC);
   DestroyWindow(ghWnd);
-  if ((!noMouse) && (grabMouse))
+  if (!noMouse)
     {
       ClipCursor(NULL);
     }
@@ -1161,38 +1138,59 @@ static void Win32_StartTic(void)
   MSG msg;
   POINT point;
   static LONG prevX=0, prevY=0;
-  static LONG prevDX=0, prevDY=0;
   static int hadMouse = 0;
   event_t event;
   RECT rectw;
   
-  while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+  while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+    {
     //    TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
   
   if (!noMouse)
     {
+      if(!mouse_grabbed && grabnow && fActive)
+	{
+	  RECT rect;
+	  RECT rectc;
+	  RECT rectw;
+
+	  ClipCursor(NULL);
+	  GetWindowRect(ghWnd, &rectw);
+	  GetClientRect(ghWnd, &rectc);
+	  rect.left = rectw.left + frameX;
+	  rect.top = rectw.top + frameY + capY;
+	  rect.right = rect.left + (rectc.right - rectc.left);
+	  rect.bottom = rect.top + (rectc.bottom - rectc.top);
+	  ClipCursor(&rect);
+	  ShowCursor(FALSE);
+	  mouse_grabbed = true;
+	}
+      if(mouse_grabbed && !(grabnow && fActive))
+	{
+	  ClipCursor(NULL);
+	  ShowCursor(TRUE);
+	  mouse_grabbed = false;
+	}
+      
       if ( !GetCursorPos(&point) )
 	I_Error("GetCursorPos() failed");
-      if (hadMouse && fActive)
+      /*      if (hadMouse && fActive)*/
+      if(fActive)
 	{
-	  event.type = ev_mouse;
-	  event.data1 = MouseButtons;
-	  event.data2 = 0;
-	  event.data3 = 0;
 	  if ( (prevX != point.x) || (prevY != point.y) )
 	    {
-	      event.data2 = ((point.x - prevX)+prevDX)/2;
-	      event.data3 = ((prevY - point.y)+prevDY)/2;
-	      prevDX = (point.x - prevX);
-	      prevDY = (prevY - point.y);
+	      event.type = ev_mouse;
+	      event.data2 = ((point.x - prevX))/2;
+	      event.data3 = ((prevY - point.y))/2;
+	      D_PostEvent(&event);
+
 	      prevX = point.x;
 	      prevY = point.y;
 	    }
-	  D_PostEvent(&event);
 	  
-	  if ( grabMouse )
+	  if(grabnow)
 	    {
 	      GetWindowRect(ghWnd, &rectw);
 	      prevX = (rectw.left + rectw.right) / 2;
@@ -1228,6 +1226,7 @@ static char *win32_modenames[] =
     "320x200 stretched x3 (windows)",
     "320x200 stretched x2 (internal)",
     "640x400",
+    NULL
   };
 
 viddriver_t win32_driver =
