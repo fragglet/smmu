@@ -300,11 +300,11 @@ void D_Display (void)
   MN_Drawer();         // menu is drawn even on top of everything
   NetUpdate();         // send out any new accumulation
 
-  {
-    char tempstr[128];
-    sprintf(tempstr, FC_GRAY "%i", gametic);
-    V_WriteText(tempstr, SCREENWIDTH - V_StringWidth(tempstr), 0);
-  }
+  //  {
+  //    char tempstr[128];
+  //    sprintf(tempstr, FC_GRAY "%i", gametic);
+  //    V_WriteText(tempstr, SCREENWIDTH - V_StringWidth(tempstr), 0);  
+  //  }
   
   // sf: now system independent
   if(v_ticker)
@@ -1814,7 +1814,10 @@ boolean D_AddNewFile(char *s)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-22 18:28:58  fraggle
+// Revision 1.4  2001-01-13 17:35:14  fraggle
+// remove some leftover debug code
+//
+// Revision 1.3  2000/06/22 18:28:58  fraggle
 // polish various things
 //  more useful message when no iwad found
 //  fix title screen
