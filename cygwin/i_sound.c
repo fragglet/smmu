@@ -1122,9 +1122,14 @@ void I_Sound_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2001-01-13 02:28:25  fraggle
+// Revision 1.3  2001-01-13 02:31:16  fraggle
+// fix logs
+//
+// Revision 1.2  2001/01/13 02:28:25  fraggle
 // changed library #defines to standard HAVE_LIBxyz
 // for autoconfing
+//
+// .... oh and added directsound support :)
 //
 // Revision 1.1  2000/04/09 18:03:40  proff_fs
 // Initial revision
