@@ -17,7 +17,7 @@
 //
 //--------------------------------------------------------------------------
 
-//#include "../config.h"
+#include "../config.h"
 	
 //================
 //
@@ -40,9 +40,9 @@
 
 .text
 .align 8
-.globl R_DrawSpan
+.globl _R_DrawSpan
 
-R_DrawSpan:
+_R_DrawSpan:
  pushl %ebp
  pushl %esi
  pushl %edi
@@ -240,7 +240,10 @@ hdone:
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2001-01-13 16:33:47  fraggle
+// Revision 1.2  2001-01-13 17:05:35  fraggle
+// fix cygwin asm
+//
+// Revision 1.1  2001/01/13 16:33:47  fraggle
 // Add I386 asm
 //
 // Revision 1.2  2001/01/13 02:13:13  fraggle

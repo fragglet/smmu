@@ -17,7 +17,7 @@
 //
 //--------------------------------------------------------------------------
 
-#include "../config."
+#include "../config.h"
 
 //================
 //
@@ -39,8 +39,8 @@
 	
  .text
  .align 8
- .globl R_DrawColumn
-R_DrawColumn:
+ .globl _R_DrawColumn
+_R_DrawColumn:
  pushl %ebp
  pushl %esi
  pushl %edi
@@ -237,8 +237,8 @@ powerof2_hi:
 //================
 
  .align 8
- .globl R_DrawTLColumn
-R_DrawTLColumn:
+ .globl _R_DrawTLColumn
+_R_DrawTLColumn:
 
  pushl %ebp
  pushl %esi
@@ -487,7 +487,10 @@ powerof2_tl_hi:
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2001-01-13 16:33:47  fraggle
+// Revision 1.2  2001-01-13 17:05:35  fraggle
+// fix cygwin asm
+//
+// Revision 1.1  2001/01/13 16:33:47  fraggle
 // Add I386 asm
 //
 // Revision 1.2  2001/01/13 02:13:13  fraggle
