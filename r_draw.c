@@ -95,7 +95,7 @@ byte    *dc_source;      // first pixel in a column (possibly virtual)
 //  be used. It has also been used with Wolfenstein 3D.
 // 
 
-#ifndef USEASM     // killough 2/15/98
+#ifndef I386     // killough 2/15/98
 
 void R_DrawColumn (void) 
 { 
@@ -193,7 +193,7 @@ void R_DrawColumn (void)
 // opaque' decision is made outside this routine, not down where the
 // actual code differences are.
 
-#ifndef USEASM                       // killough 2/21/98: converted to x86 asm
+#ifndef I386                       // killough 2/21/98: converted to x86 asm
 
 void R_DrawTLColumn (void)                                           
 { 
@@ -519,7 +519,7 @@ fixed_t ds_ystep;
 // start of a 64*64 tile image 
 byte *ds_source;        
 
-#ifndef USEASM      // killough 2/15/98
+#ifndef I386      // killough 2/15/98
 
 void R_DrawSpan (void) 
 { 
@@ -814,8 +814,11 @@ void R_DrawViewBorder(void)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2001-01-13 02:13:19  fraggle
+// Change USEASM #define to I386
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
