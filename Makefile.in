@@ -136,7 +136,7 @@ CP=cp
 EXE=smmu
 
 # options common to all builds
-CFLAGS_COMMON=@CFLAGS@
+CFLAGS_COMMON=@CFLAGS@ @X_CFLAGS@
 LDFLAGS_COMMON=@LDFLAGS@
 
 # new features; comment out what you don't want at the moment
@@ -153,7 +153,7 @@ LDFLAGS_RELEASE=
 # -s
 
 # libraries to link in
-LIBS=@LIBS@
+LIBS=@LIBS@ @X_LIBS@
 
 # this selects flags based on debug and release tagets
 CFLAGS=$(CFLAGS_COMMON)  $(CFLAGS_$(MODE)) $(CFLAGS_NEWFEATURES)
@@ -171,7 +171,7 @@ $(EXE): $(OBJS) version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) version.o -o $@ $(LIBS)
 
 dedicated :
-        make -f dedserv.mak
+	make -f dedserv.mak
 
 endif
 

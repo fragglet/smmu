@@ -5,11 +5,37 @@ dnl check for cc
 
 AC_PROG_CC
 
-dnl check for libraries
+dnl libraries:
 
-AC_CHECK_LIB(X11, main)
-AC_CHECK_LIB(Xext, main)
-AC_CHECK_LIB(aa, main)
+AC_HAVE_LIBRARY(aa)
+
+dnl windows libraries:
+
+AC_HAVE_LIBRARY(gdi32)
+AC_HAVE_LIBRARY(ddraw)
+AC_HAVE_LIBRARY(dsound)
+
+dnl linux libraries
+
+AC_HAVE_LIBRARY(vga)
+
+dnl check for X
+dnl create X_CFLAGS and X_LIBS
+
+AC_PATH_X
+
+if test "$x_libraries" = ""; then
+
+else
+        X_CFLAGS=-I$x_includes
+        X_LIBS=-L$x_libraries
+fi
+
+AC_SUBST(X_CFLAGS)
+AC_SUBST(X_LIBS)
+
+AC_HAVE_LIBRARY(X11, , , $X_LIBS)
+AC_CHECK_LIB(Xext, XShmAttach, AC_DEFINE(USE_XSHM), , $X_LIBS)
 
 dnl work out system type
 
@@ -34,26 +60,18 @@ else
 	asmobjs=""
 fi
 
-AC_CYGWIN
-AC_SUBST(platform)
-AC_SUBST(platobjs)
-
 dnl check for cygwin
 dnl if this is cygwin, add the windows libraries
 dnl otherwise, assume linux
 
+AC_CYGWIN
+AC_SUBST(platform)
+AC_SUBST(platobjs)
+
 if test "$CYGWIN" = yes; then
-
-	AC_CHECK_LIB(gdi32, main)
-	AC_CHECK_LIB(ddraw, main)
-	AC_CHECK_LIB(dsound, main)
-
 	platform=cygwin
 	platobjs="v_win32.o"
 else
-
-	AC_CHECK_LIB(vga, main)
-
 	platform=linux
 	platobjs="v_svga.o"
 fi
