@@ -237,6 +237,8 @@ int keylookspeed = 5;
 int cooldemo = false;
 int cooldemo_tics;      // number of tics until changing view
 
+static char demoname[9];
+
 void G_CoolViewPoint();
 
 
@@ -1208,6 +1210,21 @@ static void G_DoSaveGame()
   savedescription[0] = 0;
 }
 
+// demo functions
+
+void G_DeferedPlayDemo(char *demo)
+{
+  strcpy(demoname, demo);
+  gameaction = ga_playdemo;
+}
+
+void G_DeferedTimeDemo(char *demo)
+{
+  strcpy(demoname, demo);
+  gameaction = ga_timedemo;
+}
+
+
 // sf: split into two functions for hubs
 
 void G_LoadSavedLevel(char *filename)
@@ -1399,6 +1416,14 @@ void G_Ticker(void)
 	  break;
 	case ga_loadhublevel:
 	  P_DoChangeHubLevel();
+	  break;
+	case ga_playdemo:
+	  CL_PlayDemo(demoname);
+	  gameaction = ga_nothing;
+	  break;
+	case ga_timedemo:
+	  CL_TimeDemo(demoname);
+	  gameaction = ga_nothing;
 	  break;
 	default:  // killough 9/29/98
 	  gameaction = ga_nothing;
@@ -2419,7 +2444,10 @@ void G_CoolViewPoint()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-22 10:01:54  fraggle
+// Revision 1.3  2001-01-18 01:35:52  fraggle
+// fix up demo code somewhat
+//
+// Revision 1.2  2000/05/22 10:01:54  fraggle
 // ctrl-d to disconnect from server
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

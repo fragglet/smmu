@@ -49,13 +49,13 @@ void G_DeathMatchSpawnPlayer(int playernum);
 void G_DeferedInitNewNum(skill_t skill, int episode, int map);
 void G_DeferedInitNew(skill_t skill, char *levelname);
 void G_DeferedPlayDemo(char *demo);
+void G_DeferedTimeDemo(char *name);
 void G_TimeDemo(char *name);
 void G_LoadGame(char *name, int slot, boolean is_command); // killough 5/15/98
 void G_ForcedLoadGame(void);           // killough 5/15/98: forced loadgames
 void G_SaveGame(int slot, char *description); // Called by M_Responder.
 void G_RecordDemo(char *name);              // Only called by startup code.
 void G_BeginRecording(void);
-void G_PlayDemo(char *name);
 void G_StopDemo();
 void G_ScrambleRand();
 void G_ExitLevel(void);
@@ -190,8 +190,11 @@ extern boolean hub_changelevel;
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2001-01-18 01:35:53  fraggle
+// fix up demo code somewhat
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-----------------------------------------------------------------------------

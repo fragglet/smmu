@@ -1610,7 +1610,7 @@ void D_DoomMain(void)
   else
     if ((p = M_CheckParm("-timedemo")) && ++p < myargc)
       {
-	G_TimeDemo(myargv[p]);
+	G_DeferedTimeDemo(myargv[p]);
       }
     else
       if ((p = M_CheckParm("-playdemo")) && ++p < myargc)
@@ -1814,7 +1814,10 @@ boolean D_AddNewFile(char *s)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2001-01-13 17:35:14  fraggle
+// Revision 1.5  2001-01-18 01:35:52  fraggle
+// fix up demo code somewhat
+//
+// Revision 1.4  2001/01/13 17:35:14  fraggle
 // remove some leftover debug code
 //
 // Revision 1.3  2000/06/22 18:28:58  fraggle

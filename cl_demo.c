@@ -74,7 +74,15 @@ extern boolean advancedemo;
 
 boolean G_CheckDemoStatus() {}
 
-void CL_StopDemo()
+//
+// CL_EndDemo
+//
+// This is called when we reach the end of the currently
+// playing demo. If advance is true, we call D_AdvanceDemo
+// to advance to the next demo in the list.
+//
+
+static void CL_EndDemo(boolean advance)
 {
   if(demorecording)
     {
@@ -95,6 +103,9 @@ void CL_StopDemo()
 	    MN_ShowFrameRate((gametics * TICRATE * 10) / realtics);
 	  else
 	    C_Printf("%i fps\n", (gametics * TICRATE) / realtics);
+
+	  C_Printf("%i %i %i\n", starttime, I_GetTime_RealTime(),
+		   gametics);
 	}
 
       Z_ChangeTag(demobuffer, PU_CACHE);
@@ -102,17 +113,26 @@ void CL_StopDemo()
       netgame = netdemo = false;       // killough 3/29/98
       deathmatch = false;
       demoplayback = false;
-      if (singledemo)
+      if (singledemo || !advance)
 	{
 	  demoplayback = false;
 	  C_SetConsole();
 	  return false;
 	}
+
+      // next demo      
+
       D_AdvanceDemo();
+
       return true;
     }
 
   return false;
+}
+
+void CL_StopDemo()
+{
+  CL_EndDemo(false);
 }
 
 void G_StopDemo()
@@ -158,7 +178,7 @@ void CL_ReadDemoCmd(ticcmd_t *ticcmd)
   if(*demo_p == DEMOMARKER)
     {
       // end of demo
-      CL_StopDemo();
+      CL_EndDemo(true);
     }
   else
     {
@@ -349,12 +369,19 @@ void CL_PlayDemo(char *demoname)
   
   for (i=0; i<MAXPLAYERS;i++)         // killough 4/24/98
     players[i].cheats = 0;
+}
 
-  if (timingdemo)
-    {
-      starttime = I_GetTime_RealTime();
-      startgametic = gametic;
-    }
+void CL_TimeDemo(char *name)
+{
+  starttime = I_GetTime_RealTime();
+  startgametic = gametic;
+
+  CL_PlayDemo(name);
+
+  timingdemo = true;
+  singledemo = true;
+  singletics = true;
+  timedemo_menuscreen = cmdtype == c_menu;
 }
 
 CONSOLE_COMMAND(playdemo, cf_notnet)
@@ -365,16 +392,8 @@ CONSOLE_COMMAND(playdemo, cf_notnet)
 
 CONSOLE_COMMAND(timedemo, cf_notnet)
 {
-  CL_PlayDemo(c_argv[0]);
-  singledemo = true;
-  singletics = true;
-  timingdemo = true;
-  timedemo_menuscreen = cmdtype == c_menu;
+  CL_TimeDemo(c_argv[0]);
 }
-
-void G_DeferedPlayDemo(char *name) {}
-void G_TimeDemo(char *name) {}
-
 
 void G_RecordDemo(char *name) {}
 
@@ -819,7 +838,10 @@ void G_StopDemo()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2001-01-13 00:33:55  fraggle
+// Revision 1.4  2001-01-18 01:35:52  fraggle
+// fix up demo code somewhat
+//
+// Revision 1.3  2001/01/13 00:33:55  fraggle
 // fix/change fps menu
 //
 // Revision 1.2  2000/05/10 13:11:37  fraggle
