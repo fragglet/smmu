@@ -397,8 +397,9 @@ int C_Responder(event_t* ev)
 
   // only care about valid characters
   // dont allow too many characters on one command line
+  // sf 19/6 V_IsPrint
   
-  if(isprint(ch) && strlen(inputtext) < INPUTLENGTH-3)
+  if(V_IsPrint(ch) && strlen(inputtext) < INPUTLENGTH-3)
     {
       sprintf(inputtext, "%s%c", inputtext, ch);
       
@@ -638,8 +639,11 @@ os=s0;s0=bd;WT(Z"my hair looks much too\n dark in this pic.\n"
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:04:44  fraggle
+// V_IsPrint function for portable isprint()
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------

@@ -644,7 +644,7 @@ boolean MN_Responder (event_t *ev)
       // only care about valid characters
       // dont allow too many characters on one command line
       
-      if(isprint(ch) && ch <= 0x80 &&
+      if(V_IsPrint(ch) && ch <= 0x80 &&
 	 strlen(input_buffer) <=
 	 (var->type == vt_string ? var->max :
 	  var->type == vt_int ? 10 : 20))
@@ -1179,8 +1179,11 @@ void MN_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:04:44  fraggle
+// V_IsPrint function for portable isprint()
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------
