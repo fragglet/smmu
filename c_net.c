@@ -40,6 +40,8 @@
 #include "doomstat.h"
 #include "dstrings.h"
 
+#define CMD_END 0xff
+
 int incomingdest[MAXPLAYERS];
 char incomingmsg[MAXPLAYERS][256];
 int cmdsrc = 0;           // the source of a network console command
@@ -122,7 +124,7 @@ void C_SendCmd(int cmdnum, char *s,...)
       C_queueChatChar(*s);
       s++;
     }
-  C_queueChatChar(0xff);     // end
+  C_queueChatChar(CMD_END);     // end
 }
 
 void C_NetInit()
@@ -153,7 +155,7 @@ void C_NetTicker()
       {
 	if(!playeringame[i]) continue;
 	for(n=0; n<CONS_BYTES; n++)
-	  C_DealWithChar(players[i].cmd.consdata[n],i);
+	  C_DealWithChar(players[i].cmd.consdata[n], i);
       }
   
   // run buffered commands essential for netgame sync
@@ -167,7 +169,7 @@ void C_DealWithChar(byte c, int source)
 
   //  C_Printf("got '%c' (%i)", isprint(c) ? c : 'p', c);
   
-  if(c == 0xff)        // 0xff == end of cmd
+  if(c == CMD_END)        // end of command
     {
       int netcmdnum = incomingmsg[source][0];
       
@@ -270,8 +272,11 @@ void C_UpdateVar(command_t *command)
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-06 14:06:11  fraggle
+// fix ticdup
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------
