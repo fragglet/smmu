@@ -243,10 +243,13 @@ void P_Ticker (void)
 
                // not if this is an intermission screen
   if(gamestate==GS_LEVEL)
-      for (i=0; i<MAXPLAYERS; i++)
-        if (playeringame[i])
-          P_PlayerThink(&players[i]);
-
+    for (i=0; i<MAXPLAYERS; i++)
+      if (playeringame[i])
+	{
+	  players[i].predicted = NULL; // sf: nothing predicted yet
+	  P_PlayerThink(&players[i]);
+	}
+  
   reset_viewz = false;  // sf
 
   P_RunThinkers();
@@ -268,8 +271,11 @@ void P_Ticker (void)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

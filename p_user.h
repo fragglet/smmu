@@ -39,13 +39,24 @@ void P_DeathThink(player_t *player);
 void P_MovePlayer(player_t *player);
 void P_Thrust(player_t *player, angle_t angle, fixed_t move);
 
+// netgame movement prediction
+
+extern boolean predicted_tic;   // true if we are running predicted tic
+
+void P_StartPrediction(player_t *player);
+void P_RunPredictedTic(ticcmd_t *ticcmd);
+
+
 #endif // __P_USER__
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

@@ -43,6 +43,7 @@ rcsid[] = "$Id$";
 #include "p_inter.h"
 #include "g_game.h"
 #include "p_enemy.h"
+#include "p_user.h"
 #include "p_tick.h"
 #include "m_bbox.h"
 #include "t_script.h"
@@ -2611,8 +2612,11 @@ void A_RunScript(mobj_t *mo)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:40  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

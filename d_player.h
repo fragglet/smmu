@@ -88,6 +88,9 @@ typedef enum
 struct player_s
 {
   mobj_t*             mo;
+
+  player_t *          predicted;  // predicted future player state (netgame)
+  
   playerstate_t       playerstate;
   ticcmd_t            cmd;
 
@@ -233,8 +236,11 @@ typedef struct
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:40  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

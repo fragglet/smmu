@@ -40,6 +40,7 @@ rcsid[] = "$Id$";
 #include "p_maputl.h"
 #include "p_pspr.h"
 #include "p_tick.h"
+#include "p_user.h"
 #include "r_main.h"
 #include "r_segs.h"
 #include "r_things.h"
@@ -109,7 +110,8 @@ static void P_SetPsprite(player_t *player, int position, statenum_t stnum)
 
       // Call action routine.
       // Modified handling.
-      if (state->action)
+
+      if (!predicted_tic && state->action)
         {
           state->action(player, psp);
           if (!psp->state)
@@ -851,11 +853,11 @@ void A_BFGSpray(mobj_t *mo)
   int i;
 
   if(bfgtype == bfg_11k)
-  {
-        A_BFG11KHit(mo);
-        return;
-  }
-
+    {
+      A_BFG11KHit(mo);
+      return;
+    }
+  
   for (i=0 ; i<40 ; i++)  // offset angles from its attack angle
     {
       int j, damage;
@@ -934,44 +936,44 @@ void A_BFG11KHit(mobj_t *mo)
   // check the originator and hurt them if too close
 
   if( (origdist = R_PointToDist2(mo->target->x, mo->target->y, mo->x, mo->y) )
-                 < 96*FRACUNIT)
-  {
-                // decide on damage
-                        // damage decreases with distance
-        for (damage=j=0; j<48-(origdist/(FRACUNIT*2)); j++)
-             damage += (P_Random(pr_bfg)&7) + 1;
-
-          //  flash
-        P_SpawnMobj(mo->target->x, mo->target->y,
-                   mo->target->z + (mo->target->height>>2), MT_EXTRABFG);
-        
-        P_DamageMobj(mo->target, mo, mo->target, damage);
-  }
-
+      < 96*FRACUNIT)
+    {
+      // decide on damage
+      // damage decreases with distance
+      for (damage=j=0; j<48-(origdist/(FRACUNIT*2)); j++)
+	damage += (P_Random(pr_bfg)&7) + 1;
+      
+      //  flash
+      P_SpawnMobj(mo->target->x, mo->target->y,
+		  mo->target->z + (mo->target->height>>2), MT_EXTRABFG);
+      
+      P_DamageMobj(mo->target, mo, mo->target, damage);
+    }
+  
         // now check everyone else
 
   for (i=0 ; i<40 ; i++)  // offset angles from its attack angle
-  {
-        angle_t an = (ANG360/40)*i;
-
-              // mo->target is the originator (player) of the missile
-        
-        P_AimLineAttack(mo, an, 16*64*FRACUNIT,0);
-       
-        if(!linetarget) continue;
-        if(linetarget == mo->target)
-             continue;
-
-                // decide on damage
-        for (damage=j=0; j<20; j++)
-             damage += (P_Random(pr_bfg)&7) + 1;
-
-          // dumbass flash
-               P_SpawnMobj(linetarget->x, linetarget->y,
+    {
+      angle_t an = (ANG360/40)*i;
+      
+      // mo->target is the originator (player) of the missile
+      
+      P_AimLineAttack(mo, an, 16*64*FRACUNIT,0);
+      
+      if(!linetarget) continue;
+      if(linetarget == mo->target)
+	continue;
+      
+      // decide on damage
+      for (damage=j=0; j<20; j++)
+	damage += (P_Random(pr_bfg)&7) + 1;
+      
+      // dumbass flash
+      P_SpawnMobj(linetarget->x, linetarget->y,
                   linetarget->z + (linetarget->height>>2), MT_EXTRABFG);
-
-        P_DamageMobj(linetarget, mo->target, mo->target, damage);
-  }
+      
+      P_DamageMobj(linetarget, mo->target, mo->target, damage);
+    }
 }
 
 //
@@ -1026,8 +1028,11 @@ void P_MovePsprites(player_t *player)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

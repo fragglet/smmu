@@ -47,6 +47,7 @@
 #include "i_system.h"
 #include "m_random.h"
 #include "mn_engin.h"
+#include "p_user.h"
 #include "r_draw.h"
 #include "s_sound.h"
 
@@ -66,8 +67,10 @@ extern boolean advancedemo;
 
 void ResetNet();
 
-#define CONSISTANCY_BUFFER 16
+#define CONSISTANCY_BUFFER 32
 static byte consistancy[CONSISTANCY_BUFFER];
+
+int prediction_threshold = 5;      // max. number of tics to predict
 
 netnode_t server;               // the server's netnode_t for comms
 
@@ -1637,30 +1640,33 @@ static boolean RunGameTics()
   
   if(consoleplayer != key)       // key player does not adapt
     {
+      int keytic = nettics[key]; // + latency;
+      
+      doom_printf("lag: %i", maketic - keytic);
       // see if we are too slow
       
-      if(nettics[key] - maketic > 7)
+      if(keytic - maketic > 6)
 	{
 	  //	  C_Printf("too slow\n");
 	  skiptics = -1;
 	}
 
-      if(maketic - nettics[key] > 7)
+      if(keytic - nettics[key] > 6)
 	{
 	  //      C_Printf("too fast\n");
 	  skiptics = 1;
 	}
     }
 
-  if(maketic - gametic > 4)
-    skiptics = 1;
+  //  if(maketic - gametic > 8)
+  //    skiptics = 1;
 
   // set open socket if we havent received packets from server
   // for a while
 
   opensocket =
     netgame && !demoplayback &&
-    (maketic - gametic > 4) &&
+    (maketic - gametic > 20) &&
     (I_GetTime_RealTime() - lastpacket_time > 8);
   
   // find maximum number of tics we can run
@@ -1716,7 +1722,31 @@ static boolean RunGameTics()
 	}
     }
 
-  //  I_Error("TryRunTics");
+  // Movement prediction
+  // reduce laggy feel
+
+  if(gamestate == GS_LEVEL)
+    {
+      availabletics = maketic - gametic;
+
+      if(availabletics > prediction_threshold)
+	availabletics = prediction_threshold;
+      
+      doom_printf("tics predicted: %i\n", availabletics);
+      
+      if(availabletics)
+	{
+	  P_StartPrediction(&players[consoleplayer]);
+	  
+	  for(i=0; i<availabletics; i++)
+	    {
+	      P_RunPredictedTic
+	      (&backup_tics[consoleplayer][((gametic+i)/ticdup) & 255]);
+	    }
+	}
+      
+      //  I_Error("TryRunTics");
+    }
   
   return true;       // ran some tics
 }
@@ -1870,8 +1900,11 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:40  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------

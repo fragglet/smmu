@@ -37,8 +37,15 @@ rcsid[] = "$Id$";
 #include "g_game.h"
 #include "r_main.h"
 #include "p_map.h"
+#include "p_maputl.h"
 #include "p_spec.h"
 #include "p_user.h"
+
+//
+// Netgame prediction variables
+//
+
+boolean predicted_tic;             // true if we are running a predicted tic
 
 // Index of the special effects (INVUL inverse) map.
 
@@ -317,11 +324,11 @@ void P_PlayerThink (player_t* player)
   if (player->mo->reactiontime)
     player->mo->reactiontime--;
   else
-  {
-    P_MovePlayer (player);
-    if (cmd->updownangle)      // wait til teleport finishes to look around
-       player->updownangle += cmd->updownangle;
-  }
+    {
+      P_MovePlayer (player);
+      if (cmd->updownangle)      // wait til teleport finishes to look around
+	player->updownangle += cmd->updownangle;
+    }
 
         // looking up/down checks
   if(player->updownangle < -50) player->updownangle = -50;
@@ -415,8 +422,10 @@ void P_PlayerThink (player_t* player)
     player->usedown = false;
 
   // cycle psprites
-
-  P_MovePsprites (player);
+  // sf: dont try to predict psprites
+  
+  if(!predicted_tic)
+    P_MovePsprites (player);
 
   // Counters, time dependent power ups.
 
@@ -458,11 +467,79 @@ void P_PlayerThink (player_t* player)
   player->powers[pw_infrared] > 4*32 || player->powers[pw_infrared] & 8;
 }
 
+//============================================================================
+//
+// Player Movement Prediction
+//
+// In netgames, we can often get stuck waiting for the other player to send
+// their tics - this results in 'lag' where the buttons we press and
+// movements that we make do not occur until a few tics after we made them.
+// We use player movement prediction to move our viewpoint while we still
+// wait for the other players to send their movements.
+//
+//============================================================================
+
+// predicted player and player object -- copy of the actual ones
+
+static player_t *actual_player;
+static player_t predicted_player;
+static mobj_t predicted_mobj;
+
+void P_StartPrediction(player_t *player)
+{
+  actual_player = player;
+  
+  // copy the player and player->mo to
+  // predicted_player and predicted_mobj
+  // do not let predicted_mobj pick up objects (which could mess up sync)
+  
+  memcpy(&predicted_player, player, sizeof(*player));
+  memcpy(&predicted_mobj, player->mo, sizeof(*player->mo));
+  predicted_mobj.flags &= ~MF_PICKUP;
+
+  // link predicted_player and predicted_mobj
+
+  predicted_player.mo = &predicted_mobj;
+  predicted_mobj.player= &predicted_player;
+
+  player->predicted = &predicted_player;
+}
+
+void P_RunPredictedTic(ticcmd_t *ticcmd)
+{
+  // unhook the actual player object from the level
+  // hook predicted_mobj into level
+
+  P_UnsetThingPosition(actual_player->mo);
+  P_SetThingPosition(&predicted_mobj);
+  
+  // run ticcmd
+
+  predicted_tic = true;
+  
+  memcpy(&predicted_player.cmd, ticcmd, sizeof(*ticcmd));
+  predicted_player.cmd.buttons = 0;
+
+  P_PlayerThink (&predicted_player);
+  P_MobjThinker(&predicted_mobj);
+
+  predicted_tic = false;    // back to reality
+  
+  // unhook predicted_mobj and hook the actual player obj back in
+
+  P_UnsetThingPosition(&predicted_mobj);
+  P_SetThingPosition(actual_player->mo);
+}
+
+
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

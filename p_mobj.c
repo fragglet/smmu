@@ -44,6 +44,7 @@ rcsid[] = "$Id$";
 #include "g_game.h"
 #include "p_chase.h"
 #include "p_inter.h"
+#include "p_user.h"
 #include "wi_stuff.h"
 
 int gravity=FRACUNIT;
@@ -83,15 +84,16 @@ boolean P_SetMobjState(mobj_t* mobj,statenum_t state)
       mobj->state = st;
       mobj->tics = st->tics;
 
-                // sf: skins
+      // sf: skins
       mobj->sprite = mobj->skin ? mobj->skin->sprite : st->sprite;
 
       mobj->frame = st->frame;
 
       // Modified handling.
       // Call action functions when the state is set
-
-      if (st->action)
+      // sf: not if running predicted tic
+      
+      if (!predicted_tic && st->action)
 	st->action(mobj);
 
       seenstate[state] = 1 + st->nextstate;   // killough 4/9/98
@@ -762,24 +764,24 @@ void P_RemoveMobj (mobj_t *mobj)
 		|| mobj->type==MT_BARREL)
     {
       if((mobj->type == MT_INV || mobj->type == MT_INS) && !respawnsuper)
-      { // sf: respawning super-powerups
-      }
+	{ // sf: respawning super-powerups
+	}
       else
-      {
-	if(mobj->type==MT_BARREL && deathmatch!=3)
-	{       // deathmatch 3: barrels respawn
-	}
-	else
 	{
-	  itemrespawnque[iquehead] = mobj->spawnpoint;
-	  itemrespawntime[iquehead++] = leveltime;
-	  if ((iquehead &= ITEMQUESIZE-1) == iquetail)
-			   // lose one off the end?
-	     iquetail = (iquetail+1)&(ITEMQUESIZE-1);
+	  if(mobj->type==MT_BARREL && deathmatch!=3)
+	    {       // deathmatch 3: barrels respawn
+	    }
+	  else
+	    {
+	      itemrespawnque[iquehead] = mobj->spawnpoint;
+	      itemrespawntime[iquehead++] = leveltime;
+	      if ((iquehead &= ITEMQUESIZE-1) == iquetail)
+		// lose one off the end?
+		iquetail = (iquetail+1)&(ITEMQUESIZE-1);
+	    }
 	}
-      }
     }
-
+  
   // unlink from sector and block lists
 
   P_UnsetThingPosition (mobj);
@@ -1373,8 +1375,11 @@ mobj_t *P_SpawnPlayerMissile(mobj_t* source, mobjtype_t type)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

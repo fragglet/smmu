@@ -37,6 +37,7 @@ rcsid[] = "$Id$";
 #include "hu_stuff.h"
 #include "hu_frags.h"
 #include "am_map.h"
+#include "p_user.h"
 #include "r_main.h"
 #include "r_segs.h"
 #include "s_sound.h"
@@ -311,17 +312,17 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 
       // bonus items
     case SPR_BON1:
-
-        // sf: removed beta
+      
+      // sf: removed beta
       player->health++;               // can go over 100%
       if (player->health > (maxhealth * 2))
         player->health = (maxhealth * 2);
       player->mo->health = player->health;
       message = s_GOTHTHBONUS; // Ty 03/22/98 - externalized
       break;
-
+      
     case SPR_BON2:
-
+	
         // sf: remove beta
 
       player->armorpoints++;          // can go over 100%
@@ -413,8 +414,8 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
     case SPR_MEDI:
       if (!P_GiveBody (player, 25))
         return;
-                // sf: fix medineed (check for below 25, but medikit gives
-                  // 25, so always > 25)
+      // sf: fix medineed (check for below 25, but medikit gives
+      // 25, so always > 25)
       message = player->health < 50 ?     // was 25
         s_GOTMEDINEED : s_GOTMEDIKIT; // Ty 03/22/98 - externalized
 
@@ -538,24 +539,24 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
           player->backpack = true;
         }
       if(special->flags & MF_DROPPED)
-      {
-              int i;
-              for (i=0 ; i<NUMAMMO ; i++)
-              {
-                   player->ammo[i] +=special->extradata.backpack->ammo[i];
-                   if(player->ammo[i]>player->maxammo[i])
-                      player->ammo[i]=player->maxammo[i];
-              }
-              P_GiveWeapon(player,special->extradata.backpack->weapon,true);
-              Z_Free(special->extradata.backpack);
-              message = "got player backpack";
-      }
+	{
+	  int i;
+	  for (i=0 ; i<NUMAMMO ; i++)
+	    {
+	      player->ammo[i] +=special->extradata.backpack->ammo[i];
+	      if(player->ammo[i]>player->maxammo[i])
+		player->ammo[i]=player->maxammo[i];
+	    }
+	  P_GiveWeapon(player,special->extradata.backpack->weapon,true);
+	  Z_Free(special->extradata.backpack);
+	  message = "got player backpack";
+	}
       else
-      {
-              for (i=0 ; i<NUMAMMO ; i++)
-                P_GiveAmmo (player, i, 1);
-              message = s_GOTBACKPACK; // Ty 03/22/98 - externalized
-      }
+	{
+	  for (i=0 ; i<NUMAMMO ; i++)
+	    P_GiveAmmo (player, i, 1);
+	  message = s_GOTBACKPACK; // Ty 03/22/98 - externalized
+	}
 
       break;
 
@@ -634,14 +635,15 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 // KillMobj
 //
 // killough 11/98: make static
-// sf 9/99: globaled removed for FraggleScript
+// sf 9/99: globaled for FraggleScript
 
 void P_KillMobj(mobj_t *source, mobj_t *target)
 {
   mobjtype_t item;
   mobj_t     *mo;
 
-  if(target->flags & MF_CORPSE) return; // already dead
+  if(target->flags & MF_CORPSE)
+    return; // already dead
 
   target->flags &= ~(MF_SHOOTABLE|MF_FLOAT|MF_SKULLFLY);
 
@@ -1039,8 +1041,11 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:40  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

@@ -685,11 +685,11 @@ void R_DrawPSprite (pspdef_t *psp)
     return;
  
   if(lefthanded)
-  {
-        int tmpx=x1;
-        x1=viewwidth-x2;
-        x2=viewwidth-tmpx;    // viewwidth-x1
-  }
+    {
+      int tmpx=x1;
+      x1=viewwidth-x2;
+      x2=viewwidth-tmpx;    // viewwidth-x1
+    }
 
   // store information in a vissprite
   vis = &avis;
@@ -766,8 +766,9 @@ void R_DrawPlayerSprites(void)
   sector_t tmpsec;
   int floorlightlevel, ceilinglightlevel;
 
-        // sf: psprite switch
-  if(!showpsprites || viewcamera) return;
+  // sf: psprite switch
+  if(!showpsprites || viewcamera)
+    return;
 
   R_SectorColormap(viewplayer->mo->subsector->sector);
 
@@ -788,9 +789,9 @@ void R_DrawPlayerSprites(void)
     spritelights = scalelight[lightnum];
 
   for(i=0;i<viewwidth;i++)
-  {
-    pscreenheightarray[i] = viewheight;
-  }
+    {
+      pscreenheightarray[i] = viewheight;
+    }
 
   // clip to screen bounds
   mfloorclip = pscreenheightarray;
@@ -890,7 +891,7 @@ void R_SortVisSprites (void)
 
 int R_Pspriteclip()
 {
-        return 0;
+  return 0;
 }
 
 //
@@ -1062,8 +1063,11 @@ void R_DrawMasked(void)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

@@ -37,6 +37,7 @@ rcsid[] = "$Id$";
 #include "p_map.h"
 #include "p_setup.h"
 #include "p_spec.h"
+#include "p_user.h"
 #include "s_sound.h"
 #include "sounds.h"
 #include "p_inter.h"
@@ -539,8 +540,9 @@ static boolean PIT_CheckThing(mobj_t *thing) // killough 3/26/98: make static
     }
 
   // check for special pickup
-
-  if (thing->flags & MF_SPECIAL)
+  // sf: dont do special pickup when running predicted tics
+  
+  if (!predicted_tic && thing->flags & MF_SPECIAL)
     {
       int solid = thing->flags & MF_SOLID;
       if (tmflags & MF_PICKUP)
@@ -793,6 +795,11 @@ boolean P_TryMove(mobj_t *thing, fixed_t x, fixed_t y, boolean dropoff)
 
   P_SetThingPosition(thing);
 
+  // sf: dont activate specials when running predicted tics
+  
+  if(predicted_tic)
+    return true; 
+  
   // if any special lines were hit, do the effect
   // killough 11/98: simplified
 
@@ -2095,8 +2102,11 @@ void P_CreateSecNodeList(mobj_t *thing,fixed_t x,fixed_t y)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-02 15:43:41  fraggle
+// client movement prediction
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
