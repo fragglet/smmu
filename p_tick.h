@@ -1,0 +1,73 @@
+// Emacs style mode select   -*- C++ -*-
+//-----------------------------------------------------------------------------
+//
+// $Id$
+//
+// Copyright (C) 1993-1996 by id Software, Inc.
+//
+// This source is available for distribution and/or modification
+// only under the terms of the DOOM Source Code License as
+// published by id Software. All rights reserved.
+//
+// The source is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
+// for more details.
+//
+//-----------------------------------------------------------------------------
+
+#ifndef __P_TICK__
+#define __P_TICK__
+
+#include "d_think.h"
+
+// Called by C_Ticker, can call G_PlayerExited.
+// Carries out all thinking of monsters and players.
+
+void P_Ticker(void);
+
+extern thinker_t thinkercap;  // Both the head and tail of the thinker list
+
+void P_InitThinkers(void);
+void P_AddThinker(thinker_t *thinker);
+void P_RemoveThinker(thinker_t *thinker);
+void P_RemoveThinkerDelayed(thinker_t *thinker);    // killough 4/25/98
+
+void P_UpdateThinker(thinker_t *thinker);   // killough 8/29/98
+
+void P_SetTarget(mobj_t **mo, mobj_t *target);   // killough 11/98
+
+// killough 8/29/98: threads of thinkers, for more efficient searches
+typedef enum {
+  th_misc,
+  th_friends,
+  th_enemies,
+  NUMTHCLASS
+} th_class;
+
+extern thinker_t thinkerclasscap[];
+
+#endif
+
+//----------------------------------------------------------------------------
+//
+// $Log$
+// Revision 1.1  2000-07-29 13:20:41  fraggle
+// Initial revision
+//
+// Revision 1.5  1998/05/15  00:36:22  killough
+// Remove unnecessary crash hack
+//
+// Revision 1.4  1998/05/13  22:58:01  killough
+// Restore Doom bug compatibility for demos
+//
+// Revision 1.3  1998/05/03  22:49:29  killough
+// Add external declarations, formerly in p_local.h
+//
+// Revision 1.2  1998/01/26  19:27:31  phares
+// First rev with no ^Ms
+//
+// Revision 1.1.1.1  1998/01/19  14:03:08  rand
+// Lee's Jan 19 sources
+//
+//----------------------------------------------------------------------------
