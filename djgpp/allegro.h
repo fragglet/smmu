@@ -1,4 +1,4 @@
-/*         ______   ___    ___ 
+/*         ______   ___    ___
  *        /\  _  \ /\_ \  /\_ \ 
  *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___ 
  *         \ \  __ \ \ \ \  \ \ \   /'__`\ /'_ `\/\`'__\/ __`\
@@ -20,8 +20,8 @@
  */
 
 
-#ifndef ALLEGRO_H
-#define ALLEGRO_H
+#ifndef DOOM_ALLEGRO_H
+#define DOOM_ALLEGRO_H
 
 #ifdef LINUX
 #error Linux version not finished. Want to help?
@@ -2711,5 +2711,3 @@ int gfx_mode_select_ex(int *card, int *w, int *h, int *color_depth);
 #endif
 
 #endif          /* ifndef ALLEGRO_H */
-
-

@@ -112,8 +112,8 @@ extern int usemouse;   // killough 10/98
 
 extern int usejoystick;
 extern int joystickpresent;
-extern int joy_x,joy_y;
-extern int joy_b1,joy_b2,joy_b3,joy_b4;
+//extern int joy_x,joy_y;
+//extern int joy_b1,joy_b2,joy_b3,joy_b4;
 
 //void poll_joystick(void);
 
@@ -749,7 +749,10 @@ viddriver_t alleg_driver =
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-06-20 21:09:47  fraggle
+// Revision 1.5  2000-07-29 22:31:59  fraggle
+// fix for allegro v3.12
+//
+// Revision 1.4  2000/06/20 21:09:47  fraggle
 // tweak gamma correction stuff
 //
 // Revision 1.3  2000/06/19 14:57:37  fraggle

@@ -20,8 +20,8 @@
  */
 
 
-#ifndef INTERNAL_H
-#define INTERNAL_H
+#ifndef DOOM_INTERNAL_H
+#define DOOM_INTERNAL_H
 
 #include "allegro.h"
 
