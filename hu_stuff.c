@@ -278,30 +278,36 @@ extern int num_visplanes;
 extern boolean out_of_sync;
 int show_vpo = 0;
 
+#define WARNING_X 20
+#define WARNING_Y 20
+
 static void HU_WarningsDrawer()
 {
-  int x = 20;
-
+  int x = WARNING_X;
+  
   // the number of visplanes drawn is less in boom.
   // i lower the threshold to 85
   
   if(show_vpo && num_visplanes > 85)
     {
-      V_DrawPatch(x, 10, 0, vpo);
+      V_DrawPatch(x, WARNING_Y, 0, vpo);
       x += vpo->width + GAP;
     }
  
   if(opensocket)
     {
-      V_DrawPatch(x, 20, 0, socket);
+      V_DrawPatch(x, WARNING_Y, 0, socket);
       x += socket->width + GAP;
+
+      V_WriteText("ctrl-d to disconnect from server",
+		  WARNING_X, WARNING_Y + socket->height+5);
     }
 
   // out of sync?
   
   if(out_of_sync)
     {
-      V_DrawPatch(x, 20, 0, sync);
+      V_DrawPatch(x, WARNING_Y, 0, sync);
       x += sync->width + GAP;
     }
 }
@@ -762,7 +768,10 @@ void HU_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-07 13:01:11  fraggle
+// Revision 1.3  2000-05-12 16:42:20  fraggle
+// ctrl-d to disconnect from server
+//
+// Revision 1.2  2000/05/07 13:01:11  fraggle
 // lightup crosshair prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
