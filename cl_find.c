@@ -298,20 +298,17 @@ void CL_Finger(netnode_t *node)
 
   if(data)
     {
-      doomos_t server_os;
+      char os_buffer[7];
       
       C_Printf("response:\n");
       C_Printf("server name: %s\n", data->info.server_name);
       C_Printf("players connected: %i\n", data->info.players);
 
-      server_os = data->info.os_type;
-
-      C_Printf("os: %s\n",
-	       server_os == os_dos ? "dos" :
-	       server_os == os_linux ? "linux" :
-	       server_os == os_windows ? "windows" :
-	       server_os == os_bsd ? "bsd" : "unknown");
-	       
+      strncpy(os_buffer, data->info.server_os, 6);
+      os_buffer[6] = '\0';
+      
+      C_Printf("os: %s\n", os_buffer);
+      
       if(data->info.accepting)
 	C_Printf("server is waiting for players\n"); 
     }
@@ -459,21 +456,19 @@ void Finger_ServersMenu()
   for(n=0; n<num_servers; n++)
     {
       char tempstr[128];
-      doomos_t server_os;
+      char os_buffer[7];
       
       finger_menu.menuitems[i].type = it_runcmd;
 
-      server_os = servers[n].info.os_type;
+      strncpy(os_buffer, servers[n].info.server_os, 6);
+      os_buffer[6] = '\0';
       
       // description
       
       sprintf(tempstr, "%s (%i/%s)",
 	      servers[n].info.server_name,
 	      servers[n].info.players,
-	      server_os == os_dos ? "D" :
-	      server_os == os_linux ? "L" :
-	      server_os == os_windows ? "W" :
-	      server_os == os_bsd ? "B" : "?");
+	      os_buffer);
       
       finger_menu.menuitems[i].description = Z_Strdup(tempstr, PU_STATIC, 0);
 
@@ -1097,7 +1092,10 @@ void Finger_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-06-22 18:24:59  fraggle
+// Revision 1.6  2000-08-16 13:29:14  fraggle
+// more generalised os detection
+//
+// Revision 1.5  2000/06/22 18:24:59  fraggle
 // os_t -> doomos_t for peaceful coexistence with allegro
 //
 // Revision 1.4  2000/06/20 21:08:35  fraggle

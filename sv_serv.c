@@ -952,8 +952,8 @@ static void SV_FingerRequest()
   
   fp->players = server_numnodes;
   fp->accepting = waiting_players;
-  fp->os_type = doomos_type;
-  
+  strncpy(fp->server_os, version_os, 6);
+
   // etc.
 
   // send packet to node
@@ -1793,7 +1793,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.14  2000-06-22 18:25:44  fraggle
+// Revision 1.15  2000-08-16 13:29:14  fraggle
+// more generalised os detection
+//
+// Revision 1.14  2000/06/22 18:25:44  fraggle
 // os_t -> doomos_t to peacefully co-exist with allegro
 //
 // Revision 1.13  2000/06/20 21:08:35  fraggle

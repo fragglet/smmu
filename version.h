@@ -34,23 +34,17 @@ extern int VERSION;     // sf: made version an int
 extern const char version_date[];
 extern const char version_name[];
 
-typedef enum
-{
-  os_dos,
-  os_linux,
-  os_windows,
-  os_bsd,
-  os_unknown,  
-} doomos_t;
-
-extern doomos_t doomos_type;
+extern const char version_os[];
 
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-22 18:24:59  fraggle
+// Revision 1.4  2000-08-16 13:29:14  fraggle
+// more generalised os detection
+//
+// Revision 1.3  2000/06/22 18:24:59  fraggle
 // os_t -> doomos_t for peaceful coexistence with allegro
 //
 // Revision 1.2  2000/06/20 21:08:35  fraggle
