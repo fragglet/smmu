@@ -71,7 +71,7 @@ void ResetNet();
 #define CONSISTANCY_BUFFER 32
 static byte consistancy[CONSISTANCY_BUFFER];
 
-int prediction_threshold = 5;      // max. number of tics to predict
+int prediction_threshold = 16;    // max. number of tics to predict 16 = full
 
 netnode_t server;               // the server's netnode_t for comms
 
@@ -1941,7 +1941,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.8  2000-05-07 13:11:21  fraggle
+// Revision 1.9  2000-05-07 13:40:31  fraggle
+// default to full prediction
+//
+// Revision 1.8  2000/05/07 13:11:21  fraggle
 // improve multiplayer chatroom interface
 //
 // Revision 1.7  2000/05/06 14:39:10  fraggle
