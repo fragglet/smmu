@@ -109,6 +109,8 @@ void ExtractFileBase(const char *, char *);       // killough
 unsigned W_LumpNameHash(const char *s);           // killough 1/31/98
 void W_InitLumpHash(void);
 
+void W_Signature();
+
 void V_BeginRead(void), V_EndRead(void); // killough 10/98
 
 // Function to write all predefined lumps to a PWAD if requested
@@ -120,8 +122,11 @@ extern int iwadhandle;
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-03 16:47:23  fraggle
+// add W_Signature
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
