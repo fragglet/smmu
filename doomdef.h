@@ -36,6 +36,8 @@
 #define __inline__
 #endif
 
+#include "config.h"
+
 // This must come first, since it redefines malloc(), free(), etc. -- killough:
 
 #ifndef DEDICATED /* do not use zone mem in dedicated server */
@@ -343,8 +345,11 @@ typedef enum {
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2001-01-13 14:51:22  fraggle
+// include config.h
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------
