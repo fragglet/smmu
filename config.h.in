@@ -1,0 +1,26 @@
+// defines
+
+#undef I386ASM
+
+// Windows DirectX support
+// We support compiling using basic GDI or
+// without sound.  Cygwin is used for windows
+// compiling but DirectX is not yet widely 
+// supported by it.
+
+#undef HAVE_LIBDSOUND
+#undef HAVE_LIBDDRAW
+
+// X Libraries installed
+
+#undef HAVE_LIBX
+
+// AAlib Ascii Art Library
+
+#undef HAVE_LIBAA
+
+// svgalib
+
+#undef HAVE_LIBVGA
+
+#endif
