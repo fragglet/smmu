@@ -224,7 +224,7 @@ static void SV_CheckResend()
 	    {
 	      // resend packet
 
-	      //	      C_Printf("resend packet %i to node %i\n", p, n);
+	      //  C_Printf("resend packet %i to node %i\n", p, n);
 	      SendPacket(&ni->netnode, &ni->backup_packets[p]);
 	      ni->backup_sendtime[p] = I_GetTime_RealTime();
 	    }
@@ -294,9 +294,10 @@ static boolean SV_CorrectPacket(int packet_num)
       netpacket_t reply;
       
       reply.type = pt_ack;
-      reply.data.ackpacket.packet = (ni->packet_expected - 1) % BACKUP_PACKETS;
+      reply.data.u.ackpacket.packet =
+	(ni->packet_expected - 1) % BACKUP_PACKETS;
 
-      //  C_Printf("sv: send ack to %i\n", reply.data.ackpacket.packet);
+      //  C_Printf("sv: send ack to %i\n", reply.data.u.ackpacket.packet);
       
       SendPacket(&ni->netnode, &reply);
     }
@@ -314,11 +315,19 @@ static boolean SV_CorrectPacket(int packet_num)
 
 static void SV_ReliableSend(nodeinfo_t *ni, netpacket_t *packet)
 {
+  netpacket_t sendpacket;
+
+  // flag as reliable packet
+  sendpacket.type = packet->type | pt_reliable;
+
+  // copy data into sendpacket
+  sendpacket.data.r.data = packet->data.u;
+  
   // put packet number into packet
-  packet->data.packet_num = ni->packet_sent;
+  sendpacket.data.r.packet_num = ni->packet_sent;
 
   // save packet data in nodeinfo_t
-  ni->backup_packets[ni->packet_sent] = *packet;
+  ni->backup_packets[ni->packet_sent] = sendpacket;
 
   // save send time for timeout
   ni->backup_sendtime[ni->packet_sent] = I_GetTime_RealTime();
@@ -326,7 +335,7 @@ static void SV_ReliableSend(nodeinfo_t *ni, netpacket_t *packet)
   ni->packet_sent = (ni->packet_sent + 1) % BACKUP_PACKETS;
 
   // send to client
-  SendPacket(&ni->netnode, packet);
+  SendPacket(&ni->netnode, &sendpacket);
 }
 
 //==========================================================================
@@ -417,7 +426,7 @@ void SV_SendSpeedupPackets()
 	      if(skiptics)
 		{
 		  packet.type = pt_speedup;
-		  packet.data.speedup.skiptics = skiptics;
+		  packet.data.u.speedup.skiptics = skiptics;
 		  
 		  SV_ReliableSend(ni, &packet);
 		}
@@ -447,7 +456,7 @@ void SV_SendSpeedupPackets()
 	      if(skiptics)
 		{
 		  packet.type = pt_speedup;
-		  packet.data.speedup.skiptics = skiptics;
+		  packet.data.u.speedup.skiptics = skiptics;
 		  
 		  SV_ReliableSend(ni, &packet);
 		}
@@ -669,7 +678,7 @@ static void SV_CheckResendTics()
 	  // build resend request packet and send to player
       
 	  netpacket_t packet;
-	  clticresend_t *tr = &packet.data.clticresend;
+	  clticresend_t *tr = &packet.data.u.clticresend;
 
 	  // request all tics following the latest tic we have
 	  
@@ -722,7 +731,7 @@ static void SV_SendChatMsg(char *s, ...)
       // build new packet
 
       packet.type = pt_chat;
-      strcpy(packet.data.messagepacket.message, buffer);
+      strcpy(packet.data.u.messagepacket.message, buffer);
 
       // reliable send
 
@@ -754,7 +763,7 @@ static void SV_SendPrivMsg(int node, char *s, ...)
   // build new packet
   
   packet.type = pt_chat;
-  strcpy(packet.data.messagepacket.message, buffer);
+  strcpy(packet.data.u.messagepacket.message, buffer);
 
   // reliable send
 
@@ -818,11 +827,11 @@ static void SV_ChatMsg(msgpacket_t *msg)
 {
   int node;
   
-  if(!SV_CorrectPacket(msg->packet_num))
-    return;
-
   node = SV_ServerNode();
 
+  if(node < 0)
+    return;
+  
   // action
   
   if(!strncasecmp(msg->message, "/me", 3))
@@ -925,7 +934,7 @@ static void SV_Ping()
 static void SV_FingerRequest()
 {
   netpacket_t packet;
-  fingerpacket_t *fp = &packet.data.fingerpacket;
+  fingerpacket_t *fp = &packet.data.u.fingerpacket;
   int i;
 
   //  C_Printf("finger request from %s:%i\n", source.netmodule->name, source.node);
@@ -1010,7 +1019,7 @@ static void SV_NodeQuit(quitpacket_t *qp)
 	  // build packet
 	  
 	  packet.type = pt_quit;
-	  packet.data.quitpacket = *qp;
+	  packet.data.u.quitpacket = *qp;
 	  
 	  // send packet
 	  SendPacket(&ni->netnode, &packet);
@@ -1121,11 +1130,6 @@ static void SV_StartGameSignal(startgame_t *sg)
   int ticdup;
   long rndseed = time(NULL);
 
-  // check received packet is correct
-  
-  if(!SV_CorrectPacket(sg->packet_num))
-    return;  
-
   // if correctpacket returned true then it must be from a connected
   // node. now we make sure this is coming from the controller
 
@@ -1137,10 +1141,10 @@ static void SV_StartGameSignal(startgame_t *sg)
   // get ticdup from packet
 
   ticdup = sg->ticdup;
-  
+
   // send start game signal to client nodes
   
-  sg = &packet.data.startgame;
+  sg = &packet.data.u.startgame;
 
   //  C_Printf("start game:%i\n", waiting_players);
   
@@ -1169,7 +1173,7 @@ static void SV_StartGameSignal(startgame_t *sg)
 	  server_players[ni->player].resend = false;
 	}
     }
-  
+
   // send start game signals to clients
   
   for(i=0; i<server_numnodes; i++)
@@ -1198,7 +1202,7 @@ static void SV_StartGameSignal(startgame_t *sg)
     }
 
   // stop accepting joins now
-  waiting_players = false;      
+  waiting_players = false;
 }
 
 //-------------------------------------------------------------------------
@@ -1218,7 +1222,7 @@ static void SV_SendWaitInfo()
   // build packet
   
   packet.type = pt_waitinfo;
-  wi = &packet.data.waitinfo;
+  wi = &packet.data.u.waitinfo;
 
   wi->nodes = 0;
 
@@ -1268,7 +1272,7 @@ static void SV_DenyJoin(char *reason)
   
   // send back a deny packet
   packet.type = pt_deny;
-  strcpy(packet.data.denypacket.reason, reason);
+  strcpy(packet.data.u.denypacket.reason, reason);
   
   // send
   
@@ -1314,7 +1318,7 @@ static void SV_AcceptJoin(joinpacket_t *jp)
   packet.type = pt_accept;
 
   // include server name
-  strcpy(packet.data.acceptpacket.server_name, server_name);
+  strcpy(packet.data.u.acceptpacket.server_name, server_name);
 
   // must be reliable
 
@@ -1352,7 +1356,7 @@ static void SV_JoinRequest(joinpacket_t *jp)
       return;
     }
 
-  if(server->nodes >= MAXNODES)
+  if(server_numnodes >= MAXNODES)
     {
       SV_DenyJoin("server is full");
       return;
@@ -1369,11 +1373,11 @@ static void SV_JoinRequest(joinpacket_t *jp)
 
   if(server_numnodes > 0)
     {
-      if(wad_signature != wadsig)
-	{
-	  SV_DenyJoin("wrong wads loaded");
-	  return;
-	}
+      //      if(wad_signature != wadsig)
+      //	{
+      //	  SV_DenyJoin("wrong wads loaded");
+      //	  return;
+      //	}
     }
   else
     wad_signature = wadsig;
@@ -1424,53 +1428,72 @@ static void SV_JoinRequest(joinpacket_t *jp)
 
 static void SV_NetPacket(netpacket_t *packet)
 {
+  int type = packet->type;
+  union packet_data *data;
+
   //  C_Printf("packet from %s:%i\n",
   //    	   source.netmodule==&loopback_server?"loopback":"other",
   //    	   source.node);
 
-  switch(packet->type)
+  // reliable packet - need to ack packet
+  
+  if(type & pt_reliable)
+    {
+      type &= ~pt_reliable;
+      data = &packet->data.r.data;
+
+      // check packet is in the correct order
+      // send ack reply to client
+
+      if(!SV_CorrectPacket(packet->data.r.packet_num))
+	return;
+    }
+  else
+    data = &packet->data.u;
+  
+  switch(type)
     {
       case pt_gametics:
-	SV_GamePacket(&packet->data.gamepacket);
+	SV_GamePacket(&data->gamepacket);
 	break;
 
       case pt_compressed:                // compressed gametics
 	SV_GamePacket
-	  (DecompressPacket(&packet->data.compressed));
+	  (DecompressPacket(&data->compressed));
 	break;
 	
       case pt_console:
 	//	SV_ConsolePacket
 	// forward console packet to all other nodes
 	break;
-
-    case pt_chat:
-      SV_ChatMsg(&packet->data.messagepacket);
-      break;
+	
+      case pt_chat:
+	SV_ChatMsg(&data->messagepacket);
+	break;
 	
       case pt_fingerrequest:
 	// fingering server: send response
 	SV_FingerRequest();
 	break;
-
+	
       case pt_join:
-	SV_JoinRequest(&packet->data.joinpacket);
+	SV_JoinRequest(&data->joinpacket);
 	break;
 
       case pt_ack:
-	SV_AckPacket(&packet->data.ackpacket);
+	SV_AckPacket(&data->ackpacket);
 	break;
 
       case pt_startgame:
-	SV_StartGameSignal(&packet->data.startgame);
+	SV_StartGameSignal(&data->startgame);
 	break;
 
       case pt_quit:         // remote node disconnecting
-	SV_NodeQuit(&packet->data.quitpacket);
+	SV_NodeQuit(&data->quitpacket);
 	break;
 
       case pt_svticresend:
-	SV_TicResendRequest(&packet->data.svticresend);
+	SV_TicResendRequest(&data->svticresend);
 	break;
 
       case pt_ping:
@@ -1769,7 +1792,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.10  2000-05-24 13:36:05  fraggle
+// Revision 1.11  2000-06-04 17:19:02  fraggle
+// easier reliable-packet send interface
+//
+// Revision 1.10  2000/05/24 13:36:05  fraggle
 // secure up server a bit
 //
 // Revision 1.9  2000/05/22 09:59:04  fraggle

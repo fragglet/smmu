@@ -87,8 +87,8 @@ int main(int argc, char **argv)
 
   allegro_init();
   Z_Init();                  // 1/18/98 killough: start up memory stuff first
-    atexit(I_Quit);
-    signal(SIGSEGV, handler);
+  atexit(I_Quit);
+  signal(SIGSEGV, handler);
   signal(SIGTERM, handler);
   signal(SIGILL,  handler);
   signal(SIGFPE,  handler);
@@ -111,8 +111,11 @@ int main(int argc, char **argv)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:12  fraggle
-// Initial revision
+// Revision 1.2  2000-06-04 17:19:22  fraggle
+// easier reliable-packet send interface
+//
+// Revision 1.1.1.1  2000/04/30 19:12:12  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

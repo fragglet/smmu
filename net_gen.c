@@ -68,7 +68,7 @@ int compressed_length = 0;
 void SendCompressedPacket(netnode_t *netnode, gamepacket_t *gp)
 {
   netpacket_t packet;
-  compressedpacket_t *cp = &packet.data.compressed;
+  compressedpacket_t *cp = &packet.data.u.compressed;
   int i, n;
   byte *datapos;
   
@@ -230,16 +230,32 @@ gamepacket_t *DecompressPacket(compressedpacket_t *cp)
 void SendPacket(netnode_t *node, netpacket_t *packet)
 {
   int packet_len = HEADERLEN;       // always send header at least
+  int packet_type;
+  union packet_data *data;
+  
+  if(packet->type & pt_reliable)
+    {
+      // extra reliability-check byte
+      packet_len++;
+      packet_type = packet->type & ~pt_reliable;
 
+      data = &packet->data.r.data;
+    }
+  else
+    {
+      packet_type = packet->type;
+      data = &packet->data.u;
+    }
+  
   // add extra bytes to packet_len depending on packet type
   
-  switch(packet->type)
+  switch(packet_type)
     {
       // game packets
     case pt_gametics:               // game data
       packet_len +=
 	GAMEHEADERLEN +
-	packet->data.gamepacket.num_tics * sizeof(tic_t);
+	data->gamepacket.num_tics * sizeof(tic_t);
       break;
 
       // speedup packet
@@ -304,6 +320,8 @@ void SendPacket(netnode_t *node, netpacket_t *packet)
       break;
     }
 
+  packet_len++;       // send one byte more or we miss the last one - why???
+  
 //    if(M_Random() < 96)
 //      {
 //        C_Printf("skip packet\n");
@@ -343,12 +361,14 @@ void SendGamePacket(netnode_t *node, gamepacket_t *gp)
 
 #else
   
-  netpacket_t packet;
-
-  packet.type = pt_gametics;
-  packet.data.gamepacket = *gp;
-  
-  SendPacket(node, &packet);
+  {
+    netpacket_t packet;
+    
+    packet.type = pt_gametics;
+    packet.data.u.gamepacket = *gp;
+    
+    SendPacket(node, &packet);
+  }
 
 #endif
 }
@@ -527,7 +547,10 @@ void net_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-03 16:21:23  fraggle
+// Revision 1.3  2000-06-04 17:19:02  fraggle
+// easier reliable-packet send interface
+//
+// Revision 1.2  2000/05/03 16:21:23  fraggle
 // client speedup code
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

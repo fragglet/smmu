@@ -216,9 +216,9 @@ static boolean CL_CorrectPacket(int packet_num)
       netpacket_t reply;
 
       reply.type = pt_ack;
-      reply.data.ackpacket.packet = (packet_expected - 1) % BACKUP_PACKETS;
+      reply.data.u.ackpacket.packet = (packet_expected - 1) % BACKUP_PACKETS;
 
-      // C_Printf("cl: send ack to %i\n", reply.data.ackpacket.packet);
+      // C_Printf("cl: send ack to %i\n", reply.data.u.ackpacket.packet);
       
       SendPacket(&server, &reply);
     }
@@ -236,9 +236,17 @@ static boolean CL_CorrectPacket(int packet_num)
 
 static void CL_ReliableSend(netpacket_t *packet)
 {
+  netpacket_t sendpacket;
+  
+  // flag as reliable send - need ack reply
+  sendpacket.type = packet->type | pt_reliable;
+
+  // transfer packet data into reliable store
+  sendpacket.data.r.data = packet->data.u;
+  
   // save packet data in backup_packets
-  packet->data.packet_num = packet_sent;
-  backup_packets[packet_sent] = *packet;
+  sendpacket.data.r.packet_num = packet_sent;
+  backup_packets[packet_sent] = sendpacket;
 
   // save send time
   backup_sendtime[packet_sent] = I_GetTime_RealTime();
@@ -246,7 +254,7 @@ static void CL_ReliableSend(netpacket_t *packet)
   packet_sent = (packet_sent + 1) % BACKUP_PACKETS;
 
   // send to server
-  SendPacket(&server, packet);
+  SendPacket(&server, &sendpacket);
 }
 
 //=========================================================================
@@ -269,7 +277,7 @@ void CL_Disconnect(char *reason)
   if(netgame && !demoplayback)
     {  
       netpacket_t packet;
-      quitpacket_t *qp = &packet.data.quitpacket;
+      quitpacket_t *qp = &packet.data.u.quitpacket;
       int i;
 
       packet.type = pt_quit;
@@ -367,15 +375,15 @@ static void CL_SendJoin(netnode_t *netnode)
     usermsg("trying...");
 
   packet.type = pt_join;
-  packet.data.joinpacket.drone = 0;          // not a drone
-  packet.data.joinpacket.version = VERSION;
-  strcpy(packet.data.joinpacket.name, default_name);
+  packet.data.u.joinpacket.drone = 0;          // not a drone
+  packet.data.u.joinpacket.version = VERSION;
+  strcpy(packet.data.u.joinpacket.name, default_name);
 
   wadsig = W_Signature();
-  packet.data.joinpacket.wadsig[0] = wadsig & 255;
-  packet.data.joinpacket.wadsig[1] = (wadsig >> 8) & 255;
-  packet.data.joinpacket.wadsig[2] = (wadsig >> 16) & 255;
-  packet.data.joinpacket.wadsig[3] = (wadsig >> 24) & 255;
+  packet.data.u.joinpacket.wadsig[0] = wadsig & 255;
+  packet.data.u.joinpacket.wadsig[1] = (wadsig >> 8) & 255;
+  packet.data.u.joinpacket.wadsig[2] = (wadsig >> 16) & 255;
+  packet.data.u.joinpacket.wadsig[3] = (wadsig >> 24) & 255;
   
   SendPacket(netnode, &packet);
 }
@@ -387,8 +395,8 @@ static void CL_SendStartGame()
   netpacket_t packet;
   
   packet.type = pt_startgame;
-  packet.data.startgame.ticdup = pending_ticdup; // use new ticdup
-  
+  packet.data.u.startgame.ticdup = pending_ticdup; // use new ticdup
+
   // reliable send
   
   CL_ReliableSend(&packet);
@@ -414,7 +422,7 @@ static void CL_ChatPrint(char *s)
 static void CL_SendChatMsg(char *s)
 {
   netpacket_t packet;
-  msgpacket_t *msg = &packet.data.messagepacket;
+  msgpacket_t *msg = &packet.data.u.messagepacket;
 
   packet.type = pt_chat;
 
@@ -475,11 +483,14 @@ void CL_Connect(netnode_t *netnode)
       
       while(I_GetTime_RealTime() < retrytime)
 	{
+	  int type;
+	  union packet_data *data;
+
 	  SV_Update();
 
 	  // read new packets
 	  packet = netnode->netmodule->GetPacket(&source_node);
-
+	  
 	  // nothing received yet?
 	  if(!packet)
 	    continue;
@@ -491,27 +502,41 @@ void CL_Connect(netnode_t *netnode)
 	      continue;
 	    }
 
-	  if(packet->type == pt_accept)
+	  // got packet
+
+	  if(packet->type & pt_reliable)
+	    {
+	      type = packet->type & ~pt_reliable;
+	      data = &packet->data.r.data;
+
+	      // send ack to server
+	      if(!CL_CorrectPacket(packet->data.r.packet_num))
+		continue;	      
+	    }
+	  else
+	    {
+	      type = packet->type;
+	      data = &packet->data.u;
+	    }
+	  
+	  if(type == pt_accept)
 	    { 
 	      usermsg("connection accepted!");
 
-	      strcpy(server_name, packet->data.acceptpacket.server_name);
+	      strcpy(server_name, data->acceptpacket.server_name);
 	      usermsg("\n%s\n", server_name);
-	      //	      controller = packet->data.acceptpacket.controller != 0;
+	      //      controller = data->acceptpacket.controller != 0;
 	      got_connection = true;
-
-	      // send reply to server (ack packet)
-	      CL_CorrectPacket(packet->data.acceptpacket.packet_num);
 	      
 	      break;
 	    }
 
-	  if(packet->type == pt_deny)
+	  if(type == pt_deny)
 	    {
 	      C_Printf("connection denied\n");
-	      C_Puts(packet->data.denypacket.reason);
+	      C_Puts(data->denypacket.reason);
 	      MN_ErrorMsg("connection denied:\n%s",
-			  packet->data.denypacket.reason);
+			  data->denypacket.reason);
 	      netnode->netmodule->Shutdown();
 	      return;
 	    }
@@ -666,7 +691,7 @@ void CL_WaitDrawer()
   y += V_StringHeight(SEPERATOR) + 4;
 
   basey = y;
-
+  
   // if we do not have waitinfo yet, display a waiting box
 
   if(!got_waitinfo)
@@ -851,17 +876,12 @@ boolean CL_WaitResponder(event_t *ev)
 static void CL_StartGame(startgame_t *sg)
 {
   int i;
-
-  // check correct packet
-  
-  if(!CL_CorrectPacket(sg->packet_num))
-    return;
   
   //  if(gamestate != GS_SERVERWAIT)
   //    return;
   
   C_Printf("console is %i of %i\n", sg->player, sg->num_players);
-
+  
   gamestate = GS_CONSOLE;
   
   rngseed =
@@ -926,17 +946,13 @@ static void CL_StartGame(startgame_t *sg)
 
 static void CL_WaitInfo(waitinfo_t *wi)
 {
-  if(!CL_CorrectPacket(wi->packet_num))
-    return;  
+  C_Printf("got wait info\n");
   got_waitinfo = true;
   waitinfo = *wi;
 }
 
 static void CL_ChatMsg(msgpacket_t *msg)
 {
-  if(!CL_CorrectPacket(msg->packet_num))
-    return;
-
   CL_ChatPrint(msg->message);
 }
 
@@ -994,7 +1010,7 @@ static void CL_CheckResendTics()
   if(I_GetTime_RealTime() > tic_resendtime + latency)
     {  
       netpacket_t packet;
-      svticresend_t *rp = &packet.data.svticresend;
+      svticresend_t *rp = &packet.data.u.svticresend;
       int i;
 
       //      C_Printf("client: send resend (waiting %i)\n", nettics[i]);
@@ -1134,9 +1150,6 @@ static void CL_ResendTics(clticresend_t *tr)
 
 static void CL_Speedup(speeduppacket_t *speedup)
 {
-  if(!CL_CorrectPacket(speedup->packet_num))
-    return;
-
   gametime += speedup->skiptics;
 
   //  C_Printf("skiptics: %i\n", speedup->skiptics);
@@ -1152,20 +1165,7 @@ static void CL_Speedup(speeduppacket_t *speedup)
 
 static void CL_TextMsg(msgpacket_t *msg)
 {
-  if(!CL_CorrectPacket(msg->packet_num))
-    return;
-  
   doom_printf(FC_GRAY "%s", msg->message);
-}
-
-//-------------------------------------------------------------------------
-//
-// CL_AcceptPacket
-//
-
-static void CL_AcceptPacket(acceptpacket_t *ap)
-{
-  CL_CorrectPacket(ap->packet_num);
 }
 
 //-------------------------------------------------------------------------
@@ -1278,28 +1278,44 @@ static void CL_CheckPing()
 
 static void CL_NetPacket(netpacket_t *packet)
 {
+  int type = packet->type;
+  union packet_data *data;
+
   // got a packet
 
   lastpacket_time = I_GetTime_RealTime();
+  
+  // a reliable packet?
+  // if so, we need to check its in order and send a reply to
+  // server as well as change some things
+  
+  if(type & pt_reliable)
+    {
+      type &= ~pt_reliable;
+      data = &packet->data.r.data;
+
+      // check packet in order
+      
+      if(!CL_CorrectPacket(packet->data.r.packet_num))
+	return;
+    }
+  else
+    data = &packet->data.u;
 
   //  C_Printf("client: got packet\n");
-  switch(packet->type)
+  switch(type)
     {
     case pt_ack:                    // acknowledge received packet
-      CL_AckPacket(&packet->data.ackpacket);
-      break;
-      
-    case pt_accept:                 // accept connection to game
-      CL_AcceptPacket(&packet->data.acceptpacket);
+      CL_AckPacket(&data->ackpacket);
       break;
       
     case pt_gametics:               // game data
-      CL_GamePacket(&packet->data.gamepacket);
+      CL_GamePacket(&data->gamepacket);
       break;
       
     case pt_compressed:             // compressed game data
       CL_GamePacket
-	(DecompressPacket(&packet->data.compressed));
+	(DecompressPacket(&data->compressed));
       break;
       
     case pt_console:                // a console command
@@ -1307,11 +1323,11 @@ static void CL_NetPacket(netpacket_t *packet)
       break;
       
     case pt_quit:                   // remote node disconnecting
-      CL_PlayerQuit(&packet->data.quitpacket);
+      CL_PlayerQuit(&data->quitpacket);
       break;
       
     case pt_textmsg:                  // text message
-      CL_TextMsg(&packet->data.messagepacket);
+      CL_TextMsg(&data->messagepacket);
       break;
 
     case pt_shutdown:               // server shutdown
@@ -1320,11 +1336,11 @@ static void CL_NetPacket(netpacket_t *packet)
       break;
       
     case pt_clticresend:              // resend tics
-      CL_ResendTics(&packet->data.clticresend);
+      CL_ResendTics(&data->clticresend);
       break;
 
     case pt_speedup:                // speedup packet
-      CL_Speedup(&packet->data.speedup);
+      CL_Speedup(&data->speedup);
       break;
       
     case pt_ping:                     // send ping reply
@@ -1336,15 +1352,15 @@ static void CL_NetPacket(netpacket_t *packet)
       break;
       
     case pt_waitinfo:                 // while-u-wait info
-      CL_WaitInfo(&packet->data.waitinfo);
+      CL_WaitInfo(&data->waitinfo);
       break;
       
     case pt_startgame:                // signal to start game
-      CL_StartGame(&packet->data.startgame);
+      CL_StartGame(&data->startgame);
       break;
 
     case pt_chat:                     // while-u-wait chat message
-      CL_ChatMsg(&packet->data.messagepacket);
+      CL_ChatMsg(&data->messagepacket);
       break;
 	
       // don't care about anything else
@@ -1971,7 +1987,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.13  2000-05-24 13:29:10  fraggle
+// Revision 1.14  2000-06-04 17:19:02  fraggle
+// easier reliable-packet send interface
+//
+// Revision 1.13  2000/05/24 13:29:10  fraggle
 // fix jerkiness problem w/client prediction
 //
 // Revision 1.12  2000/05/22 09:57:45  fraggle

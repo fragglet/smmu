@@ -160,7 +160,6 @@ typedef struct
 
 typedef struct
 {
-  byte packet_num;
   char skiptics;
 } speeduppacket_t;
 
@@ -203,7 +202,6 @@ typedef struct
 
 typedef struct
 {
-  byte packet_num;           // reliable send
   char message[50];
 } msgpacket_t;
 
@@ -245,7 +243,6 @@ typedef struct
 
 typedef struct
 {
-  byte packet_num;                 // reliable send
   byte nodes;
   byte controller;                 // true if destination is game controller
   char node_names[MAXNETNODES][20];
@@ -255,7 +252,6 @@ typedef struct
 
 typedef struct
 {
-  byte packet_num;                     // must ack packet
   char server_name[50];
 } acceptpacket_t;
 
@@ -264,7 +260,6 @@ typedef struct
 
 typedef struct
 {
-  byte packet_num;
   char player;             // player number allocated for this computer
   byte num_players;        // number of players in game
   byte rndseed[4];         // long
@@ -275,7 +270,6 @@ typedef struct
 
 typedef struct
 {
-  byte packet_num;              // must be in order
   char player;                  // = -1 if drone
   char quitmsg[50];
 } quitpacket_t;
@@ -325,7 +319,38 @@ enum
     pt_startgame,              // signal to start game
     pt_chat,                   // chat message - uses msgpacket_t
     // etc
+
+    pt_reliable = 128,         // reliable flag
   };
+
+// data stored in packets
+
+union packet_data
+{  
+  gamepacket_t gamepacket;            // game tics
+  compressedpacket_t compressed;      // compressed game tics
+  
+  speeduppacket_t speedup;            // speedup packet
+  
+  // resend tics:
+  clticresend_t clticresend;          // client tic resend    
+  svticresend_t svticresend;          // server tic resend
+  
+  ackpacket_t ackpacket;              // acknowledge packet received
+  
+  fingerpacket_t fingerpacket;        // finger data response
+  msgpacket_t messagepacket;          // text message
+  quitpacket_t quitpacket;            // node quit game
+  
+  // quit message
+  // etc.
+  
+  startgame_t startgame;              // signal to start game
+  acceptpacket_t acceptpacket;        // sent to successful joining client
+  joinpacket_t joinpacket;            // data sent when we join
+  denypacket_t denypacket;            // sent when server denies connection
+  waitinfo_t waitinfo;                // info about server while waiting
+};
 
 struct netpacket_s
 {
@@ -337,33 +362,16 @@ struct netpacket_s
 
   union
   {
-    // for reliable packet send:
-    // any packets sent reliably must have packet_num as their first byte
-    byte packet_num;                
+    // reliably sent data - must ack packets received
+    // packet is reliable if type has pt_reliable bit set
+    struct
+    {
+      byte packet_num;
+      union packet_data data;
+    } r;
 
-    gamepacket_t gamepacket;            // game tics
-    compressedpacket_t compressed;      // compressed game tics
-
-    speeduppacket_t speedup;            // speedup packet
-    
-    // resend tics:
-    clticresend_t clticresend;          // client tic resend    
-    svticresend_t svticresend;          // server tic resend
-    
-    ackpacket_t ackpacket;              // acknowledge packet received
-        
-    fingerpacket_t fingerpacket;        // finger data response
-    msgpacket_t messagepacket;          // text message
-    quitpacket_t quitpacket;            // node quit game
-    
-    // quit message
-    // etc.
-     
-    startgame_t startgame;              // signal to start game
-    acceptpacket_t acceptpacket;        // sent to successful joining client
-    joinpacket_t joinpacket;            // data sent when we join
-    denypacket_t denypacket;            // sent when server denies connection
-    waitinfo_t waitinfo;                // info about server while waiting
+    // unreliable data - no need for ack
+    union packet_data u;
   } data;
 };
 
@@ -389,7 +397,10 @@ void SV_Update();
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-05-22 09:59:36  fraggle
+// Revision 1.6  2000-06-04 17:19:03  fraggle
+// easier reliable-packet send interface
+//
+// Revision 1.5  2000/05/22 09:59:36  fraggle
 // ticcmds/packet increased
 //
 // Revision 1.4  2000/05/06 14:06:11  fraggle
