@@ -298,9 +298,20 @@ void CL_Finger(netnode_t *node)
 
   if(data)
     {
+      os_t server_os;
+      
       C_Printf("response:\n");
       C_Printf("server name: %s\n", data->info.server_name);
       C_Printf("players connected: %i\n", data->info.players);
+
+      server_os = data->info.os_type;
+
+      C_Printf("os: %s\n",
+	       server_os == os_dos ? "dos" :
+	       server_os == os_linux ? "linux" :
+	       server_os == os_windows ? "windows" :
+	       server_os == os_bsd ? "bsd" : "unknown");
+	       
       if(data->info.accepting)
 	C_Printf("server is waiting for players\n"); 
     }
@@ -447,60 +458,33 @@ void Finger_ServersMenu()
   
   for(n=0; n<num_servers; n++)
     {
-      if(servers[n].info.accepting)
-	{
-	  char tempstr[128];
-
-	  // type
-	  
-	  finger_menu.menuitems[i].type = it_runcmd;
-
-	  // description
-	  
-	  sprintf(tempstr, "* "FC_GREEN "%s (%i)",
-		  servers[n].info.server_name,
-		  servers[n].info.players);
+      char tempstr[128];
+      os_t server_os;
       
-	  finger_menu.menuitems[i].description
-	    = Z_Strdup(tempstr, PU_STATIC, 0);
+      finger_menu.menuitems[i].type = it_runcmd;
 
-	  // command
-	  
-	  sprintf(tempstr, "connect %s:%i",
-		  servers[n].node.netmodule->name,
-		  servers[n].node.node);
-
-	  finger_menu.menuitems[i++].data
-	    = Z_Strdup(tempstr, PU_STATIC, 0);
-	}
-    }
-
-  for(n=0; n<num_servers; n++)
-    {
-      if(!servers[n].info.accepting)
-	{
-	  char tempstr[128];
+      server_os = servers[n].info.os_type;
       
-	  finger_menu.menuitems[i].type = it_runcmd;
+      // description
+      
+      sprintf(tempstr, "%s (%i/%s)",
+	      servers[n].info.server_name,
+	      servers[n].info.players,
+	      server_os == os_dos ? "D" :
+	      server_os == os_linux ? "L" :
+	      server_os == os_windows ? "W" :
+	      server_os == os_bsd ? "B" : "?");
+      
+      finger_menu.menuitems[i].description = Z_Strdup(tempstr, PU_STATIC, 0);
 
-	  // description
-	  
-	  sprintf(tempstr, "%s (%i)",
-		  servers[n].info.server_name,
-		  servers[n].info.players);
-
-	  finger_menu.menuitems[i].description
-	    = Z_Strdup(tempstr, PU_STATIC, 0);
-
-	  // command
-	  
-	  sprintf(tempstr, "connect %s:%i",
-		  servers[n].node.netmodule->name,
-		  servers[n].node.node);
-
-	  finger_menu.menuitems[i++].data
-	    = Z_Strdup(tempstr, PU_STATIC, 0);
-	}
+      // command
+      
+      sprintf(tempstr, "connect %s:%i",
+	      servers[n].node.netmodule->name,
+	      servers[n].node.node);
+      
+      finger_menu.menuitems[i++].data
+	= Z_Strdup(tempstr, PU_STATIC, 0);
     }
   
   finger_menu.menuitems[i].type = it_end;
@@ -1113,7 +1097,10 @@ void Finger_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-06-19 14:58:55  fraggle
+// Revision 1.4  2000-06-20 21:08:35  fraggle
+// platform detection (dos, win32, linux etc)
+//
+// Revision 1.3  2000/06/19 14:58:55  fraggle
 // cygwin (win32) support
 //
 // Revision 1.2  2000/06/04 17:19:02  fraggle

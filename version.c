@@ -30,11 +30,28 @@ const char version_date[] = __DATE__;
 const char version_name[] = "christmas"; // sf : version names
                                          // at the suggestion of mystican
 
+// os type
+
+os_t os_type = 
+#ifdef DJGPP
+os_dos;
+#elif defined(LINUX)
+os_linux;
+#elif defined(_WIN32)
+os_windows;
+#else
+os_unknown;
+#endif
+
+
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-06-20 21:08:35  fraggle
+// platform detection (dos, win32, linux etc)
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //----------------------------------------------------------------------------

@@ -952,6 +952,7 @@ static void SV_FingerRequest()
   
   fp->players = server_numnodes;
   fp->accepting = waiting_players;
+  fp->os_type = os_type;
   
   // etc.
 
@@ -1792,7 +1793,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.12  2000-06-19 14:58:55  fraggle
+// Revision 1.13  2000-06-20 21:08:35  fraggle
+// platform detection (dos, win32, linux etc)
+//
+// Revision 1.12  2000/06/19 14:58:55  fraggle
 // cygwin (win32) support
 //
 // Revision 1.11  2000/06/04 17:19:02  fraggle
