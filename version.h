@@ -41,16 +41,19 @@ typedef enum
   os_windows,
   os_bsd,
   os_unknown,  
-} os_t;
+} doomos_t;
 
-extern os_t os_type;
+extern doomos_t doomos_type;
 
 #endif
 
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-20 21:08:35  fraggle
+// Revision 1.3  2000-06-22 18:24:59  fraggle
+// os_t -> doomos_t for peaceful coexistence with allegro
+//
+// Revision 1.2  2000/06/20 21:08:35  fraggle
 // platform detection (dos, win32, linux etc)
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle

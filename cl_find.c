@@ -298,7 +298,7 @@ void CL_Finger(netnode_t *node)
 
   if(data)
     {
-      os_t server_os;
+      doomos_t server_os;
       
       C_Printf("response:\n");
       C_Printf("server name: %s\n", data->info.server_name);
@@ -459,7 +459,7 @@ void Finger_ServersMenu()
   for(n=0; n<num_servers; n++)
     {
       char tempstr[128];
-      os_t server_os;
+      doomos_t server_os;
       
       finger_menu.menuitems[i].type = it_runcmd;
 
@@ -1097,7 +1097,10 @@ void Finger_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-06-20 21:08:35  fraggle
+// Revision 1.5  2000-06-22 18:24:59  fraggle
+// os_t -> doomos_t for peaceful coexistence with allegro
+//
+// Revision 1.4  2000/06/20 21:08:35  fraggle
 // platform detection (dos, win32, linux etc)
 //
 // Revision 1.3  2000/06/19 14:58:55  fraggle
