@@ -996,12 +996,15 @@ boolean C_Strcmp(unsigned char *a, unsigned char *b)
 
 command_t *cmdroots[CMDCHAINS];
 
-       // the hash key
-#define CmdHashKey(s)                                     \
-   (( (s)[0] + (s)[0] ? (s)[1] + (s)[1] ? (s)[2] +        \
-                 (s)[2] ? (s)[3] + (s)[3] ? (s)[4]        \
-                        : 0 : 0 : 0 : 0 ) % 16)
+// the hash key
 
+static int CmdHashKey(char *s)
+{
+  int key=0;
+  while(*s) key += tolower(*s++);
+  return key % CMDCHAINS;
+}
+     
 void (C_AddCommand)(command_t *command)
 {
   int hash;
@@ -1116,8 +1119,11 @@ void C_RunScriptFromFile(char *filename)
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-07-28 21:55:46  fraggle
+// hash key case insensitivity
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //--------------------------------------------------------------------------
