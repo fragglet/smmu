@@ -699,8 +699,8 @@ void V_DrawPatchTranslated(int x, int y, int scrn, patch_t *patch,
     }
 }
 
-      // sf: translucent patch drawing routine
-      // based on drawpatchtranslated to allow translated translucent
+// sf: translucent patch drawing routine
+// based on drawpatchtranslated to allow translated translucent
 
 void V_DrawPatchTL(int x, int y, int scrn, patch_t *patch,
                            unsigned char *outr)

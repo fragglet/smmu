@@ -92,6 +92,7 @@ void V_WriteText(unsigned char *s, int x, int y)
   unsigned char* ch;
   char *colour = cr_red;
   unsigned int c;
+  boolean translucent = false;
   int   cx;
   int   cy;
   patch_t *patch;
@@ -106,10 +107,21 @@ void V_WriteText(unsigned char *s, int x, int y)
       if (!c)
 	break;
       if (c >= 128)     // new colour
-      {
-           colour = colrngs[c - 128];
-           continue;
-      }
+	{
+	  if(c == *(unsigned char *)FC_TRANS) // translucent toggle
+	    translucent = !translucent;
+	  else
+	    {
+	      int colnum = c - 128;
+	      
+	      if(colnum < 0 || colnum >= CR_LIMIT)
+		I_Error("V_WriteText: invalid colour %i\n", colnum);
+	      else
+		colour = colrngs[colnum];
+	    }
+	      
+	  continue;
+	}
       if (c == '\t')
         {
           cx = (cx/40)+1;
@@ -136,7 +148,10 @@ void V_WriteText(unsigned char *s, int x, int y)
       if (cx+w > SCREENWIDTH)
 	break;
 
-      V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
+      if(translucent)
+	V_DrawPatchTL(cx, cy, 0, patch, colour);
+      else
+	V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
 
       cx+=w;
     }

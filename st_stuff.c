@@ -295,7 +295,7 @@ extern byte     *translationtables;
 
 void ST_Stop(void);
 
-void ST_refreshBackground(void)
+static void ST_refreshBackground(void)
 {
   if (st_statusbaron)
     {
@@ -343,7 +343,7 @@ boolean ST_Responder(event_t *ev)
   return false;
 }
 
-int ST_calcPainOffset(void)
+static int ST_calcPainOffset(void)
 {
   static int lastcalc;
   static int oldhealth = -1;
@@ -364,7 +364,7 @@ int ST_calcPainOffset(void)
 //  dead > evil grin > turned head > straight ahead
 //
 
-void ST_updateFaceWidget(void)
+static void ST_updateFaceWidget(void)
 {
   int         i;
   angle_t     badguyangle;
@@ -537,7 +537,7 @@ void ST_updateFaceWidget(void)
 
 int sts_traditional_keys; // killough 2/28/98: traditional status bar keys
 
-void ST_updateWidgets(void)
+static void ST_updateWidgets(void)
 {
   static int  largeammo = 1994; // means "n/a"
   int         i;
@@ -601,7 +601,7 @@ void ST_Ticker(void)
 
 static int st_palette = 0;
 
-void ST_doPaletteStuff(void)
+static void ST_doPaletteStuff(void)
 {
   int         palette;
   byte*       pal;
@@ -646,7 +646,7 @@ void ST_doPaletteStuff(void)
     }
 }
 
-void ST_drawWidgets(boolean refresh)
+static void ST_drawWidgets(boolean refresh)
 {
   int i;
 
@@ -706,7 +706,7 @@ void ST_drawWidgets(boolean refresh)
 
 }
 
-void ST_doRefresh(void)
+static void ST_doRefresh(void)
 {
 
   st_firsttime = false;
@@ -719,7 +719,7 @@ void ST_doRefresh(void)
 
 }
 
-void ST_diffDraw(void)
+static void ST_diffDraw(void)
 {
   // update all widgets
   ST_drawWidgets(false);
@@ -732,9 +732,9 @@ void ST_Drawer(boolean fullscreen, boolean refresh)
 
   ST_doPaletteStuff();  // Do red-/gold-shifts from damage/items
 
-          // sf: draw nothing in fullscreen
-          // tiny bit faster and also removes the problem of status bar
-          // percent '%' signs being drawn in fullscreen
+  // sf: draw nothing in fullscreen
+  // tiny bit faster and also removes the problem of status bar
+  // percent '%' signs being drawn in fullscreen
   if(fullscreen && !automapactive) return;
 
   if (st_firsttime)
@@ -743,7 +743,7 @@ void ST_Drawer(boolean fullscreen, boolean refresh)
     ST_diffDraw();      // Otherwise, update as little as possible
 }
 
-void ST_loadGraphics(void)
+static void ST_loadGraphics(void)
 {
   int  i;
   char namebuf[9];
@@ -826,13 +826,13 @@ void ST_CacheFaces(patch_t **faces, char *facename)
   faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
 }
 
-void ST_loadData(void)
+static void ST_loadData(void)
 {
   lu_palette = W_GetNumForName ("PLAYPAL");
   ST_loadGraphics();
 }
 
-void ST_unloadGraphics(void)
+static void ST_unloadGraphics(void)
 {
   int i;
 
@@ -869,12 +869,18 @@ void ST_unloadGraphics(void)
   // Note: nobody ain't seen no unloading of stminus yet. Dude.
 }
 
-void ST_unloadData(void)
+static void ST_unloadData(void)
 {
   ST_unloadGraphics();
 }
 
-void ST_initData(void)
+void ST_reloadData(void)
+{
+  ST_unloadData();
+  ST_loadData();
+}
+
+static void ST_initData(void)
 {
   int i;
 
@@ -899,7 +905,7 @@ void ST_initData(void)
   STlib_init();
 }
 
-void ST_createWidgets(void)
+static void ST_createWidgets(void)
 {
   int i;
 
@@ -1082,9 +1088,10 @@ void ST_Init(void)
   screens[4] = Z_Malloc(ST_WIDTH*ST_HEIGHT*4, PU_STATIC, 0);
 }
 
-/***********************
-        CONSOLE COMMANDS
- ***********************/
+//////////////////////////////////////////////////////////////////////////
+//
+// Console variables
+//
 
 VARIABLE_INT(ammo_red, NULL,               0, 100, NULL);
 VARIABLE_INT(ammo_yellow, NULL,            0, 100, NULL);

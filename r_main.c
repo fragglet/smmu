@@ -28,6 +28,7 @@ static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough E
 #include "i_video.h"
 #include "c_runcmd.h"
 #include "g_game.h"
+#include "hu_over.h"
 #include "mn_engin.h" 
 #include "r_main.h"
 #include "r_things.h"
@@ -59,6 +60,7 @@ fixed_t  viewx, viewy, viewz;
 angle_t  viewangle;
 fixed_t  viewcos, viewsin;
 player_t *viewplayer;
+sector_t *viewsector;              // sf: sector the viewpoint is in
 extern lighttable_t **walllights;
 boolean  showpsprites=1; //sf
 camera_t *viewcamera;
@@ -469,38 +471,45 @@ void R_SetupFrame (player_t *player, camera_t *camera)
 
   // check for change to zoom
   if(zoom != oldzoom)
-  {
-        R_ExecuteSetViewSize(); // reset view
-        oldzoom = zoom;
-  }
+    {
+      R_ExecuteSetViewSize(); // reset view
+      oldzoom = zoom;
+    }
 
   viewplayer = player;
   mobj = player->mo;
 
+  // cameras
+  
   viewcamera = camera;
   if(!camera)
-  {
-          viewx = mobj->x;
-          viewy = mobj->y;
-          viewz = player->viewz;
-          viewangle = mobj->angle;// + viewangleoffset;
-                 // y shearing
-          updownangle = player->updownangle;
-  }
+    {
+      viewx = mobj->x;
+      viewy = mobj->y;
+      viewz = player->viewz;
+      viewangle = mobj->angle;// + viewangleoffset;
+      // y shearing
+      updownangle = player->updownangle;
+      extralight = player->extralight;
+    }
   else
-  {
-          viewx = camera->x;
-          viewy = camera->y;
-          viewz = camera->z;
-          viewangle = camera->angle;
-          updownangle = camera->updownangle;
-  }
+    {
+      viewx = camera->x;
+      viewy = camera->y;
+      viewz = camera->z;
+      viewangle = camera->angle;
+      updownangle = camera->updownangle;
+      extralight = 0;
+    }
 
-  extralight = player->extralight;
   viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
   viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
 
-        // y shearing
+  viewsector = R_PointInSubsector(viewx,viewy)->sector;
+  
+  ////////////////////////////////////////////////////
+  // y-shearing
+
   updownangle *= zoom;          // sf: zooming
                 // check for limits
   updownangle = updownangle >  50 ?  50 :
@@ -522,9 +531,9 @@ void R_SetupFrame (player_t *player, camera_t *camera)
 
 typedef enum
 {
-        area_normal,
-        area_below,
-        area_above
+  area_normal,
+  area_below,
+  area_above
 } area_t;
 
 void R_SectorColormap(sector_t *s)
@@ -534,28 +543,26 @@ void R_SectorColormap(sector_t *s)
 
   if(s->heightsec == -1) cm = 0;
   else
-  {
-     sector_t *viewsector;
-     area_t viewarea;
-     viewsector = R_PointInSubsector(viewx,viewy)->sector;
-
-             // find which area the viewpoint (player) is in
-     viewarea =
+    {
+      area_t viewarea;
+      
+      // find which area the viewpoint (player) is in
+      viewarea =
         viewsector->heightsec == -1 ? area_normal :
         viewz < sectors[viewsector->heightsec].floorheight ? area_below :
         viewz > sectors[viewsector->heightsec].ceilingheight ? area_above :
         area_normal;
 
-     s = s->heightsec + sectors;
-
-     cm = viewarea==area_normal ? s->midmap :
-           viewarea==area_above ? s->topmap : s->bottommap;
-  }
-
+      s = s->heightsec + sectors;
+      
+      cm = viewarea==area_normal ? s->midmap :
+	viewarea==area_above ? s->topmap : s->bottommap;
+    }
+  
   fullcolormap = colormaps[cm];
   zlight = c_zlight[cm];
   scalelight = c_scalelight[cm];
-
+  
   if (viewplayer->fixedcolormap)
     {
       int i;
@@ -577,11 +584,15 @@ void R_SectorColormap(sector_t *s)
 
 angle_t R_WadToAngle(int wadangle)
 {
-  if(demo_version < 302)            // maintain compatibility
+  // maintain compatibility
+  
+  if(demo_version < 302)
     return (wadangle / 45) * ANG45;
 
-  return wadangle * (ANG45 / 45);     // allows wads to specify angles to
-                                      // the nearest degree, not nearest 45
+  // allows wads to specify angles to
+  // the nearest degree, not nearest 45  
+
+  return wadangle * (ANG45 / 45);
 }
 
 static int render_ticker = 0;
@@ -601,7 +612,7 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
   R_ClearSprites ();
     
   if (autodetect_hom)
-        R_HOMdrawer();
+    R_HOMdrawer();
 
   // check for new console commands.
   NetUpdate ();
@@ -625,7 +636,7 @@ void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
   render_ticker++;
 }
 
-        // sf: rewritten
+// sf: rewritten
 
 void R_HOMdrawer()
 {
@@ -636,10 +647,10 @@ void R_HOMdrawer()
   dest = screens[0] + viewwindowy*(SCREENWIDTH<<hires) + viewwindowx;
 
   for(y=viewwindowy; y<viewwindowy+viewheight; y++)
-  {
-     memset(dest, colour, viewwidth);
-     dest += SCREENWIDTH<<hires;
-  }
+    {
+      memset(dest, colour, viewwidth);
+      dest += SCREENWIDTH<<hires;
+    }
 
 //      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8);
 }
@@ -674,12 +685,11 @@ VARIABLE_INT(usegamma, NULL,                    0, 4, NULL);
 
 CONSOLE_VARIABLE(gamma, usegamma, 0)
 {
-        // change to new gamma val
-    I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+  // change to new gamma val
+  I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 }
 CONSOLE_VARIABLE(lefthanded, lefthanded, 0) {}
 CONSOLE_VARIABLE(r_blockmap, r_blockmap, 0) {}
-// CONSOLE_VARIABLE(r_flatskip, flatskip, 0) {}
 CONSOLE_VARIABLE(r_homflash, flashing_hom, 0) {}
 CONSOLE_VARIABLE(r_planeview, visplane_view, 0) {}
 CONSOLE_VARIABLE(r_zoom, zoom, 0) {}
@@ -687,7 +697,7 @@ CONSOLE_VARIABLE(r_precache, r_precache, 0) {}
 CONSOLE_VARIABLE(r_showgun, showpsprites, 0) {}
 CONSOLE_VARIABLE(r_showhom, autodetect_hom, 0)
 {
-        doom_printf("hom detection %s", autodetect_hom ? "on" : "off");
+  doom_printf("hom detection %s", autodetect_hom ? "on" : "off");
 }
 CONSOLE_VARIABLE(r_stretchsky, stretchsky, 0) {}
 CONSOLE_VARIABLE(r_swirl, r_swirl, 0) {}

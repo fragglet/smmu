@@ -193,7 +193,7 @@ CONSOLE_NETCMD(kill, cf_level, netcmd_kill)
 
 // change level
 
-CONSOLE_NETCMD(map, cf_server, netcmd_map)
+CONSOLE_NETCMD(map, cf_buffered|cf_server, netcmd_map)
 {
   if(!c_argc)
     {
@@ -215,7 +215,10 @@ CONSOLE_NETCMD(map, cf_server, netcmd_map)
 	{
 	  if(D_AddNewFile(c_argv[0]))
 	    {
-	      G_InitNew(gameskill, firstlevel);
+	      if(wad_level)     // new wad contains level(s)
+		G_InitNew(gameskill, firstlevel);
+	      else
+		D_StartTitle();   // go to title
 	    }
 	  return;
 	}
@@ -429,6 +432,24 @@ void G_AddCompat()
     }
 }
 
+// wad/dehs loaded at startup
+
+char *wadfile_1, *wadfile_2;
+
+VARIABLE_STRING(wadfile_1, NULL,       30); 
+CONSOLE_VARIABLE(wadfile_1, wadfile_1, 0) {}
+
+VARIABLE_STRING(wadfile_2, NULL,       30); 
+CONSOLE_VARIABLE(wadfile_2, wadfile_2, 0) {}
+
+char *dehfile_1, *dehfile_2;
+
+VARIABLE_STRING(dehfile_1, NULL,       30); 
+CONSOLE_VARIABLE(dehfile_1, dehfile_1, 0) {}
+
+VARIABLE_STRING(dehfile_2, NULL,       30); 
+CONSOLE_VARIABLE(dehfile_2, dehfile_2, 0) {}
+
 void G_AddCommands()
 {
   C_AddCommand(i_error);
@@ -458,6 +479,11 @@ void G_AddCommands()
   C_AddCommand(textmode_startup);
   C_AddCommand(demo_insurance);
   C_AddCommand(smooth_turning);
+
+  C_AddCommand(wadfile_1);
+  C_AddCommand(wadfile_2);
+  C_AddCommand(dehfile_1);
+  C_AddCommand(dehfile_2);
   
   G_AddChatMacros();
   G_AddWeapPrefs();

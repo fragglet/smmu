@@ -28,23 +28,21 @@
 #include "w_wad.h"
 #include "v_video.h"
 
-boolean inhelpscreens; // indicates we are in or just left a help screen
+// useful macro: finds if a particular item can be selected on the menu
+#define selectable(it)   (                  \
+            (it)->type == it_runcmd   ||    \
+	    (it)->type == it_variable ||    \
+	    (it)->type == it_toggle   ||    \
+	    (it)->type == it_slider   ||    \
+	    (it)->type == it_automap )
 
-        // menu keys
-int     key_menu_right;
-int     key_menu_left;
-int     key_menu_up;
-int     key_menu_down;
-int     key_menu_backspace;
-int     key_menu_escape;
-int     key_menu_enter;
+#define selected_item(menu) ( &(menu)->menuitems[(menu)->selected] )
+  
+boolean inhelpscreens; // indicates we are in or just left a help screen
 
 // menu error message
 char menu_error_message[128];
 int menu_error_time = 0;
-
-extern menu_t menu_main;
-extern menu_t menu_newgame;
 
         // input for typing in new value
 static command_t *input_command = NULL;       // NULL if not typing in
@@ -58,7 +56,6 @@ static char input_buffer[128] = "";
 
         // gap from variable description to value
 #define GAP 20
-#define background_flat "FLOOR4_8"
 #define SKULL_HEIGHT 19
 #define BLINK_TIME 8
 
@@ -66,6 +63,7 @@ static char input_buffer[128] = "";
 #define unselect_colour    CR_RED
 #define select_colour      CR_GRAY
 #define var_colour         CR_GREEN
+#define disabled_colour    CR_TRANS
 
 enum
 {
@@ -79,25 +77,7 @@ patch_t *slider_gfx[num_slider_gfx];
 static menu_t *drawing_menu;
 static patch_t *skulls[2];
 
-static void MN_GetItemVariable(menuitem_t *item)
-{
-        // get variable if neccesary
-  if(!item->var)
-    {
-      command_t *cmd;
-      // use data for variable name
-      if(!(cmd = C_GetCmdForName(item->data)))
-        {
-          C_Printf("variable not found: %s\n", item->data);
-	  item->type = it_info;   // turn into normal unselectable text
-	  item->var = NULL;
-	  return;
-        }
-      item->var = cmd->variable;
-    }
-}
-
-        // width of slider, in mid-patches
+// width of slider, in mid-patches
 #define SLIDE_PATCHES 9
 
 // draw a 'slider' (for sound volume, etc)
@@ -137,10 +117,10 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour)
     (drawing_menu->flags & mf_leftaligned);
 
   if(item->type == it_gap) return 8;    // skip drawing if a gap
-
+  
   item->x = x; item->y = y;       // save x,y to item
  
-  // draw an alternate patch?
+  // draw an alternate patch instead of text?
  
   if(item->patch)
     {
@@ -201,112 +181,111 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour)
   
   switch(item->type)      
     {
-    case it_title:              // just description drawn
-    case it_info:
-    case it_runcmd:
-    case it_gap:                // just a gap, draw nothing
-      {
-        break;
-      }
-    
-    // it_toggle and it_variable are drawn the same
+      case it_title:              // just description drawn
+      case it_info:
+      case it_runcmd:
+      case it_gap:                // just a gap, draw nothing
+      case it_disabled: 
+	{
+	  break;
+	}
+      
+      // it_toggle and it_variable are drawn the same
+      // the only difference is the way they are changed
+      
+      case it_toggle:
+      case it_variable:
+	{
+	  char varvalue[128];             // temp buffer 
+	  
+	  // create variable description:
+	  // Use console variable descriptions.
+	  
+	  // display input buffer if inputting new var value
+	  if(input_command && item->var == input_command->variable)
+	    sprintf(varvalue, "%s_", input_buffer);
+	  else
+	    strcpy(varvalue, C_VariableStringValue(item->var));
+	  
+	  if(drawing_menu->flags & mf_background)
+	    {
+	      // include gap on fullscreen menus
+	      x += GAP;
+	      // adjust colour for different coloured variables
+	      if(colour == unselect_colour) colour = var_colour;
+	    }
+	  
+	  // write variable value text
+	  MN_WriteTextColoured
+	    (
+	     varvalue,
+	     colour,
+	     x + (leftaligned ? MN_StringWidth(item->description) : 0),
+	     y
+	     );
 
-    case it_toggle:
-    case it_variable:
-      {
-        char varvalue[128];             // temp buffer 
+	  break;
+	}
+      
+      // slider
+      
+      case it_slider:
+	{ 
+	  // draw slider
+	  // only int variables
+	  
+	  if(item->var && item->var->type == vt_int)
+	    {
+	      int range = item->var->max - item->var->min;
+	      int posn = *(int *)item->var->variable - item->var->min;
+	      
+	      MN_DrawSlider(x + GAP, y, (posn*100) / range);
+	    }
+	  
+	  break;
+	}
+      
+      // automap colour block
+      
+      case it_automap:
+	{
+	  int bx, by;
+	  int colour;
+	  char block[BLOCK_SIZE*BLOCK_SIZE];
 
-	MN_GetItemVariable(item);
-	
-	// create variable description:
-	// Use console variable descriptions.
-	
-	// display input buffer if inputting new var value
-	if(input_command && item->var == input_command->variable)
-          sprintf(varvalue, "%s_", input_buffer);
-	else
-          strcpy(varvalue, C_VariableStringValue(item->var));
-
-	if(drawing_menu->flags & mf_background)
-	  {
-	    // include gap on fullscreen menus
-	    x += GAP;
-	    // adjust colour for different coloured variables
-	    if(colour == unselect_colour) colour = var_colour;
-	  }
-
-        // draw it
-        MN_WriteTextColoured
-	  (
-	   varvalue,
-           colour,
-           x + (leftaligned ? MN_StringWidth(item->description) : 0),
-	   y
-	   );
-	break;
-      }
-
-    // slider
-
-    case it_slider:
-      { 
-	MN_GetItemVariable(item);
-	
-	// draw slider
-	// only ints
-
-	if(item->var && item->var->type == vt_int)
-	  {
-	    int range = item->var->max - item->var->min;
-	    int posn = *(int *)item->var->variable - item->var->min;
-	    
-	    MN_DrawSlider(x + GAP, y, (posn*100) / range);
-	  }
-	
-	break;
-      }
-
-    // automap colour block
-
-    case it_automap:
-      {
-	int bx, by;
-	int colour;
-	char block[BLOCK_SIZE*BLOCK_SIZE];
-	
-	MN_GetItemVariable(item);
-
-	if(!item->var || item->var->type != vt_int) break;
-	
-	// find colour of this variable from console variable
-	colour = *(int *)item->var->variable;
-
-	// create block
-	// border
-	memset(block, 0, BLOCK_SIZE*BLOCK_SIZE);
-	    
-	if(colour)
-	  {	
-	    // middle
-	    for(bx=1; bx<BLOCK_SIZE-1; bx++)
-	      for(by=1; by<BLOCK_SIZE-1; by++)
-		block[by*BLOCK_SIZE+bx] = colour;
-	  }
-	// draw it
-	
-	V_DrawBlock(x+GAP, y-1, 0, BLOCK_SIZE, BLOCK_SIZE, block);
-	
-	if(!colour)
-	  {
-	    // draw patch w/cross
-	    V_DrawPatch(x+GAP+1, y, 0, W_CacheLumpName("M_PALNO", PU_CACHE));
-	  }
-      }    
-
-    default:
-      {
-        break;
-      }
+	  // only with variables, only int variables
+	  if(!item->var || item->var->type != vt_int)
+	    break;
+	  
+	  // find colour of this variable from console variable
+	  colour = *(int *)item->var->variable;
+	  
+	  // create block
+	  // border
+	  memset(block, 0, BLOCK_SIZE*BLOCK_SIZE);
+	  
+	  if(colour)
+	    {	
+	      // middle
+	      for(bx=1; bx<BLOCK_SIZE-1; bx++)
+		for(by=1; by<BLOCK_SIZE-1; by++)
+		  block[by*BLOCK_SIZE+bx] = colour;
+	    }
+	  // draw it
+	  
+	  V_DrawBlock(x+GAP, y-1, 0, BLOCK_SIZE, BLOCK_SIZE, block);
+	  
+	  if(!colour)
+	    {
+	      // draw patch w/cross
+	      V_DrawPatch(x+GAP+1, y, 0, W_CacheLumpName("M_PALNO", PU_CACHE));
+	    }
+	}    
+      
+      default:
+	{
+	  break;
+	}
     }
   
   return 8;   // text height
@@ -322,9 +301,9 @@ static int MN_DrawMenuItem(menuitem_t *item, int x, int y, int colour)
 void MN_DrawMenu(menu_t *menu)
 {
   int y;
-  int itemnum;
+  int i;
 
-  drawing_menu = menu;    // needed by DrawMenuItem
+  drawing_menu = menu;    // needed by MN_DrawMenuItem
   y = menu->y;
   
   // draw background
@@ -338,22 +317,29 @@ void MN_DrawMenu(menu_t *menu)
 
   // draw items in menu
 
-  for(itemnum = 0; menu->menuitems[itemnum].type != it_end; itemnum++)
+  for(i = 0; menu->menuitems[i].type != it_end; i++)
     {
       int item_height;
       int item_colour;
 
-      // choose item colour based on selected item
+      // choose item colour:
+      // if item is the selected item on the menu, use select_colour
+      // if item is disabled use disabled_colour
+      // otherwise use unselect_colour
 
-      item_colour = menu->selected == itemnum &&
-	!(menu->flags & mf_skullmenu) ?	select_colour : unselect_colour;
+      if(menu->selected == i && !(menu->flags & mf_skullmenu))
+	item_colour = select_colour;
+      else if(menu->menuitems[i].type == it_disabled)
+	item_colour = disabled_colour;
+      else
+	item_colour = unselect_colour;
       
       // draw item
 
       item_height =
 	MN_DrawMenuItem
 	(
-	 &menu->menuitems[itemnum],
+	 &menu->menuitems[i],
 	 menu->x,
 	 y,
 	 item_colour
@@ -361,7 +347,7 @@ void MN_DrawMenu(menu_t *menu)
       
       // if selected item, draw skull next to it
 
-      if(menu->flags & mf_skullmenu && menu->selected == itemnum)
+      if(menu->flags & mf_skullmenu && menu->selected == i)
         V_DrawPatch
 	  (
 	   menu->x - 30,                                // 30 left
@@ -369,11 +355,20 @@ void MN_DrawMenu(menu_t *menu)
 	   0,
 	   skulls[(menutime / BLINK_TIME) % 2]
 	   );
-      
-      y += item_height;            // go down by item height
+
+      // move down by item height
+      y += item_height; 
     }
 
-  if(menu->flags & mf_skullmenu) return; // no help msg in skull menu
+  /////////////////////////////////////////////////////////
+  //
+  // Item help
+  //
+
+  // no help msg in skull menu
+
+  if(menu->flags & mf_skullmenu)
+    return; 
 
   // choose help message to print
   
@@ -388,7 +383,7 @@ void MN_DrawMenu(menu_t *menu)
       char *helpmsg = "";
 
       // write some help about the item
-      menuitem_t *menuitem = &menu->menuitems[menu->selected];
+      menuitem_t *menuitem = selected_item(menu);
       
       if(menuitem->type == it_variable)       // variable
 	helpmsg = "press enter to change";
@@ -425,12 +420,19 @@ static int menu_history_num;                 // location in history
 int hide_menu = 0;      // hide the menu for a duration of time
 int menutime = 0;
 
+// menu keys
+int key_menu_right;
+int key_menu_left;
+int key_menu_up;
+int key_menu_down;
+int key_menu_backspace;
+int key_menu_escape;
+int key_menu_enter;
+
 // menu widget for alternate drawer + responder
 menuwidget_t *current_menuwidget = NULL; 
 
-
-        // init menu
-void MN_Init()
+static void MN_LoadGraphics()
 {
   skulls[0] = W_CacheLumpName("M_SKULL1", PU_STATIC);
   skulls[1] = W_CacheLumpName("M_SKULL2", PU_STATIC);
@@ -441,7 +443,30 @@ void MN_Init()
   slider_gfx[slider_right]  = W_CacheLumpName("M_SLIDER", PU_STATIC);
   slider_gfx[slider_mid]    = W_CacheLumpName("M_SLIDEM", PU_STATIC);
   slider_gfx[slider_slider] = W_CacheLumpName("M_SLIDEO", PU_STATIC);
-  
+}
+
+static void MN_UnloadGraphics()
+{
+  Z_Free(skulls[0]);
+  Z_Free(skulls[1]);
+
+  Z_Free(slider_gfx[slider_left]);
+  Z_Free(slider_gfx[slider_right]);
+  Z_Free(slider_gfx[slider_mid]);
+  Z_Free(slider_gfx[slider_slider]);
+}
+
+void MN_ReloadGraphics()
+{
+  MN_UnloadGraphics();
+  MN_LoadGraphics();
+}
+
+// init menu
+
+void MN_Init()
+{
+  MN_LoadGraphics(); // load skull etc.
   MN_InitMenus();   // create menu commands in mn_menus.c
 }
 
@@ -484,11 +509,9 @@ void MN_Drawer()
 // whether a menu item is a 'gap' item
 // ie. one that cannot be selected
 
-#define is_a_gap(it) ((it)->type == it_gap || (it)->type == it_info ||  \
-                      (it)->type == it_title)
-
 extern menu_t menu_sound;
 
+// temp. responder until i add new key bindings system
 boolean MN_TempResponder(unsigned char key)
 {
   if(key == key_quit)
@@ -518,20 +541,34 @@ boolean MN_TempResponder(unsigned char key)
     }
   return false;
 }
-                
+
 /////////////////////////////////
 // Responder
+
+extern char *shiftxform; // hu_stuff.c
 
 boolean MN_Responder (event_t *ev)
 {
   char tempstr[128];
   char ch;
+  static boolean shiftdown;
+
+  // check for shift key
+  
+  if((ev->type == ev_keydown || ev->type == ev_keyup)
+     && ev->data1 == KEYD_RSHIFT)
+    {
+      shiftdown = ev->type == ev_keydown;
+      return false;
+    }
 
   // we only care about key presses
 
   if(ev->type != ev_keydown)
     return false;
 
+  ch = shiftdown ? shiftxform[ev->data1] : ev->data1;
+  
   // are we displaying a widget?
 
   if(current_menuwidget)
@@ -543,28 +580,30 @@ boolean MN_Responder (event_t *ev)
   
   if(input_command)
     {
-      char ch = ev->data1;
       variable_t *var = input_command->variable;
       
       if(ev->data1 == KEYD_ESCAPE)        // cancel input
 	input_command = NULL;
       
-      if(ev->data1 == KEYD_ENTER && input_buffer[0])
+      if(ev->data1 == KEYD_ENTER)
 	{
-	  char *temp;
-
-	  // place " marks round the new value
-	  temp = strdup(input_buffer);
-	  sprintf(input_buffer, "\"%s\"", temp);
-	  free(temp);
-
-	  // set the command
-	  cmdtype = c_menu;
-	  C_RunCommand(input_command, input_buffer);
-	  input_command = NULL;
+	  if(input_buffer[0])
+	    {
+	      char *temp;
+	      
+	      // place " marks round the new value
+	      temp = strdup(input_buffer);
+	      sprintf(input_buffer, "\"%s\"", temp);
+	      free(temp);
+	      
+	      // set the command
+	      cmdtype = c_menu;
+	      C_RunCommand(input_command, input_buffer);
+	      input_command = NULL;
+	    }
 	  return true; // eat key
 	}
-
+      
       // check for backspace
       if(ev->data1 == KEYD_BACKSPACE && input_buffer[0])
 	{
@@ -575,8 +614,8 @@ boolean MN_Responder (event_t *ev)
       
       // only care about valid characters
       // dont allow too many characters on one command line
-
-      if(ch > 31 && ch < 127
+      
+      if(isprint(ch)
 	 && strlen(input_buffer) <=
 	 var->type == vt_string ? var->max :
 	 var->type == vt_int ? 10 : 20)
@@ -626,9 +665,9 @@ boolean MN_Responder (event_t *ev)
               current_menu->selected = i-1;
             }
 	}
-      while(is_a_gap(&current_menu->menuitems[current_menu->selected]));
+      while(!selectable(selected_item(current_menu)));
       
-      S_StartSound(NULL,sfx_pstop);  // make sound
+      S_StartSound(NULL, sfx_pstop);  // make sound
       
       return true;  // eatkey
     }
@@ -638,12 +677,12 @@ boolean MN_Responder (event_t *ev)
       do
 	{
 	  ++current_menu->selected;
-	  if(current_menu->menuitems[current_menu->selected].type == it_end)
+	  if(selected_item(current_menu)->type == it_end)
 	    {
 	      current_menu->selected = 0;     // jump back to start
 	    }
 	}
-      while(is_a_gap(&current_menu->menuitems[current_menu->selected]));
+      while(!selectable(selected_item(current_menu)));
       
       S_StartSound(NULL,sfx_pstop);  // make sound
       
@@ -652,7 +691,7 @@ boolean MN_Responder (event_t *ev)
   
   if(ev->data1 == key_menu_enter)
     {
-      menuitem_t *menuitem = &current_menu->menuitems[current_menu->selected];
+      menuitem_t *menuitem = selected_item(current_menu);
       
       switch(menuitem->type)
 	{
@@ -692,9 +731,6 @@ boolean MN_Responder (event_t *ev)
 
 	case it_automap:
 	  {
-	    menuitem_t *menuitem =
-	      &current_menu->menuitems[current_menu->selected];
-
 	    MN_SelectColour(menuitem->data);
 
 	    return true;
@@ -714,8 +750,7 @@ boolean MN_Responder (event_t *ev)
   // decrease value of variable
   if(ev->data1 == key_menu_left)
     {
-      menuitem_t *menuitem =
-	&current_menu->menuitems[current_menu->selected];
+      menuitem_t *menuitem = selected_item(current_menu);
       
       switch(menuitem->type)
 	{
@@ -742,8 +777,7 @@ boolean MN_Responder (event_t *ev)
   // increase value of variable
   if(ev->data1 == key_menu_right)
     {
-      menuitem_t *menuitem =
-	&current_menu->menuitems[current_menu->selected];
+      menuitem_t *menuitem = selected_item(current_menu);
       
       switch(menuitem->type)
 	{
@@ -771,9 +805,8 @@ boolean MN_Responder (event_t *ev)
   // search for matching item in menu
 
   ch = tolower(ev->data1);
-  if(ch >= 'a' && ch <= 'z')
+  if(isalnum(ch))
     {
-      
       // sf: experimented with various algorithms for this
       //     this one seems to work as it should
 
@@ -785,7 +818,7 @@ boolean MN_Responder (event_t *ev)
 	  if(current_menu->menuitems[n].type == it_end) n = 0; // loop round
 
 	  // ignore unselectables
-	  if(!is_a_gap(&current_menu->menuitems[n])) 
+	  if(selectable(&current_menu->menuitems[n])) 
 	    if(tolower(current_menu->menuitems[n].description[0]) == ch)
 	      {
 		// found a matching item!
@@ -819,10 +852,86 @@ void MN_ActivateMenu()
     }
 }
 
+////////////////////////////////////////////////////////////////////////////
+//
+// Start Menu
+//
+
+// ensure we have a valid item selected on a menu
+static void MN_SelectValidItem(menu_t *menu)
+{
+  int start = menu->selected;
+  
+  while(!selectable(selected_item(menu)))
+    {
+      ++menu->selected;
+      if(selected_item(menu)->type == it_end)
+	{
+	  menu->selected = 0;     // jump back to start
+	}
+      if(menu->selected == start)
+	{
+	  // no selectable items
+	  return;  
+	}
+    }
+}
+
+/////////////////////////////
+//
+// Menu caching
+//
+
+static void MN_GetItemVariable(menuitem_t *item)
+{
+  // get variable if neccesary
+
+  if(!item->var)
+    {
+      command_t *cmd;
+      // use data for variable name
+      if(!(cmd = C_GetCmdForName(item->data)))
+        {
+          C_Printf("variable not found: %s\n", item->data);
+	  item->type = it_disabled;   // disable item
+	  // possibly change selected item on menu
+	  MN_SelectValidItem(drawing_menu);
+	  return;
+        }
+      item->var = cmd->variable;
+    }
+}
+
+// Called on menu activation.
+// Get all variables for menu items
+// cache any other stuff
+static void MN_CacheMenu(menu_t *menu)
+{
+  int i;
+
+  for(i=0; menu->menuitems[i].type != it_end; i++)
+    {
+      if(menu->menuitems[i].type == it_variable ||
+	 menu->menuitems[i].type == it_toggle ||
+	 menu->menuitems[i].type == it_slider ||
+	 menu->menuitems[i].type == it_automap)
+	MN_GetItemVariable(&menu->menuitems[i]);
+    }
+}
+
 // start a menu:
 
 void MN_StartMenu(menu_t *menu)
 {
+  MN_CacheMenu(menu);
+
+  // ensure we have a selectable item selected on new menu
+  MN_SelectValidItem(menu);
+
+  // no selectable items? then dont start menu
+  if(!selectable(selected_item(menu)))
+    return;
+  
   if(!menuactive)
     {
       MN_ActivateMenu();
@@ -889,6 +998,8 @@ void MN_ErrorMsg(char *s, ...)
 
 // activate main menu
 
+extern menu_t menu_main;
+
 void MN_StartControlPanel()
 {
   MN_StartMenu(&menu_main);
@@ -911,6 +1022,7 @@ void MN_WriteText(unsigned char *s, int x, int y)
   int   w;
   unsigned char* ch;
   char *colour = cr_red;
+  boolean translucent = false;
   unsigned int c;
   int   cx;
   int   cy;
@@ -926,10 +1038,20 @@ void MN_WriteText(unsigned char *s, int x, int y)
       if (!c)
 	break;
       if (c >= 128)     // new colour
-      {
-           colour = colrngs[c - 128];
-           continue;
-      }
+	{
+	  if(c == *(unsigned char *)FC_TRANS)
+	    translucent = !translucent;
+	  else
+	    {
+	      int colnum = c - 128;
+	      
+	      if(colnum < 0 || colnum >= CR_LIMIT)
+		I_Error("MN_WriteText: invalid colour %i\n", colnum);
+	      else
+		colour = colrngs[colnum];
+	    }
+	  continue;
+	}
       if (c == '\t')
         {
           cx = (cx/40)+1;
@@ -956,7 +1078,10 @@ void MN_WriteText(unsigned char *s, int x, int y)
       if (cx+w > SCREENWIDTH)
 	break;
 
-      V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
+      if(translucent)
+	V_DrawPatchTL(cx, cy, 0, patch, colour);
+      else
+	V_DrawPatchTranslated(cx, cy, 0, patch, colour, 0);
 
       cx+=w-1;
     }
@@ -971,14 +1096,14 @@ void MN_WriteTextColoured(unsigned char *s, int colour, int x, int y)
 
         // if string bigger than allocated, realloc bigger
    if(!tempstr || strlen(s) > allocedsize)
-   {
-      if(tempstr)       // already alloced?
-        tempstr = realloc(tempstr, strlen(s) + 5);
-      else
-        tempstr = malloc(strlen(s) + 5);
-
-      allocedsize = strlen(s);  // save for next time
-   }
+     {
+       if(tempstr)       // already alloced?
+	 tempstr = realloc(tempstr, strlen(s) + 5);
+       else
+	 tempstr = malloc(strlen(s) + 5);
+       
+       allocedsize = strlen(s);  // save for next time
+     }
 
    tempstr[0] = 128 + colour;
    strcpy(&tempstr[1], s);
@@ -1010,6 +1135,7 @@ int MN_StringWidth(unsigned char *s)
 
 extern void MN_AddMenus();              // mn_menus.c
 extern void MN_AddMiscCommands();       // mn_misc.c
+extern void MN_AddFileCommands();       // mn_files.c
 
 void MN_AddCommands()
 {
@@ -1018,4 +1144,5 @@ void MN_AddCommands()
 
   MN_AddMenus();               // add commands to call the menus
   MN_AddMiscCommands();
+  MN_AddFileCommands();
 }

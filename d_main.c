@@ -84,9 +84,8 @@ static char *D_dehout(void)
 
 char **wadfiles;
 
-// killough 10/98: preloaded files
-#define MAXLOADFILES 2
-char *wad_files[MAXLOADFILES], *deh_files[MAXLOADFILES];
+extern char *wadfile_1, *wadfile_2;
+extern char *dehfile_1, *dehfile_2;
 
 int textmode_startup = 0;  // sf: textmode_startup for old-fashioned people
 int use_startmap = -1;     // default to -1 for asking in menu
@@ -283,12 +282,12 @@ void D_Display (void)
   MN_Drawer();         // menu is drawn even on top of everything
   NetUpdate();         // send out any new accumulation
 
-    //sf : now system independent
+  //sf : now system independent
   if(v_ticker)
     V_FPSDrawer();
 
-        // sf: wipe changed: runs alongside the rest of the game rather
-        //     than in its own loop
+  // sf: wipe changed: runs alongside the rest of the game rather
+  //     than in its own loop
 
   I_FinishUpdate ();              // page flip or blit buffer
 }
@@ -1084,59 +1083,60 @@ static void D_ProcessDehCommandLine(void)
 
 // killough 10/98: support preloaded wads
 
+// sf: load a specific file -- used by D_ProcessWadPreincludes
+static void D_ProcessWadPreinclude(char *filename)
+{
+  while (isspace(*filename))
+    filename++;
+  if (*filename)
+    {
+      char tempstr[PATH_MAX+1];
+      AddDefaultExtension(strcpy(tempstr, filename), ".wad");
+      if (!access(tempstr, R_OK))
+	D_AddFile(tempstr);
+      else
+        usermsg("\nWarning: could not open %s\n", tempstr);
+    }
+}
+
 static void D_ProcessWadPreincludes(void)
 {
   if (!M_CheckParm ("-noload"))
     {
-      int i;
-      char *s;
-      for (i=0; i<MAXLOADFILES; i++)
-	if ((s=wad_files[i]))
-	  {
-	    while (isspace(*s))
-	      s++;
-	    if (*s)
-	      {
-		char file[PATH_MAX+1];
-		AddDefaultExtension(strcpy(file, s), ".wad");
-		if (!access(file, R_OK))
-		  D_AddFile(file);
-		else
-		  printf("\nWarning: could not open %s\n", file);
-	      }
-	  }
+      D_ProcessWadPreinclude(wadfile_1);
+      D_ProcessWadPreinclude(wadfile_2);
     }
 }
 
 // killough 10/98: support preloaded deh/bex files
 
+static void D_ProcessDehPreinclude(char *filename)
+{
+  while (isspace(*filename))
+    filename++;
+  if (*filename)
+    {
+      char tempstr[PATH_MAX+1];
+      AddDefaultExtension(strcpy(tempstr, filename), ".bex");
+      if (!access(tempstr, R_OK))
+	ProcessDehFile(tempstr, D_dehout(), 0);
+      else
+	{
+	  AddDefaultExtension(strcpy(tempstr, filename), ".deh");
+	  if (!access(tempstr, R_OK))
+	    ProcessDehFile(tempstr, D_dehout(), 0);
+	  else
+	    printf("\nWarning: could not open %s .deh or .bex\n", tempstr);
+	}
+    }
+}
+
 static void D_ProcessDehPreincludes(void)
 {
   if (!M_CheckParm ("-noload"))
     {
-      int i;
-      char *s;
-      for (i=0; i<MAXLOADFILES; i++)
-	if ((s=deh_files[i]))
-	  {
-	    while (isspace(*s))
-	      s++;
-	    if (*s)
-	      {
-		char file[PATH_MAX+1];
-		AddDefaultExtension(strcpy(file, s), ".bex");
-		if (!access(file, R_OK))
-		  ProcessDehFile(file, D_dehout(), 0);
-		else
-		  {
-		    AddDefaultExtension(strcpy(file, s), ".deh");
-		    if (!access(file, R_OK))
-		      ProcessDehFile(file, D_dehout(), 0);
-		    else
-		      printf("\nWarning: could not open %s .deh or .bex\n", s);
-		  }
-	      }
-	  }
+      D_ProcessDehPreinclude(dehfile_1);
+      D_ProcessDehPreinclude(dehfile_2);
     }
 }
 
@@ -1712,12 +1712,18 @@ void D_ReInitWadfiles()
   R_FreeData();
   R_Init();
   P_Init();
+  ST_reloadData();
+  MN_ReloadGraphics();
 }
+
+boolean wad_level;  // set true if most recently loaded wad contains a level
 
 void D_NewWadLumps(int handle)
 {
   int i;
   char wad_firstlevel[9] = "";
+
+  wad_level = false;
   
   for(i=0; i<numlumps; i++)
     {
@@ -1726,6 +1732,8 @@ void D_NewWadLumps(int handle)
       if(!strncmp(lumpinfo[i]->name, "THINGS", 8))    // a level
 	{
 	  char *name = lumpinfo[i-1]->name; // previous lump
+
+	  wad_level = true;      // contains a level
 	  
 	  // 'ExMy'
 	  if(isExMy(name) && isExMy(wad_firstlevel))

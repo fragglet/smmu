@@ -182,7 +182,7 @@ void HU_NewLevel()
   
   C_Printf("\n");
   C_Seperator();
-  C_Printf("%c  %s\n\n", 128+CR_GRAY, levelname);
+  C_Printf(FC_GRAY "%s\n\n", levelname);
   C_InstaPopup();       // put console away
   //  C_Update();
 }

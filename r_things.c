@@ -514,9 +514,13 @@ void R_ProjectSprite (mobj_t* thing)
 
   heightsec = thing->subsector->sector->heightsec;
 
-  if (heightsec != -1)   // only clip things which are in special sectors
+  // only clip things which are in special sectors
+  // sf: fix this for viewpoints not from viewplayer->mo
+  // use viewsector instead of viewplayer->mo->subsector->sector
+  
+  if (heightsec != -1)
     {
-      int phs = viewplayer->mo->subsector->sector->heightsec;
+      int phs = viewsector->heightsec;
       if (phs != -1 && viewz < sectors[phs].floorheight ?
           thing->z >= sectors[heightsec].floorheight :
           gzt < sectors[heightsec].floorheight)
@@ -705,11 +709,11 @@ void R_DrawPSprite (pspdef_t *psp)
 
   if (viewplayer->powers[pw_invisibility] > 4*32
    || viewplayer->powers[pw_invisibility] & 8)
-  {
-           // sf: shadow draw now detected by flags
-     vis->mobjflags |= MF_SHADOW;                    // shadow draw
-     vis->colormap = colormaps[0];
-  }
+    {
+      // sf: shadow draw now detected by flags
+      vis->mobjflags |= MF_SHADOW;                    // shadow draw
+      vis->colormap = colormaps[0];
+    }
   else if (fixedcolormap)
     vis->colormap = fixedcolormap;           // fixed color
   else if (psp->state->frame & FF_FULLBRIGHT)
@@ -720,18 +724,20 @@ void R_DrawPSprite (pspdef_t *psp)
   if(psp->trans) // translucent gunflash
     vis->mobjflags |= MF_TRANSLUCENT;
 
+  // sf: bfg in fixed position, y-shearing support
+  
   if(viewplayer->readyweapon == wp_bfg && bfglook==2)
-  {
-    R_DrawVisSprite (vis, vis->x1, vis->x2);
-  }
+    {
+      R_DrawVisSprite (vis, vis->x1, vis->x2);
+    }
   else
-  {
-    centery = viewheight/2 ;
-    centeryfrac = centery << FRACBITS;
-    R_DrawVisSprite (vis, vis->x1, vis->x2);
-    centery = (viewheight/2) + updownangle;
-    centeryfrac = centery<<FRACBITS;
-  }
+    {
+      centery = viewheight/2 ;
+      centeryfrac = centery << FRACBITS;
+      R_DrawVisSprite (vis, vis->x1, vis->x2);
+      centery = (viewheight/2) + updownangle;
+      centeryfrac = centery<<FRACBITS;
+    }
 }
 
 //
@@ -952,7 +958,8 @@ void R_DrawSprite (vissprite_t* spr)
   if (spr->heightsec != -1)  // only things in specially marked sectors
     {
       fixed_t h,mh;
-      int phs = viewplayer->mo->subsector->sector->heightsec;
+      // sf: use viewsector, not viewplayer->mo->subsector->sector
+      int phs = viewsector->heightsec;
       if ((mh = sectors[spr->heightsec].floorheight) > spr->gz &&
           (h = centeryfrac - FixedMul(mh-=viewz, spr->scale)) >= 0 &&
           (h >>= FRACBITS) < viewheight)

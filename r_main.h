@@ -31,22 +31,23 @@
 // POV related.
 //
 
-extern fixed_t  viewcos;
-extern fixed_t  viewsin;
-extern int      viewwidth;
-extern int      viewheight;
-extern int      viewwindowx;
-extern int      viewwindowy;
-extern int      centerx;
-extern int      centery;
-extern fixed_t  centerxfrac;
-extern fixed_t  centeryfrac;
-extern fixed_t  projection;
-extern int      validcount;
-extern int      linecount;
-extern int      loopcount;
+extern fixed_t    viewcos;
+extern fixed_t    viewsin;
+extern int        viewwidth;
+extern int        viewheight;
+extern int        viewwindowx;
+extern int        viewwindowy;
+extern sector_t  *viewsector;
+extern int        centerx;
+extern int        centery;
+extern fixed_t    centerxfrac;
+extern fixed_t    centeryfrac;
+extern fixed_t    projection;
+extern int        validcount;
+extern int        linecount;
+extern int        loopcount;
 
-extern boolean  showpsprites;
+extern boolean    showpsprites;
 
 //
 // Lighting LUT.

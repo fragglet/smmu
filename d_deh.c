@@ -41,36 +41,63 @@ typedef struct {
 #define feof(buf) dehfeof(buf)
 #define fgetc(buf) dehfgetc(buf)
 
+#define DEHFIX
+
+// sf: fix dehacked bug:
+// on dos machines text files are stored with 2 linefeed characters.
+// When reading this in lumps it can cause detection of strings with
+// multiple lines to mess up.
+// New code to read characters from lumps ignores unprintable characters
+// also slightly more readable -- killough the obfuscating menace
+// strikes again
+
+int dehfgetc(DEHFILE *fp)
+{
+  if(!fp->lump)
+    return (fgetc)((FILE *) fp->inp);
+
+  // skip past unprintable characters (except \n)
+  
+  while(fp->size > 0 && !isprint(*fp->inp) && *fp->inp != '\n')
+    fp->inp++, fp->size--;
+
+  // check for end of lump
+  if(fp->size <= 0) return EOF;
+  
+  fp->size--;
+  return *fp->inp++;
+}
+
 char *dehfgets(char *buf, size_t n, DEHFILE *fp)
 {
+  char *p = buf;
+  
   if (!fp->lump)                                     // If this is a real file,
     return (fgets)(buf, n, (FILE *) fp->inp);        // return regular fgets
+
   if (!n || !*fp->inp || fp->size<=0)                // If no more characters
     return NULL;
-  if (n==1)
-    fp->size--, *buf = *fp->inp++;
-  else
-    {                                                // copy buffer
-      char *p = buf;
-      while (n>1 && *fp->inp && fp->size &&
-             (n--, fp->size--, *p++ = *fp->inp++) != '\n')
-        ;
-      *p = 0;
-    }
-  return buf;                                        // Return buffer pointer
+
+  // copy string
+  
+  // only read n characters
+  for(;n > 0; n--)
+    if(fp->size <= 0 || !*fp->inp ||       // stop once end of lump
+       ((*p++ = dehfgetc(fp)) == '\n'))    // stop if newline read
+      {
+	*p = '\0';         // end string
+	break;
+      }
+
+  return buf;
 }
 
 int dehfeof(DEHFILE *fp)
 {
-  return !fp->lump ? (feof)((FILE *) fp->inp) : !*fp->inp || fp->size<=0;
+  return !fp->lump ?
+    (feof)((FILE *) fp->inp) :   // normal file feof
+    !*fp->inp || fp->size<=0;    // check if anything left to read from lump
 }
-
-int dehfgetc(DEHFILE *fp)
-{
-  return !fp->lump ? (fgetc)((FILE *) fp->inp) : fp->size > 0 ?
-    fp->size--, *fp->inp++ : EOF;
-}
-
 
 // variables used in other routines
 boolean deh_pars = FALSE; // in wi_stuff to allow pars in modified games
@@ -90,7 +117,7 @@ char *s_D_DEVSTR    = D_DEVSTR;
 char *s_D_CDROM     = D_CDROM;
 char *s_PRESSKEY    = PRESSKEY;
 char *s_PRESSYN     = PRESSYN;
-char *s_QUITMSG     = NULL;    // sf: optional quitmsg replacement
+char *s_QUITMSG     = "";    // sf: optional quitmsg replacement
 char *s_LOADNET     = LOADNET;   // PRESSKEY; // killough 4/4/98:
 char *s_QLOADNET    = QLOADNET;  // PRESSKEY;
 char *s_QSAVESPOT   = QSAVESPOT; // PRESSKEY;

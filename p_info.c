@@ -11,8 +11,6 @@
 //
 //-----------------------------------------------------------------------------
 
-/* includes ************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -64,39 +62,47 @@ enum
 void P_LoadLevelInfo(int lumpnum)
 {
   char *lump;
-  char *rover;
-  char *startofline;
-
+  char readline[256];
+  
   readtype = RT_OTHER;
   P_ClearLevelVars();
 
-  lump = W_CacheLumpNum(lumpnum, PU_STATIC);
+  rover = lump = W_CacheLumpNum(lumpnum, PU_STATIC);
   
-  rover = startofline = lump;
+  readline[0] = '\0';
   
   while(rover < lump+lumpinfo[lumpnum]->size)
     {
       if(*rover == '\n') // end of line
 	{
-	  *rover = 0;               // make it an end of string (0)
-	  P_ParseInfoCmd(startofline);
-	  startofline = rover+1; // next line
-	  *rover = '\n';            // back to end of line
+	  P_ParseInfoCmd(readline);  // parse line
+	  readline[0] = '\0';        // clear buffer for next line
 	}
+      else
+	// add to line if valid char
+	
+	if(isprint(*rover))
+	  {
+	    // add char
+	    readline[strlen(readline)+1] = '\0';
+	    readline[strlen(readline)] = *rover;	    
+	  }
+      
       rover++;
     }
+  
+  // parse last line
+  P_ParseInfoCmd(readline);
+  
   Z_Free(lump);
   
   P_InitWeapons();
 }
 
 void P_ParseInfoCmd(char *line)
-{
-  P_CleanLine(line);
-  
+{  
   if(readtype != RT_SCRIPT)       // not for scripts
     {
-      P_StripSpaces(line);
       P_LowerCase(line);
       while(*line == ' ') line++;
       if(!*line) return;
@@ -243,7 +249,7 @@ void P_ClearLevelVars()
 	  nextlevel[1] ++;
 	}
       
-                info_music = levelmapname;
+      info_music = levelmapname;
     }
   else 
     info_nextlevel = "";
@@ -275,14 +281,6 @@ void P_ParseScriptLine(char *line)
   
   // add the new line to the current data using sprintf (ugh)
   sprintf(levelscript.data, "%s%s\n", levelscript.data, line);
-}
-
-void P_CleanLine(char *line)
-{
-  char *temp;
-  
-  for(temp=line; *temp; temp++)
-    *temp = *temp<32 ? ' ' : *temp;
 }
 
 void P_LowerCase(char *line)

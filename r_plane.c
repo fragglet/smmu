@@ -50,6 +50,8 @@ rcsid[] = "$Id: r_plane.c,v 1.8 1998/05/03 23:09:53 killough Exp $";
 #include "r_plane.h"
 #include "v_video.h"
 
+#define SF 2
+
 #define MAXVISPLANES 128    /* must be a power of 2 */
 
 static visplane_t *visplanes[MAXVISPLANES];   // killough
@@ -159,7 +161,7 @@ static void R_MapPlane(int y, int x1, int x2)
   // killough 2/28/98: Add offsets
   ds_xfrac =  viewx + FixedMul(finecosine[angle], length) + xoffs;
   ds_yfrac = -viewy - FixedMul(finesine[angle],   length) + yoffs;
-
+  
   if (!(ds_colormap = fixedcolormap))
     {
       index = distance >> LIGHTZSHIFT;
@@ -176,7 +178,6 @@ static void R_MapPlane(int y, int x1, int x2)
     R_DrawTLSpan();
   else
     R_DrawSpan();
-
 
   // visplane viewing
 
@@ -205,7 +206,6 @@ void R_ClearPlanes(void)
   a = consoleactive ?
       (current_height-viewwindowy) < 0 ? -1: current_height-viewwindowy
                     : -1;
-  a = -1;
   
   // opening / clipping determination
   for (i=0 ; i<viewwidth ; i++)

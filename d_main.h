@@ -61,6 +61,8 @@ extern boolean redrawsbar, redrawborder;
 void D_PostEvent(event_t* ev);
 
 extern camera_t *camera;
+
+extern boolean wad_level;
 extern char firstlevel[9];       // sf: first level of new wads
 
 //

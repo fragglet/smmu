@@ -77,7 +77,7 @@ static fixed_t  topstep;
 static fixed_t  bottomfrac;
 static fixed_t  bottomstep;
 
-//#define TRANWATER
+// #define TRANWATER
 #ifdef TRANWATER
 static fixed_t  bottomfrac2;    //sf
 static fixed_t  bottomstep2;

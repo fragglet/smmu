@@ -30,6 +30,7 @@
 #include "s_sound.h"
 #include "w_wad.h"
 #include "v_video.h"
+#include "z_zone.h"
 
 // menus: all in this file (not really extern)
 extern menu_t menu_newgame;
@@ -79,7 +80,6 @@ menu_t menu_main =
     {it_end},
   },
   100, 65,                // x, y offsets
-  0,                     // start with 'new game' selected
   mf_skullmenu,          // a skull menu
   MN_MainMenuDrawer
 };
@@ -119,12 +119,18 @@ CONSOLE_COMMAND(mn_newgame, 0)
             }
         }
       else
-	MN_StartMenu(&menu_newgame);
+	{
+	  MN_StartMenu(&menu_newgame);
+	  menu_newgame.selected = 4 + defaultskill-1;
+	}
     }
   else
     {
       if(modifiedgame)
-	MN_StartMenu(&menu_newgame);
+	{
+	  MN_StartMenu(&menu_newgame);
+	  menu_newgame.selected = 4 + defaultskill-1;
+	}
       else
 	{
 	  // hack -- cut off thy flesh consumed if not retail
@@ -150,7 +156,7 @@ CONSOLE_COMMAND(mn_quit, 0)
 
   // sf: use s_QUITMSG if it has been replaced in a dehacked file
   sprintf(quitmsg, "%s\n\n%s",
-	  s_QUITMSG ? s_QUITMSG : endmsg[quitmsgnum],
+	  *s_QUITMSG ? s_QUITMSG : endmsg[quitmsgnum],
 	  s_DOSY);
   
   MN_Question(quitmsg, "quit");
@@ -176,7 +182,6 @@ menu_t menu_episode =
     {it_end},
   },
   40, 30,              // x, y offsets
-  2,                   // select episode 1
   mf_skullmenu,        // skull menu
 };
 
@@ -199,6 +204,7 @@ CONSOLE_COMMAND(mn_episode, cf_notnet)
     }
 
   MN_StartMenu(&menu_newgame);
+  menu_newgame.selected = 4 + defaultskill-1;
 }
 
 //////////////////////////////////////////////////////////
@@ -221,7 +227,6 @@ menu_t menu_newgame =
     {it_end},
   },
   40, 15,               // x,y offsets
-  6,                    // starting item: hurt me plenty
   mf_skullmenu,         // is a skull menu
 };
 
@@ -267,7 +272,6 @@ menu_t menu_startmap =
     {it_end},
   },
   40, 15,               // x,y offsets
-  7,                    // starting item: start map
   mf_leftaligned | mf_background, 
 };
 
@@ -298,7 +302,6 @@ menu_t menu_features =
     {it_end},
   },
   100, 15,                              // x,y
-  3,                                    // start item
   mf_leftaligned | mf_skullmenu         // skull menu
 };
 
@@ -320,22 +323,26 @@ menu_t menu_demos =
   {
     {it_title,      FC_GOLD "demos",          NULL,             "m_demos"},
     {it_gap},
-    {it_info,       FC_GOLD "play demo"},
     {it_variable,   "demo name",              "mn_demoname"},
     {it_gap},
+    {it_info,       FC_GOLD "play demo"},
+    {it_runcmd,     "select demo",            "mn_selectlmp"},
     {it_runcmd,     "play demo",              "mn_clearmenus; playdemo %mn_demoname"},
     {it_runcmd,     "time demo",              "mn_clearmenus; timedemo %mn_demoname"},
-    {it_runcmd,     "stop playing demo",      "mn_clearmenus; stopdemo"},
+    {it_gap},
+    {it_info,       FC_GOLD "record demo"},
+    {it_gap},
+    {it_info,       FC_GOLD "misc."},
+    {it_runcmd,     "stop demo",              "mn_clearmenus; stopdemo"},
+    {it_toggle,     "demo insurance",         "demo_insurance"},
     {it_gap},
     {it_info,       FC_GOLD "cameras"},
     {it_toggle,     "viewpoint changes",      "cooldemo"},
     {it_toggle,     "chasecam",               "chasecam"},
     {it_toggle,     "walkcam",                "walkcam"},
-    {it_gap},
     {it_end},
   },
-  150, 40,           // x,y
-  3,                // start item
+  150, 20,           // x,y
   mf_background,    // full screen
 };
 
@@ -363,15 +370,18 @@ menu_t menu_loadwad =
     {it_variable,  "wad name",          "mn_wadname"},
     {it_runcmd,    "select wad",        "mn_selectwad"},
     {it_gap},
-    {it_runcmd,    "load wad",          "addfile %mn_wadname; starttitle"},
+    {it_runcmd,    "load wad",          "endgame; mn_clearmenus;"
+                                        "map %mn_wadname"},
+    {it_gap},
+    {it_info,       FC_GOLD "misc."},
+    {it_variable,   "wad directory",    "wad_directory"},
     {it_end},
   },
   150, 40,                     // x,y offsets
-  3,                          // starting item
   mf_background               // full screen 
 };
 
-VARIABLE_STRING(mn_wadname,     NULL,           15);
+VARIABLE_STRING(mn_wadname,     NULL,           40);
 CONSOLE_VARIABLE(mn_wadname,    mn_wadname,     0) {}
 
 CONSOLE_COMMAND(mn_loadwad, cf_notnet)
@@ -404,7 +414,7 @@ menu_t menu_multiplayer =
     {it_gap},
     {it_info,   FC_GOLD "connect:"},
     {it_runcmd, "serial/modem",         "mn_serial"},
-    {it_runcmd, "tcp/ip",               "mn_tcpip"},
+    {it_disabled, "tcp/ip",               "mn_tcpip"},
     {it_gap},
     {it_runcmd, "disconnect",           "disconnect"},
     {it_gap},
@@ -415,7 +425,6 @@ menu_t menu_multiplayer =
     {it_end},
   },
   100, 15,                                      // x,y offsets
-  4,                                            // starting item
   mf_background|mf_leftaligned,                 // fullscreen
 };
 
@@ -460,7 +469,6 @@ menu_t menu_multigame =
     {it_end},
   },
   130, 15,
-  2,                            // start
   mf_background,                // full screen
 };
 
@@ -548,7 +556,6 @@ menu_t menu_advanced =
     {it_end},
   },
   170, 15,
-  2,                            // start
   mf_background,                // full screen
 };
 
@@ -574,7 +581,6 @@ menu_t menu_tcpip =
     {it_end},
   },
   180,15,                       // x,y offset
-  3,
   mf_background,                // full-screen
 };
 
@@ -604,7 +610,6 @@ menu_t menu_serial =
     {it_end},
   },
   180,15,                       // x,y offset
-  3,
   mf_background,                // fullscreen
 };
 
@@ -639,7 +644,6 @@ menu_t menu_chatmacros =
     {it_end}
   },
   20,5,                                 // x, y offset
-  2,                                    // chatmacro0 at start
   mf_background,                        // full-screen
 };
 
@@ -668,7 +672,6 @@ menu_t menu_player =
     {it_end}
   },
   150,5,                                // x, y offset
-  2,                                    // chatmacro0 at start
   mf_background,                        // full-screen
   MN_PlayerDrawer
 };
@@ -793,7 +796,7 @@ void MN_ReadSaveStrings(void)
       G_SaveGameName(name, i);
 
       if(savegamenames[i])
-	free(savegamenames[i]);
+ 	Z_Free(savegamenames[i]);
 
       fp = fopen(name,"rb");
       if (!fp)
@@ -803,7 +806,7 @@ void MN_ReadSaveStrings(void)
 	}
 
       fread(description, SAVESTRINGSIZE, 1, fp);
-      savegamenames[i] = strdup(description);
+      savegamenames[i] = Z_Strdup(description, PU_STATIC, 0);
       fclose(fp);
     }
 }
@@ -854,7 +857,6 @@ menu_t menu_loadgame =
     {it_end},
   },
   50, 15,                           // x, y
-  2,                                // starting slot
   mf_skullmenu | mf_leftaligned,    // skull menu
   MN_LoadGameDrawer,
 };
@@ -885,7 +887,7 @@ CONSOLE_COMMAND(mn_loadgame, 0)
       return;
     }
 
-  MN_ReadSaveStrings();  // get savegame descriptions
+  //  MN_ReadSaveStrings();  // get savegame descriptions
   MN_StartMenu(&menu_loadgame);
 }
 
@@ -941,7 +943,6 @@ menu_t menu_savegame =
     {it_end},
   },
   50, 15,                           // x, y
-  2,                                // starting slot
   mf_skullmenu | mf_leftaligned,    // skull menu
   MN_SaveGameDrawer,
 };
@@ -967,7 +968,7 @@ menu_t menu_options =
     {it_title,  FC_GOLD "options",              NULL,             "M_OPTTTL"},
     {it_gap},
     {it_info,   FC_GOLD "input"},
-    {it_info,   FC_BRICK "key bindings",        "mn_keybindings"},
+    {it_disabled, "key bindings",        "mn_keybindings"},
     {it_runcmd, "mouse options",                "mn_mouse"},
     {it_gap},
     {it_info,   FC_GOLD "output"},
@@ -978,6 +979,7 @@ menu_t menu_options =
     {it_runcmd, "compatibility",                "mn_compat"},
     {it_runcmd, "enemies",                      "mn_enemies"},
     {it_runcmd, "weapons",                      "mn_weapons"},
+    {it_runcmd, "misc.",                        "mn_misc"},
     {it_runcmd, "end game",                     "mn_endgame"},
     {it_gap},
     {it_info,   FC_GOLD "game widgets"},
@@ -987,7 +989,6 @@ menu_t menu_options =
     {it_end},
   },
   100, 15,                              // x,y offsets
-  4,                                    // starting item: first selectable
   mf_background|mf_leftaligned,         // draw background: not a skull menu
 };
 
@@ -1039,7 +1040,6 @@ menu_t menu_video =
     {it_end},
   },
   200, 15,              // x,y offset
-  2,                    // start on first selectable
   mf_background,        // full-screen menu
   MN_VideoModeDrawer
 };
@@ -1087,7 +1087,6 @@ menu_t menu_vidmode =
       {it_end},
     },
     50, 15,              // x,y offset
-    7,                    // start on first selectable
     mf_leftaligned|mf_background,        // full-screen menu
     MN_VidModeDrawer,
   };
@@ -1125,6 +1124,7 @@ CONSOLE_COMMAND(mn_vidmode, 0)
     }
 
   MN_StartMenu(&menu_vidmode);
+  menu_vidmode.selected = 6+v_mode;
 }
 
 
@@ -1154,7 +1154,6 @@ menu_t menu_sound =
     {it_end},
   },
   180, 15,                     // x, y offset
-  3,                           // first selectable
   mf_background,               // full-screen menu
 };
 
@@ -1190,7 +1189,6 @@ menu_t menu_mouse =
       {it_end},
   },
   200, 15,                      // x, y offset
-  2,                            // first selectable
   mf_background,                // full-screen menu
 };
 
@@ -1229,7 +1227,6 @@ menu_t menu_hud =
     {it_end},
   },
   200, 15,                             // x,y offset
-  3,
   mf_background,
 };
 
@@ -1267,7 +1264,6 @@ menu_t menu_statusbar =
     {it_end},
   },
   200, 15,
-  3,
   mf_background,
 };
 
@@ -1310,7 +1306,6 @@ menu_t menu_automap =
     {it_end},
   },
   200, 15,              // x,y
-  2,                    // starting item
   mf_background,        // fullscreen
 };
 
@@ -1334,7 +1329,7 @@ menu_t menu_weapons =
     {it_toggle,     "bfg type",                       "bfgtype"},
     {it_toggle,     "bobbing",                        "bobbing"},
     {it_toggle,     "recoil",                         "recoil"},
-    {it_info,       FC_BRICK "fist/chainsaw switch"},
+    {it_disabled,     "fist/chainsaw switch"},
     {it_gap},
     {it_info,       FC_GOLD "weapon prefs."},
     {it_variable,   "1st choice",                     "weappref_1"},
@@ -1349,7 +1344,6 @@ menu_t menu_weapons =
     {it_end},
   },
   150, 15,                             // x,y offset
-  3,                                   // starting item
   mf_background,                       // full screen
 };
 
@@ -1397,7 +1391,6 @@ menu_t menu_compat =
     {it_end},
   },
   270, 5,                     // x,y
-  3,                           // starting item
   mf_background,               // full screen
 };
 
@@ -1431,7 +1424,6 @@ menu_t menu_enemies =
     {it_end},
   },
   200,15,                             // x,y offset
-  3,                                  // starting item
   mf_background                       // full screen
 };
 
@@ -1440,6 +1432,36 @@ CONSOLE_COMMAND(mn_enemies, 0)
   MN_StartMenu(&menu_enemies);
 }
 
+//////////////////////////////////////////////////////////////////
+//
+// Miscellaneous game options
+//
+
+menu_t menu_misc =
+{
+  {
+    {it_title,        FC_GOLD "misc. game options",    NULL,   "m_misc"},
+    {it_gap},
+    {it_toggle,       "swirling water hack",           "r_swirl"},
+    {it_variable,     "game speed (pct)",              "i_gamespeed"},
+    {it_gap},
+    {it_info,         FC_GOLD "startup"},
+    {it_toggle,       "text mode startup",             "textmode_startup"},
+    {it_gap},
+    {it_variable,     "load wad 1",                    "wadfile_1"},
+    {it_variable,     "load wad 2",                    "wadfile_2"},
+    {it_variable,     "load deh 1",                    "dehfile_1"},
+    {it_variable,     "load deh 2",                    "dehfile_2"},
+    {it_end},
+  },
+  150, 15,                               // x, y offset
+  mf_background
+};
+
+CONSOLE_COMMAND(mn_misc, 0)
+{
+  MN_StartMenu(&menu_misc);
+}	  
 
 /////////////////////////////////////////////////////////////////
 //
@@ -1468,7 +1490,6 @@ menu_t menu_framerate =
     {it_end},
   },
   15, 15,                                // x, y
-  6,                                     // starting item
   mf_background | mf_leftaligned,        // align left
   MN_FrameRateDrawer,
 };
@@ -1565,7 +1586,8 @@ void MN_AddMenus()
   C_AddCommand(mn_hud);
   C_AddCommand(mn_status);
   C_AddCommand(mn_automap);
-
+  C_AddCommand(mn_misc);
+  
   C_AddCommand(newgame);
 
   // prompt messages

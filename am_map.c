@@ -104,22 +104,22 @@ extern int  key_map_grid;                                           // phares
 
 typedef struct
 {
-    int x, y;
+  int x, y;
 } fpoint_t;
 
 typedef struct
 {
-    fpoint_t a, b;
+  fpoint_t a, b;
 } fline_t;
 
 typedef struct
 {
-    mpoint_t a, b;
+  mpoint_t a, b;
 } mline_t;
 
 typedef struct
 {
-    fixed_t slp, islp;
+  fixed_t slp, islp;
 } islope_t;
 
 //
@@ -215,6 +215,8 @@ static mpoint_t m_paninc;    // how far the window pans each tic (map coords)
 static fixed_t mtof_zoommul; // how far the window zooms each tic (map coords)
 static fixed_t ftom_zoommul; // how far the window zooms each tic (fb coords)
 
+static fixed_t m_focalx, m_focaly;
+
 static fixed_t m_x, m_y;     // LL x,y window location on the map (map coords)
 static fixed_t m_x2, m_y2;   // UR x,y window location on the map (map coords)
 
@@ -266,6 +268,44 @@ int markpointnum_max = 0;       // killough 2/22/98
 int followplayer = 1; // specifies whether to follow the player around
 
 static boolean stopped = true;
+
+static angle_t rotation_angle = ANG180/6;
+
+//
+// AM_rotate()
+//
+// Rotation in 2D.
+// Used to rotate player arrow line character.
+//
+// Passed the coordinates of a point, and an angle
+// Returns the coordinates rotated by the angle
+//
+void AM_rotate
+( fixed_t*  x,
+  fixed_t*  y,
+  angle_t a )
+{
+  fixed_t tmpx;
+
+  tmpx =
+    FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT])
+    - FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
+  
+  *y   =
+    FixedMul(*x,finesine[a>>ANGLETOFINESHIFT])
+    + FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
+  
+  *x = tmpx;
+}
+
+void AM_rotatepoint(fixed_t *x, fixed_t *y, angle_t a)
+{
+  *x -= m_focalx;
+  *y -= m_focaly;
+  AM_rotate(x, y, a);
+  *x += m_focalx;
+  *y += m_focaly;
+}
 
 //
 // AM_getIslope()
@@ -324,8 +364,8 @@ void AM_activateNewScale(void)
 //
 void AM_saveScaleAndLoc(void)
 {
-  old_m_x = m_x;
-  old_m_y = m_y;
+  old_m_x = m_focalx;
+  old_m_y = m_focaly;
   old_m_w = m_w;
   old_m_h = m_h;
 }
@@ -342,18 +382,23 @@ void AM_restoreScaleAndLoc(void)
 {
   m_w = old_m_w;
   m_h = old_m_h;
-  if (!followplayer)
-  {
-    m_x = old_m_x;
-    m_y = old_m_y;
-  }
+
+  if (followplayer)
+    {
+      m_focalx = plr->mo->x;
+      m_focaly = plr->mo->y;
+    }
   else
-  {
-    m_x = plr->mo->x - m_w/2;
-    m_y = plr->mo->y - m_h/2;
-  }
-  m_x2 = m_x + m_w;
-  m_y2 = m_y + m_h;
+    {
+      m_focalx = old_m_x;
+      m_focaly = old_m_y;
+    }
+
+  m_x = m_focalx - m_w/2;
+  m_y = m_focaly - m_h/2;
+  
+  m_x2 = m_focalx + m_w/2;
+  m_y2 = m_focaly + m_h/2;
 
   // Change the scaling multipliers
   scale_mtof = FixedDiv(f_w<<FRACBITS, m_w);
@@ -375,8 +420,8 @@ void AM_addMark(void)
 
   if (markpointnum >= markpointnum_max)
     markpoints = realloc(markpoints,
-                        (markpointnum_max = markpointnum_max ? 
-                         markpointnum_max*2 : 16) * sizeof(*markpoints));
+			 (markpointnum_max = markpointnum_max ?
+			  markpointnum_max*2 : 16) * sizeof(*markpoints));
 
   markpoints[markpointnum].x = m_x + m_w/2;
   markpoints[markpointnum].y = m_y + m_h/2;
@@ -401,18 +446,18 @@ void AM_findMinMaxBoundaries(void)
   max_x = max_y = -MAXINT;
 
   for (i=0;i<numvertexes;i++)
-  {
-    if (vertexes[i].x < min_x)
-      min_x = vertexes[i].x;
-    else if (vertexes[i].x > max_x)
-      max_x = vertexes[i].x;
-
-    if (vertexes[i].y < min_y)
-      min_y = vertexes[i].y;
-    else if (vertexes[i].y > max_y)
-      max_y = vertexes[i].y;
-  }
-
+    {
+      if (vertexes[i].x < min_x)
+	min_x = vertexes[i].x;
+      else if (vertexes[i].x > max_x)
+	max_x = vertexes[i].x;
+      
+      if (vertexes[i].y < min_y)
+	min_y = vertexes[i].y;
+      else if (vertexes[i].y > max_y)
+	max_y = vertexes[i].y;
+    }
+  
   max_w = max_x - min_x;
   max_h = max_y - min_y;
 
@@ -436,14 +481,14 @@ void AM_findMinMaxBoundaries(void)
 void AM_changeWindowLoc(void)
 {
   if (m_paninc.x || m_paninc.y)
-  {
-    followplayer = 0;
-    f_oldloc.x = MAXINT;
-  }
-
+    {
+      followplayer = 0;
+      f_oldloc.x = MAXINT;
+    }
+  
   m_x += m_paninc.x;
   m_y += m_paninc.y;
-
+  
   if (m_x + m_w/2 > max_x)
     m_x = max_x - m_w/2;
   else if (m_x + m_w/2 < min_x)
@@ -472,7 +517,7 @@ void AM_initVariables(void)
 {
   int pnum;
   static event_t st_notify = { ev_keyup, AM_MSGENTERED };
-
+  
   automapactive = true;
   fb = screens[0];
 
@@ -489,9 +534,9 @@ void AM_initVariables(void)
 
   // find player to center on initially
   if (!playeringame[pnum = consoleplayer])
-  for (pnum=0;pnum<MAXPLAYERS;pnum++)
-    if (playeringame[pnum])
-  break;
+    for (pnum=0;pnum<MAXPLAYERS;pnum++)
+      if (playeringame[pnum])
+	break;
 
   plr = &players[pnum];
   m_x = plr->mo->x - m_w/2;
@@ -520,12 +565,12 @@ void AM_loadPics(void)
 {
   int i;
   char namebuf[9];
-
+  
   for (i=0;i<10;i++)
-  {
-    sprintf(namebuf, "AMMNUM%d", i);
-    marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
-  }
+    {
+      sprintf(namebuf, "AMMNUM%d", i);
+      marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
+    }
 }
 
 //
@@ -621,12 +666,12 @@ void AM_Start()
   redrawsbar = redrawborder = true;  // sf: redraw needed
   stopped = false;
   if (lastlevel != gamemap || lastepisode != gameepisode || hires!=last_hires)
-  {
-    last_hires = hires;          // killough 11/98
-    AM_LevelInit();
-    lastlevel = gamemap;
-    lastepisode = gameepisode;
-  }
+    {
+      last_hires = hires;          // killough 11/98
+      AM_LevelInit();
+      lastlevel = gamemap;
+      lastepisode = gameepisode;
+    }
   AM_initVariables();
   AM_loadPics();
 }
@@ -666,8 +711,7 @@ void AM_maxOutWindowScale(void)
 //
 // Passed an input event, returns true if its handled
 //
-boolean AM_Responder
-( event_t*  ev )
+boolean AM_Responder(event_t* ev)
 {
   int rc;
   static int cheatstate=0;
@@ -677,124 +721,124 @@ boolean AM_Responder
   rc = false;
 
   if (!automapactive)
-  {
-    if (ev->type == ev_keydown && ev->data1 == key_map)         // phares
     {
-      AM_Start ();
-      rc = true;
+      if (ev->type == ev_keydown && ev->data1 == key_map)         // phares
+	{
+	  AM_Start ();
+	  rc = true;
+	}
     }
-  }
   else if (ev->type == ev_keydown)
-  {
-    rc = true;
-    ch = ev->data1;                                             // phares
-    if (ch == key_map_right)                                    //    |
-      if (!followplayer)                                        //    V
-        m_paninc.x = FTOM(F_PANINC);
-      else
-        rc = false;
-    else if (ch == key_map_left)
-      if (!followplayer)
+    {
+      rc = true;
+      ch = ev->data1;                                             // phares
+      if (ch == key_map_right)                                    //    |
+	if (!followplayer)                                        //    V
+	  m_paninc.x = FTOM(F_PANINC);
+	else
+	  rc = false;
+      else if (ch == key_map_left)
+	if (!followplayer)
           m_paninc.x = -FTOM(F_PANINC);
-      else
+	else
           rc = false;
-    else if (ch == key_map_up)
-      if (!followplayer)
+      else if (ch == key_map_up)
+	if (!followplayer)
           m_paninc.y = FTOM(F_PANINC);
-      else
+	else
           rc = false;
-    else if (ch == key_map_down)
-      if (!followplayer)
+      else if (ch == key_map_down)
+	if (!followplayer)
           m_paninc.y = -FTOM(F_PANINC);
-      else
+	else
           rc = false;
-    else if (ch == key_map_zoomout)
-    {
-      mtof_zoommul = M_ZOOMOUT;
-      ftom_zoommul = M_ZOOMIN;
+      else if (ch == key_map_zoomout)
+	{
+	  mtof_zoommul = M_ZOOMOUT;
+	  ftom_zoommul = M_ZOOMIN;
+	}
+      else if (ch == key_map_zoomin)
+	{
+	  mtof_zoommul = M_ZOOMIN;
+	  ftom_zoommul = M_ZOOMOUT;
+	}
+      else if (ch == key_map)
+	{
+	  bigstate = 0;
+	  AM_Stop ();
+	}
+      else if (ch == key_map_gobig)
+	{
+	  bigstate = !bigstate;
+	  if (bigstate)
+	    {
+	      AM_saveScaleAndLoc();
+	      AM_minOutWindowScale();
+	    }
+	  else
+	    AM_restoreScaleAndLoc();
+	}
+      else if (ch == key_map_follow)
+	{
+	  followplayer = !followplayer;
+	  f_oldloc.x = MAXINT;
+	  // Ty 03/27/98 - externalized
+	  doom_printf(followplayer ? s_AMSTR_FOLLOWON : s_AMSTR_FOLLOWOFF);
+	}
+      else if (ch == key_map_grid)
+	{
+	  automap_grid = !automap_grid;      // killough 2/28/98
+	  // Ty 03/27/98 - *not* externalized
+	  doom_printf(automap_grid ? s_AMSTR_GRIDON : s_AMSTR_GRIDOFF);
+	}
+      else if (ch == key_map_mark)
+	{
+	  // Ty 03/27/98 - *not* externalized     
+	  // sf: fixed this (buffer at start, presumably from an old sprintf
+	  doom_printf("%s %d", s_AMSTR_MARKEDSPOT, markpointnum);
+	  AM_addMark();
+	}
+      else if (ch == key_map_clear)
+	{
+	  AM_clearMarks();  // Ty 03/27/98 - *not* externalized
+	  doom_printf(s_AMSTR_MARKSCLEARED);                          //    ^
+	}                                                             //    |
+      else                                                            // phares
+	{
+	  cheatstate=0;
+	  rc = false;
+	}
     }
-    else if (ch == key_map_zoomin)
-    {
-      mtof_zoommul = M_ZOOMIN;
-      ftom_zoommul = M_ZOOMOUT;
-    }
-    else if (ch == key_map)
-    {
-      bigstate = 0;
-      AM_Stop ();
-    }
-    else if (ch == key_map_gobig)
-    {
-      bigstate = !bigstate;
-      if (bigstate)
-      {
-        AM_saveScaleAndLoc();
-        AM_minOutWindowScale();
-      }
-      else
-        AM_restoreScaleAndLoc();
-    }
-    else if (ch == key_map_follow)
-    {
-      followplayer = !followplayer;
-      f_oldloc.x = MAXINT;
-      // Ty 03/27/98 - externalized
-      doom_printf(followplayer ? s_AMSTR_FOLLOWON : s_AMSTR_FOLLOWOFF);
-    }
-    else if (ch == key_map_grid)
-    {
-      automap_grid = !automap_grid;      // killough 2/28/98
-      // Ty 03/27/98 - *not* externalized
-      doom_printf(automap_grid ? s_AMSTR_GRIDON : s_AMSTR_GRIDOFF);
-    }
-    else if (ch == key_map_mark)
-    {
-      // Ty 03/27/98 - *not* externalized     
-        // sf: fixed this (buffer at start, presumably from an old sprintf
-      doom_printf("%s %d", s_AMSTR_MARKEDSPOT, markpointnum);
-      AM_addMark();
-    }
-    else if (ch == key_map_clear)
-    {
-      AM_clearMarks();  // Ty 03/27/98 - *not* externalized
-      doom_printf(s_AMSTR_MARKSCLEARED);                            //    ^
-    }                                                           //    |
-    else                                                        // phares
-    {
-      cheatstate=0;
-      rc = false;
-    }
-  }
   else if (ev->type == ev_keyup)
-  {
-    rc = false;
-    ch = ev->data1;
-    if (ch == key_map_right)
     {
-      if (!followplayer)
-          m_paninc.x = 0;
+      rc = false;
+      ch = ev->data1;
+      if (ch == key_map_right)
+	{
+	  if (!followplayer)
+	    m_paninc.x = 0;
+	}
+      else if (ch == key_map_left)
+	{
+	  if (!followplayer)
+	    m_paninc.x = 0;
+	}
+      else if (ch == key_map_up)
+	{
+	  if (!followplayer)
+	    m_paninc.y = 0;
+	}
+      else if (ch == key_map_down)
+	{
+	  if (!followplayer)
+	    m_paninc.y = 0;
+	}
+      else if ((ch == key_map_zoomout) || (ch == key_map_zoomin))
+	{
+	  mtof_zoommul = FRACUNIT;
+	  ftom_zoommul = FRACUNIT;
+	}
     }
-    else if (ch == key_map_left)
-    {
-      if (!followplayer)
-          m_paninc.x = 0;
-    }
-    else if (ch == key_map_up)
-    {
-      if (!followplayer)
-          m_paninc.y = 0;
-    }
-    else if (ch == key_map_down)
-    {
-      if (!followplayer)
-          m_paninc.y = 0;
-    }
-    else if ((ch == key_map_zoomout) || (ch == key_map_zoomin))
-    {
-      mtof_zoommul = FRACUNIT;
-      ftom_zoommul = FRACUNIT;
-    }
-  }
   return rc;
 }
 
@@ -829,14 +873,22 @@ void AM_changeWindowScale(void)
 void AM_doFollowPlayer(void)
 {
   if (f_oldloc.x != plr->mo->x || f_oldloc.y != plr->mo->y)
-  {
-    m_x = FTOM(MTOF(plr->mo->x)) - m_w/2;
-    m_y = FTOM(MTOF(plr->mo->y)) - m_h/2;
-    m_x2 = m_x + m_w;
-    m_y2 = m_y + m_h;
-    f_oldloc.x = plr->mo->x;
-    f_oldloc.y = plr->mo->y;
-  }
+    {
+      m_focalx = plr->mo->x;
+      m_focaly = plr->mo->y;
+      m_x = m_focalx - m_w/2;
+      m_y = m_focaly - m_h/2;
+      m_x2 = m_focalx + m_w/2;
+      m_y2 = m_focaly + m_h/2;
+      //      m_x = FTOM(MTOF(plr->mo->x)) - m_w/2;
+      //      m_y = FTOM(MTOF(plr->mo->y)) - m_h/2;
+      //      m_x2 = m_x + m_w;
+      //      m_y2 = m_y + m_h;
+      f_oldloc.x = plr->mo->x;
+      f_oldloc.y = plr->mo->y;
+    }
+
+  rotation_angle = ANG90 - plr->mo->angle;
 }
 
 //
@@ -905,12 +957,12 @@ boolean AM_clipMline
   fline_t*  fl )
 {
   enum
-  {
-    LEFT    =1,
-    RIGHT   =2,
-    BOTTOM  =4,
-    TOP     =8
-  };
+    {
+      LEFT    =1,
+      RIGHT   =2,
+      BOTTOM  =4,
+      TOP     =8
+    };
 
   register int outcode1 = 0;
   register int outcode2 = 0;
@@ -931,30 +983,30 @@ boolean AM_clipMline
     
   // do trivial rejects and outcodes
   if (ml->a.y > m_y2)
-  outcode1 = TOP;
+    outcode1 = TOP;
   else if (ml->a.y < m_y)
-  outcode1 = BOTTOM;
-
+    outcode1 = BOTTOM;
+  
   if (ml->b.y > m_y2)
-  outcode2 = TOP;
+    outcode2 = TOP;
   else if (ml->b.y < m_y)
-  outcode2 = BOTTOM;
-
+    outcode2 = BOTTOM;
+  
   if (outcode1 & outcode2)
-  return false; // trivially outside
-
+    return false; // trivially outside
+  
   if (ml->a.x < m_x)
-  outcode1 |= LEFT;
+    outcode1 |= LEFT;
   else if (ml->a.x > m_x2)
-  outcode1 |= RIGHT;
-
+    outcode1 |= RIGHT;
+  
   if (ml->b.x < m_x)
-  outcode2 |= LEFT;
+    outcode2 |= LEFT;
   else if (ml->b.x > m_x2)
-  outcode2 |= RIGHT;
-
+    outcode2 |= RIGHT;
+  
   if (outcode1 & outcode2)
-  return false; // trivially outside
+    return false; // trivially outside
 
   // transform to frame-buffer coordinates.
   fl->a.x = CXMTOF(ml->a.x);
@@ -966,62 +1018,62 @@ boolean AM_clipMline
   DOOUTCODE(outcode2, fl->b.x, fl->b.y);
 
   if (outcode1 & outcode2)
-  return false;
+    return false;
 
   while (outcode1 | outcode2)
-  {
-    // may be partially inside box
-    // find an outside point
-    if (outcode1)
-      outside = outcode1;
-    else
-      outside = outcode2;
-
-    // clip to each side
-    if (outside & TOP)
     {
-      dy = fl->a.y - fl->b.y;
-      dx = fl->b.x - fl->a.x;
-      tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
-      tmp.y = 0;
+      // may be partially inside box
+      // find an outside point
+      if (outcode1)
+	outside = outcode1;
+      else
+	outside = outcode2;
+      
+      // clip to each side
+      if (outside & TOP)
+	{
+	  dy = fl->a.y - fl->b.y;
+	  dx = fl->b.x - fl->a.x;
+	  tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
+	  tmp.y = 0;
+	}
+      else if (outside & BOTTOM)
+	{
+	  dy = fl->a.y - fl->b.y;
+	  dx = fl->b.x - fl->a.x;
+	  tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
+	  tmp.y = f_h-1;
+	}
+      else if (outside & RIGHT)
+	{
+	  dy = fl->b.y - fl->a.y;
+	  dx = fl->b.x - fl->a.x;
+	  tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
+	  tmp.x = f_w-1;
+	}
+      else if (outside & LEFT)
+	{
+	  dy = fl->b.y - fl->a.y;
+	  dx = fl->b.x - fl->a.x;
+	  tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
+	  tmp.x = 0;
+	}
+      
+      if (outside == outcode1)
+	{
+	  fl->a = tmp;
+	  DOOUTCODE(outcode1, fl->a.x, fl->a.y);
+	}
+      else
+	{
+	  fl->b = tmp;
+	  DOOUTCODE(outcode2, fl->b.x, fl->b.y);
+	}
+      
+      if (outcode1 & outcode2)
+	return false; // trivially outside
     }
-    else if (outside & BOTTOM)
-    {
-      dy = fl->a.y - fl->b.y;
-      dx = fl->b.x - fl->a.x;
-      tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
-      tmp.y = f_h-1;
-    }
-    else if (outside & RIGHT)
-    {
-      dy = fl->b.y - fl->a.y;
-      dx = fl->b.x - fl->a.x;
-      tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
-      tmp.x = f_w-1;
-    }
-    else if (outside & LEFT)
-    {
-      dy = fl->b.y - fl->a.y;
-      dx = fl->b.x - fl->a.x;
-      tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
-      tmp.x = 0;
-    }
-
-    if (outside == outcode1)
-    {
-      fl->a = tmp;
-      DOOUTCODE(outcode1, fl->a.x, fl->a.y);
-    }
-    else
-    {
-      fl->b = tmp;
-      DOOUTCODE(outcode2, fl->b.x, fl->b.y);
-    }
-
-    if (outcode1 & outcode2)
-      return false; // trivially outside
-  }
-
+  
   return true;
 }
 #undef DOOUTCODE
@@ -1055,15 +1107,15 @@ void AM_drawFline
   // For debugging only
   if
   (
-       fl->a.x < 0 || fl->a.x >= f_w
-    || fl->a.y < 0 || fl->a.y >= f_h
-    || fl->b.x < 0 || fl->b.x >= f_w
-    || fl->b.y < 0 || fl->b.y >= f_h
-  )
-  {
-    fprintf(stderr, "fuck %d \r", fuck++);
-    return;
-  }
+   fl->a.x < 0 || fl->a.x >= f_w
+   || fl->a.y < 0 || fl->a.y >= f_h
+   || fl->b.x < 0 || fl->b.x >= f_w
+   || fl->b.y < 0 || fl->b.y >= f_h
+   )
+    {
+      fprintf(stderr, "fuck %d \r", fuck++);
+      return;
+    }
 #endif
 
 #define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
@@ -1080,37 +1132,37 @@ void AM_drawFline
   y = fl->a.y;
 
   if (ax > ay)
-  {
-    d = ay - ax/2;
-    while (1)
     {
-      PUTDOT(x,y,color);
-      if (x == fl->b.x) return;
-      if (d>=0)
-      {
-        y += sy;
-        d -= ax;
-      }
-      x += sx;
-      d += ay;
+      d = ay - ax/2;
+      while (1)
+	{
+	  PUTDOT(x,y,color);
+	  if (x == fl->b.x) return;
+	  if (d>=0)
+	    {
+	      y += sy;
+	      d -= ax;
+	    }
+	  x += sx;
+	  d += ay;
+	}
     }
-  }
   else
-  {
-    d = ax - ay/2;
-    while (1)
     {
-      PUTDOT(x, y, color);
-      if (y == fl->b.y) return;
-      if (d >= 0)
-      {
-        x += sx;
-        d -= ay;
-      }
-      y += sy;
-      d += ax;
+      d = ax - ay/2;
+      while (1)
+	{
+	  PUTDOT(x, y, color);
+	  if (y == fl->b.y) return;
+	  if (d >= 0)
+	    {
+	      x += sx;
+	      d -= ay;
+	    }
+	  y += sy;
+	  d += ax;
+	}
     }
-  }
 }
 
 //
@@ -1159,17 +1211,17 @@ void AM_drawGrid(int color)
     start += (MAPBLOCKUNITS<<FRACBITS)
       - ((start-bmaporgx)%(MAPBLOCKUNITS<<FRACBITS));
   end = m_x + m_w;
-
+  
   // draw vertical gridlines
   ml.a.y = m_y;
   ml.b.y = m_y+m_h;
   for (x=start; x<end; x+=(MAPBLOCKUNITS<<FRACBITS))
-  {
-    ml.a.x = x;
-    ml.b.x = x;
-    AM_drawMline(&ml, color);
-  }
-
+    {
+      ml.a.x = x;
+      ml.b.x = x;
+      AM_drawMline(&ml, color);
+    }
+  
   // Figure out start of horizontal gridlines
   start = m_y;
   if ((start-bmaporgy)%(MAPBLOCKUNITS<<FRACBITS))
@@ -1181,11 +1233,11 @@ void AM_drawGrid(int color)
   ml.a.x = m_x;
   ml.b.x = m_x + m_w;
   for (y=start; y<end; y+=(MAPBLOCKUNITS<<FRACBITS))
-  {
-    ml.a.y = y;
-    ml.b.y = y;
-    AM_drawMline(&ml, color);
-  }
+    {
+      ml.a.y = y;
+      ml.b.y = y;
+      AM_drawMline(&ml, color);
+    }
 }
 
 //
@@ -1205,27 +1257,27 @@ void AM_drawGrid(int color)
 int AM_DoorColor(int type)
 {
   if (GenLockedBase <= type && type< GenDoorBase)
-  {
-    type -= GenLockedBase;
-    type = (type & LockedKey) >> LockedKeyShift;
-    if (!type || type==7)
-      return 3;  //any or all keys
-    else return (type-1)%3;
-  }
+    {
+      type -= GenLockedBase;
+      type = (type & LockedKey) >> LockedKeyShift;
+      if (!type || type==7)
+	return 3;  //any or all keys
+      else return (type-1)%3;
+    }
   switch (type)  // closed keyed door
-  {
-    case 26: case 32: case 99: case 133:
-      /*bluekey*/
-      return 1;
-    case 27: case 34: case 136: case 137:
-      /*yellowkey*/
-      return 2;
-    case 28: case 33: case 134: case 135:
-      /*redkey*/
-      return 0;
-    default:
-      return -1; //not a keyed door
-  }
+    {
+      case 26: case 32: case 99: case 133:
+	/*bluekey*/
+	return 1;
+      case 27: case 34: case 136: case 137:
+	/*yellowkey*/
+	return 2;
+      case 28: case 33: case 134: case 135:
+	/*redkey*/
+	return 0;
+      default:
+	return -1; //not a keyed door
+    }
   return -1;     //not a keyed door
 }
 
@@ -1252,216 +1304,206 @@ void AM_drawWalls(void)
 
   // draw the unclipped visible portions of all lines
   for (i=0;i<numlines;i++)
-  {
-    l.a.x = lines[i].v1->x;
-    l.a.y = lines[i].v1->y;
-    l.b.x = lines[i].v2->x;
-    l.b.y = lines[i].v2->y;
-    // if line has been seen or IDDT has been used
-    if (ddt_cheating || (lines[i].flags & ML_MAPPED))
     {
-      if ((lines[i].flags & ML_DONTDRAW) && !ddt_cheating)
-        continue;
-      if (!lines[i].backsector)
-      {
-        if //jff 4/23/98 add exit lines to automap
-        (
-          mapcolor_exit &&
-          (
-            lines[i].special==11 ||
-            lines[i].special==52 ||
-            lines[i].special==197 ||
-            lines[i].special==51  ||
-            lines[i].special==124 ||
-            lines[i].special==198
-          )
-        )
-          AM_drawMline(&l, mapcolor_exit); // exit line
-        // jff 1/10/98 add new color for 1S secret sector boundary
-        else if (mapcolor_secr && //jff 4/3/98 0 is disable
-            (
-             (
-              map_secret_after &&
-              P_WasSecret(lines[i].frontsector) &&
-              !P_IsSecret(lines[i].frontsector)
-             )
-             ||
-             (
-              !map_secret_after &&
-              P_WasSecret(lines[i].frontsector)
-             )
-            )
-          )
-          AM_drawMline(&l, mapcolor_secr); // line bounding secret sector
-        else                               //jff 2/16/98 fixed bug
-          AM_drawMline(&l, mapcolor_wall); // special was cleared
-      }
-      else
-      {
-        // jff 1/10/98 add color change for all teleporter types
-        if
-        (
-            mapcolor_tele && !(lines[i].flags & ML_SECRET) && 
-            (lines[i].special == 39 || lines[i].special == 97 ||
-            lines[i].special == 125 || lines[i].special == 126)
-        )
-        { // teleporters
-          AM_drawMline(&l, mapcolor_tele);
-        }
-        else if //jff 4/23/98 add exit lines to automap
-        (
-          mapcolor_exit &&
-          (
-            lines[i].special==11 ||
-            lines[i].special==52 ||
-            lines[i].special==197 ||
-            lines[i].special==51  ||
-            lines[i].special==124 ||
-            lines[i].special==198
-          )
-        )
-          AM_drawMline(&l, mapcolor_exit); // exit line
-        else if //jff 1/5/98 this clause implements showing keyed doors
-        (
-          (mapcolor_bdor || mapcolor_ydor || mapcolor_rdor) &&
-          ((lines[i].special >=26 && lines[i].special <=28) ||
-          (lines[i].special >=32 && lines[i].special <=34) ||
-          (lines[i].special >=133 && lines[i].special <=137) ||
-          lines[i].special == 99 ||
-          (lines[i].special>=GenLockedBase && lines[i].special<GenDoorBase))
-        )
-        {
-          if ((lines[i].backsector->floorheight==lines[i].backsector->ceilingheight) ||
-              (lines[i].frontsector->floorheight==lines[i].frontsector->ceilingheight))
-          {
-            switch (AM_DoorColor(lines[i].special)) // closed keyed door
-            {
-              case 1:
-                /*bluekey*/
-                AM_drawMline(&l,
-                  mapcolor_bdor? mapcolor_bdor : mapcolor_cchg);
-                break;
-              case 2:
-                /*yellowkey*/
-                AM_drawMline(&l,
-                  mapcolor_ydor? mapcolor_ydor : mapcolor_cchg);
-                break;
-              case 0:
-                /*redkey*/
-                AM_drawMline(&l,
-                  mapcolor_rdor? mapcolor_rdor : mapcolor_cchg);
-                break;
-              case 3:
-                /*any or all*/
-                AM_drawMline(&l,
-                  mapcolor_clsd? mapcolor_clsd : mapcolor_cchg);
-                break;
-            }
-          }
-          else AM_drawMline(&l, mapcolor_cchg); // open keyed door
-        }
-        else if (lines[i].flags & ML_SECRET)    // secret door
-        {
-          AM_drawMline(&l, mapcolor_wall);      // wall color
-        }
-        else if
-        (
-            mapcolor_clsd &&  
-            !(lines[i].flags & ML_SECRET) &&    // non-secret closed door
-            ((lines[i].backsector->floorheight==lines[i].backsector->ceilingheight) ||
-            (lines[i].frontsector->floorheight==lines[i].frontsector->ceilingheight))
-        )
-        {
-          AM_drawMline(&l, mapcolor_clsd);      // non-secret closed door
-        } //jff 1/6/98 show secret sector 2S lines
-        else if
-        (
-            mapcolor_secr && //jff 2/16/98 fixed bug
-            (                    // special was cleared after getting it
-              (map_secret_after &&
-               (
-                (P_WasSecret(lines[i].frontsector)
-                 && !P_IsSecret(lines[i].frontsector)) || 
-                (P_WasSecret(lines[i].backsector)
-                 && !P_IsSecret(lines[i].backsector))
-               )
-              )
-              ||  //jff 3/9/98 add logic to not show secret til after entered
-              (   // if map_secret_after is true
-                !map_secret_after &&
-                 (P_WasSecret(lines[i].frontsector) ||
-                  P_WasSecret(lines[i].backsector))
-              )
-            )
-        )
-        {
-          AM_drawMline(&l, mapcolor_secr); // line bounding secret sector
-        } //jff 1/6/98 end secret sector line change
-        else if (lines[i].backsector->floorheight !=
-                  lines[i].frontsector->floorheight)
-        {
-          AM_drawMline(&l, mapcolor_fchg); // floor level change
-        }
-        else if (lines[i].backsector->ceilingheight !=
-                  lines[i].frontsector->ceilingheight)
-        {
-          AM_drawMline(&l, mapcolor_cchg); // ceiling level change
-        }
-        else if (mapcolor_flat && ddt_cheating)
-        { 
-          AM_drawMline(&l, mapcolor_flat); //2S lines that appear only in IDDT  
-        }
-      }
-    } // now draw the lines only visible because the player has computermap
-    else if (plr->powers[pw_allmap]) // computermap visible lines
-    {
-      if(1)
-//      if (!(lines[i].flags & ML_DONTDRAW)) // invisible flag lines do not show
-      {
-        if
-        (
-          mapcolor_flat
-          ||
-          !lines[i].backsector
-          ||
-          lines[i].backsector->floorheight
-          != lines[i].frontsector->floorheight
-          ||
-          lines[i].backsector->ceilingheight
-          != lines[i].frontsector->ceilingheight
-        )
-          AM_drawMline(&l, mapcolor_unsn);
-      }
+      l.a.x = lines[i].v1->x;
+      l.a.y = lines[i].v1->y;
+      l.b.x = lines[i].v2->x;
+      l.b.y = lines[i].v2->y;
+      AM_rotatepoint(&l.a.x, &l.a.y, rotation_angle);
+      AM_rotatepoint(&l.b.x, &l.b.y, rotation_angle);
+      // if line has been seen or IDDT has been used
+      if (ddt_cheating || (lines[i].flags & ML_MAPPED))
+	{
+	  if ((lines[i].flags & ML_DONTDRAW) && !ddt_cheating)
+	    continue;
+	  if (!lines[i].backsector)
+	    {
+	      if //jff 4/23/98 add exit lines to automap
+		(
+		 mapcolor_exit &&
+		 (
+		  lines[i].special==11 ||
+		  lines[i].special==52 ||
+		  lines[i].special==197 ||
+		  lines[i].special==51  ||
+		  lines[i].special==124 ||
+		  lines[i].special==198
+		  )
+		 )
+		AM_drawMline(&l, mapcolor_exit); // exit line
+	      // jff 1/10/98 add new color for 1S secret sector boundary
+	      else if (mapcolor_secr && //jff 4/3/98 0 is disable
+		       (
+			(
+			 map_secret_after &&
+			 P_WasSecret(lines[i].frontsector) &&
+			 !P_IsSecret(lines[i].frontsector)
+			 )
+			||
+			(
+			 !map_secret_after &&
+			 P_WasSecret(lines[i].frontsector)
+			 )
+			)
+		       )
+		AM_drawMline(&l, mapcolor_secr); // line bounding secret sector
+	      else                               //jff 2/16/98 fixed bug
+		AM_drawMline(&l, mapcolor_wall); // special was cleared
+	    }
+	  else
+	    {
+	      // jff 1/10/98 add color change for all teleporter types
+	      if
+		(
+		 mapcolor_tele && !(lines[i].flags & ML_SECRET) && 
+		 (lines[i].special == 39 || lines[i].special == 97 ||
+		  lines[i].special == 125 || lines[i].special == 126)
+		 )
+		{ // teleporters
+		  AM_drawMline(&l, mapcolor_tele);
+		}
+	      else if //jff 4/23/98 add exit lines to automap
+		(
+		 mapcolor_exit &&
+		 (
+		  lines[i].special==11 ||
+		  lines[i].special==52 ||
+		  lines[i].special==197 ||
+		  lines[i].special==51  ||
+		  lines[i].special==124 ||
+		  lines[i].special==198
+		  )
+		 )
+		AM_drawMline(&l, mapcolor_exit); // exit line
+	      else if //jff 1/5/98 this clause implements showing keyed doors
+		(
+		 (mapcolor_bdor || mapcolor_ydor || mapcolor_rdor) &&
+		 ((lines[i].special >=26 && lines[i].special <=28) ||
+		  (lines[i].special >=32 && lines[i].special <=34) ||
+		  (lines[i].special >=133 && lines[i].special <=137) ||
+		  lines[i].special == 99 ||
+		  (lines[i].special>=GenLockedBase && lines[i].special<GenDoorBase))
+		 )
+		{
+		  if ((lines[i].backsector->floorheight==lines[i].backsector->ceilingheight) ||
+		      (lines[i].frontsector->floorheight==lines[i].frontsector->ceilingheight))
+		    {
+		      // closed keyed door
+		      switch (AM_DoorColor(lines[i].special))
+			{
+			  case 1:
+			    /*bluekey*/
+			    AM_drawMline
+			      (
+			       &l,
+			       mapcolor_bdor? mapcolor_bdor : mapcolor_cchg
+			       );
+			    break;
+			  case 2:
+			    /*yellowkey*/
+			    AM_drawMline
+			      (
+			       &l,
+			       mapcolor_ydor? mapcolor_ydor : mapcolor_cchg
+			       );
+			    break;
+			  case 0:
+			    /*redkey*/
+			    AM_drawMline
+			      (
+			       &l,
+			       mapcolor_rdor? mapcolor_rdor : mapcolor_cchg
+			       );
+			    break;
+			  case 3:
+			    /*any or all*/
+			    AM_drawMline
+			      (
+			       &l,
+			       mapcolor_clsd? mapcolor_clsd : mapcolor_cchg
+			       );
+			    break;
+			}
+		    }
+		  else AM_drawMline(&l, mapcolor_cchg); // open keyed door
+		}
+	      else if (lines[i].flags & ML_SECRET)    // secret door
+		{
+		  AM_drawMline(&l, mapcolor_wall);      // wall color
+		}
+	      else if
+		(
+		 mapcolor_clsd &&  
+		 !(lines[i].flags & ML_SECRET) &&    // non-secret closed door
+		 ((lines[i].backsector->floorheight==lines[i].backsector->ceilingheight) ||
+		  (lines[i].frontsector->floorheight==lines[i].frontsector->ceilingheight))
+		 )
+		{
+		  AM_drawMline(&l, mapcolor_clsd);      // non-secret closed door
+		} //jff 1/6/98 show secret sector 2S lines
+	      else if
+		(
+		 mapcolor_secr && //jff 2/16/98 fixed bug
+		 (                    // special was cleared after getting it
+		  (map_secret_after &&
+		   (
+		    (P_WasSecret(lines[i].frontsector)
+		     && !P_IsSecret(lines[i].frontsector)) || 
+		    (P_WasSecret(lines[i].backsector)
+		     && !P_IsSecret(lines[i].backsector))
+		    )
+		   )
+		  ||  //jff 3/9/98 add logic to not show secret til after entered
+		  (   // if map_secret_after is true
+		   !map_secret_after &&
+		   (P_WasSecret(lines[i].frontsector) ||
+		    P_WasSecret(lines[i].backsector))
+		   )
+		  )
+		 )
+		{
+		  // line bounding secret sector
+		  AM_drawMline(&l, mapcolor_secr);
+		} //jff 1/6/98 end secret sector line change
+	      else if (lines[i].backsector->floorheight !=
+		       lines[i].frontsector->floorheight)
+		{
+		  AM_drawMline(&l, mapcolor_fchg); // floor level change
+		}
+	      else if (lines[i].backsector->ceilingheight !=
+		       lines[i].frontsector->ceilingheight)
+		{
+		  AM_drawMline(&l, mapcolor_cchg); // ceiling level change
+		}
+	      else if (mapcolor_flat && ddt_cheating)
+		{ 
+		  AM_drawMline(&l, mapcolor_flat); //2S lines that appear only in IDDT  
+		}
+	    }
+	} // now draw the lines only visible because the player has computermap
+      else if (plr->powers[pw_allmap]) // computermap visible lines
+	{
+	  if(1)
+	    //      if (!(lines[i].flags & ML_DONTDRAW)) // invisible flag lines do not show
+	    {
+	      if
+		(
+		 mapcolor_flat
+		 ||
+		 !lines[i].backsector
+		 ||
+		 lines[i].backsector->floorheight
+		 != lines[i].frontsector->floorheight
+		 ||
+		 lines[i].backsector->ceilingheight
+		 != lines[i].frontsector->ceilingheight
+		 )
+		AM_drawMline(&l, mapcolor_unsn);
+	    }
+	}
     }
-  }
 }
 
-//
-// AM_rotate()
-//
-// Rotation in 2D.
-// Used to rotate player arrow line character.
-//
-// Passed the coordinates of a point, and an angle
-// Returns the coordinates rotated by the angle
-//
-void AM_rotate
-( fixed_t*  x,
-  fixed_t*  y,
-  angle_t a )
-{
-  fixed_t tmpx;
-
-  tmpx =
-    FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT])
-      - FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
-
-  *y   =
-    FixedMul(*x,finesine[a>>ANGLETOFINESHIFT])
-      + FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
-
-  *x = tmpx;
-}
 
 //
 // AM_drawLineCharacter()
@@ -1485,40 +1527,44 @@ void AM_drawLineCharacter
   int   i;
   mline_t l;
 
+  AM_rotatepoint(&x, &y, rotation_angle);
+  
+  angle += rotation_angle;
+  
   for (i=0;i<lineguylines;i++)
-  {
-    l.a.x = lineguy[i].a.x;
-    l.a.y = lineguy[i].a.y;
-
-    if (scale)
     {
-      l.a.x = FixedMul(scale, l.a.x);
-      l.a.y = FixedMul(scale, l.a.y);
+      l.a.x = lineguy[i].a.x;
+      l.a.y = lineguy[i].a.y;
+      
+      if (scale)
+	{
+	  l.a.x = FixedMul(scale, l.a.x);
+	  l.a.y = FixedMul(scale, l.a.y);
+	}
+      
+      if (angle)
+	AM_rotate(&l.a.x, &l.a.y, angle);
+      
+      l.a.x += x;
+      l.a.y += y;
+      
+      l.b.x = lineguy[i].b.x;
+      l.b.y = lineguy[i].b.y;
+      
+      if (scale)
+	{
+	  l.b.x = FixedMul(scale, l.b.x);
+	  l.b.y = FixedMul(scale, l.b.y);
+	}
+      
+      if (angle)
+	AM_rotate(&l.b.x, &l.b.y, angle);
+
+      l.b.x += x;
+      l.b.y += y;
+      
+      AM_drawMline(&l, color);
     }
-
-    if (angle)
-      AM_rotate(&l.a.x, &l.a.y, angle);
-
-    l.a.x += x;
-    l.a.y += y;
-
-    l.b.x = lineguy[i].b.x;
-    l.b.y = lineguy[i].b.y;
-
-    if (scale)
-    {
-      l.b.x = FixedMul(scale, l.b.x);
-      l.b.y = FixedMul(scale, l.b.y);
-    }
-
-    if (angle)
-      AM_rotate(&l.b.x, &l.b.y, angle);
-
-    l.b.x += x;
-    l.b.y += y;
-
-    AM_drawMline(&l, color);
-  }
 }
 
 //
@@ -1538,70 +1584,70 @@ void AM_drawPlayers(void)
   int   color;
 
   if (!netgame)
-  {
-    if (ddt_cheating)
-      AM_drawLineCharacter
-      (
-        cheat_player_arrow,
-        NUMCHEATPLYRLINES,
-        0,
-        plr->mo->angle,
-        mapcolor_sngl,      //jff color
-        plr->mo->x,
-        plr->mo->y
-      ); 
-    else
-      AM_drawLineCharacter
-      (
-        player_arrow,
-        NUMPLYRLINES,
-        0,
-        plr->mo->angle,
-        mapcolor_sngl,      //jff color
-        plr->mo->x,
-        plr->mo->y);        
-    return;
-  }
-
+    {
+      if (ddt_cheating)
+	AM_drawLineCharacter
+	  (
+	   cheat_player_arrow,
+	   NUMCHEATPLYRLINES,
+	   0,
+	   plr->mo->angle,
+	   mapcolor_sngl,      //jff color
+	   plr->mo->x,
+	   plr->mo->y
+	   ); 
+      else
+	AM_drawLineCharacter
+	  (
+	   player_arrow,
+	   NUMPLYRLINES,
+	   0,
+	   plr->mo->angle,
+	   mapcolor_sngl,      //jff color
+	   plr->mo->x,
+	   plr->mo->y);        
+      return;
+    }
+  
   for (i=0;i<MAXPLAYERS;i++)
-  {
-    their_color=players[i].colormap;
-    p = &players[i];
-
-    // killough 9/29/98: use !demoplayback so internal demos are no different
-    if ( (deathmatch && !demoplayback) && p != plr)
-      continue;
-
-    if (!playeringame[i])
-      continue;
-
-    if (p->powers[pw_invisibility])
-      color = 246; // *close* to black
-    else
-      {
-	// sf: extended colour range
+    {
+      their_color=players[i].colormap;
+      p = &players[i];
+      
+      // killough 9/29/98: use !demoplayback so internal demos are no different
+      if ( (deathmatch && !demoplayback) && p != plr)
+	continue;
+      
+      if (!playeringame[i])
+	continue;
+      
+      if (p->powers[pw_invisibility])
+	color = 246; // *close* to black
+      else
+	{
+	  // sf: extended colour range
 #define GREEN 112
-	if(their_color == 0)
-	  {
-	    color = GREEN;
-	  }
-	else
-	  {
-	    color = translationtables[(their_color-1) * 256 + GREEN];
-	  }
-      }
-
-    AM_drawLineCharacter
-    (
-      player_arrow,
-      NUMPLYRLINES,
-      0,
-      p->mo->angle,
-      color,
-      p->mo->x,
-      p->mo->y
-    );
-  }
+	  if(their_color == 0)
+	    {
+	      color = GREEN;
+	    }
+	  else
+	    {
+	      color = translationtables[(their_color-1) * 256 + GREEN];
+	    }
+	}
+      
+      AM_drawLineCharacter
+	(
+	 player_arrow,
+	 NUMPLYRLINES,
+	 0,
+	 p->mo->angle,
+	 color,
+	 p->mo->x,
+	 p->mo->y
+	 );
+    }
 }
 
 //
@@ -1621,75 +1667,75 @@ void AM_drawThings
 
   // for all sectors
   for (i=0;i<numsectors;i++)
-  {
-    t = sectors[i].thinglist;
-    while (t) // for all things in that sector
     {
-      //jff 1/5/98 case over doomednum of thing being drawn
-      if (mapcolor_rkey || mapcolor_ykey || mapcolor_bkey)
-      {
-        switch(t->info->doomednum)
-        {
-          //jff 1/5/98 treat keys special
-          case 38: case 13: //jff  red key
-            AM_drawLineCharacter
-            (
-              cross_mark,
-              NUMCROSSMARKLINES,
-              16<<FRACBITS,
-              t->angle,
-              mapcolor_rkey!=-1? mapcolor_rkey : mapcolor_sprt,
-              t->x,
-              t->y
-            );
-            t = t->snext;
-            continue;
-          case 39: case 6: //jff yellow key
-            AM_drawLineCharacter
-            (
-              cross_mark,
-              NUMCROSSMARKLINES,
-              16<<FRACBITS,
-              t->angle,
-              mapcolor_ykey!=-1? mapcolor_ykey : mapcolor_sprt,
-              t->x,
-              t->y
-            );
-            t = t->snext;
-            continue;
-          case 40: case 5: //jff blue key
-            AM_drawLineCharacter
-            (
-              cross_mark,
-              NUMCROSSMARKLINES,
-              16<<FRACBITS,
-              t->angle,
-              mapcolor_bkey!=-1? mapcolor_bkey : mapcolor_sprt,
-              t->x,
-              t->y
-            );
-            t = t->snext;
-            continue;
-          default:
-            break;
-        }
-      }
-      //jff 1/5/98 end added code for keys
-      //jff previously entire code
-      AM_drawLineCharacter
-      (
-        thintriangle_guy,
-        NUMTHINTRIANGLEGUYLINES,
-        16<<FRACBITS,
-        t->angle,
-	// killough 8/8/98: mark friends specially
-	t->flags & MF_FRIEND && !t->player ? mapcolor_frnd : mapcolor_sprt,
-        t->x,
-        t->y
-      );
-      t = t->snext;
+      t = sectors[i].thinglist;
+      while (t) // for all things in that sector
+	{
+	  //jff 1/5/98 case over doomednum of thing being drawn
+	  if (mapcolor_rkey || mapcolor_ykey || mapcolor_bkey)
+	    {
+	      switch(t->info->doomednum)
+		{
+		  //jff 1/5/98 treat keys special
+		  case 38: case 13: //jff  red key
+		    AM_drawLineCharacter
+		      (
+		       cross_mark,
+		       NUMCROSSMARKLINES,
+		       16<<FRACBITS,
+		       t->angle,
+		       mapcolor_rkey!=-1? mapcolor_rkey : mapcolor_sprt,
+		       t->x,
+		       t->y
+		       );
+		    t = t->snext;
+		    continue;
+		  case 39: case 6: //jff yellow key
+		    AM_drawLineCharacter
+		      (
+		       cross_mark,
+		       NUMCROSSMARKLINES,
+		       16<<FRACBITS,
+		       t->angle,
+		       mapcolor_ykey!=-1? mapcolor_ykey : mapcolor_sprt,
+		       t->x,
+		       t->y
+		       );
+		    t = t->snext;
+		    continue;
+		  case 40: case 5: //jff blue key
+		    AM_drawLineCharacter
+		      (
+		       cross_mark,
+		       NUMCROSSMARKLINES,
+		       16<<FRACBITS,
+		       t->angle,
+		       mapcolor_bkey!=-1? mapcolor_bkey : mapcolor_sprt,
+		       t->x,
+		       t->y
+		       );
+		    t = t->snext;
+		    continue;
+		  default:
+		    break;
+		}
+	    }
+	  //jff 1/5/98 end added code for keys
+	  //jff previously entire code
+	  AM_drawLineCharacter
+	    (
+	     thintriangle_guy,
+	     NUMTHINTRIANGLEGUYLINES,
+	     16<<FRACBITS,
+	     t->angle,
+	     // killough 8/8/98: mark friends specially
+	     t->flags & MF_FRIEND && !t->player ? mapcolor_frnd :mapcolor_sprt,
+	     t->x,
+	     t->y
+	     );
+	  t = t->snext;
+	}
     }
-  }
 }
 
 //
@@ -1712,9 +1758,17 @@ void AM_drawMarks(void)
       {
 	int w = 5 << hires;
 	int h = 6 << hires;
-	int fx = CXMTOF(markpoints[i].x);
-	int fy = CYMTOF(markpoints[i].y);
+	int fx, fy;
 	int j = i;
+	fixed_t mx, my;
+
+	mx = markpoints[i].x;
+	my = markpoints[i].y;
+
+	AM_rotatepoint(&mx, &my, rotation_angle);
+	
+	fx = CXMTOF(mx);
+	fy = CYMTOF(my);
 
 	do
 	  {
@@ -1757,7 +1811,7 @@ void AM_drawCrosshair(int color)
 void AM_Drawer (void)
 {
   if (!automapactive) return;
-
+  
   AM_clearFB(mapcolor_back);         //jff 1/5/98 background default color
   if (automap_grid)                  // killough 2/28/98: change var name
     AM_drawGrid(mapcolor_grid);      //jff 1/7/98 grid default color

@@ -508,7 +508,7 @@ static boolean I_InitGraphicsMode(void)
 	// 3: hires mode 640x400
 	
       case 3:
-	if (1)//set_gfx_mode(GFX_AUTODETECT, 640, 400, 0, 0))
+	if (set_gfx_mode(GFX_AUTODETECT, 640, 400, 0, 0))
 	  {
 	    I_SetMode(0);               // reset to vga low res
 	    MN_ErrorMsg(BADVID);

@@ -452,7 +452,7 @@ VARIABLE_INT(mus_card, NULL,            -1, 9, muscardstr);
 VARIABLE_INT(detect_voices, NULL,       0, 1, yesno);
 
 CONSOLE_VARIABLE(snd_card, snd_card, 0) {}
-CONSOLE_VARIABLE(mus_card, mus_card, 0) {}
+CONSOLE_VARIABLE(mus_card, mus_card, 0) {} 
 CONSOLE_VARIABLE(detect_voices, detect_voices, 0) {}
 
 void I_Sound_AddCommands()

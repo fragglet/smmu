@@ -74,7 +74,10 @@ extern int tran_filter_pct;            // killough 2/21/98
 extern int showMessages;
 extern int screenSize;
 
-extern char *chat_macros[], *wad_files[], *deh_files[];  // killough 10/98
+extern char *chat_macros[];
+extern char *wadfile_1, *wadfile_2;
+extern char *dehfile_1, *dehfile_2;
+extern char *wad_directory;  // sf: wad directory
 
 extern int hud_msg_timer;   // killough 11/98: timer used for review messages
 extern int hud_msg_lines;   // number of message lines in window up to 16
@@ -463,28 +466,28 @@ default_t defaults[] = {
 
   { // killough 10/98: preloaded files
     "wadfile_1",
-    (int *) &wad_files[0], NULL,
+    (int *) &wadfile_1, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "WAD file preloaded at program startup"
   },
 
   {
     "wadfile_2",
-    (int *) &wad_files[1], NULL,
+    (int *) &wadfile_2, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "WAD file preloaded at program startup"
   },
 
   {
     "dehfile_1",
-    (int *) &deh_files[0], NULL,
+    (int *) &dehfile_1, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "DEH/BEX file preloaded at program startup"
   },
 
   {
     "dehfile_2",
-    (int *) &deh_files[1], NULL,
+    (int *) &dehfile_2, NULL,
     (int) "", {0}, dt_string, ss_none, wad_no,
     "DEH/BEX file preloaded at program startup"
   },
@@ -1668,6 +1671,13 @@ default_t defaults[] = {
     "obituaries colour"
   },
 
+  {
+    "wad_directory",
+    (int *)&wad_directory, NULL,
+    (int) ".", {0}, dt_string, ss_none, wad_no,
+    "directory where wads are kept"
+  },
+  
   {NULL}         // last entry
 };
 

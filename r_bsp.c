@@ -46,7 +46,7 @@ drawseg_t *drawsegs;
 unsigned  maxdrawsegs;
 // drawseg_t drawsegs[MAXDRAWSEGS];       // old code -- killough
 
-//#define TRANWATER
+// #define TRANWATER
 
 //
 // R_ClearDrawSegs
@@ -110,10 +110,14 @@ static void R_ClipSolidWallSegment(int first, int last)
   while (start->last < first-1)
     start++;
 
+  // so, now start->last > first
+  
   if (first < start->first)
     {
       if (last < start->first-1)
-        { // Post is entirely visible (above start), so insert a new clippost.
+        {
+	  // seperate -- they do not collide
+	  // Post is entirely visible (above start), so insert a new clippost.
           R_StoreWallRange (first, last);
 
           // 1/11/98 killough: performance tuning using fast memmove
@@ -123,6 +127,11 @@ static void R_ClipSolidWallSegment(int first, int last)
           return;
         }
 
+      // part of the right hand part of the new post collides with
+      // the left part of the old post
+
+      // merge it into one
+      
       // There is a fragment above *start.
       R_StoreWallRange (first, start->first - 1);
 
@@ -131,9 +140,12 @@ static void R_ClipSolidWallSegment(int first, int last)
     }
 
   // Bottom contained in start?
+  // totally contained within the original
   if (last <= start->last)
     return;
 
+  // must be on the right hand side
+  
   next = start;
   while (last >= (next+1)->first-1)
     {      // There is a fragment between two posts.
@@ -145,7 +157,7 @@ static void R_ClipSolidWallSegment(int first, int last)
           goto crunch;
         }
     }
-
+  
   // There is a fragment after *next.
   R_StoreWallRange(next->last+1, last);
 
@@ -224,6 +236,8 @@ void R_ClearClipSegs (void)
   solidsegs[0].last = -1;
   solidsegs[1].first = viewwidth;
   solidsegs[1].last = 0x7fff; // ffff;      new short limit --  killough
+
+  //  doom_printf("%i", newend-solidsegs);
   newend = solidsegs+2;
 }
 
@@ -281,7 +295,7 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
   if(sec->heightsec != -1)
     {
       const sector_t *s = &sectors[sec->heightsec];
-      int heightsec = viewplayer->mo->subsector->sector->heightsec;
+      int heightsec = viewsector->heightsec;
       int underwater = heightsec!=-1 && viewz<=sectors[heightsec].floorheight;
 
       // Replace sector being drawn, with a copy to be hacked
@@ -669,8 +683,9 @@ static void R_Subsector(int num)
         }
     }
   else
-#endif
+#else
     floorplane2 = NULL;
+#endif
   
   // killough 9/18/98: Fix underwater slowdown, by passing real sector 
   // instead of fake one. Improve sprite lighting by basing sprite

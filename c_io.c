@@ -337,7 +337,7 @@ int C_Responder(event_t* ev)
   // only care about valid characters
   // dont allow too many characters on one command line
   
-  if(ch>31 && ch<127 && strlen(inputtext) < INPUTLENGTH-3)
+  if(isprint(ch) && strlen(inputtext) < INPUTLENGTH-3)
     {
       sprintf(inputtext, "%s%c", inputtext, ch);
       
@@ -460,7 +460,7 @@ static void C_AddChar(unsigned char c)
 {
   char *end;
 
-  if( c=='\t' || (c>31 && c<127) || c>=128)  // >=128 for colours
+  if( c=='\t' || isprint(c) || c>=128)  // >=128 for colours
     {
       if(V_StringWidth(messages[message_last]) > SCREENWIDTH-9)
 	{
@@ -516,7 +516,7 @@ void C_WriteText(unsigned char *s, ...)
 
 void C_Seperator()
 {
-  C_Printf("{|||||||||||||||||||||||||||||}\n");
+  C_Printf(FC_TRANS "{|||||||||||||||||||||||||||||}\n");
 }
 
 ///////////////////////////////////////////////////////////////////

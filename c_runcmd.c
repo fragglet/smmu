@@ -153,7 +153,12 @@ static boolean C_CheckFlags(command_t *command)
   // net-sync critical variables are usually critical to
   // demo sync too
   if((command->flags & cf_netvar) && demoplayback)
-    errormsg = "not during demo playback";
+    {
+      if(cmdtype == c_menu)    // if called from menu, stop demo playback
+	G_StopDemo();
+      else
+	errormsg = "not during demo playback";
+    }
   
   if(errormsg)
     {

@@ -1074,6 +1074,8 @@ static void G_DoPlayDemo(void)
   if (gameaction != ga_loadgame)      // killough 12/98: support -loadgame
     basetic = gametic;  // killough 9/29/98
 
+  gameaction = ga_nothing;
+
   // sf: try reading from a file first
   // we no longer have to load the demo lmp into the wad directory
   
@@ -1223,8 +1225,6 @@ static void G_DoPlayDemo(void)
 
   for (i=0; i<MAXPLAYERS;i++)         // killough 4/24/98
     players[i].cheats = 0;
-
-  gameaction = ga_nothing;
 
   if (timingdemo)
     {

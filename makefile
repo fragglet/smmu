@@ -188,6 +188,7 @@ OBJS=   \
         $(O)/g_game.o       \
 	$(O)/g_cmd.o        \
         $(O)/mn_menus.o     \
+	$(O)/mn_files.o     \
 	$(O)/mn_misc.o      \
 	$(O)/mn_engin.o	    \
         $(O)/m_misc.o       \

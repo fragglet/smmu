@@ -1,4 +1,40 @@
 ============================================================================
+15-1-2000
+
+* Added enhanced music playing abilities. Now uses a hash-table to which
+  new musics are added when wads are loaded. This allows FraggleScript
+  to change the music from a new function.
+
+* Added new FraggleScript functions for doors and lifts, and other
+  simple stuff which was left out (stupidly)
+
+* Rewrote swantbls, much nicer code with in-built ability to add
+  swirly water flats.
+
+* Fixed some of the dos graphics code which was segfaulting. Changed
+  some of the mode setting code to use v_mode instead of relying on
+  the individual hires, pageflip etc variables
+
+* Changed demo playing. Demos are no longer loaded into the main wad
+  directory and played as lumps. This means that the playdemo console
+  command can be used to play demos from files without the need to
+  reload. -playdemo command line parameter no longer loads demo lmps
+  into the directory
+
+* Moved the code to fill the background with a flat to v_misc.c
+
+* Video menu changed: now an option 'set video mode' which leads to a
+  seperate menu where a new video mode can be selected.
+
+* Should be another release in a week or so. This will be a 'bug-fix'
+  release to fix bugs from the previous version.
+
+* Emailed jj at doomnation to ask about the possibility of an SMMU
+  forum. He is trying to set one up but ran into some
+  difficulties. The forum should be set up soon although I haven't seen any
+  sign of it yet.
+
+============================================================================
 19-12-1999
 
 * Have changed compatibility, weapon pref and chat macro commands in

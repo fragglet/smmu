@@ -20,6 +20,7 @@
 #include "p_maputl.h"
 #include "p_setup.h"
 #include "p_spec.h"
+#include "r_main.h"
 #include "t_vari.h"
 #include "z_zone.h"
 
@@ -178,6 +179,7 @@ void P_DumpHubs()
 
 static fixed_t          save_xoffset;
 static fixed_t          save_yoffset;
+static fixed_t          save_viewzoffset;
 static mobj_t           save_mobj;
 static int              save_sectag;
 static player_t *       save_player;
@@ -213,10 +215,14 @@ void P_SavePlayerPosition(player_t *player, int sectag)
   save_xoffset = player->mo->x - sec->soundorg.x;
   save_yoffset = player->mo->y - sec->soundorg.y;
 
+  // save viewheight
+
+  save_viewzoffset = player->viewz
+    - R_PointInSubsector(player->mo->x, player->mo->y)->sector->floorheight;  
+
   // save mobj so we can restore various bits of data
 
   memcpy(&save_mobj, player->mo, sizeof(mobj_t));
-
 }
 
 // restore the players position -- sector must be the same shape
@@ -252,6 +258,12 @@ void P_RestorePlayerPosition()
   save_player->mo->angle = save_mobj.angle;
   save_player->mo->momx = save_mobj.momx;    // keep momentum
   save_player->mo->momy = save_mobj.momy;
-
   P_SetThingPosition(save_player->mo);
+
+  // restore viewz
+
+  save_player->viewz =
+    R_PointInSubsector(save_player->mo->x,
+		       save_player->mo->y)->sector->floorheight
+    + save_viewzoffset;
 }

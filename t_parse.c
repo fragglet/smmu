@@ -153,8 +153,9 @@ static char escape_sequence(char c)
   if(c == '\\') return '\\';
   if(c == '"') return '"';
   if(c == '?') return '?';
-  if(c == 'a') return '\a'; // alert beep
-  if(c == 't') return '\t'; //tab
+  if(c == 'a') return '\a';         // alert beep
+  if(c == 't') return '\t';         //tab
+  if(c == 'z') return *FC_TRANS;    // translucent toggle
   
   // font colours
   if(c >= '0' && c <= '9') return 128 + (c-'0');

@@ -39,6 +39,11 @@ void MN_Drawer (void);
 
 void MN_Init (void);
 
+// reload graphics
+// for when loading a wad
+
+void MN_ReloadGraphics();
+
 // Called by intro code to force menu up upon a keypress,
 // does nothing if menu is already up.
 
@@ -83,6 +88,7 @@ struct menuitem_s
     it_info,             // information / section header
     it_slider,           // slider
     it_automap,          // an automap colour
+    it_disabled,         // disabled item
     it_end,              // last menuitem in the list
   } type;
   
@@ -98,8 +104,9 @@ struct menuitem_s
   // patch to use or NULL
   char *patch;
 
-                  /*** internal stuff used by menu code ***/
-                  // messing with this is a bad idea(prob)
+  /*** internal stuff used by menu code ***/
+  // messing with this is a bad idea(prob)
+
   int x, y;
   variable_t *var;        // ptr to console variable
 };
@@ -110,10 +117,7 @@ struct menu_s
 
   // x,y offset of menu
   int x, y;
-  
-  // currently selected item
-  int selected;
-  
+ 
   // menu flags
   enum
   {
@@ -122,6 +126,11 @@ struct menu_s
     mf_leftaligned=4,   // left-aligned menu
   } flags;               
   void (*drawer)();       // seperate drawer function 
+
+  /******* internal **********/
+
+  // currently selected item
+  int selected;
 };
 
 // menu 'widgets':
@@ -144,6 +153,7 @@ extern menuwidget_t *current_menuwidget;      // current widget being drawn
 
 // size of automap colour blocks
 #define BLOCK_SIZE 9
+#define background_flat "FLOOR4_8"
 
 void MN_ErrorMsg(char *s, ...);
 

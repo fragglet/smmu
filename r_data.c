@@ -1103,9 +1103,10 @@ void R_FreeData()
   Z_Free(main_tranmap);
 }
 
-/********************************
-        Doom I texture conversion
- *********************************/
+///////////////////////////////////////////////////////////////////////////
+//
+// Doom I texture conversion
+//
 
 // convert old doom I levels so they will
 // work under doom II
@@ -1124,58 +1125,60 @@ int numconvs = 0;
 
 static void R_LoadDoom1Parse(char *line)
 {
+  char *doom1, *doom2;
+  
   while(*line == ' ') line++;
   if(line[0] == ';') return;      // comment
   if(!*line || *line<32) return;      // empty line
   
-  if(!txtrconv[numconvs].doom1)
-    {
-      memset(txtrconv[numconvs].doom1 = malloc(9), 0, 9);
-      memset(txtrconv[numconvs].doom2 = malloc(9), 0, 9);
-    }
-  strncpy(txtrconv[numconvs].doom1, line, 8);
-  RemoveEndSpaces(txtrconv[numconvs].doom1);
-  strncpy(txtrconv[numconvs].doom2, line+9, 8);
-  RemoveEndSpaces(txtrconv[numconvs].doom2);
+  // limitless: alloc to size of orig. string
+  doom1 = malloc(strlen(line)); doom1[0] = '\0';
+  doom2 = malloc(strlen(line)); doom2[0] = '\0';
+
+  // read line
+  sscanf(line, "%s %s", doom1, doom2);
+  
+  txtrconv[numconvs].doom1 = strdup(doom1);
+  txtrconv[numconvs].doom2 = strdup(doom2);
+
+  free(doom1);
+  free(doom2);
   
   numconvs++;
 }
 
 static void R_LoadDoom1()
 {
-  char *lump;
-  char *startofline, *rover;
+  char *lump, *rover;
+  char readline[128] = "";
   int ll, lumpnum;
   
   if((lumpnum = W_CheckNumForName("TXTRCONV")) == -1)
     return;
   
-  lump = W_CacheLumpNum(lumpnum, PU_STATIC);
+  rover = lump = W_CacheLumpNum(lumpnum, PU_STATIC);
   
   ll = W_LumpLength(lumpnum);
   
-  startofline = rover = lump;
   numconvs = 0;
   
   while(rover < lump+ll)
     {
       if(*rover == '\n') // newline
 	{
-	  *rover = 0;
-	  R_LoadDoom1Parse(startofline);
-	  *rover = '\n';
-	  startofline = rover+1;
+	  R_LoadDoom1Parse(readline);
+	  readline[0] = '\0'; // clear readline
 	}
-      // replace control characters with spaces
-      if(*rover < ' ') *rover = ' ';
-      rover++;
+      // add if valid char
+      if(*rover >= ' ')
+	{
+	  readline[strlen(readline) + 1] = '\0';
+	  readline[strlen(readline)] = *rover;
+	}
+	rover++;
     }
-  R_LoadDoom1Parse(startofline);  // parse the last line
+  R_LoadDoom1Parse(readline);  // parse the last line
   
-  // _must_ be freed, not changetagged, as the
-  // lump has changed slightly and may not work
-  // if this has to be loaded again
-
   Z_Free(lump);   
 }
 
@@ -1212,15 +1215,15 @@ static void error_printf(char *s, ...)
   va_end(v);
 
   if(!error_file)
-  {
-     time_t nowtime = time(NULL);
-
-     error_filename = "smmu_err.txt";
-     error_file = fopen(error_filename, "w");
-     fprintf(error_file, "SMMU textures error file\n%s\n",
-        ctime(&nowtime));
-  }
-
+    {
+      time_t nowtime = time(NULL);
+      
+      error_filename = "smmu_err.txt";
+      error_file = fopen(error_filename, "w");
+      fprintf(error_file, "SMMU textures error file\n%s\n",
+	      ctime(&nowtime));
+    }
+  
   fprintf(error_file, tmp);
 }
 

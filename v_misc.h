@@ -27,17 +27,18 @@ extern int v_mode;
 // Calculate # of glyphs in font.
 #define V_FONTSIZE     (V_FONTEND - V_FONTSTART + 1) 
 
-        // font colours
-#define FC_BRICK        "\x80"
-#define FC_TAN          "\x81"
-#define FC_GRAY         "\x82"
-#define FC_GREEN        "\x83"
-#define FC_BROWN        "\x84"
-#define FC_GOLD         "\x85"
-#define FC_RED          "\x86"
-#define FC_BLUE         "\x87"
-#define FC_ORANGE       "\x88"
-#define FC_YELLOW       "\x89"
+// font colours
+#define FC_BRICK  "\x80"
+#define FC_TAN    "\x81"
+#define FC_GRAY   "\x82"
+#define FC_GREEN  "\x83"
+#define FC_BROWN  "\x84"
+#define FC_GOLD   "\x85"
+#define FC_RED    "\x86"
+#define FC_BLUE   "\x87"
+#define FC_ORANGE "\x88"
+#define FC_YELLOW "\x89"
+#define FC_TRANS  "\x8a"
 
 void V_WriteText(unsigned char *s, int x, int y);
 void V_WriteTextColoured(unsigned char *s, int colour, int x, int y);

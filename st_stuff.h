@@ -56,6 +56,9 @@ void ST_Init(void);
 
 void ST_CacheFaces(patch_t **faces, char *facename);
 
+// for wad loading: clear out graphics and reload
+void ST_reloadData();
+
 // States for status bar code.
 typedef enum
 {

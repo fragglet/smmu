@@ -143,28 +143,6 @@ int ExpandTics (int low)
   return 0;
 }
 
-int  oldentertics;
-
-void ResetNet()
-{
-  int i;
-  int nowtime = I_GetTime();
-  
-  if(!in_textmode) C_SetConsole();
-
-  oldentertics = nowtime;
-  
-  maketic = 1;
-  gametic = levelstarttic = basetic = 0;
-  
-  for(i=0; i<MAXNETNODES; i++)
-    {
-      nettics[i] = resendto[i] = 0;
-      remoteresend[i] = false; 
-    }
-//  netbuffer->starttic = 0;
-}
-
 //
 // HSendPacket
 //
@@ -758,24 +736,24 @@ void D_QuitNetGame (void)
 // TryRunTics
 //
 
-// sf 18/9/99: split into 2 functions. TryRunTics will run all of the
-//             independent tickers, ie. menu, console. RunGameTics runs
-//             all of the game tickers and includes adapting, etc.
-//             This removes the problem of game slowdown after one pc
-//             crashes in netgames, but also ensures the menu and
-//             console run at the right speeds during demo timing and
-//             changing of the game speed.
+// rearranged to seperate the 'environment' tickers -- eg. menu, console
+// from the 'game' tickers -- ie. G_Ticker
+
+static int game_exittic = 0;
+int oldnettics;
+
+// check for network delays
+static int opensocket_count = 0;
+boolean opensocket;
 
 int     frametics[4];
 int     frameon;
 int     frameskip[4];
-int     oldnettics;
-int     opensocket_count = 0;
-boolean opensocket;
 
 extern boolean advancedemo;
 
-void RunGameTics (void)
+// returns true if it ran some tics
+boolean RunGameTics (void)
 {
   int         i;
   int         lowtic;
@@ -787,8 +765,8 @@ void RunGameTics (void)
   
   // get real tics            
   entertic = I_GetTime ()/ticdup;
-  realtics = entertic - oldentertics;
-  oldentertics = entertic;
+  realtics = entertic - game_exittic;
+  game_exittic = entertic;
   
   // get available tics
   NetUpdate ();
@@ -868,7 +846,7 @@ void RunGameTics (void)
       G_Ticker ();
       gametic++;
       maketic++;
-      return;
+      return true;
     }
 
   // sf: reorganised to stop doom locking up
@@ -876,16 +854,12 @@ void RunGameTics (void)
   if (lowtic < gametic/ticdup + counts)         // no more loops
     {
       opensocket_count += realtics;
-      opensocket = opensocket_count >= 20;    // if no tics to run
+
+      // if no tics to run
       // for 20 tics then declare an open socket
+      opensocket = opensocket_count >= 20;
       
-      if(opensocket)  // dont let the pc freeze
-        {
-	  I_StartTic();           // allow keyboard input
-	  D_ProcessEvents();
-        }
-      
-      return;
+      return false;     // couldn't run any tics
     }
 
   opensocket_count = 0;
@@ -924,22 +898,29 @@ void RunGameTics (void)
 	}
       NetUpdate ();   // check for new console commands
     }
+
+  return true;    // ran some tics
 }
 
-void TryRunTics (void)
-{
-  static int exittime = 0;
-  // gettime_realtime is used because the game speed can be changed
-  int realtics = I_GetTime_RealTime() - exittime;
-  int i;
+// run tics for 'environment' -- menu, console etc.
+// returns true if it ran some tics
 
-  exittime = I_GetTime_RealTime();  // save for next time
+static int env_exittic = 0;
+
+boolean RunEnvTics ()
+{
+  // gettime_realtime is used because the game speed can be changed
+  int entertic = I_GetTime_RealTime();
+  int realtics = entertic - env_exittic;
+  int i;
+  
+  if(realtics <= 0)
+    {
+      return false;      // no tics to run 
+    }    
 
   // sf: run the menu and console regardless of 
   // game time. to prevent lockups
-
-  I_StartTic ();        // run these here now to get keyboard
-  D_ProcessEvents ();   // input for console/menu
 
   for(i = 0; i<realtics; i++)   // run tics
     {
@@ -949,9 +930,62 @@ void TryRunTics (void)
       V_FPSTicker();
     }
 
-        // run the game tickers
-  RunGameTics();
+  env_exittic = entertic;  // save for next time
+
+  return true; // ran some tics
 }
+  
+void TryRunTics (void)
+{
+  int i;
+
+  // we call the respective functions above
+  // run the game tickers and environment tickers
+
+  // if one of them managed to run a tic,
+  // something may have changed (visually)
+  // we do not exit the function until something
+  // new has happened
+  
+  for(i=0; i==0;)
+    {
+      // run these here now to get keyboard
+      // input for console/menu
+      
+      I_StartTic ();
+      D_ProcessEvents ();
+     
+      // run the game tickers
+      i += RunGameTics();
+      i += RunEnvTics();
+    }
+}
+//
+// ResetNet: important for networking
+//
+// Reset gametic to 0 basically
+//
+
+void ResetNet()
+{
+  int i;
+  
+  if(!in_textmode) C_SetConsole();
+
+  game_exittic = I_GetTime();
+  env_exittic = I_GetTime_RealTime();
+  
+  maketic = 1;
+  gametic = levelstarttic = basetic = 0;
+  
+  for(i=0; i<MAXNETNODES; i++)
+    {
+      nettics[i] = resendto[i] = 0;
+      remoteresend[i] = false; 
+    }
+//  netbuffer->starttic = 0;
+}
+
 
 /////////////////////////////////////////////////////
 //
