@@ -428,6 +428,9 @@ menu_t menu_multigame =
     {it_variable, "time limit",                 "timelimit"},
     {it_variable, "frag limit",                 "fraglimit"},
     {it_gap},
+    {it_info,     FC_GOLD "speedup options"},
+    {it_variable, "ticdup",                     "ticdup"},
+    {it_gap},
     {it_runcmd,   "advanced..",                 "mn_advanced"},
     {it_end},
   },
@@ -547,14 +550,16 @@ menu_t menu_player =
   {
     {it_title,  FC_GOLD "player setup",           NULL,           "M_PLAYER"},
     {it_gap},
-    {it_variable,       "player name",          "name"},
-    {it_toggle,         "player colour",        "colour"},
-    {it_toggle,         "player skin",          "skin"},
+    {it_variable,       "player name",            "name"},
+    {it_toggle,         "player colour",          "colour"},
+    {it_toggle,         "player skin",            "skin"},
     {it_gap},
-    {it_toggle,         "handedness",           "lefthanded"},
+    {it_toggle,         "handedness",             "lefthanded"},
+    {it_gap},
+    {it_slider,         "multiplayer prediction", "prediction"},
     {it_end}
   },
-  150,5,                                // x, y offset
+  120,5,                                // x, y offset
   mf_background,                        // full-screen
   MN_PlayerDrawer
 };
@@ -636,8 +641,11 @@ void MN_Net_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-06 14:39:10  fraggle
+// add prediction/ticdup to menu
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------

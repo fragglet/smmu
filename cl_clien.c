@@ -78,6 +78,7 @@ boolean isconsoletic;
 boolean drone;
 extern int consoleplayer;
 
+static int pending_ticdup = 1;      // new ticdup we are waiting to set
 int ticdup = 1;
 int extratics = 2;
 
@@ -286,12 +287,16 @@ void CL_Disconnect(char *reason)
       
       consoleplayer = 0;
 
+      ticdup = 1;
+      
       //deathmatch = 0;
       for(i=0;i<MAXPLAYERS;i++)
 	{
 	  playeringame[i] = i == consoleplayer;
 	}
 
+      gametime = I_GetTime();
+      
       C_SetConsole();
       C_Printf(FC_GRAY "client disconnected\n");
     }
@@ -375,7 +380,7 @@ static void CL_SendStartGame()
   netpacket_t packet;
   
   packet.type = pt_startgame;
-  packet.data.startgame.ticdup = 1;
+  packet.data.startgame.ticdup = pending_ticdup; // use new ticdup
   
   // reliable send
   
@@ -1897,6 +1902,8 @@ CONSOLE_COMMAND(restart, 0)
 
 CONSOLE_INT(prediction, prediction_threshold, NULL, 0, 16, NULL, 0) {}
 
+CONSOLE_INT(ticdup, pending_ticdup, NULL, 0, 6, NULL, 0) {}
+
 void CL_Demo_AddCommands();                  // cl_demo.c
 
 void CL_AddCommands()
@@ -1908,13 +1915,18 @@ void CL_AddCommands()
   C_AddCommand(latency);
   C_AddCommand(restart);
 
+  C_AddCommand(ticdup);
+  
   C_AddCommand(prediction);
 }
 
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.6  2000-05-06 14:06:11  fraggle
+// Revision 1.7  2000-05-06 14:39:10  fraggle
+// add prediction/ticdup to menu
+//
+// Revision 1.6  2000/05/06 14:06:11  fraggle
 // fix ticdup
 //
 // Revision 1.5  2000/05/03 16:46:45  fraggle
