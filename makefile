@@ -61,6 +61,8 @@ LDFLAGS=$(LDFLAGS_COMMON) $(LDFLAGS_$(MODE))
         
 # system-specific object files
 
+
+
 PLATOBJS =             \
 	i_main.o       \
 	i_system.o     \
@@ -69,7 +71,7 @@ PLATOBJS =             \
 	net_ser.o      \
 	net_ext.o      \
 	ser_port.o     \
-	keyboard.o     \
+        keyboard.o     \
 	mmus2mid.o     \
 	pproblit.o     \
 	drawspan.o     \
