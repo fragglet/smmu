@@ -81,7 +81,7 @@ extern int consoleplayer;
 
 static int pending_ticdup = 1;      // new ticdup we are waiting to set
 int ticdup = 1;
-int extratics = 2;
+int extratics = 0;
 
 extern int levelstarttic, basetic;
 
@@ -118,6 +118,9 @@ boolean out_of_sync;
 static int gametime;
 
 int cl_stack=2;
+
+// maketic-gametic must be < MAXIMUM_LAG
+#define MAXIMUM_LAG 40
 
 //===========================================================================
 //
@@ -290,13 +293,16 @@ void CL_Disconnect(char *reason)
 
       ticdup = 1;
       
+      ResetNet();
+
       //deathmatch = 0;
       for(i=0;i<MAXPLAYERS;i++)
 	{
 	  playeringame[i] = i == consoleplayer;
+	  nettics[i] = 0;
 	}
 
-      gametime = I_GetTime();
+      gametic = 0;
       
       C_SetConsole();
       C_Printf(FC_GRAY "client disconnected\n");
@@ -900,6 +906,12 @@ static void CL_StartGame(startgame_t *sg)
   gametic = 0;
   maketic = 1;
 
+  // run in compatibility mode
+
+  compatibility = true;
+  demo_insurance = true;
+  demo_version = VERSION;
+  
   ResetNet();
   
   C_SendNetData();
@@ -1507,13 +1519,15 @@ void NetUpdate()
   
   if(newtics > 0)
     {
+      gametime += newtics * ticdup;
+
       if(newtics > 4)
 	newtics = 4;
 
-      gametime += newtics * ticdup;
+      C_Printf("newtics = %i\n", newtics);
       
       if(!drone && gamestate != GS_SERVERWAIT &&
-	 (maketic - gametic/ticdup) < 20)
+	 (maketic - gametic/ticdup) < MAXIMUM_LAG)
 	{
 	  int ticnum;
 	  	  
@@ -1524,13 +1538,13 @@ void NetUpdate()
 	      CL_BuildTiccmd();
 	}
     }
-
+      
   // drones do not build ticcmds
   
   if(netgame && !demoplayback)
     {  
-      // get all new packets from server
-      
+      // get all new packets from
+
       CL_GetPackets();
       
       // check for packet timeout
@@ -1549,6 +1563,7 @@ void NetUpdate()
       
       SV_Update();
     }
+
 }
 
 //-------------------------------------------------------------------------
@@ -1695,7 +1710,7 @@ static boolean RunGameTics()
       
       opensocket =
 	netgame && !demoplayback &&
-	(maketic - gametic >= 20) &&
+	(maketic - gametic/ticdup >= MAXIMUM_LAG) &&
 	(I_GetTime_RealTime() - lastpacket_time > 8);
       
       // find maximum number of tics we can run
@@ -1792,13 +1807,14 @@ static boolean RunGameTics()
 	    {
 	      P_RunPredictedTic
 		(&backup_tics[consoleplayer][(ticnum/ticdup) & 255]);
+
 	      ticnum++;
 	    }
 	}
-      
+
       //  I_Error("TryRunTics");
     }
-  
+
   return true;       // ran some tics
 }
 
@@ -1882,7 +1898,7 @@ void TryRunTics (void)
 
       if(RunEnvTics() + (gamestate != GS_SERVERWAIT ? RunGameTics() : 0)  > 0)
 	break;
-
+      
       // free up time to the os
       I_Sleep(10000);
     }
@@ -1959,7 +1975,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.11  2000-05-12 16:41:59  fraggle
+// Revision 1.12  2000-05-22 09:57:45  fraggle
+// increase maximum lag to 40
+//
+// Revision 1.11  2000/05/12 16:41:59  fraggle
 // even better speeddup algorithm
 //
 // Revision 1.10  2000/05/10 13:11:37  fraggle
