@@ -29,6 +29,8 @@
 #include <wingdi.h>
 //#include <stdlib.h>
 
+#include "../config.h"
+
 #define NOASM
 
 // proff 07/04/98: Added for CYGWIN32 compatibility
@@ -168,12 +170,19 @@ static int I_DoomCode2ScanCode (int a)
 
 // end of scancode2doomcode
 
-static void (*FullscreenProc)(int fullscreen);
-
-static void WinFullscreen(int fullscreen)
+static boolean GDI_SetMode()
 {
-  vidFullScreen=0;
-  doom_printf("Fullscreen-Mode not available");
+  // cannot set fullscreen: return error if it is tried
+
+  if(vidFullScreen)
+    {
+      doom_printf("Fullscreen-Mode not available");
+      return false;
+    }
+  else
+    {
+      return true;
+    }
 }
 
 static CALLBACK
@@ -246,12 +255,6 @@ WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	if ( event.data1 != 0 )
 	  D_PostEvent(&event);
 	AltDown = (GetAsyncKeyState(VK_MENU) < 0);
-	if ((AltDown) & (wParam == VK_RETURN))
-	  {
-            vidFullScreen = 1-vidFullScreen;
-            if (FullscreenProc)
-	      FullscreenProc(vidFullScreen);
-	  }
 	break;
       case WM_SYSKEYUP:
       case WM_KEYUP:
@@ -618,42 +621,40 @@ static void Done_DDraw(void)
     BringWindowToTop(ghWnd);
 }
 
-static void DDrawFullscreen(int fullscreen)
+static boolean DDraw_SetMode()
 {
   HRESULT error;
   DDSURFACEDESC ddSD;
   DDSCAPS ddSDC;
   int c;
   
-  if (fullscreen)
+  if (vidFullScreen)
     {
       vidFullScreen = 0;
       error = DirectDrawCreate(NULL,&lpDD,NULL);
       if (error != DD_OK)
 	{
 	  printf("Error: DirectDrawCreate failed!\n");
-	  FullscreenProc=WinFullscreen;
 	  Done_DDraw();
-	  return;
+	  return false;
 	}
       error = IDirectDraw_SetCooperativeLevel(lpDD,ghWnd,DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
       if (error != DD_OK)
 	{
 	  printf("Error: DirectDraw_SetCooperativeLevel failed!\n");
-	  FullscreenProc=WinFullscreen;
 	  Done_DDraw();
-	  return;
+	  return false;
 	}
       error = IDirectDraw_SetDisplayMode(lpDD,BestWidth,BestHeight,8);
       if (error != DD_OK)
 	{
 	  printf("Error: DirectDraw_SetDisplayMode %ix%ix8 failed!\n",BestWidth,BestHeight);
-	  FullscreenProc=WinFullscreen;
 	  Done_DDraw();
-	  return;
+	  return false;
 	}
       else
 	printf("DDrawMode %ix%i\n",BestWidth,BestHeight);
+
       ddSD.dwSize = sizeof(ddSD);
       ddSD.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
       ddSD.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
@@ -663,9 +664,8 @@ static void DDrawFullscreen(int fullscreen)
 	{
 	  lpDDPSF = NULL;
 	  printf("Error: DirectDraw_CreateSurface failed!\n");
-	  FullscreenProc=WinFullscreen;
 	  Done_DDraw();
-	  return;
+	  return false;
 	}
       ddSDC.dwCaps = DDSCAPS_BACKBUFFER;
       error = IDirectDrawSurface_GetAttachedSurface(lpDDPSF,&ddSDC,&lpDDBSF);
@@ -673,18 +673,16 @@ static void DDrawFullscreen(int fullscreen)
 	{
 	  lpDDBSF = NULL;
 	  printf("Error: DirectDraw_GetAttachedSurface failed!\n");
-	  FullscreenProc=WinFullscreen;
 	  Done_DDraw();
-	  return;
+	  return false;
 	}
       error = IDirectDraw_CreatePalette(lpDD,DDPCAPS_8BIT | DDPCAPS_ALLOW256,ADDPal,&lpDDPal,NULL);
       if (error != DD_OK)
 	{
 	  lpDDPal = NULL;
 	  printf("Error: DirectDraw_CreatePal failed!\n");
-	  FullscreenProc=WinFullscreen;
 	  Done_DDraw();
-	  return;
+	  return false;
 	}
       error = IDirectDrawSurface_SetPalette(lpDDPSF,lpDDPal);
       error = IDirectDrawSurface_SetPalette(lpDDBSF,lpDDPal);
@@ -698,10 +696,12 @@ static void DDrawFullscreen(int fullscreen)
       IDirectDrawPalette_SetEntries(lpDDPal,0,0,256,ADDPal);
       vidFullScreen = 1;
       printf("Fullscreen-Mode\n");
+
+      return true;
     }
   else
     {
-      //      Done_DDraw();
+      Done_DDraw();
       if (ViewScale==Scale_Own)
 	ViewMemPitch=SCREENWIDTH*2;
       else
@@ -713,6 +713,8 @@ static void DDrawFullscreen(int fullscreen)
 	  View_bmi->bmiColors[c].rgbBlue = ADDPal[c].peBlue;
 	}
       printf("Windows-Mode\n");
+
+      return true;
     }
 }
 
@@ -744,19 +746,17 @@ static HRESULT WINAPI MyEnumModesCallback(LPDDSURFACEDESC lpDDSDesc, LPVOID lpCo
   return DDENUMRET_OK;
 }
 
-static void Init_DDraw(void)
+static boolean Init_DDraw(void)
 {
   HRESULT error;
   DDSURFACEDESC DDSDesc;
 
-  FullscreenProc = DDrawFullscreen;
   error = DirectDrawCreate(NULL,&lpDD,NULL);
 
   if (error != DD_OK)
     {
       printf("Error: DirectDrawCreate failed!\n");
-      FullscreenProc=WinFullscreen;
-      return;
+      return false;
     }
 
   DDSDesc.dwSize=sizeof(DDSURFACEDESC);
@@ -766,7 +766,9 @@ static void Init_DDraw(void)
   DDSDesc.ddpfPixelFormat.u1.dwRGBBitCount=8;
   BestWidth=INT_MAX;
   BestHeight=INT_MAX;
+
   IDirectDraw_EnumDisplayModes(lpDD,0,&DDSDesc,NULL,&MyEnumModesCallback);
+
   if (((BestWidth==INT_MAX) | (BestHeight==INT_MAX)) & (ViewScale!=Scale_None))
     {
       ViewScale=Scale_None;
@@ -774,22 +776,35 @@ static void Init_DDraw(void)
       BestHeight=INT_MAX;
       IDirectDraw_EnumDisplayModes(lpDD,0,&DDSDesc,NULL,&MyEnumModesCallback);
     }
+
   if ((BestWidth==INT_MAX) | (BestHeight==INT_MAX))
     {
       BestWidth=0;
       BestHeight=0;
       printf("Error: No DirectDraw mode, which suits the needs, found!\n");
       printf("Searched Mode: W: %i, H: %i, BPP 8\n",SCREENWIDTH,SCREENHEIGHT);
-      FullscreenProc=WinFullscreen;
-      return;
+      return false;
     }
+
   //  lprintf(LO_INFO,"BestWidth: %i, BestHeight: %i\n",BestWidth,BestHeight);
   if (lpDD)
     IDirectDraw_Release(lpDD);
   lpDD=NULL;
+
+  return true;
 }
 #endif
 
+// sf: close open window
+
+static void Win32_UnsetMode()
+{
+  if(ghWnd)
+    DestroyWindow(ghWnd);
+#ifdef HAVE_LIBDDRAW
+  Done_DDraw();
+#endif
+}
 
 static boolean Win32_SetMode(int mode)
 {
@@ -878,28 +893,42 @@ static boolean Win32_SetMode(int mode)
   //            ViewRect.right-ViewRect.left, ViewRect.bottom-ViewRect.top);
   
  
- FullscreenProc = WinFullscreen;
-
 #ifdef HAVE_LIBDDRAW
-  if (!M_CheckParm("-noddraw"))
-    Init_DDraw();
+
+  if(!M_CheckParm("-noddraw"))
+    {
+      // if we can init ddraw, try to set the mode
+
+      if(Init_DDraw())
+	{
+	  // try setting mode
+	  // if it fails, return error
+
+	  if(!DDraw_SetMode())
+	    {
+	      Win32_UnsetMode();
+	      return false;
+	    }
+	  
+	  // set mode ok
+
+	  return true;
+	}
+    }
 #endif
- 
-  FullscreenProc(vidFullScreen);
 
-  return true;       // opened ok
-}
+  // if all else fails, call the GDI routines
+  // to try to set the mode
 
-// sf: close open window
-
-static void Win32_UnsetMode()
-{
-  if(ghWnd)
-    DestroyWindow(ghWnd);
-#ifdef HAVE_LIBDDRAW
-  Done_DDraw();
-#endif
-
+  if(GDI_SetMode())
+    {
+      return true;
+    }
+  else
+    {
+      Win32_UnsetMode();
+      return false;
+    }
 }
 
 static void Win32_SetPalette(unsigned char *pal)
@@ -979,8 +1008,6 @@ static boolean Win32_Init()
 
 static void Win32_Shutdown(void)
 {
-  if (FullscreenProc)
-    FullscreenProc(false);
 #ifdef HAVE_LIBDDRAW
   Done_DDraw();
 #endif
@@ -1318,7 +1345,11 @@ viddriver_t win32_driver =
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2001-01-13 02:33:26  fraggle
+// Revision 1.6  2001-01-13 14:49:57  fraggle
+// fix checking for unsupported modes
+// include config.h to check for directdraw library
+//
+// Revision 1.5  2001/01/13 02:33:26  fraggle
 // Fix log tags etc.
 //
 //
