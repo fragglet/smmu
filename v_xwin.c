@@ -1633,7 +1633,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.7  2001-01-13 14:50:51  fraggle
+// Revision 1.1  2001-01-13 14:53:01  fraggle
+// Move X code to system-nonspecific (cross platform library)
+//
+// Revision 1.7  2001/01/13 14:50:51  fraggle
 // include config.h to check for appropriate libraries
 //
 // Revision 1.6  2001/01/13 02:28:23  fraggle
