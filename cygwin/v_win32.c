@@ -865,12 +865,8 @@ static boolean Win32_SetMode(int mode)
 		       0, 0, MainWinWidth, MainWinHeight,
 		       NULL, NULL, win_hInstance, NULL);
 
-  ShowWindow(ghWnd, SW_SHOW);
-  UpdateWindow(ghWnd);
   
   // ---- stuff moved from Init_Winstuff
-
-  BringWindowToTop(ghWnd);
 
   // Set the windowtitle
   Set_Title();
@@ -892,6 +888,11 @@ static boolean Win32_SetMode(int mode)
   //    lprintf (LO_DEBUG, "I_InitGraphics: Client area: %ux%u\n",
   //            ViewRect.right-ViewRect.left, ViewRect.bottom-ViewRect.top);
   
+
+  ShowWindow(ghWnd, SW_SHOW);
+  UpdateWindow(ghWnd);
+
+  BringWindowToTop(ghWnd);
  
 #ifdef HAVE_LIBDDRAW
 
@@ -1345,7 +1346,10 @@ viddriver_t win32_driver =
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.6  2001-01-13 14:49:57  fraggle
+// Revision 1.7  2001-01-15 01:31:33  fraggle
+// cosmetic - hide window until set up properly
+//
+// Revision 1.6  2001/01/13 14:49:57  fraggle
 // fix checking for unsupported modes
 // include config.h to check for directdraw library
 //
