@@ -218,13 +218,25 @@ void V_SetMode(int i)
   
   // set mode
   
-  if(!viddriver->SetMode(i))
+  if(viddriver->SetMode(i))
+    {
+  
+      // clear any error messages left from setting modes before:
+      // it has worked this time
+      
+      MN_ErrorMsg("");
+      
+    }
+  else
     {
       // mode set failed
-      // try mode 0
+      // reset to previous mode
 
       if(viddriver->SetMode(current_mode))
-	i = current_mode;
+	{
+	  MN_ErrorMsg("mode unavailable or unsupported");
+	  i = current_mode;
+	}
       else
 	I_Error("I_SetMode: couldnt reset mode");
     }
@@ -481,7 +493,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.8  2001-01-13 02:29:46  fraggle
+// Revision 1.9  2001-01-13 14:49:19  fraggle
+// fix checking for modes not supported
+//
+// Revision 1.8  2001/01/13 02:29:46  fraggle
 // changed library #defines to standard HAVE_LIBxyz
 // for autoconfing
 //
