@@ -127,7 +127,7 @@ struct tic_s
 // length of the header of a gamepacket_t
 #define GAMEHEADERLEN (int) &(((gamepacket_t *) 0)->tics)
 
-#define NUM_TICS 8
+#define NUM_TICS 30
 
 struct gamepacket_s
 {
@@ -389,7 +389,10 @@ void SV_Update();
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-05-06 14:06:11  fraggle
+// Revision 1.5  2000-05-22 09:59:36  fraggle
+// ticcmds/packet increased
+//
+// Revision 1.4  2000/05/06 14:06:11  fraggle
 // fix ticdup
 //
 // Revision 1.3  2000/05/03 16:46:45  fraggle
