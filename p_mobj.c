@@ -508,7 +508,8 @@ floater:
 		// and utter appropriate sound.
 
 		mo->player->deltaviewheight = mo->momz>>3;
-                S_StartSound (mo, sfx_oof);
+		if(!predicted_tic) // sf: dont play sound in predicted tic
+		  S_StartSound (mo, sfx_oof);
 	      }
 	  mo->momz = 0;
 	}
@@ -1375,7 +1376,10 @@ mobj_t *P_SpawnPlayerMissile(mobj_t* source, mobjtype_t type)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:41  fraggle
+// Revision 1.3  2000-05-03 16:21:23  fraggle
+// client speedup code
+//
+// Revision 1.2  2000/05/02 15:43:41  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

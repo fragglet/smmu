@@ -241,6 +241,11 @@ void SendPacket(netnode_t *node, netpacket_t *packet)
 	GAMEHEADERLEN +
 	packet->data.gamepacket.num_tics * sizeof(tic_t);
       break;
+
+      // speedup packet
+    case pt_speedup:
+      packet_len += sizeof(speeduppacket_t);
+      break;  
       
       // resend tics
     case pt_clticresend:
@@ -522,8 +527,11 @@ void net_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:08  fraggle
-// Initial revision
+// Revision 1.2  2000-05-03 16:21:23  fraggle
+// client speedup code
+//
+// Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
+// initial import
 //
 //
 //-------------------------------------------------------------------------

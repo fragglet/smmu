@@ -156,6 +156,14 @@ typedef struct
   byte ticnum[MAXPLAYERS];     // one for each player
 } svticresend_t;
 
+// speedup/slowdown packets
+
+typedef struct
+{
+  byte packet_num;
+  char skiptics;
+} speeduppacket_t;
+
 //--------------------------------------------------------------------------
 //
 // Finger server.
@@ -286,9 +294,12 @@ enum
     // game packets
     pt_gametics,               // game data
     pt_compressed,             // compressed game data
+
+    pt_speedup,                // speedup packet
+    
     pt_clticresend,            // client tic resend
     pt_svticresend,            // server tic resend
-
+    
     // ping
     pt_ping,
     pt_pong,                   // ping response
@@ -330,6 +341,8 @@ struct netpacket_s
 
     gamepacket_t gamepacket;            // game tics
     compressedpacket_t compressed;      // compressed game tics
+
+    speeduppacket_t speedup;            // speedup packet
     
     // resend tics:
     clticresend_t clticresend;          // client tic resend    
@@ -374,8 +387,11 @@ void SV_Update();
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2000-04-30 19:12:09  fraggle
-// Initial revision
+// Revision 1.2  2000-05-03 16:21:23  fraggle
+// client speedup code
+//
+// Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
+// initial import
 //
 //
 //---------------------------------------------------------------------------

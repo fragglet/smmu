@@ -105,6 +105,7 @@ typedef struct
   // tic cmd
   ticcmd_t ticcmds[256];           // received ticcmds
   int got_tic;                     // most recent tic number
+  int sync_time;                   // time we got .ticcmds[0]
 
   boolean resend;                  // if true, send resend request
   int resend_time;                 // time we sent resend request for timeout
@@ -125,6 +126,15 @@ extern int extratics;    // how many previous tics to include in packets
 boolean waiting_players;
 
 int sv_stack=1;          // stack height before sending
+
+// sf: every now and again, we send the clients packets telling
+// them how much to speed up (need to sync all the clients for the
+// smoothest game)
+
+// SYNC_COUNTDOWN_TIME is the number of cycles of player.ticcmds to wait
+// before sending the speedup/slowdown packets. 
+#define SYNC_COUNTDOWN_TIME 1
+static int sync_countdown = SYNC_COUNTDOWN_TIME;
 
 //---------------------------------------------------------------------------
 //
@@ -365,6 +375,55 @@ int SV_Lowtic(int player)
 
 //--------------------------------------------------------------------------
 //
+// SV_SendSpeedupPackets
+//
+// Send packets to clients telling them to speedup/slowdown their
+// tic sending.
+//
+// Based on the time we receive a particular tic from the clients
+//
+
+void SV_SendSpeedupPackets()
+{
+  netpacket_t packet;
+  int pivot_time = -1;
+  int i;
+  int skiptics;
+  
+  C_Printf("check speedup times\n");
+  
+  packet.type = pt_speedup;
+
+  for(i=0; i<server_numplayers; i++)
+    {
+      playerinfo_t *player = &server_players[i];
+      nodeinfo_t *ni = &server_nodes[player->node];
+      int sendtime = player->sync_time - (ni->latency/2);
+      
+      if(!player->ingame)
+	continue;
+
+      C_Printf("%s: %i\n", ni->name, player->sync_time);
+
+      if(pivot_time == -1)
+	pivot_time = sendtime;
+      else
+	{
+	  skiptics = pivot_time - sendtime;
+	  
+	  // dont send if we dont need them to change
+	  
+	  if(skiptics)
+	    {
+	      packet.data.speedup.skiptics = skiptics;
+	      SV_ReliableSend(ni, &packet);
+	    }
+	}
+    }
+}
+
+//--------------------------------------------------------------------------
+//
 // SV_AddTic
 //
 // Deal with a tic_t read out of a gamepacket.
@@ -424,6 +483,28 @@ static void SV_AddTic(tic_t *tic)
   server_players[player].ticcmds[ticnum] = tic->ticcmd;
   server_players[player].got_tic = expected_tic;
 
+  // sf: client speedup code
+  // save the time when we receive player.ticcmds[0]
+  
+  if(ticnum == 0)
+    {
+      server_players[player].sync_time = I_GetTime_RealTime();
+
+      // see if this is the last ticcmd for this tic
+
+      if(SV_Lowtic(-1) == 0)
+	{
+	  // count down sync_countdown: when it reaches 0, send the
+	  // speedup packets to the player
+
+	  if(!sync_countdown--)
+	    {
+	      SV_SendSpeedupPackets();
+	      sync_countdown = SYNC_COUNTDOWN_TIME;
+	    }
+	}
+     }
+  
   // no longer need resend
   server_players[player].resend = false;
   server_players[player].resend_time = -1;
@@ -589,7 +670,7 @@ static int ping_sendtime;
 
 static void SV_CheckPing()
 {
-  if(I_GetTime_RealTime() > ping_sendtime + PING_FREQ*35)
+  if(I_GetTime_RealTime() > ping_sendtime + PING_FREQ*TICRATE)
     {
       int i;
       netpacket_t packet;
@@ -1068,7 +1149,11 @@ static void SV_AcceptJoin(joinpacket_t *jp)
 
   // send updated wait info to waiting client nodes
   
-  SV_SendWaitInfo();  
+  SV_SendWaitInfo();
+
+  // get ping from new client
+
+  ping_sendtime = -PING_FREQ * TICRATE;
 }
 
 //-------------------------------------------------------------------------
@@ -1478,7 +1563,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:41  fraggle
+// Revision 1.3  2000-05-03 16:21:23  fraggle
+// client speedup code
+//
+// Revision 1.2  2000/05/02 15:43:41  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
