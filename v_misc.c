@@ -223,7 +223,8 @@ int V_StringWidth(unsigned char *s)
 	  continue;	  
 	}
       c = toupper(c) - V_FONTSTART;
-      length += c >= V_FONTSIZE ? 4 : SHORT(v_font[c]->width);
+      if(v_font[c])
+	length += c >= V_FONTSIZE ? 4 : SHORT(v_font[c]->width);
     }
 
   if(length > longest_width) longest_width = length; // check last line
@@ -615,7 +616,10 @@ void V_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-06-20 21:04:44  fraggle
+// Revision 1.3  2000-08-17 23:34:04  fraggle
+// null pointer dereference
+//
+// Revision 1.2  2000/06/20 21:04:44  fraggle
 // V_IsPrint function for portable isprint()
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
