@@ -201,7 +201,9 @@ void V_SetMode(int i)
   if(i >= NumModes() || i < 0)
     {
       C_Printf("invalid mode %i", i);
-      return;
+
+      if(in_graphics_mode)      // if initting, make sure we go to gfx mode
+	return;
     }
 
   // go to text mode (or close window in X or Win32)
@@ -338,8 +340,9 @@ void V_ShutdownGraphics(void)
 // Then call viddriver->InitGraphics
 //
 
-#ifdef DJGPP   /* Allegro */
+#ifdef DJGPP  
 extern viddriver_t alleg_driver;
+extern viddriver_t vga_driver;
 #endif
 #ifdef XWIN    /* X Window */
 extern viddriver_t xwin_driver;
@@ -355,6 +358,7 @@ static viddriver_t *drivers[] =
 {
 #ifdef DJGPP
   &alleg_driver,
+  &vga_driver,
 #endif
 #ifdef XWIN
   &xwin_driver,
@@ -466,7 +470,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-06-20 21:09:40  fraggle
+// Revision 1.5  2000-06-22 18:29:38  fraggle
+// VGA Mode driver for Zokum
+//
+// Revision 1.4  2000/06/20 21:09:40  fraggle
 // tweak gamma correction stuff
 //
 // Revision 1.3  2000/06/19 14:58:55  fraggle
