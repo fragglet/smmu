@@ -373,6 +373,10 @@ void G_AddWeapPrefs()
     }
 }
 
+// doom weapon toggles
+
+CONSOLE_BOOLEAN(doom_weapon_toggles, doom_weapon_toggles, NULL, onoff, 0) {}
+		
 ///////////////////////////////////////////////////////////////
 //
 // Compatibility vectors
@@ -489,6 +493,8 @@ void G_AddCommands()
   C_AddCommand(wadfile_2);
   C_AddCommand(dehfile_1);
   C_AddCommand(dehfile_2);
+
+  C_AddCommand(doom_weapon_toggles);
   
   G_AddChatMacros();
   G_AddWeapPrefs();
@@ -500,7 +506,10 @@ void G_AddCommands()
 //-----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-10 13:11:37  fraggle
+// Revision 1.3  2000-07-29 22:40:36  fraggle
+// doom_weapon_toggles console cmd
+//
+// Revision 1.2  2000/05/10 13:11:37  fraggle
 // fix demos
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
