@@ -1137,11 +1137,7 @@ static void CL_PlayerQuit(quitpacket_t *qp)
   // spawn 
 
   if(gamestate == GS_LEVEL)
-    {
-      P_SpawnMobj(players[pl].mo->x, players[pl].mo->y, players[pl].mo->z,
-		  MT_TFOG);
-      P_RemoveMobj(players[pl].mo);
-    }
+    P_RemoveMobj(players[pl].mo);
   
   playeringame[pl] = false;
 
@@ -1904,7 +1900,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.3  2000-05-03 16:21:23  fraggle
+// Revision 1.4  2000-05-03 16:30:42  fraggle
+// remove multiplayer quit flash
+//
+// Revision 1.3  2000/05/03 16:21:23  fraggle
 // client speedup code
 //
 // Revision 1.2  2000/05/02 15:43:40  fraggle
