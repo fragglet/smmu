@@ -389,26 +389,55 @@ int SV_Lowtic(int player)
 void SV_SendSpeedupPackets()
 {
   netpacket_t packet;
-  int pivot_time = -1;
+  int max1, max2;     // the two players with greatest and 2nd-greatest pings
+  int maxping1, maxping2; // the greatest and 2nd-greatest pings
   int i;
-  int skiptics;
+  int basetime;
+  int pivot_time;
   
-  packet.type = pt_speedup;
+  // find the two players with the highest pings
 
+  max1 = max2 = 0;
+  maxping1 = maxping2 = -1;
+  
+  for(i=0; i<server_numplayers; i++)
+    {
+      nodeinfo_t *ni = &server_nodes[server_players[i].node];
+      
+      if(ni->latency > maxping1)
+	{
+	  max1 = i;
+	  maxping1 = ni->latency;
+	}
+      else if(ni->latency > maxping2)
+	{
+	  max2 = i;
+	  maxping2 = ni->latency;
+	}
+    }
+  
+  // send packets to nodes
+
+  packet.type = pt_speedup;
+  pivot_time = -1;
+
+  // this is the time which we want the packets from the clients to
+  // arrive - except for the player with the maximum ping whose packets
+  // we want to arrive a bit later
+  
+  basetime = server_players[max2].sync_time;
+  
   for(i=0; i<server_numplayers; i++)
     {
       playerinfo_t *player = &server_players[i];
       nodeinfo_t *ni = &server_nodes[player->node];
-      int sendtime = player->sync_time - (ni->latency/2);
-      
-      if(!player->ingame)
-	continue;
 
-      if(pivot_time == -1)
-	pivot_time = sendtime;
-      else
+      // sync_time is the time we want the packet from this node to arrive
+      
+      int sync_time = basetime + (i == max1 ? (maxping1 - maxping2) / 2 : 0);
+      
 	{
-	  skiptics = pivot_time - sendtime;
+	  int skiptics = sync_time - player->sync_time;
 	  
 	  // dont send if we dont need them to change
 	  
@@ -417,7 +446,7 @@ void SV_SendSpeedupPackets()
 	      packet.data.speedup.skiptics = skiptics;
 	      SV_ReliableSend(ni, &packet);
 	    }
-	}
+	}      
     }
 }
 
@@ -1635,7 +1664,10 @@ void SV_AddCommands()
 //---------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.6  2000-05-07 13:11:21  fraggle
+// Revision 1.7  2000-05-07 14:10:28  fraggle
+// better time adjustment algorithm
+//
+// Revision 1.6  2000/05/07 13:11:21  fraggle
 // improve multiplayer chatroom interface
 //
 // Revision 1.5  2000/05/06 14:06:11  fraggle
