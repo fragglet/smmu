@@ -25,10 +25,10 @@ static const char rcsid[] = "$Id$";
 
 #include "version.h"
 
-int VERSION = 321;        // sf: made int from define 
+int VERSION = 330;        // sf: made int from define 
 const char version_date[] = __DATE__;
-const char version_name[] = "christmas"; // sf : version names
-                                         // at the suggestion of mystican
+const char version_name[] = "textmode"; // sf : version names
+                                        // at the suggestion of mystican
 
 // os type
 
@@ -46,7 +46,10 @@ os_unknown;
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.4  2000-08-16 13:29:14  fraggle
+// Revision 1.5  2000-08-17 14:30:32  fraggle
+// Up version number
+//
+// Revision 1.4  2000/08/16 13:29:14  fraggle
 // more generalised os detection
 //
 // Revision 1.3  2000/06/22 18:24:58  fraggle
