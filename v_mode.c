@@ -284,15 +284,14 @@ CONSOLE_VARIABLE(v_mode, v_mode, cf_buffered)
 
 CONSOLE_COMMAND(v_modelist, 0)
 {
-  char *modename = modenames[0];
+  int i;
   
   C_Printf(FC_GRAY "video modes:\n" FC_RED);
   
-  while(modename)
+  while(modenames[i])
     {
-      C_Printf("%i: %s\n",(int)(modename-modenames[0]),
-	       modename);
-      modename++;
+      C_Printf("%i: %s\n", i, modenames[i]);
+      i++;
     }
 }
 
@@ -382,6 +381,10 @@ void V_InitGraphics(void)
       printf("devparm: press a key..\n");
       getchar();
     }
+
+  // sf: gamma correction
+  
+  gamma_xlate = gammatable[usegamma];
   
   // check for cmd-line parameter override
 
@@ -470,7 +473,10 @@ void V_Mode_AddCommands()
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.5  2000-06-22 18:29:38  fraggle
+// Revision 1.6  2000-07-29 22:40:18  fraggle
+// twiddle gamma correction stuff
+//
+// Revision 1.5  2000/06/22 18:29:38  fraggle
 // VGA Mode driver for Zokum
 //
 // Revision 1.4  2000/06/20 21:09:40  fraggle
