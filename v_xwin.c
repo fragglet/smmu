@@ -31,7 +31,7 @@
 static const char
 rcsid[] = "$Id$";
 
-#include "../config.h"   /* read config, do we have X? */
+#include "config.h"   /* read config, do we have X? */
 
 #ifdef HAVE_LIBX11 /* define to allow compile w/out x-win support */
 
@@ -1633,7 +1633,10 @@ viddriver_t xwin_driver =
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.1  2001-01-13 14:53:01  fraggle
+// Revision 1.2  2001-01-13 16:32:17  fraggle
+// fix config.h #include
+//
+// Revision 1.1  2001/01/13 14:53:01  fraggle
 // Move X code to system-nonspecific (cross platform library)
 //
 // Revision 1.7  2001/01/13 14:50:51  fraggle
