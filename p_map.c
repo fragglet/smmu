@@ -1477,7 +1477,7 @@ static boolean PTR_ShootTraverse(intercept_t *in)
     P_SpawnPuff (x,y,z);
   else
     P_SpawnBlood (x,y,z, la_damage);
-
+  
   if (la_damage)
     P_DamageMobj (th, shootthing, shootthing, la_damage);
 
@@ -2102,7 +2102,10 @@ void P_CreateSecNodeList(mobj_t *thing,fixed_t x,fixed_t y)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:41  fraggle
+// Revision 1.3  2000-05-24 13:29:10  fraggle
+// fix jerkiness problem w/client prediction
+//
+// Revision 1.2  2000/05/02 15:43:41  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle

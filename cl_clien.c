@@ -68,7 +68,7 @@ extern boolean advancedemo;
 
 void ResetNet();
 
-#define CONSISTANCY_BUFFER 32
+#define CONSISTANCY_BUFFER 64
 static byte consistancy[CONSISTANCY_BUFFER];
 
 int prediction_threshold = 16;    // max. number of tics to predict 16 = full
@@ -1139,7 +1139,7 @@ static void CL_Speedup(speeduppacket_t *speedup)
 
   gametime += speedup->skiptics;
 
-  C_Printf("skiptics: %i\n", speedup->skiptics);
+  //  C_Printf("skiptics: %i\n", speedup->skiptics);
 }
 
 //-------------------------------------------------------------------------
@@ -1519,13 +1519,11 @@ void NetUpdate()
   
   if(newtics > 0)
     {
-      gametime += newtics * ticdup;
-
       if(newtics > 4)
 	newtics = 4;
-
-      C_Printf("newtics = %i\n", newtics);
       
+      gametime += newtics * ticdup;
+
       if(!drone && gamestate != GS_SERVERWAIT &&
 	 (maketic - gametic/ticdup) < MAXIMUM_LAG)
 	{
@@ -1677,7 +1675,8 @@ static boolean RunGameTics()
   int count;
   int key = -1;
   int consist;
-
+  boolean rantics = false;      // whether we ran some tics
+  
   // if timing demo, read the ticcmds in here rather than in
   // NetUpdate
   
@@ -1716,70 +1715,64 @@ static boolean RunGameTics()
       // find maximum number of tics we can run
       
       availabletics = lowtic - gametic/ticdup; // - 1;
-      
-      if(availabletics < 0)
-	{
-	  //  C_Printf("availabletic < 0! %i %i\n", lowtic, gametic/ticdup);
-	  return false;
-	}
-      
-      if(availabletics == 0)
-	{
-	  return false;        // wait until we have some tics
-	}
     }
   
-  // try and run tics now
-
-  count = availabletics;
-
-  while(count--)
+  if(availabletics > 0)
     {
-      // copy tics into player_cmds
-      // check for consistancy errors
-
-      consist = -1;
-      out_of_sync = false;
+      // try and run tics now
       
-      for(i=0; i<MAXPLAYERS; i++)
-	{
-	  if(!playeringame[i])
-	    continue;
-	  player_cmds[i] = backup_tics[i][(gametic/ticdup) & 255];
-	  if(consist == -1)
-	    consist = player_cmds[i].consistancy;
-	  else
-	    // flash out-of-sync warning when we go out of sync in netgames
-	    if(consist != player_cmds[i].consistancy)
-	      out_of_sync = netgame && !demoplayback;
-	}
+      count = availabletics;
       
-      for(i=0; i<ticdup; i++)
+      while(count--)
 	{
-	  // save consistancy 
-	  consistancy[(gametic/ticdup) % CONSISTANCY_BUFFER]
-	    = GetConsistancy();
+	  // copy tics into player_cmds
+	  // check for consistancy errors
 	  
-	  G_Ticker ();
-	  if (advancedemo)
-	    D_DoAdvanceDemo ();
-	  //      C_Printf("run tic %i!\n", gametic);
+	  consist = -1;
+	  out_of_sync = false;
 	  
-	  gametic++;
-
-	  // clear some of the data from the ticcmds
-
-	  if(i == 0)
-	    for(n=0; n<MAXPLAYERS; n++)
-	      {
-		if (player_cmds[n].buttons & BT_SPECIAL)
-		  player_cmds[n].buttons = 0;
-		memset(player_cmds[n].consdata, 0,
-		       sizeof(player_cmds[n].consdata));
-	      }
+	  for(i=0; i<MAXPLAYERS; i++)
+	    {
+	      if(!playeringame[i])
+		continue;
+	      player_cmds[i] = backup_tics[i][(gametic/ticdup) & 255];
+	      if(consist == -1)
+		consist = player_cmds[i].consistancy;
+	      else
+		// flash out-of-sync warning when we go out of sync in netgames
+		if(consist != player_cmds[i].consistancy)
+		  out_of_sync = netgame && !demoplayback;
+	    }
+	  
+	  for(i=0; i<ticdup; i++)
+	    {
+	      // save consistancy 
+	      consistancy[(gametic/ticdup) % CONSISTANCY_BUFFER]
+		= GetConsistancy();
+	      
+	      G_Ticker ();
+	      if (advancedemo)
+		D_DoAdvanceDemo ();
+	      //      C_Printf("run tic %i!\n", gametic);
+	      
+	      gametic++;
+	      
+	      // clear some of the data from the ticcmds
+	      
+	      if(i == 0)
+		for(n=0; n<MAXPLAYERS; n++)
+		  {
+		    if (player_cmds[n].buttons & BT_SPECIAL)
+		      player_cmds[n].buttons = 0;
+		    memset(player_cmds[n].consdata, 0,
+			   sizeof(player_cmds[n].consdata));
+		  }
+	    }
 	}
+
+      rantics = true;   // we have run some tics now
     }
-
+  
   // Movement prediction
   // reduce laggy feel
 
@@ -1810,12 +1803,15 @@ static boolean RunGameTics()
 
 	      ticnum++;
 	    }
-	}
 
+	  //  doom_printf("predicted time: %i", ticnum);
+	  
+	  rantics = true;
+	}
       //  I_Error("TryRunTics");
     }
 
-  return true;       // ran some tics
+  return rantics;       // return whether we ran some tics or not
 }
 
 
@@ -1975,7 +1971,10 @@ void CL_AddCommands()
 //--------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.12  2000-05-22 09:57:45  fraggle
+// Revision 1.13  2000-05-24 13:29:10  fraggle
+// fix jerkiness problem w/client prediction
+//
+// Revision 1.12  2000/05/22 09:57:45  fraggle
 // increase maximum lag to 40
 //
 // Revision 1.11  2000/05/12 16:41:59  fraggle
