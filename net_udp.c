@@ -66,6 +66,10 @@ int udp_port = 46375;
 static int receive_socket;
 //static int send_socket;
 
+static int init_time;
+static int bytes_sent;
+static int bytes_received;
+
 //==========================================================================
 //
 // Init Library
@@ -95,11 +99,11 @@ void UDP_InitLibrary()
 
 // prototypes:
 
-boolean UDP_Init();
-void UDP_Shutdown();
-void UDP_SendPacket(int node, void *data, int datalen);
-void UDP_SendBroadcast(void *data, int datalen);
-void *UDP_GetPacket(int *node);
+static boolean UDP_Init();
+static void UDP_Shutdown();
+static void UDP_SendPacket(int node, void *data, int datalen);
+static void UDP_SendBroadcast(void *data, int datalen);
+static void *UDP_GetPacket(int *node);
 void *UDP_GetPacket_Lagged(int *node);
 
 netmodule_t udp =
@@ -109,7 +113,7 @@ netmodule_t udp =
     UDP_Shutdown,
     UDP_SendPacket,
     UDP_SendBroadcast,
-    UDP_GetPacket_Lagged,
+    UDP_GetPacket,
   };
 
 //==========================================================================
@@ -274,7 +278,7 @@ int UDP_Resolve(char *location)
 // how many different port numbers to try
 #define BIND_TRIES 100
 
-boolean UDP_Init()
+static boolean UDP_Init()
 {
   struct sockaddr_in in;
   //  int one = 1;
@@ -357,7 +361,8 @@ boolean UDP_Init()
   //
   
   udp.initted = true;
-
+  init_time = I_GetTime_RealTime(); // for stats
+  
   // init node-address lookup table
 
   UDP_InitNodeTable();
@@ -374,8 +379,10 @@ boolean UDP_Init()
 // Shutdown sockets, etc.
 //
 
-void UDP_Shutdown()
+static void UDP_Shutdown()
 {
+  int uptime;
+  
   if(!tcpip_support)
     return;
 
@@ -387,6 +394,12 @@ void UDP_Shutdown()
   //  close(send_socket);
 
   udp.initted = false;
+
+  uptime = I_GetTime_RealTime() - init_time;
+  C_Printf("%i bytes sent (%i bytes/sec)\n", bytes_sent,
+	   (bytes_sent*TICRATE)/uptime);
+  C_Printf("%i bytes received (%i bytes/sec)\n", bytes_received,
+	   (bytes_received*TICRATE)/uptime);
 }
 
 //--------------------------------------------------------------------------
@@ -396,7 +409,7 @@ void UDP_Shutdown()
 // Send a packet to a node
 //
 
-void UDP_SendPacket(int nodenum, void *data, int datalen)
+static void UDP_SendPacket(int nodenum, void *data, int datalen)
 {
   if(!udp.initted || !tcpip_support)
     return;
@@ -412,6 +425,8 @@ void UDP_SendPacket(int nodenum, void *data, int datalen)
      (struct sockaddr *) &nodetable[nodenum],
      sizeof(struct sockaddr_in)
      );  
+
+  bytes_sent += datalen;
 }
 
 //--------------------------------------------------------------------------
@@ -463,7 +478,7 @@ static void UDP_GetBroadcast()
 #endif /* #ifdef DJGPP */
 }
 
-void UDP_SendBroadcast(void *data, int datalen)
+static void UDP_SendBroadcast(void *data, int datalen)
 {
   struct sockaddr_in in;
   int i;
@@ -505,7 +520,7 @@ void UDP_SendBroadcast(void *data, int datalen)
 // Get a new packet (if any)
 //
 
-void *UDP_GetPacket(int *node)
+static void *UDP_GetPacket(int *node)
 {
   int i;
   struct sockaddr_in src;
@@ -541,7 +556,9 @@ void *UDP_GetPacket(int *node)
       C_Printf("socket receiving error:\n%s\n", lsck_strerror(errno));
       return NULL;
     }
-  
+  else
+    bytes_received += i;
+    
   // find nodenum
 
   if(node)
@@ -562,7 +579,7 @@ void *UDP_GetPacket(int *node)
 //
 
 #define INET_PACKETS 64
-#define LAG 8
+#define LAG 4
 static netpacket_t inet_packets[INET_PACKETS];
 static int inet_source[INET_PACKETS];
 static int inet_gettime[INET_PACKETS];
@@ -599,6 +616,8 @@ void *UDP_GetPacket_Lagged(int *node)
 
   if(i >= 0)
     {
+      bytes_received += i;
+
       // add to queue
       
       inet_packets[inet_head] = packet;
@@ -647,7 +666,10 @@ void UDP_AddCommands()
 //-------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:10  fraggle
+// Revision 1.3  2000-05-03 16:02:27  fraggle
+// packet stats
+//
+// Revision 1.2  2000/05/02 15:43:10  fraggle
 // lag simulation code
 //
 // Revision 1.1.1.1  2000/04/30 19:12:09  fraggle
