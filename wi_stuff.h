@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: wi_stuff.h,v 1.3 1998/05/04 21:36:12 thldrmn Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -49,14 +49,14 @@ void WI_checkForAccelerate(void);      // killough 11/98
 
 void WI_DrawBackground(void);          // killough 11/98
 
+void WI_AddCamera(mapthing_t *mthing);
+void WI_StopCamera();
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: wi_stuff.h,v $
 // Revision 1.3  1998/05/04  21:36:12  thldrmn
 // commenting and reformatting
 //

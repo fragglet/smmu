@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_doors.c,v 1.13 1998/05/09 12:16:29 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_doors.c,v 1.13 1998/05/09 12:16:29 jim Exp $";
 
 #include "doomstat.h"
 #include "p_spec.h"
@@ -31,6 +31,7 @@ rcsid[] = "$Id$";
 #include "r_main.h"
 #include "dstrings.h"
 #include "d_deh.h"  // Ty 03/27/98 - externalized
+#include "hu_stuff.h"
 
 ///////////////////////////////////////////////////////////////
 //
@@ -254,7 +255,8 @@ int EV_DoLockedDoor(line_t *line, vldoor_e type, mobj_t *thing)
     case 133:
       if (!p->cards[it_bluecard] && !p->cards[it_blueskull])
         {
-          p->message = s_PD_BLUEO;             // Ty 03/27/98 - externalized
+          if(p==players+consoleplayer) //sf
+             HU_centremsg(s_PD_BLUEO);       // Ty 03/27/98 - externalized
           S_StartSound(p->mo,sfx_oof);         // killough 3/20/98
           return 0;
         }
@@ -264,7 +266,8 @@ int EV_DoLockedDoor(line_t *line, vldoor_e type, mobj_t *thing)
     case 135:
       if (!p->cards[it_redcard] && !p->cards[it_redskull])
         {
-          p->message = s_PD_REDO;              // Ty 03/27/98 - externalized
+          if(p==players+consoleplayer)
+             HU_centremsg(s_PD_REDO);             // Ty 03/27/98 - externalized
           S_StartSound(p->mo,sfx_oof);         // killough 3/20/98
           return 0;
         }
@@ -274,7 +277,8 @@ int EV_DoLockedDoor(line_t *line, vldoor_e type, mobj_t *thing)
     case 137:
       if (!p->cards[it_yellowcard] && !p->cards[it_yellowskull])
         {
-          p->message = s_PD_YELLOWO;           // Ty 03/27/98 - externalized
+          if(p==players+consoleplayer)
+             HU_centremsg(s_PD_YELLOWO);             // Ty 03/27/98 - externalized
           S_StartSound(p->mo,sfx_oof);         // killough 3/20/98
           return 0;
         }
@@ -402,7 +406,8 @@ int EV_VerticalDoor(line_t *line, mobj_t *thing)
         return 0;
       if (!player->cards[it_bluecard] && !player->cards[it_blueskull])
         {
-          player->message = s_PD_BLUEK;         // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)
+             HU_centremsg(s_PD_BLUEK);             // Ty 03/27/98 - externalized
           S_StartSound(player->mo,sfx_oof);     // killough 3/20/98
           return 0;
         }
@@ -414,7 +419,8 @@ int EV_VerticalDoor(line_t *line, mobj_t *thing)
         return 0;
       if (!player->cards[it_yellowcard] && !player->cards[it_yellowskull])
         {
-          player->message = s_PD_YELLOWK;       // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)
+             HU_centremsg(s_PD_YELLOWK);             // Ty 03/27/98 - externalized
           S_StartSound(player->mo,sfx_oof);     // killough 3/20/98
           return 0;
         }
@@ -426,7 +432,8 @@ int EV_VerticalDoor(line_t *line, mobj_t *thing)
         return 0;
       if (!player->cards[it_redcard] && !player->cards[it_redskull])
         {
-          player->message = s_PD_REDK;          // Ty 03/27/98 - externalized
+          if(player==players+consoleplayer)
+             HU_centremsg(s_PD_REDK);             // Ty 03/27/98 - externalized
           S_StartSound(player->mo,sfx_oof);     // killough 3/20/98
           return 0;
         }
@@ -612,10 +619,7 @@ void P_SpawnDoorRaiseIn5Mins(sector_t *sec, int secnum)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_doors.c,v $
 // Revision 1.13  1998/05/09  12:16:29  jim
 // formatted/documented p_doors
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_sight.c,v 1.7 1998/05/07 00:55:55 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_sight.c,v 1.7 1998/05/07 00:55:55 killough Exp $";
 
 #include "r_main.h"
 #include "p_maputl.h"
@@ -269,10 +269,7 @@ boolean P_CheckSight(mobj_t *t1, mobj_t *t2)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_sight.c,v $
 // Revision 1.7  1998/05/07  00:55:55  killough
 // Make monsters directly tangent to water surface blind
 //

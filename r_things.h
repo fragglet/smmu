@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_things.h,v 1.4 1998/05/03 22:46:19 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,6 +21,8 @@
 
 #ifndef __R_THINGS__
 #define __R_THINGS__
+
+#include "r_defs.h"
 
 // Constant arrays used for psprite clipping and initializing clipping.
 
@@ -51,10 +53,7 @@ void R_ClipVisSprite(vissprite_t *vis, int xl, int xh);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_things.h,v $
 // Revision 1.4  1998/05/03  22:46:19  killough
 // beautification
 //

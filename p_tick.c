@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,10 +21,11 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_tick.c,v 1.7 1998/05/15 00:37:56 killough Exp $";
 
 #include "doomstat.h"
 #include "p_user.h"
+#include "p_chase.h"
 #include "p_spec.h"
 #include "p_tick.h"
 
@@ -231,9 +232,13 @@ void P_Ticker (void)
 		 players[consoleplayer].viewz != 1))
     return;
 
-  for (i=0; i<MAXPLAYERS; i++)
-    if (playeringame[i])
-      P_PlayerThink(&players[i]);
+  if(gamestate==GS_LEVEL)       // not if this is an intermission screen
+    for (i=0; i<MAXPLAYERS; i++)
+      if (playeringame[i])
+        P_PlayerThink(&players[i]);
+
+  if(chasecam_active) P_ChaseTicker();
+  if(walkcam_active) P_WalkTicker();
 
   P_RunThinkers();
   P_UpdateSpecials();
@@ -243,10 +248,7 @@ void P_Ticker (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_tick.c,v $
 // Revision 1.7  1998/05/15  00:37:56  killough
 // Remove unnecessary crash hack, fix demo sync
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: st_lib.h,v 1.5 1998/05/11 10:44:46 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -199,10 +199,7 @@ void STlib_updateBinIcon
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: st_lib.h,v $
 // Revision 1.5  1998/05/11  10:44:46  jim
 // formatted/documented st_lib
 //

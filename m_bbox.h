@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_bbox.h,v 1.3 1998/05/05 19:55:58 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -47,10 +47,7 @@ void M_AddToBox(fixed_t* box,fixed_t x,fixed_t y);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_bbox.h,v $
 // Revision 1.3  1998/05/05  19:55:58  phares
 // Formatting and Doc changes
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: doomtype.h,v 1.3 1998/05/03 23:24:33 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -42,10 +42,7 @@ typedef unsigned char byte;
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: doomtype.h,v $
 // Revision 1.3  1998/05/03  23:24:33  killough
 // beautification
 //

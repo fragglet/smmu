@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: info.h,v 1.10 1998/05/12 12:47:31 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -183,6 +183,7 @@ typedef enum
   SPR_BON4, // killough 7/11/98: unholy bible in beta version
 #endif
 
+  SPR_PART,
   NUMSPRITES  // counter of how many there are
 } spritenum_t;
 
@@ -1239,6 +1240,7 @@ typedef enum
 #endif
 
   S_MUSHROOM,  // killough 10/98: mushroom explosion effect
+  S_PART1,
 
   NUMSTATES  // Counter of how many there are
 } statenum_t;
@@ -1416,7 +1418,8 @@ typedef enum {
   MT_SCEPTRE, // killough 7/11/98: evil sceptre in beta version
   MT_BIBLE,   // killough 7/11/98: unholy bible in beta version
 #endif
-
+  MT_CAMERA,
+  MT_PARTICLE,
   NUMMOBJTYPES  // Counter of how many there are
 
 } mobjtype_t;
@@ -1482,10 +1485,7 @@ extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: info.h,v $
 // Revision 1.10  1998/05/12  12:47:31  phares
 // Removed OVER_UNDER code
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: i_sound.c,v 1.15 1998/05/03 22:32:33 killough Exp $";
 
 #include <stdio.h>
 #include <allegro.h>
@@ -47,6 +47,10 @@ int default_mus_card;
 
 int detect_voices; //jff 3/4/98 enables voice detection prior to install_sound
 //jff 1/22/98 make these visible here to disable sound/music on install err
+
+boolean cached[NUMSFX];
+
+void I_CacheSound(sfxinfo_t *sound);
 
 static SAMPLE *raw2SAMPLE(unsigned char *rawdata, int len)
 {
@@ -150,6 +154,8 @@ void I_SetSfxVolume(int volume)
   //  to the state variable used in
   //  the mixing.
   snd_SfxVolume = volume;
+  set_volume(snd_SfxVolume, snd_MusicVolume);
+
 }
 
 // jff 1/21/98 moved music volume down into MUSIC API with the rest
@@ -192,7 +198,7 @@ static SAMPLE channel[NUM_CHANNELS];
 // active sounds, which is maintained as a given number
 // of internal channels. Returns a handle.
 
-int I_StartSound(int sfx, int   vol, int sep, int pitch, int pri)
+int I_StartSound(sfxinfo_t *sound, int   vol, int sep, int pitch, int pri)
 {
   static int handle;
 
@@ -203,8 +209,10 @@ int I_StartSound(int sfx, int   vol, int sep, int pitch, int pri)
   // destroy anything still in the slot
   stop_sample(&channel[handle]);
 
+  if(!sound->data) I_CacheSound(sound);
+
   // Copy the sound's data into the sound sample slot
-  memcpy(&channel[handle], S_sfx[sfx].data, sizeof(SAMPLE));
+  memcpy(&channel[handle], sound->data, sizeof(SAMPLE));
 
   // Start the sound
   play_sample(&channel[handle],vol*VOLSCALE+VOLSCALE-1,256-sep,PITCH(pitch),0);
@@ -270,13 +278,22 @@ void I_ShutdownSound(void)
   remove_sound();
 }
 
+// sf: dynamic sound resource loading
+void I_CacheSound(sfxinfo_t *sound)
+{
+    if (!sound->link)   // Load data from WAD file.
+        sound->data = getsfx(sound->name, &sound->length);
+    else
+      { // Alias? Example is the chaingun sound linked to pistol.
+        // Previously loaded already?
+        sound->data = sound->link->data;
+        sound->length = sound->link->length;
+      }
+}
+
 void I_InitSound(void)
 {
-  int lengths[NUMSFX];  // The actual lengths of all sound effects. -- killough
-  int i;  // killough 10/98: eliminate snd_c since we use default_snd_card now
-
   // Secure and configure sound device first.
-  fputs("I_InitSound: ", stdout);
 
   if (detect_voices && snd_card>=0 && mus_card>=0)
     {
@@ -295,7 +312,8 @@ void I_InitSound(void)
 
   if (install_sound(snd_card, mus_card, "none")==-1) //jff 1/18/98 autodect MIDI
     {
-      printf("ALLEGRO SOUND INIT ERROR!!!!\n%s\n", allegro_error); // killough 8/8/98
+      usermsg("\tSound init error. Assuming no sound");
+      usermsg("\t%s",allegro_error); // killough 8/8/98
       //jff 1/22/98 on error, disable sound this invocation
       //in future - nice to detect if either sound or music might be ok
       nosfxparm = true;
@@ -304,26 +322,13 @@ void I_InitSound(void)
     }
   else //jff 1/22/98 don't register I_ShutdownSound if errored
     {
-      puts(" configured audio device\n");  // killough 8/8/98
+      usermsg("\tConfigured audio device");  // killough 8/8/98
       LOCK_VARIABLE(channel);  // killough 2/7/98: prevent VM swapping of sfx
       atexit(I_ShutdownSound); // killough
     }
 
-  // Initialize external data (all sounds) at start, keep static.
-  fputs("I_InitSound: ",stdout); // killough 8/8/98
-
-  for (i=1; i<NUMSFX; i++)
-    if (!S_sfx[i].link)   // Load data from WAD file.
-      S_sfx[i].data = getsfx(S_sfx[i].name, &lengths[i]);
-    else
-      { // Alias? Example is the chaingun sound linked to pistol.
-        // Previously loaded already?
-        S_sfx[i].data = S_sfx[i].link->data;
-        lengths[i] = lengths[(S_sfx[i].link - S_sfx)/sizeof(sfxinfo_t)];
-      }
-
   // Finished initialization.
-  puts("I_InitSound: sound module ready");    // killough 8/8/98
+  puts("\tSound module ready");    // killough 8/8/98
 }
 
 ///
@@ -366,7 +371,8 @@ void I_SetMusicVolume(int volume)
   // Now set volume on output device.
 
   //jff 01/17/98 - add VOLSCALE-1 to get most out of volume
-  set_volume(-1,snd_MusicVolume*VOLSCALE+VOLSCALE-1);   // jff 1/18/98
+  set_volume(snd_SfxVolume, snd_MusicVolume);
+//  set_volume(-1,snd_MusicVolume*VOLSCALE+VOLSCALE-1);   // jff 1/18/98
 }
 
 void I_PauseSong (int handle)
@@ -428,10 +434,7 @@ int I_QrySongPlaying(int handle)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_sound.c,v $
 // Revision 1.15  1998/05/03  22:32:33  killough
 // beautification, use new headers/decls
 //

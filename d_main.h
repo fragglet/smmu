@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_main.h,v 1.7 1998/05/06 15:32:19 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,6 +24,7 @@
 #define __D_MAIN__
 
 #include "d_event.h"
+#include "p_chase.h"
 
 extern char **wadfiles;       // killough 11/98
 
@@ -31,6 +32,11 @@ extern char **wadfiles;       // killough 11/98
 extern skill_t startskill;
 
 void D_AddFile(char *file);
+void D_ListWads();
+void D_ReInitWadfiles();
+void D_NewWadLumps(int handle);
+int D_AddNewFile(char *s);
+
 
 char *D_DoomExeDir(void);       // killough 2/16/98: path to executable's dir
 char *D_DoomExeName(void);      // killough 10/98: executable's name
@@ -46,8 +52,16 @@ extern boolean clfastparm; // checkparm of -fast
 extern boolean nosfxparm;
 extern boolean nomusicparm;
 
+extern int blockmapbuild;       // -blockmap command line
+
+extern boolean redrawsbar;
+
+
 // Called by IO functions when input is detected.
 void D_PostEvent(event_t* ev);
+
+extern camera_t *camera;
+extern char startlevel[9];       // sf: first level of new wads
 
 //
 // BASE LEVEL
@@ -59,14 +73,14 @@ void D_AdvanceDemo(void);
 void D_StartTitle(void);
 void D_DoomMain(void);
 
+// sf: display a message to the player: either in text mode or graphics
+void usermsg(char *s, ...);
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: d_main.h,v $
 // Revision 1.7  1998/05/06  15:32:19  jim
 // document g_game.c, change externals
 //

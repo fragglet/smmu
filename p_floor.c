@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_floor.c,v 1.23 1998/05/23 10:23:16 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_floor.c,v 1.23 1998/05/23 10:23:16 jim Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -228,8 +228,8 @@ void T_MoveFloor(floormove_t* floor)
     0,
     floor->direction
   );
-  
-  if (!(leveltime&7))     // make the floormove sound
+                // sf: added silentmove
+  if (!(leveltime&7) && !silentmove(floor->sector))     // make the floormove sound
     S_StartSound((mobj_t *)&floor->sector->soundorg, sfx_stnmov);
     
   if (res == pastdest)    // if destination height is reached
@@ -310,7 +310,8 @@ void T_MoveFloor(floormove_t* floor)
     }
 
     // make floor stop sound
-    S_StartSound((mobj_t *)&floor->sector->soundorg, sfx_pstop);
+    if(!silentmove(floor->sector)) //sf: silentmove
+        S_StartSound((mobj_t *)&floor->sector->soundorg, sfx_pstop);
   }
 }
 
@@ -376,7 +377,8 @@ void T_MoveElevator(elevator_t* elevator)
   }
 
   // make floor move sound
-  if (!(leveltime&7))
+  // sf: added silentmove
+  if (!(leveltime&7) && !silentmove(elevator->sector))
     S_StartSound((mobj_t *)&elevator->sector->soundorg, sfx_stnmov);
     
   if (res == pastdest)            // if destination height acheived
@@ -386,7 +388,8 @@ void T_MoveElevator(elevator_t* elevator)
     P_RemoveThinker(&elevator->thinker);    // remove elevator from actives
 
     // make floor stop sound
-    S_StartSound((mobj_t *)&elevator->sector->soundorg, sfx_pstop);
+    if(!silentmove(elevator->sector))   //sf: silentmove
+        S_StartSound((mobj_t *)&elevator->sector->soundorg, sfx_pstop);
   }
 }
 
@@ -975,10 +978,7 @@ int EV_DoElevator
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_floor.c,v $
 // Revision 1.23  1998/05/23  10:23:16  jim
 // Fix numeric changer loop corruption
 //

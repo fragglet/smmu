@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_ceilng.c,v 1.14 1998/05/09 10:58:10 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_ceilng.c,v 1.14 1998/05/09 10:58:10 jim Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -73,7 +73,7 @@ void T_MoveCeiling (ceiling_t* ceiling)
             );
 
       // if not a silent crusher, make moving sound
-      if (!(leveltime&7))
+      if (!(leveltime&7) && !silentmove(ceiling->sector))
       {
         switch(ceiling->type)
         {
@@ -110,7 +110,8 @@ void T_MoveCeiling (ceiling_t* ceiling)
 
           // crushers reverse direction at the top
           case silentCrushAndRaise:
-            S_StartSound((mobj_t *)&ceiling->sector->soundorg,sfx_pstop);
+            if(!silentmove(ceiling->sector))    // sf: silentmove
+               S_StartSound((mobj_t *)&ceiling->sector->soundorg,sfx_pstop);
           case genSilentCrusher:
           case genCrusher:
           case fastCrushAndRaise:
@@ -137,7 +138,7 @@ void T_MoveCeiling (ceiling_t* ceiling)
             );
 
       // if not silent crusher type make moving sound
-      if (!(leveltime&7))
+      if (!(leveltime&7) && !silentmove(ceiling->sector))
       {
         switch(ceiling->type)
         {
@@ -166,7 +167,8 @@ void T_MoveCeiling (ceiling_t* ceiling)
           // make platform stop at bottom of all crusher strokes
           // except generalized ones, reset speed, start back up
           case silentCrushAndRaise:
-            S_StartSound((mobj_t *)&ceiling->sector->soundorg,sfx_pstop);
+            if(!silentmove(ceiling->sector))    // sf: silentmove
+               S_StartSound((mobj_t *)&ceiling->sector->soundorg,sfx_pstop);
           case crushAndRaise: 
             ceiling->speed = CEILSPEED;
           case fastCrushAndRaise:
@@ -459,10 +461,7 @@ void P_RemoveAllActiveCeilings(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_ceilng.c,v $
 // Revision 1.14  1998/05/09  10:58:10  jim
 // formatted/documented p_ceilng
 //

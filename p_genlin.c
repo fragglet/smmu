@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_genlin.c,v 1.18 1998/05/23 10:23:23 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_genlin.c,v 1.18 1998/05/23 10:23:23 jim Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -587,7 +587,8 @@ manual_lift:
         break;
     }
 
-    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
+    if(!silentmove(sec))        //sf: silentmove
+            S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart);
     P_AddActivePlat(plat); // add this plat to the list of active plats
 
     if (manual)
@@ -1149,10 +1150,7 @@ manual_door:
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_genlin.c,v $
 // Revision 1.18  1998/05/23  10:23:23  jim
 // Fix numeric changer loop corruption
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_inter.c,v 1.10 1998/05/03 23:09:29 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,17 +21,22 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_inter.c,v 1.10 1998/05/03 23:09:29 killough Exp $";
 
+#include "c_io.h"
 #include "doomstat.h"
 #include "dstrings.h"
 #include "m_random.h"
+#include "hu_stuff.h"
+#include "hu_frags.h"
 #include "am_map.h"
 #include "r_main.h"
+#include "r_segs.h"
 #include "s_sound.h"
 #include "sounds.h"
 #include "p_tick.h"
 #include "d_deh.h"  // Ty 03/22/98 - externalized strings
+#include "d_player.h"
 
 #include "p_inter.h"
 
@@ -264,6 +269,8 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
   player_t *player;
   int      i;
   int      sound;
+  char*    message = NULL;
+  boolean  removeobj = true;
   fixed_t  delta = special->z - toucher->z;
 
   if (delta > toucher->height || delta < -8*FRACUNIT)
@@ -284,13 +291,13 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
     case SPR_ARM1:
       if (!P_GiveArmor (player, green_armor_class))
         return;
-      player->message = s_GOTARMOR; // Ty 03/22/98 - externalized
+      message = s_GOTARMOR; // Ty 03/22/98 - externalized
       break;
 
     case SPR_ARM2:
       if (!P_GiveArmor (player, blue_armor_class))
         return;
-      player->message = s_GOTMEGA; // Ty 03/22/98 - externalized
+      message = s_GOTMEGA; // Ty 03/22/98 - externalized
       break;
 
       // bonus items
@@ -299,7 +306,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 #ifdef BETA
       if (beta_emulation)
 	{   // killough 7/11/98: beta version items did not have any effect
-	  player->message = "You pick up a demonic dagger.";
+          message = "You pick up a demonic dagger.";
 	  break;
 	}
 #endif
@@ -308,7 +315,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       if (player->health > (maxhealth * 2))
         player->health = (maxhealth * 2);
       player->mo->health = player->health;
-      player->message = s_GOTHTHBONUS; // Ty 03/22/98 - externalized
+      message = s_GOTHTHBONUS; // Ty 03/22/98 - externalized
       break;
 
     case SPR_BON2:
@@ -316,7 +323,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 #ifdef BETA
       if (beta_emulation)
 	{ // killough 7/11/98: beta version items did not have any effect
-	  player->message = "You pick up a skullchest.";
+          message = "You pick up a skullchest.";
 	  break;
 	}
 #endif
@@ -326,16 +333,16 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
         player->armorpoints = max_armor;
       if (!player->armortype)
         player->armortype = green_armor_class;
-      player->message = s_GOTARMBONUS; // Ty 03/22/98 - externalized
+      message = s_GOTARMBONUS; // Ty 03/22/98 - externalized
       break;
 
 #ifdef BETA
     case SPR_BON3:      // killough 7/11/98: evil sceptre from beta version
-      player->message = "Picked up an evil sceptre";
+      message = "Picked up an evil sceptre";
       break;
 
     case SPR_BON4:      // killough 7/11/98: unholy bible from beta version
-      player->message = "Picked up an unholy bible";
+      message = "Picked up an unholy bible";
       break;
 #endif
 
@@ -344,7 +351,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       if (player->health > max_soul)
         player->health = max_soul;
       player->mo->health = player->health;
-      player->message = s_GOTSUPER; // Ty 03/22/98 - externalized
+      message = s_GOTSUPER; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
       break;
 
@@ -354,7 +361,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       player->health = mega_health;
       player->mo->health = player->health;
       P_GiveArmor (player,blue_armor_class);
-      player->message = s_GOTMSPHERE; // Ty 03/22/98 - externalized
+      message = s_GOTMSPHERE; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
       break;
 
@@ -362,67 +369,61 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
         // leave cards for everyone
     case SPR_BKEY:
       if (!player->cards[it_bluecard])
-        player->message = s_GOTBLUECARD; // Ty 03/22/98 - externalized
+        message = s_GOTBLUECARD; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_bluecard);
-      if (!netgame)
-        break;
-      return;
+      removeobj = !netgame;
+      break;
 
     case SPR_YKEY:
       if (!player->cards[it_yellowcard])
-        player->message = s_GOTYELWCARD; // Ty 03/22/98 - externalized
+        message = s_GOTYELWCARD; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_yellowcard);
-      if (!netgame)
-        break;
-      return;
+      removeobj = !netgame;
+      break;
 
     case SPR_RKEY:
       if (!player->cards[it_redcard])
-        player->message = s_GOTREDCARD; // Ty 03/22/98 - externalized
+        message = s_GOTREDCARD; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_redcard);
-      if (!netgame)
-        break;
-      return;
+      removeobj = !netgame;
+      break;
 
     case SPR_BSKU:
       if (!player->cards[it_blueskull])
-        player->message = s_GOTBLUESKUL; // Ty 03/22/98 - externalized
+        message = s_GOTBLUESKUL; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_blueskull);
-      if (!netgame)
-        break;
-      return;
+      removeobj = !netgame;
+      break;
 
     case SPR_YSKU:
       if (!player->cards[it_yellowskull])
-        player->message = s_GOTYELWSKUL; // Ty 03/22/98 - externalized
+        message = s_GOTYELWSKUL; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_yellowskull);
-      if (!netgame)
-        break;
-      return;
+      removeobj = !netgame;
+      break;
 
     case SPR_RSKU:
       if (!player->cards[it_redskull])
-        player->message = s_GOTREDSKULL; // Ty 03/22/98 - externalized
+        message = s_GOTREDSKULL; // Ty 03/22/98 - externalized
       P_GiveCard (player, it_redskull);
-      if (!netgame)
-        break;
-      return;
+      removeobj = !netgame;
+      break;
 
       // medikits, heals
     case SPR_STIM:
       if (!P_GiveBody (player, 10))
         return;
-      player->message = s_GOTSTIM; // Ty 03/22/98 - externalized
+      message = s_GOTSTIM; // Ty 03/22/98 - externalized
       break;
 
     case SPR_MEDI:
       if (!P_GiveBody (player, 25))
         return;
+                // sf: fix medineed (check for below 25, but medikit gives
+                  // 25, so always > 25)
+      message = player->health < 50 ?     // was 25
+        s_GOTMEDINEED : s_GOTMEDIKIT; // Ty 03/22/98 - externalized
 
-      if (player->health < 25)
-        player->message = s_GOTMEDINEED; // Ty 03/22/98 - externalized
-      else
-        player->message = s_GOTMEDIKIT; // Ty 03/22/98 - externalized
       break;
 
 
@@ -430,14 +431,14 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
     case SPR_PINV:
       if (!P_GivePower (player, pw_invulnerability))
         return;
-      player->message = s_GOTINVUL; // Ty 03/22/98 - externalized
+      message = s_GOTINVUL; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
       break;
 
     case SPR_PSTR:
       if (!P_GivePower (player, pw_strength))
         return;
-      player->message = s_GOTBERSERK; // Ty 03/22/98 - externalized
+      message = s_GOTBERSERK; // Ty 03/22/98 - externalized
       if (player->readyweapon != wp_fist)
 #ifdef BETA
 	if (!beta_emulation // killough 10/98: don't switch as much in -beta
@@ -450,7 +451,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
     case SPR_PINS:
       if (!P_GivePower (player, pw_invisibility))
         return;
-      player->message = s_GOTINVIS; // Ty 03/22/98 - externalized
+      message = s_GOTINVIS; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
       break;
 
@@ -463,14 +464,14 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 	player->powers[pw_ironfeet] = -1;
 #endif
 
-      player->message = s_GOTSUIT; // Ty 03/22/98 - externalized
+      message = s_GOTSUIT; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
       break;
 
     case SPR_PMAP:
       if (!P_GivePower (player, pw_allmap))
         return;
-      player->message = s_GOTMAP; // Ty 03/22/98 - externalized
+      message = s_GOTMAP; // Ty 03/22/98 - externalized
       sound = sfx_getpow;
       break;
 
@@ -486,7 +487,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 #endif /* BETA */
 
       sound = sfx_getpow;
-      player->message = s_GOTVISOR; // Ty 03/22/98 - externalized
+      message = s_GOTVISOR; // Ty 03/22/98 - externalized
       break;
 
       // ammo
@@ -501,49 +502,49 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
           if (!P_GiveAmmo (player,am_clip,1))
             return;
         }
-      player->message = s_GOTCLIP; // Ty 03/22/98 - externalized
+      message = s_GOTCLIP; // Ty 03/22/98 - externalized
       break;
 
     case SPR_AMMO:
       if (!P_GiveAmmo (player, am_clip,5))
         return;
-      player->message = s_GOTCLIPBOX; // Ty 03/22/98 - externalized
+      message = s_GOTCLIPBOX; // Ty 03/22/98 - externalized
       break;
 
     case SPR_ROCK:
       if (!P_GiveAmmo (player, am_misl,1))
         return;
-      player->message = s_GOTROCKET; // Ty 03/22/98 - externalized
+      message = s_GOTROCKET; // Ty 03/22/98 - externalized
       break;
 
     case SPR_BROK:
       if (!P_GiveAmmo (player, am_misl,5))
         return;
-      player->message = s_GOTROCKBOX; // Ty 03/22/98 - externalized
+      message = s_GOTROCKBOX; // Ty 03/22/98 - externalized
       break;
 
     case SPR_CELL:
       if (!P_GiveAmmo (player, am_cell,1))
         return;
-      player->message = s_GOTCELL; // Ty 03/22/98 - externalized
+      message = s_GOTCELL; // Ty 03/22/98 - externalized
       break;
 
     case SPR_CELP:
       if (!P_GiveAmmo (player, am_cell,5))
         return;
-      player->message = s_GOTCELLBOX; // Ty 03/22/98 - externalized
+      message = s_GOTCELLBOX; // Ty 03/22/98 - externalized
       break;
 
     case SPR_SHEL:
       if (!P_GiveAmmo (player, am_shell,1))
         return;
-      player->message = s_GOTSHELLS; // Ty 03/22/98 - externalized
+      message = s_GOTSHELLS; // Ty 03/22/98 - externalized
       break;
 
     case SPR_SBOX:
       if (!P_GiveAmmo (player, am_shell,5))
         return;
-      player->message = s_GOTSHELLBOX; // Ty 03/22/98 - externalized
+      message = s_GOTSHELLBOX; // Ty 03/22/98 - externalized
       break;
 
     case SPR_BPAK:
@@ -553,63 +554,78 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
             player->maxammo[i] *= 2;
           player->backpack = true;
         }
-      for (i=0 ; i<NUMAMMO ; i++)
-        P_GiveAmmo (player, i, 1);
-      player->message = s_GOTBACKPACK; // Ty 03/22/98 - externalized
+      if(special->flags & MF_DROPPED)
+      {
+              int i;
+              for (i=0 ; i<NUMAMMO ; i++)
+              {
+                   player->ammo[i] +=special->extradata.backpack->ammo[i];
+                   if(player->ammo[i]>player->maxammo[i])
+                      player->ammo[i]=player->maxammo[i];
+              }
+              P_GiveWeapon(player,special->extradata.backpack->weapon,true);
+              Z_Free(special->extradata.backpack);
+              message = "got player backpack";
+      }
+      else
+      {
+              for (i=0 ; i<NUMAMMO ; i++)
+                P_GiveAmmo (player, i, 1);
+              message = s_GOTBACKPACK; // Ty 03/22/98 - externalized
+      }
+
       break;
 
         // weapons
     case SPR_BFUG:
       if (!P_GiveWeapon (player, wp_bfg, false) )
         return;
-      player->message = 
-#ifdef BETA
-	classic_bfg || beta_emulation ? 
-	"You got the BFG2704!  Oh, yes." :   // killough 8/9/98: beta BFG
-#endif
-	  s_GOTBFG9000; // Ty 03/22/98 - externalized
+      message = bfgtype==0 ? s_GOTBFG9000       // sf
+                      : bfgtype==1 ? "You got the BFG 2704!"
+                      : bfgtype==2 ? "You got the BFG 11K!"
+                      : "You got _some_ kind of BFG";
       sound = sfx_wpnup;
       break;
 
     case SPR_MGUN:
       if (!P_GiveWeapon (player, wp_chaingun, special->flags & MF_DROPPED))
         return;
-      player->message = s_GOTCHAINGUN; // Ty 03/22/98 - externalized
+      message = s_GOTCHAINGUN; // Ty 03/22/98 - externalized
       sound = sfx_wpnup;
       break;
 
     case SPR_CSAW:
       if (!P_GiveWeapon(player, wp_chainsaw, false))
         return;
-      player->message = s_GOTCHAINSAW; // Ty 03/22/98 - externalized
+      message = s_GOTCHAINSAW; // Ty 03/22/98 - externalized
       sound = sfx_wpnup;
       break;
 
     case SPR_LAUN:
       if (!P_GiveWeapon (player, wp_missile, false) )
         return;
-      player->message = s_GOTLAUNCHER; // Ty 03/22/98 - externalized
+      message = s_GOTLAUNCHER; // Ty 03/22/98 - externalized
       sound = sfx_wpnup;
       break;
 
     case SPR_PLAS:
       if (!P_GiveWeapon(player, wp_plasma, false))
         return;
-      player->message = s_GOTPLASMA; // Ty 03/22/98 - externalized
+      message = s_GOTPLASMA; // Ty 03/22/98 - externalized
       sound = sfx_wpnup;
       break;
 
     case SPR_SHOT:
       if (!P_GiveWeapon(player, wp_shotgun, special->flags & MF_DROPPED))
         return;
-      player->message = s_GOTSHOTGUN; // Ty 03/22/98 - externalized
+      message = s_GOTSHOTGUN; // Ty 03/22/98 - externalized
       sound = sfx_wpnup;
       break;
 
     case SPR_SGN2:
       if (!P_GiveWeapon(player, wp_supershotgun, special->flags & MF_DROPPED))
         return;
-      player->message = s_GOTSHOTGUN2; // Ty 03/22/98 - externalized
+      message = s_GOTSHOTGUN2; // Ty 03/22/98 - externalized
       sound = sfx_wpnup;
       break;
 
@@ -618,9 +634,14 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       return;      // killough 12/98: suppress error message
     }
 
+  // sf: display message
+  if(message && player == players+displayplayer)
+        dprintf(message);
+  if(removeobj)
+    P_RemoveMobj (special);
+
   if (special->flags & MF_COUNTITEM)
     player->itemcount++;
-  P_RemoveMobj (special);
   player->bonuscount += BONUSADD;
 
   S_StartSound(player->mo, sound);   // killough 4/25/98, 12/98
@@ -641,6 +662,20 @@ static void P_KillMobj(mobj_t *source, mobj_t *target)
   if (target->type != MT_SKULL)
     target->flags &= ~MF_NOGRAVITY;
 
+/*      FIXME: this causes crashes - sf
+
+  if (source->type == MT_BARREL) // barrels of fun
+  {
+        source=target->target;
+  }
+
+  if (target->type == MT_BARREL)
+  {
+        target->target=source;
+        if(source->type==MT_BARREL)
+           target->target=source->target;
+  }*/
+
   target->flags |= MF_CORPSE|MF_DROPOFF;
   target->height >>= 2;
 
@@ -655,7 +690,10 @@ static void P_KillMobj(mobj_t *source, mobj_t *target)
 	if (target->flags & MF_COUNTKILL)
 	  source->player->killcount++;
       if (target->player)
+      {
         source->player->frags[target->player-players]++;
+        HU_FragsUpdate();
+      }
     }
     else
       if (!netgame && (target->flags & MF_COUNTKILL) )
@@ -671,7 +709,10 @@ static void P_KillMobj(mobj_t *source, mobj_t *target)
     {
       // count environment kills against you
       if (!source)
+      {
         target->player->frags[target->player-players]++;
+        HU_FragsUpdate();
+      }
 
       target->flags &= ~MF_SOLID;
       target->player->playerstate = PST_DEAD;
@@ -698,6 +739,11 @@ static void P_KillMobj(mobj_t *source, mobj_t *target)
 
   switch (target->type)
     {
+    case MT_PLAYER:
+      if(deathmatch != 3) return;       // backpack only dropped in dm3
+      item = MT_MISC24; // backpack
+      break;
+
     case MT_WOLFSS:
     case MT_POSSESSED:
       item = MT_CLIP;
@@ -715,8 +761,115 @@ static void P_KillMobj(mobj_t *source, mobj_t *target)
       return;
     }
 
-  mo = P_SpawnMobj (target->x,target->y,ONFLOORZ, item);
+  mo = P_SpawnMobj (target->x, target->y, ONFLOORZ, item);
   mo->flags |= MF_DROPPED;    // special versions of items
+
+  if(mo->type == MT_MISC24)       // put all the players stuff into the
+  {                             // backpack
+       int a;
+       mo->extradata.backpack = Z_Malloc(sizeof(backpack_t), PU_LEVEL, NULL);
+       for(a=0; a<NUMAMMO; a++)
+             mo->extradata.backpack->ammo[a] = target->player->ammo[a];
+       mo->extradata.backpack->weapon = target->player->readyweapon;
+            // set the backpack moving slightly faster than the player
+       mo->momx = target->momx * 2;
+       mo->momy = target->momy * 2;
+  }
+}
+
+        //
+        // DEATH MESSAGES
+        //
+        // the %c at the beginning of each string is used to change the
+        // colour to the obituary colour
+        //
+
+char *deathmess1[] ={
+        "%c%s was punched to death",           // fist
+        "%c%s died from pistol wounds",        // pistol
+        "%c%s got shotgun-blasted",            // shotgun
+        "%c%s got chaingunned to death",       // chaingun
+        "%c%s failed to avoid the rocket",      // rockets
+        "%c%s admires the pretty blue stuff..",// plasma
+        "%c%s saw the green flash",           // bfg
+        "%c%s got chopped up",                 // chainsaw
+        "%c%s got two shells in the chest",    // 2x shotgun
+        "%c%s died",                           // default
+};
+
+char *deathmess2[] = {
+        "%c%s performed G.B.H. on %s",         // fist
+        "%c%s took out %s with a pistol",      // pistol
+        "%c%s blasted %s away",                // shotgun
+        "%c%s chaingunned down %s",            // chaingun
+        "%c%s blew %s away",                   // rockets
+        "%c%s burned %s",                      // plasma
+        "%c%s bfg'ed %s",                      // bfg
+        "%c%s mistook %s for a tree",          // chainsaw
+        "%c%s shows %s his double barrels",    // 2x shotgun
+        "%c%s killed %s",                      // default
+};
+
+//sf: obituaries
+void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
+{
+        int killweapon, messtype;
+
+        if(!target->player) return;     // not a player
+        if(!obituaries) return;         // obituaries off
+
+        if(!source || !source->player) // killed by a monster or environment
+        {
+                dprintf("%c%s died", 128+death_colour,
+                        target->player->name);
+                return;
+        }
+
+        if(source == inflictor)         // killed by shooting etc.
+                killweapon = source->player->readyweapon;
+        else
+                    // find what weapon caused the kill
+        {
+                switch(inflictor->type)
+                {
+                        case MT_BFG: killweapon = wp_bfg; break;
+                        case MT_ROCKET: killweapon = wp_missile; break;
+                        case MT_PLASMA: killweapon = wp_plasma; break;
+                        default: killweapon = NUMWEAPONS; break;
+                }
+        }
+
+        if(source->player == target->player)    // suicide ?
+        {
+                // inflictor: only use message if an inflictor is used
+            if(inflictor)
+                if(killweapon == wp_missile)
+                {
+                   dprintf("%c%s should have stood back", 128+death_colour,
+                          source->player->name);
+                   return;
+                }
+                else if(killweapon == wp_bfg)
+                {
+                   dprintf("%c%s used a bfg close-up",
+                        128+death_colour, source->player->name);
+                   return;
+                }
+
+            dprintf("%c%s suicides", 128+death_colour,
+                        source->player->name);
+            return;
+        }
+
+        //  choose a message type, 0 or 1
+        messtype = M_Random() % 2;
+
+        if(messtype)
+            dprintf(deathmess1[killweapon], 128+death_colour,
+                        target->player->name, source->player->name);
+        else
+            dprintf(deathmess2[killweapon], 128+death_colour,
+                        source->player->name, target->player->name);
 }
 
 //
@@ -758,23 +911,23 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
       (!source || !source->player ||
        source->player->readyweapon != wp_chainsaw))
     {
-      unsigned ang = R_PointToAngle2 (inflictor->x, inflictor->y,
-                                      target->x,    target->y);
+         unsigned ang = R_PointToAngle2 (inflictor->x, inflictor->y,
+                                      target->x, target->y);
 
-      fixed_t thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
+         fixed_t thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
 
-      // make fall forwards sometimes
-      if ( damage < 40 && damage > target->health
+        // make fall forwards sometimes
+         if ( damage < 40 && damage > target->health
            && target->z - inflictor->z > 64*FRACUNIT
            && P_Random(pr_damagemobj) & 1)
-        {
-          ang += ANG180;
-          thrust *= 4;
-        }
+         {
+            ang += ANG180;
+            thrust *= 4;
+         }
 
-      ang >>= ANGLETOFINESHIFT;
-      target->momx += FixedMul (thrust, finecosine[ang]);
-      target->momy += FixedMul (thrust, finesine[ang]);
+         ang >>= ANGLETOFINESHIFT;
+         target->momx += FixedMul (thrust, finecosine[ang]);
+         target->momy += FixedMul (thrust, finesine[ang]);
 
       // killough 11/98: thrust objects hanging off ledges
       if (target->intflags & MIF_FALLING && target->gear >= MAXGEAR)
@@ -838,6 +991,8 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
   // do the damage
   if ((target->health -= damage) <= 0)
     {
+      if(target->player)        // death messages for players
+              P_DeathMessage(source, target, inflictor);
       P_KillMobj(source, target);
       return;
     }
@@ -905,10 +1060,7 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_inter.c,v $
 // Revision 1.10  1998/05/03  23:09:29  killough
 // beautification, fix #includes, move some global vars here
 //

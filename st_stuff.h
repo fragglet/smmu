@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: st_stuff.h,v 1.4 1998/05/03 22:50:55 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -26,6 +26,7 @@
 
 #include "doomtype.h"
 #include "d_event.h"
+#include "r_defs.h"
 
 // Size of statusbar.
 // Now sensitive for scaling.
@@ -52,6 +53,8 @@ void ST_Start(void);
 
 // Called by startup code.
 void ST_Init(void);
+
+void ST_CacheFaces(patch_t **faces, char *facename);
 
 // States for status bar code.
 typedef enum
@@ -84,14 +87,27 @@ extern int sts_always_red;// status numbers do not change colors
 extern int sts_pct_always_gray;// status percents do not change colors
 extern int sts_traditional_keys;  // display keys the traditional way
 
+// Number of status faces.
+#define ST_NUMPAINFACES         5
+#define ST_NUMSTRAIGHTFACES     3
+#define ST_NUMTURNFACES         2
+#define ST_NUMSPECIALFACES      3
+
+#define ST_FACESTRIDE \
+          (ST_NUMSTRAIGHTFACES+ST_NUMTURNFACES+ST_NUMSPECIALFACES)
+
+#define ST_NUMEXTRAFACES        2
+
+#define ST_NUMFACES \
+          (ST_FACESTRIDE*ST_NUMPAINFACES+ST_NUMEXTRAFACES)
+
+extern patch_t *default_faces[ST_NUMFACES];
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: st_stuff.h,v $
 // Revision 1.4  1998/05/03  22:50:55  killough
 // beautification, move external declarations, remove cheats
 //

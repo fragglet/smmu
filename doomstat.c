@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: doomstat.c,v 1.5 1998/05/12 12:46:12 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: doomstat.c,v 1.5 1998/05/12 12:46:12 phares Exp $";
 
 #include "doomstat.h"
 
@@ -36,6 +36,8 @@ Language_t   language = english;
 boolean modifiedgame;
 
 //-----------------------------------------------------------------------------
+
+boolean in_textmode = true;        // game in graphics mode yet?
 
 // compatibility with old engines (monster behavior, metrics, etc.)
 int compatibility, default_compatibility;          // killough 1/31/98
@@ -60,8 +62,8 @@ int  default_variable_friction;  // killough 3/1/98: make local to each game
 int  weapon_recoil;              // weapon recoil                   // phares
 int  default_weapon_recoil;      // killough 3/1/98: make local to each game
 
+        // sf: bobbing doesnt affect game sync surely..
 int player_bobbing;  // whether player bobs or not          // phares 2/25/98
-int default_player_bobbing;      // killough 3/1/98: make local to each game
 
 int monsters_remember=1;        // killough 3/1/98
 int default_monsters_remember=1;
@@ -72,10 +74,13 @@ int default_monster_infighting=1;
 int monster_friction=1;       // killough 10/98: monsters affected by friction 
 int default_monster_friction=1;
 
-#ifdef BETA
-// killough 7/19/98: classic Doom BFG
-int classic_bfg, default_classic_bfg;
+int autoaim = 1;  //sf
+int default_autoaim = 1;
 
+// killough 7/19/98: classic Doom BFG
+bfg_t bfgtype, default_bfgtype;
+
+#ifdef BETA
 // killough 7/24/98: Emulation of Press Release version of Doom
 int beta_emulation;
 #endif
@@ -103,12 +108,11 @@ int doom_weapon_toggles; // killough 10/98
 
 int monkeys, default_monkeys;
 
+int showticker = false;
+
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: doomstat.c,v $
 // Revision 1.5  1998/05/12  12:46:12  phares
 // Removed OVER_UNDER code
 //

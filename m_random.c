@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_random.c,v 1.6 1998/05/03 23:13:18 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -26,7 +26,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: m_random.c,v 1.6 1998/05/03 23:13:18 killough Exp $";
 
 #include "doomstat.h"
 #include "m_random.h"
@@ -35,7 +35,7 @@ static const char rcsid[] = "$Id$";
 // M_Random
 // Returns a 0-255 number
 //
-static const unsigned char rndtable[256] = { // 1/19/98 killough -- made const
+const unsigned char rndtable[256] = { // 1/19/98 killough -- made const
     0,   8, 109, 220, 222, 241, 149, 107,  75, 248, 254, 140,  16,  66 ,
     74,  21, 211,  47,  80, 242, 154,  27, 205, 128, 161,  89,  77,  36 ,
     95, 110,  85,  48, 212, 140, 211, 249,  22,  79, 200,  50,  28, 188 ,
@@ -74,9 +74,7 @@ int P_Random(pr_class_t pr_class)
   // All of this RNG stuff is tricky as far as demo sync goes --
   // it's like playing with explosives :) Lee
 
-  int compat = pr_class == pr_misc ?
-    (rng.prndindex = (rng.prndindex + 1) & 255) :
-    (rng. rndindex = (rng. rndindex + 1) & 255) ;
+  int compat;
 
   unsigned long boom;
 
@@ -84,6 +82,11 @@ int P_Random(pr_class_t pr_class)
   // If demo sync insurance is not requested, use
   // much more unstable method by putting everything
   // except pr_misc into pr_all_in_one
+
+
+      compat= pr_class == pr_misc ?     // sf: moved here
+            (rng.prndindex = (rng.prndindex + 1) & 255) :
+            (rng. rndindex = (rng. rndindex + 1) & 255) ;
 
   if (pr_class != pr_misc && !demo_insurance)      // killough 3/31/98
     pr_class = pr_all_in_one;
@@ -128,10 +131,7 @@ void M_ClearRandom (void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_random.c,v $
 // Revision 1.6  1998/05/03  23:13:18  killough
 // Fix #include
 //

@@ -1,0 +1,4 @@
+<Afterglow> i'd like to see the ability to set sky, interpic, intertext,
+	intertext backgr, fog per level in one config file
+<Afterglow> CENTER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+<aurikan> SMMU is like the coolest name for a port

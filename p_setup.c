@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,27 +22,42 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_setup.c,v 1.16 1998/05/07 00:56:49 killough Exp $";
 
+#include "c_io.h"
+#include "c_cmdlst.h"
+#include "c_runcmd.h"
+#include "d_main.h"
+#include "hu_stuff.h"
+#include "wi_stuff.h"
 #include "doomstat.h"
+#include "hu_frags.h"
 #include "m_bbox.h"
 #include "m_argv.h"
 #include "g_game.h"
 #include "w_wad.h"
 #include "r_main.h"
 #include "r_things.h"
+#include "r_sky.h"
+#include "p_chase.h"
 #include "p_maputl.h"
 #include "p_map.h"
 #include "p_setup.h"
+#include "p_skin.h"
 #include "p_spec.h"
 #include "p_tick.h"
 #include "p_enemy.h"
+#include "p_info.h"
 #include "s_sound.h"
 
 //
 // MAP related Lookup tables.
 // Store VERTEXES, LINEDEFS, SIDEDEFS, etc.
 //
+
+int      newlevel = false;
+int      doom1level = false;    // doom 1 level running under doom 2
+char     levelmapname[10];
 
 int      numvertexes;
 vertex_t *vertexes;
@@ -175,7 +190,7 @@ void P_LoadSegs (int lump)
 
       // killough 5/3/98: ignore 2s flag if second sidedef missing:
       if (ldef->flags & ML_TWOSIDED && ldef->sidenum[side^1]!=-1)
-        li->backsector = sides[ldef->sidenum[side^1]].sector;
+	li->backsector = sides[ldef->sidenum[side^1]].sector;
       else
 	li->backsector = 0;
     }
@@ -291,12 +306,12 @@ void P_LoadNodes (int lump)
       no->dy = SHORT(mn->dy)<<FRACBITS;
 
       for (j=0 ; j<2 ; j++)
-        {
-          int k;
-          no->children[j] = SHORT(mn->children[j]);
-          for (k=0 ; k<4 ; k++)
-            no->bbox[j][k] = SHORT(mn->bbox[j][k])<<FRACBITS;
-        }
+	{
+	  int k;
+	  no->children[j] = SHORT(mn->children[j]);
+	  for (k=0 ; k<4 ; k++)
+	    no->bbox[j][k] = SHORT(mn->bbox[j][k])<<FRACBITS;
+	}
     }
 
   Z_Free (data);
@@ -319,20 +334,20 @@ void P_LoadThings (int lump)
 
       // Do not spawn cool, new monsters if !commercial
       if (gamemode != commercial)
-        switch(mt->type)
-          {
-          case 68:  // Arachnotron
-          case 64:  // Archvile
-          case 88:  // Boss Brain
-          case 89:  // Boss Shooter
-          case 69:  // Hell Knight
-          case 67:  // Mancubus
-          case 71:  // Pain Elemental
-          case 65:  // Former Human Commando
-          case 66:  // Revenant
-          case 84:  // Wolf SS
-            continue;
-          }
+	switch(mt->type)
+	  {
+	  case 68:  // Arachnotron
+	  case 64:  // Archvile
+	  case 88:  // Boss Brain
+	  case 89:  // Boss Shooter
+	  case 69:  // Hell Knight
+	  case 67:  // Mancubus
+	  case 71:  // Pain Elemental
+	  case 65:  // Former Human Commando
+	  case 66:  // Revenant
+	  case 84:  // Wolf SS
+	    continue;
+	  }
 
       // Do spawn all other stuff.
       mt->x = SHORT(mt->x);
@@ -385,36 +400,36 @@ void P_LoadLineDefs (int lump)
       ld->tranlump = -1;   // killough 4/11/98: no translucency by default
 
       ld->slopetype = !ld->dx ? ST_VERTICAL : !ld->dy ? ST_HORIZONTAL :
-        FixedDiv(ld->dy, ld->dx) > 0 ? ST_POSITIVE : ST_NEGATIVE;
+	FixedDiv(ld->dy, ld->dx) > 0 ? ST_POSITIVE : ST_NEGATIVE;
 
       if (v1->x < v2->x)
-        {
-          ld->bbox[BOXLEFT] = v1->x;
-          ld->bbox[BOXRIGHT] = v2->x;
-        }
+	{
+	  ld->bbox[BOXLEFT] = v1->x;
+	  ld->bbox[BOXRIGHT] = v2->x;
+	}
       else
-        {
-          ld->bbox[BOXLEFT] = v2->x;
-          ld->bbox[BOXRIGHT] = v1->x;
-        }
+	{
+	  ld->bbox[BOXLEFT] = v2->x;
+	  ld->bbox[BOXRIGHT] = v1->x;
+	}
 
       if (v1->y < v2->y)
-        {
-          ld->bbox[BOXBOTTOM] = v1->y;
-          ld->bbox[BOXTOP] = v2->y;
-        }
+	{
+	  ld->bbox[BOXBOTTOM] = v1->y;
+	  ld->bbox[BOXTOP] = v2->y;
+	}
       else
-        {
-          ld->bbox[BOXBOTTOM] = v2->y;
-          ld->bbox[BOXTOP] = v1->y;
-        }
+	{
+	  ld->bbox[BOXBOTTOM] = v2->y;
+	  ld->bbox[BOXTOP] = v1->y;
+	}
 
       ld->sidenum[0] = SHORT(mld->sidenum[0]);
       ld->sidenum[1] = SHORT(mld->sidenum[1]);
 
       // killough 4/4/98: support special sidedef interpretation below
       if (ld->sidenum[0] != -1 && ld->special)
-        sides[*ld->sidenum].special = ld->special;
+	sides[*ld->sidenum].special = ld->special;
     }
   Z_Free (data);
 }
@@ -439,19 +454,19 @@ void P_LoadLineDefs2(int lump)
       ld->frontsector = ld->sidenum[0]!=-1 ? sides[ld->sidenum[0]].sector : 0;
       ld->backsector  = ld->sidenum[1]!=-1 ? sides[ld->sidenum[1]].sector : 0;
       switch (ld->special)
-        {                       // killough 4/11/98: handle special types
-          int lump, j;
+	{                       // killough 4/11/98: handle special types
+	  int lump, j;
 
-        case 260:               // killough 4/11/98: translucent 2s textures
-            lump = sides[*ld->sidenum].special; // translucency from sidedef
-            if (!ld->tag)                       // if tag==0,
-              ld->tranlump = lump;              // affect this linedef only
-            else
-              for (j=0;j<numlines;j++)          // if tag!=0,
-                if (lines[j].tag == ld->tag)    // affect all matching linedefs
-                  lines[j].tranlump = lump;
-            break;
-        }
+	case 260:               // killough 4/11/98: translucent 2s textures
+	    lump = sides[*ld->sidenum].special; // translucency from sidedef
+	    if (!ld->tag)                       // if tag==0,
+	      ld->tranlump = lump;              // affect this linedef only
+	    else
+	      for (j=0;j<numlines;j++)          // if tag!=0,
+		if (lines[j].tag == ld->tag)    // affect all matching linedefs
+		  lines[j].tranlump = lump;
+	    break;
+	}
     }
 }
 
@@ -491,35 +506,35 @@ void P_LoadSideDefs2(int lump)
 
       sd->sector = sec = &sectors[SHORT(msd->sector)];
       switch (sd->special)
-        {
-        case 242:                       // variable colormap via 242 linedef
-          sd->bottomtexture =
-            (sec->bottommap =   R_ColormapNumForName(msd->bottomtexture)) < 0 ?
-            sec->bottommap = 0, R_TextureNumForName(msd->bottomtexture): 0 ;
-          sd->midtexture =
-            (sec->midmap =   R_ColormapNumForName(msd->midtexture)) < 0 ?
-            sec->midmap = 0, R_TextureNumForName(msd->midtexture)  : 0 ;
-          sd->toptexture =
-            (sec->topmap =   R_ColormapNumForName(msd->toptexture)) < 0 ?
-            sec->topmap = 0, R_TextureNumForName(msd->toptexture)  : 0 ;
-          break;
+	{
+	case 242:                       // variable colormap via 242 linedef
+	  sd->bottomtexture =
+	    (sec->bottommap =   R_ColormapNumForName(msd->bottomtexture)) < 0 ?
+	    sec->bottommap = 0, R_TextureNumForName(msd->bottomtexture): 0 ;
+	  sd->midtexture =
+	    (sec->midmap =   R_ColormapNumForName(msd->midtexture)) < 0 ?
+	    sec->midmap = 0, R_TextureNumForName(msd->midtexture)  : 0 ;
+	  sd->toptexture =
+	    (sec->topmap =   R_ColormapNumForName(msd->toptexture)) < 0 ?
+	    sec->topmap = 0, R_TextureNumForName(msd->toptexture)  : 0 ;
+	  break;
 
-        case 260: // killough 4/11/98: apply translucency to 2s normal texture
-          sd->midtexture = strncasecmp("TRANMAP", msd->midtexture, 8) ?
-            (sd->special = W_CheckNumForName(msd->midtexture)) < 0 ||
-            W_LumpLength(sd->special) != 65536 ?
-            sd->special=0, R_TextureNumForName(msd->midtexture) :
-              (sd->special++, 0) : (sd->special=0);
-          sd->toptexture = R_TextureNumForName(msd->toptexture);
-          sd->bottomtexture = R_TextureNumForName(msd->bottomtexture);
-          break;
+	case 260: // killough 4/11/98: apply translucency to 2s normal texture
+	  sd->midtexture = strncasecmp("TRANMAP", msd->midtexture, 8) ?
+	    (sd->special = W_CheckNumForName(msd->midtexture)) < 0 ||
+	    W_LumpLength(sd->special) != 65536 ?
+	    sd->special=0, R_TextureNumForName(msd->midtexture) :
+	      (sd->special++, 0) : (sd->special=0);
+	  sd->toptexture = R_TextureNumForName(msd->toptexture);
+	  sd->bottomtexture = R_TextureNumForName(msd->bottomtexture);
+	  break;
 
-        default:                        // normal cases
-          sd->midtexture = R_TextureNumForName(msd->midtexture);
-          sd->toptexture = R_TextureNumForName(msd->toptexture);
-          sd->bottomtexture = R_TextureNumForName(msd->bottomtexture);
-          break;
-        }
+	default:                        // normal cases
+	  sd->midtexture = R_TextureNumForName(msd->midtexture);
+	  sd->toptexture = R_TextureNumForName(msd->toptexture);
+	  sd->bottomtexture = R_TextureNumForName(msd->bottomtexture);
+	  break;
+	}
     }
   Z_Free (data);
 }
@@ -658,7 +673,7 @@ static void P_CreateBlockMap(void)
 
       // Allocate blockmap lump with computed count
       blockmaplump = Z_Malloc(sizeof(*blockmaplump) * count, PU_LEVEL, 0);
-    }									 
+    }                                                                    
 
     // Now compress the blockmap.
     {
@@ -699,7 +714,10 @@ void P_LoadBlockMap (int lump)
 {
   long count;
 
-  if (M_CheckParm("-blockmap") || (count = W_LumpLength(lump)/2) >= 0x10000)
+	// sf: -blockmap checkparm made into variable
+	// also checking for levels without blockmaps (0 length)
+  if (blockmapbuild || W_LumpLength(lump)==0 ||
+	(count = W_LumpLength(lump)/2) >= 0x10000)
     P_CreateBlockMap();
   else
     {
@@ -718,10 +736,10 @@ void P_LoadBlockMap (int lump)
       blockmaplump[3] = (long)(SHORT(wadblockmaplump[3])) & 0xffff;
 
       for (i=4 ; i<count ; i++)
-        {
-          short t = SHORT(wadblockmaplump[i]);          // killough 3/1/98
-          blockmaplump[i] = t == -1 ? -1l : (long) t & 0xffff;
-        }
+	{
+	  short t = SHORT(wadblockmaplump[i]);          // killough 3/1/98
+	  blockmaplump[i] = t == -1 ? -1l : (long) t & 0xffff;
+	}
 
       Z_Free(wadblockmaplump);
 
@@ -908,39 +926,74 @@ void P_RemoveSlimeTrails(void)                // killough 10/98
 //
 // killough 5/3/98: reformatted, cleaned up
 
-void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
+void P_LoadOlo();
+extern int level_error;
+
+//
+// P_SetupLevel
+//
+// killough 5/3/98: reformatted, cleaned up
+
+void P_SetupLevel(char *mapname, int playermask, skill_t skill)
 {
   int   i;
-  char  lumpname[9];
   int   lumpnum;
 
   totalkills = totalitems = totalsecret = wminfo.maxfrags = 0;
   wminfo.partime = 180;
+  c_showprompt = false;         // kill console prompt as nothing can
+                                // be typed at the mo
   for (i=0; i<MAXPLAYERS; i++)
     players[i].killcount = players[i].secretcount = players[i].itemcount = 0;
 
   // Initial height of PointOfView will be set by player think.
   players[consoleplayer].viewz = 1;
 
-  // Make sure all sounds are stopped before Z_FreeTags.
-  S_Start();
+  if(debugfile) fprintf(debugfile,"P_SetupLevel: got here\n"
+				"mapname: %s\n",mapname);
 
+      // get the map name lump number
+  if((lumpnum = W_CheckNumForName(mapname)) == -1)
+  {
+        C_Printf("Map not found: %s\n", mapname);
+	C_SetConsole();
+	return;
+  }
+
+  strncpy(levelmapname, mapname, 8);
+  leveltime = 0;
+
+  DEBUGMSG("stop sounds\n");
+
+  // Make sure all sounds are stopped before Z_FreeTags. - sf: why?
+  S_StopSounds();       // sf: s_start split into s_start, s_stopsounds
+			// because of this requirement
+		
+		// free the old level
   Z_FreeTags(PU_LEVEL, PU_PURGELEVEL-1);
 
+  P_FreeSecNodeList();  // sf: free the psecnode_t linked list in p_map.c
   P_InitThinkers();
 
-  // if working with a devlopment map, reload it
-  //    W_Reload ();     killough 1/31/98: W_Reload obsolete
+  P_LoadOlo();                          // level names etc
+  P_LoadLevelInfo (lumpnum);    // load level lump info(level name etc)
 
-  // find map name
-  if (gamemode == commercial)
-    sprintf(lumpname, "map%02d", map);           // killough 1/24/98: simplify
-  else
-    sprintf(lumpname, "E%dM%d", episode, map);   // killough 1/24/98: simplify
+  WI_StopCamera();      // reset the intermissions camera
 
-  lumpnum = W_GetNumForName(lumpname);
+  DEBUGMSG("hu_newlevel\n");
+  newlevel = lumpinfo[lumpnum]->handle != iwadhandle;
+  doom1level = false;
+  HU_NewLevel();
 
-  leveltime = 0;
+  // must be after p_loadlevelinfo as the music lump name is got there
+  S_Start();
+
+  if(debugfile) fprintf(debugfile,"P_SetupLevel: loaded level info\n");
+  
+	// load the sky
+  R_StartSky();
+
+  if(debugfile) fprintf(debugfile,"P_SetupLevel: sky done\n");
 
   // note: most of this ordering is important
 
@@ -948,16 +1001,27 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
   // killough 4/4/98: split load of sidedefs into two parts,
   // to allow texture names to be used in special linedefs
 
+  level_error = false;  // reset
+
   P_LoadVertexes  (lumpnum+ML_VERTEXES);
   P_LoadSectors   (lumpnum+ML_SECTORS);
   P_LoadSideDefs  (lumpnum+ML_SIDEDEFS);             // killough 4/4/98
   P_LoadLineDefs  (lumpnum+ML_LINEDEFS);             //       |
   P_LoadSideDefs2 (lumpnum+ML_SIDEDEFS);             //       |
   P_LoadLineDefs2 (lumpnum+ML_LINEDEFS);             // killough 4/4/98
+
+  if(level_error)       // drop to the console
+  {             
+	C_SetConsole();
+	return;
+  }
+
   P_LoadBlockMap  (lumpnum+ML_BLOCKMAP);             // killough 3/1/98
   P_LoadSubsectors(lumpnum+ML_SSECTORS);
   P_LoadNodes     (lumpnum+ML_NODES);
   P_LoadSegs      (lumpnum+ML_SEGS);
+
+  if(debugfile) fprintf(debugfile,"loaded level\n");
 
   rejectmatrix = W_CacheLumpNum(lumpnum+ML_REJECT,PU_LEVEL);
   P_GroupLines();
@@ -971,14 +1035,18 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
   deathmatch_p = deathmatchstarts;
   P_LoadThings(lumpnum+ML_THINGS);
 
+  if(debugfile) fprintf(debugfile,"ok, things loaded, spawn players\n");
+
   // if deathmatch, randomly spawn the active players
   if (deathmatch)
     for (i=0; i<MAXPLAYERS; i++)
       if (playeringame[i])
-        {
-          players[i].mo = NULL;
-          G_DeathMatchSpawnPlayer(i);
-        }
+	{
+	  players[i].mo = NULL;
+	  G_DeathMatchSpawnPlayer(i);
+	}
+
+  if(debugfile) fprintf(debugfile,"done\n");
 
   // killough 3/26/98: Spawn icon landings:
   if (gamemode==commercial)
@@ -993,6 +1061,23 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
   // preload graphics
   if (precache)
     R_PrecacheLevel();
+
+  // psprites
+  showpsprites = default_psprites;
+
+	// clear script command buffer
+  C_ClearBuffer(c_script);
+
+  P_ResetChasecam();    // chasecam to player start pos.
+  P_ResetWalkcam();     // and walk cam
+
+  HU_FragsUpdate();     // reset frag counter
+
+  R_SetViewSize (screenblocks); //sf
+
+  if(debugfile) fprintf(debugfile,"P_SetupLevel: finished\n");
+  if(doom1level && gamemode == commercial)
+          C_Printf("doom 1 level\n");
 }
 
 //
@@ -1002,15 +1087,45 @@ void P_Init (void)
 {
   P_InitSwitchList();
   P_InitPicAnims();
-  R_InitSprites(sprnames);
+  R_InitSprites(spritelist);
 }
+
+//
+// OLO Support. - sf
+//
+// OLOs were something I came up with a while ago when making my 'onslaunch'
+// launcher. They are lumps which hold information about the lump: which
+// deathmatch type they are best played on etc. which was read by onslaunch
+// which adjusted its launch settings appropriately. More importantly,
+// they hold the level names which I use here..
+//
+
+olo_t olo;
+int olo_loaded = false;
+
+void P_LoadOlo()
+{
+	int lumpnum;
+	char *lump;
+
+        if((lumpnum = W_CheckNumForName("OLO")) == -1)
+		return;
+
+	lump = W_CacheLumpNum(lumpnum, PU_CACHE);
+
+	if(strncmp(lump, "OLO", 3))
+		return;
+
+	memcpy(&olo, lump, sizeof(olo_t));
+
+	olo_loaded = true;
+}
+
+
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_setup.c,v $
 // Revision 1.16  1998/05/07  00:56:49  killough
 // Ignore translucency lumps that are not exactly 64K long
 //

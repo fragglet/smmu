@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_data.h,v 1.6 1998/05/03 22:55:43 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -31,6 +31,7 @@ byte *R_GetColumn(int tex, int col);
 
 // I/O, setting up the stuff.
 void R_InitData (void);
+void R_FreeData();
 void R_PrecacheLevel (void);
 
 // Retrieval.
@@ -50,14 +51,13 @@ void R_InitColormaps(void);   // killough 8/9/98
 
 extern byte *main_tranmap, *tranmap;
 
+extern int r_precache;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_data.h,v $
 // Revision 1.6  1998/05/03  22:55:43  killough
 // Add tranmap external declarations
 //

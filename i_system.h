@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_system.h,v 1.7 1998/05/03 22:33:43 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -34,6 +34,7 @@ void I_Init(void);
 int (*I_GetTime)();           // killough
 int I_GetTime_RealTime();     // killough
 int I_GetTime_Adaptive(void); // killough 4/10/98
+void I_SetTime(int newtime);
 extern int GetTime_Scale;
 
 //
@@ -54,6 +55,7 @@ void I_StartFrame (void);
 // Can call D_PostEvent.
 
 void I_StartTic (void);
+void I_GetEvent();      // sf: extern
 
 // Asynchronous interrupt functions should maintain private queues
 // that are read by the synchronous functions
@@ -99,10 +101,7 @@ extern struct keyboard_queue_s {
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: i_system.h,v $
 // Revision 1.7  1998/05/03  22:33:43  killough
 // beautification, remove unnecessary #includes
 //

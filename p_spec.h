@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_spec.h,v 1.30 1998/05/04 02:22:23 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -998,10 +998,7 @@ mobj_t *P_GetPushThing(int);                                // phares 3/23/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_spec.h,v $
 // Revision 1.30  1998/05/04  02:22:23  jim
 // formatted p_specs, moved a coupla routines to p_floor
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_segs.c,v 1.16 1998/05/03 23:02:01 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,7 +23,7 @@
 // 4/25/98, 5/2/98 killough: reformatted, beautified
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: r_segs.c,v 1.16 1998/05/03 23:02:01 killough Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -41,6 +41,7 @@ rcsid[] = "$Id$";
 static boolean  segtextured;
 static boolean  markfloor;      // False if the back side is the same plane.
 static boolean  markceiling;
+static boolean  markfloor2;
 static boolean  maskedtexture;
 static int      toptexture;
 static int      bottomtexture;
@@ -75,6 +76,13 @@ static fixed_t  topfrac;
 static fixed_t  topstep;
 static fixed_t  bottomfrac;
 static fixed_t  bottomstep;
+
+//#define TRANWATER
+#ifdef TRANWATER
+static fixed_t  bottomfrac2;    //sf
+static fixed_t  bottomstep2;
+#endif
+
 static short    *maskedtexturecol;
 
 //
@@ -121,8 +129,8 @@ void R_RenderMaskedSegRange(drawseg_t *ds, int x1, int x2)
     if (curline->v1->x == curline->v2->x)
       lightnum++;
 
-  walllights = lightnum >= LIGHTLEVELS ? scalelight[LIGHTLEVELS-1] :
-    lightnum <  0           ? scalelight[0] : scalelight[lightnum];
+  walllights = ds->colormap[ lightnum >= LIGHTLEVELS ? LIGHTLEVELS-1 :
+     lightnum <  0 ? 0 : lightnum ] ;
 
   maskedtexturecol = ds->maskedtexturecol;
 
@@ -219,7 +227,7 @@ static void R_RenderSegLoop (void)
 {
   fixed_t  texturecolumn = 0;   // shut up compiler warning
 
-  for ( ; rw_x < rw_stopx ; rw_x++)
+  for ( ; rw_x < rw_stopx ; rw_x ++)
     {
       // mark floor / ceiling areas
       int yh, yl = (topfrac+HEIGHTUNIT-1)>>HEIGHTBITS;
@@ -229,6 +237,14 @@ static void R_RenderSegLoop (void)
 
       if (yl < top)
         yl = top;
+
+      if(0)//rw_x & 1)
+      {
+         rw_scale += rw_scalestep;
+         topfrac += topstep;
+         bottomfrac += bottomstep;
+         continue;
+      }
 
       if (markceiling)
         {
@@ -259,6 +275,41 @@ static void R_RenderSegLoop (void)
               floorplane->bottom[rw_x] = bottom;
             }
         }
+
+#ifdef TRANWATER
+      if (markfloor2)
+      {
+           int yw = bottomfrac2>>HEIGHTBITS;
+
+           if(yw < 0) yw = 0;
+           if(yw >= viewheight) yw = viewheight-1;
+
+           if(yw > floorplane2->top[rw_x])
+                floorplane2->top[rw_x] = yw;
+           if(yw < floorplane2->bottom[rw_x])
+                floorplane2->bottom[rw_x] = yw;
+
+           if(viewz<floorplane2->height) // below plane
+           {
+                   top = floorclip2[rw_x]+1;
+                   bottom = yw;
+                   if(bottom >= floorclip[rw_x]) bottom = floorclip[rw_x]-1;
+           }
+           else                 // above
+           {
+                   top = yw;
+                   bottom = floorclip2[rw_x]-1;
+                   if(top <= ceilingclip[rw_x]) top = ceilingclip[rw_x]+1;
+           }
+
+           if(top <= bottom)
+           {
+                floorplane2->top[rw_x] = top;
+                floorplane2->bottom[rw_x] = bottom;
+           }
+
+      }
+#endif
 
       // texturecolumn and lighting are independent of wall tiers
       if (segtextured)
@@ -317,9 +368,13 @@ static void R_RenderSegLoop (void)
               else
                 ceilingclip[rw_x] = yl-1;
             }
-          else  // no top wall
+          else
+          {  // no top wall
             if (markceiling)
               ceilingclip[rw_x] = yl-1;
+            if (markfloor2)
+              floorclip2[rw_x] = yl-1;
+          }
 
           if (bottomtexture)          // bottom wall
             {
@@ -340,13 +395,21 @@ static void R_RenderSegLoop (void)
                   dc_texheight = textureheight[bottomtexture]>>FRACBITS; // killough
                   colfunc ();
                   floorclip[rw_x] = mid;
+                  if (floorplane2 && floorplane2->height<worldlow)
+                        floorclip2[rw_x] = mid;
                 }
               else
                 floorclip[rw_x] = yh+1;
             }
-          else        // no bottom wall
+          else
+          {        // no bottom wall
             if (markfloor)
+            {
               floorclip[rw_x] = yh+1;
+                if (markfloor2)
+                    floorclip2[rw_x] = yh+1;
+            }
+          }
 
           // save texturecol for backdrawing of masked mid texture
           if (maskedtexture)
@@ -356,6 +419,9 @@ static void R_RenderSegLoop (void)
       rw_scale += rw_scalestep;
       topfrac += topstep;
       bottomfrac += bottomstep;
+#ifdef TRANWATER
+      bottomfrac2 += bottomstep2;
+#endif
     }
 }
 
@@ -374,6 +440,21 @@ static fixed_t R_PointToDist(fixed_t x, fixed_t y)
   return dx ? FixedDiv(dx, finesine[(tantoangle[FixedDiv(dy,dx) >> DBITS]
 				     + ANG90) >> ANGLETOFINESHIFT]) : 0;
 }
+
+fixed_t R_PointToDist2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2)
+{
+  fixed_t dx = abs(x2 - x1);
+  fixed_t dy = abs(y2 - y1);
+  if (dy > dx)
+    {
+      fixed_t t = dx;
+      dx = dy;
+      dy = t;
+    }
+  return dx ? FixedDiv(dx, finesine[(tantoangle[FixedDiv(dy,dx) >> DBITS]
+				     + ANG90) >> ANGLETOFINESHIFT]) : 0;
+}
+
 
 //
 // R_StoreWallRange
@@ -420,6 +501,7 @@ void R_StoreWallRange(const int start, const int stop)
   ds_p->x1 = rw_x = start;
   ds_p->x2 = stop;
   ds_p->curline = curline;
+  ds_p->colormap = scalelight;
   rw_stopx = stop+1;
 
   // killough 1/6/98, 2/1/98: remove limit on openings
@@ -453,6 +535,8 @@ void R_StoreWallRange(const int start, const int stop)
 
       // a single sided line is terminal, so it must mark ends
       markfloor = markceiling = true;
+
+      markfloor2 = !!floorplane2;
 
       if (linedef->flags & ML_DONTPEGBOTTOM)
         {         // bottom of texture at bottom
@@ -550,6 +634,9 @@ void R_StoreWallRange(const int start, const int stop)
         // from bleeding through deep water
         || frontsector->heightsec != -1
 
+                // sf: for coloured lighting
+        || backsector->heightsec != frontsector->heightsec
+
         // killough 4/17/98: draw floors if different light levels
         || backsector->floorlightsec != frontsector->floorlightsec
         ;
@@ -569,11 +656,16 @@ void R_StoreWallRange(const int start, const int stop)
 
         // killough 4/17/98: draw ceilings if different light levels
         || backsector->ceilinglightsec != frontsector->ceilinglightsec
+                // sf: for coloured lighting
+        || backsector->heightsec != frontsector->heightsec
         ;
 
       if (backsector->ceilingheight <= frontsector->floorheight
           || backsector->floorheight >= frontsector->ceilingheight)
         markceiling = markfloor = true;   // closed door
+
+        markfloor2 = floorplane2 &&
+                (worldhigh!=worldtop || worldlow!=worldbottom);
 
       if (worldhigh < worldtop)   // top texture
         {
@@ -684,6 +776,15 @@ void R_StoreWallRange(const int start, const int stop)
   bottomstep = -FixedMul (rw_scalestep,worldbottom);
   bottomfrac = (centeryfrac>>4) - FixedMul (worldbottom, rw_scale);
 
+#ifdef TRANWATER
+  if (floorplane2)
+  {
+        int worldplane = (floorplane2->height - viewz)>>4;
+        bottomstep2 = -FixedMul (rw_scalestep,worldplane);
+        bottomfrac2 = (centeryfrac>>4) - FixedMul (worldplane, rw_scale);
+  }
+#endif
+
   if (backsector)
     {
       worldhigh >>= 4;
@@ -713,6 +814,14 @@ void R_StoreWallRange(const int start, const int stop)
       floorplane = R_CheckPlane (floorplane, rw_x, rw_stopx-1);
     else
       markfloor = 0;
+
+#ifdef TRANWATER
+  if (markfloor2)
+    if (floorplane2)
+      floorplane2 = R_CheckPlane (floorplane2, rw_x, rw_stopx-1);
+    else
+      markfloor2 = 0;
+#endif
 
   R_RenderSegLoop();
 
@@ -744,10 +853,7 @@ void R_StoreWallRange(const int start, const int stop)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_segs.c,v $
 // Revision 1.16  1998/05/03  23:02:01  killough
 // Move R_PointToDist from r_main.c, fix #includes
 //

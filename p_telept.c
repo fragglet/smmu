@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_telept.c,v 1.13 1998/05/12 06:10:43 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,12 +21,13 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_telept.c,v 1.13 1998/05/12 06:10:43 killough Exp $";
 
 #include "doomstat.h"
-#include "p_spec.h"
+#include "p_chase.h"
 #include "p_maputl.h"
 #include "p_map.h"
+#include "p_spec.h"
 #include "r_main.h"
 #include "p_tick.h"
 #include "s_sound.h"
@@ -95,11 +96,15 @@ int EV_Teleport(line_t *line, int side, mobj_t *thing)
 
           thing->angle = m->angle;
 
+        // kill all momentum
           thing->momx = thing->momy = thing->momz = 0;
+        
+                  // killough 10/98: kill all bobbing momentum too
+          if (player)
+            player->momx = player->momy = 0;
 
-	  // killough 10/98: kill all bobbing momentum too
-	  if (player)
-	    player->momx = player->momy = 0;
+          if(thing->player==players+displayplayer)
+                P_ResetChasecam();
 
           return 1;
         }
@@ -180,6 +185,8 @@ int EV_SilentTeleport(line_t *line, int side, mobj_t *thing)
 
               // Reset the delta to have the same dynamics as before
               player->deltaviewheight = deltaviewheight;
+              if(player==players+displayplayer)
+                  P_ResetChasecam();
             }
           return 1;
         }
@@ -309,6 +316,8 @@ int EV_SilentLineTeleport(line_t *line, int side, mobj_t *thing,
 
             // Reset the delta to have the same dynamics as before
             player->deltaviewheight = deltaviewheight;
+            if(player==players+displayplayer)
+                P_ResetChasecam();
           }
 
         return 1;
@@ -318,10 +327,7 @@ int EV_SilentLineTeleport(line_t *line, int side, mobj_t *thing,
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_telept.c,v $
 // Revision 1.13  1998/05/12  06:10:43  killough
 // Fix silent teleporter bugs
 //

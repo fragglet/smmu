@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_pspr.c,v 1.13 1998/05/07 00:53:36 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,19 +22,23 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_pspr.c,v 1.13 1998/05/07 00:53:36 killough Exp $";
 
 #include "doomstat.h"
-#include "r_main.h"
-#include "p_map.h"
-#include "p_inter.h"
-#include "p_pspr.h"
-#include "p_enemy.h"
+#include "d_event.h"
+#include "g_game.h"
 #include "m_random.h"
+#include "p_enemy.h"
+#include "p_inter.h"
+#include "p_map.h"
+#include "p_maputl.h"
+#include "p_pspr.h"
+#include "p_tick.h"
+#include "r_main.h"
+#include "r_segs.h"
+#include "r_things.h"
 #include "s_sound.h"
 #include "sounds.h"
-#include "d_event.h"
-#include "p_tick.h"
 
 #define LOWERSPEED   (FRACUNIT*6)
 #define RAISESPEED   (FRACUNIT*6)
@@ -68,6 +72,9 @@ static void P_SetPsprite(player_t *player, int position, statenum_t stnum)
 {
   pspdef_t *psp = &player->psprites[position];
 
+  if(position==ps_flash) psp->trans=1;
+  else psp->trans=0;
+
   do
     {
       state_t *state;
@@ -79,11 +86,9 @@ static void P_SetPsprite(player_t *player, int position, statenum_t stnum)
           break;
         }
 
-#ifdef BETA
       // killough 7/19/98: Pre-Beta BFG
-      if (stnum == S_BFG1 && (classic_bfg || beta_emulation))
+      if (stnum == S_BFG1 && bfgtype == bfg_classic)
 	stnum = S_OLDBFG1;                 // Skip to alternative weapon frame
-#endif
 
       state = &states[stnum];
       psp->state = state;
@@ -579,10 +584,14 @@ void A_FireMissile(player_t *player, pspdef_t *psp)
 // A_FireBFG
 //
 
+#define BFGBOUNCE 4
+
 void A_FireBFG(player_t *player, pspdef_t *psp)
 {
+  mobj_t *mo;
   player->ammo[weaponinfo[player->readyweapon].ammo] -= BFGCELLS;
-  P_SpawnPlayerMissile(player->mo, MT_BFG);
+  mo = P_SpawnPlayerMissile(player->mo, MT_BFG );
+  mo->extradata.bfgcount = BFGBOUNCE;   // for bouncing bfg - redundant
 }
 
 //
@@ -596,8 +605,10 @@ void A_FireBFG(player_t *player, pspdef_t *psp)
 
 void A_FireOldBFG(player_t *player, pspdef_t *psp)
 {
-#ifdef BETA
   int type = MT_PLASMA1;
+
+        // sf: make sure the player is in firing frame, or it looks silly
+  P_SetMobjState(player->mo, S_PLAY_ATK2);
 
   if (weapon_recoil && !(player->mo->flags & MF_NOCLIP))
     P_Thrust(player, ANG180 + player->mo->angle,
@@ -614,12 +625,12 @@ void A_FireOldBFG(player_t *player, pspdef_t *psp)
       angle_t an1 = ((P_Random(pr_bfg)&127) - 64) * (ANG90/768) + an;
       angle_t an2 = ((P_Random(pr_bfg)&127) - 64) * (ANG90/640) + ANG90;
       extern int autoaim;
+      fixed_t slope;
 
-      if (autoaim || !beta_emulation)
+      if (autoaim)
 	{
 	  // killough 8/2/98: make autoaiming prefer enemies
 	  int mask = MF_FRIEND;
-	  fixed_t slope;
 	  do
 	    {
 	      slope = P_AimLineAttack(mo, an, 16*64*FRACUNIT, mask);
@@ -628,12 +639,24 @@ void A_FireOldBFG(player_t *player, pspdef_t *psp)
 	      if (!linetarget)
 		slope = P_AimLineAttack(mo, an -= 2<<26, 16*64*FRACUNIT, mask);
 	      if (!linetarget)
-		slope = 0, an = mo->angle;
+                                // sf: looking up/down
+                slope = bfglook == 1 ? player->updownangle * LOOKSLOPE : 0,
+                                an = mo->angle;
 	    }
 	  while (mask && (mask=0, !linetarget));     // killough 8/2/98
 	  an1 += an - mo->angle;
-	  an2 += tantoangle[slope >> DBITS];
+                        // sf: despite killough's infinite wisdom.. even
+                        // he is prone to mistakes. seems negative numbers
+                        // won't survive a bitshift!
+          an2 += slope<0 ? -tantoangle[-slope >> DBITS] :
+                            tantoangle[slope >> DBITS];
 	}
+        else
+        {
+             slope = bfglook == 1 ? player->updownangle * LOOKSLOPE : 0;
+             an2 += slope<0 ? -tantoangle[-slope >> DBITS] :
+                               tantoangle[slope >> DBITS];
+        }
 
       th = P_SpawnMobj(mo->x, mo->y,
 		       mo->z + 62*FRACUNIT - player->psprites[ps_weapon].sy,
@@ -646,7 +669,6 @@ void A_FireOldBFG(player_t *player, pspdef_t *psp)
       P_CheckMissileSpawn(th);
     }
   while ((type != MT_PLASMA2) && (type = MT_PLASMA2)); //killough: obfuscated!
-#endif
 }
 
 //
@@ -783,7 +805,7 @@ void A_FireShotgun2(player_t *player, pspdef_t *psp)
 
 void A_FireCGun(player_t *player, pspdef_t *psp)
 {
-  S_StartSound(player->mo, sfx_pistol);
+  S_StartSound(player->mo, sfx_chgun);
 
   if (!player->ammo[weaponinfo[player->readyweapon].ammo])
     return;
@@ -825,6 +847,9 @@ void A_Light2 (player_t *player, pspdef_t *psp)
   player->extralight = 2;
 }
 
+void A_BouncingBFG(mobj_t *mo);
+void A_BFG11KHit(mobj_t *mo);
+
 //
 // A_BFGSpray
 // Spawn a BFG explosion on every monster in view
@@ -833,6 +858,12 @@ void A_Light2 (player_t *player, pspdef_t *psp)
 void A_BFGSpray(mobj_t *mo)
 {
   int i;
+
+  if(bfgtype == bfg_11k)
+  {
+        A_BFG11KHit(mo);
+        return;
+  }
 
   for (i=0 ; i<40 ; i++)  // offset angles from its attack angle
     {
@@ -858,6 +889,98 @@ void A_BFGSpray(mobj_t *mo)
 
       P_DamageMobj(linetarget, mo->target, mo->target, damage);
     }
+}
+
+        /********* Redundant Bouncing BFG Code ********/
+        
+        // heh actually 359.999.. but never mind
+#define ANG360 0xffffffff
+
+void A_BouncingBFG(mobj_t *mo)
+{
+  int i;
+  mobj_t *newmo;
+
+  if(!mo->extradata.bfgcount) return;
+
+  for (i=0 ; i<40 ; i++)  // offset angles from its attack angle
+  {
+      angle_t an = (ANG360/40)*i;
+       
+      // mo->target is the originator (player) of the missile
+        
+      P_AimLineAttack(mo, an, 16*64*FRACUNIT,0);
+        
+      if (!linetarget)
+               continue;
+      if(an/6 == mo->angle/6) continue;
+      if(linetarget == mo->target) continue;      // don't aim for shooter
+
+      P_SpawnMobj(linetarget->x, linetarget->y,
+                  linetarget->z + (linetarget->height>>2), MT_EXTRABFG);
+
+      newmo = P_SpawnMissile(mo,linetarget,MT_BFG); // spawn new bfg
+      newmo->extradata.bfgcount = mo->extradata.bfgcount-1; // count down
+      P_SetTarget(&newmo->target, mo->target); // pass on the player
+      P_RemoveMobj(mo);         // remove the old one
+      break; //only spawn 1
+  }
+
+}
+
+
+void A_BFGFly(mobj_t *mo)
+{
+}
+
+        // when the BFG 11K hits the wall or whatever
+void A_BFG11KHit(mobj_t *mo)
+{
+  int i = 0;
+  int j, damage;
+  long origdist;
+
+  // check the originator and hurt them if too close
+
+  if( (origdist = R_PointToDist2(mo->target->x, mo->target->y, mo->x, mo->y) )
+                 < 96*FRACUNIT)
+  {
+                // decide on damage
+                        // damage decreases with distance
+        for (damage=j=0; j<48-(origdist/(FRACUNIT*2)); j++)
+             damage += (P_Random(pr_bfg)&7) + 1;
+
+          //  flash
+        P_SpawnMobj(mo->target->x, mo->target->y,
+                   mo->target->z + (mo->target->height>>2), MT_EXTRABFG);
+        
+        P_DamageMobj(mo->target, mo, mo->target, damage);
+  }
+
+        // now check everyone else
+
+  for (i=0 ; i<40 ; i++)  // offset angles from its attack angle
+  {
+        angle_t an = (ANG360/40)*i;
+
+              // mo->target is the originator (player) of the missile
+        
+        P_AimLineAttack(mo, an, 16*64*FRACUNIT,0);
+       
+        if(!linetarget) continue;
+        if(linetarget == mo->target)
+             continue;
+
+                // decide on damage
+        for (damage=j=0; j<20; j++)
+             damage += (P_Random(pr_bfg)&7) + 1;
+
+          // dumbass flash
+               P_SpawnMobj(linetarget->x, linetarget->y,
+                  linetarget->z + (linetarget->height>>2), MT_EXTRABFG);
+
+        P_DamageMobj(linetarget, mo->target, mo->target, damage);
+  }
 }
 
 //
@@ -911,10 +1034,7 @@ void P_MovePsprites(player_t *player)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_pspr.c,v $
 // Revision 1.13  1998/05/07  00:53:36  killough
 // Remove dependence on order of evaluation
 //

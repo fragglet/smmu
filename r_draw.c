@@ -1,7 +1,7 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_draw.c,v 1.16 1998/05/03 22:41:46 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,10 +23,11 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: r_draw.c,v 1.16 1998/05/03 22:41:46 killough Exp $";
 
 #include "doomstat.h"
 #include "w_wad.h"
+#include "r_draw.h"
 #include "r_main.h"
 #include "v_video.h"
 #include "m_menu.h"
@@ -61,7 +62,7 @@ int  linesize = SCREENWIDTH;  // killough 11/98
 //  (color ramps used for  suit colors).
 //
 
-byte translations[3][256];
+// byte translations[3][256]; // REDUNDANT
  
 byte *tranmap;          // translucency filter maps 256x256   // phares 
 byte *main_tranmap;     // killough 4/11/98
@@ -278,17 +279,18 @@ void R_DrawTLColumn (void)
 // Spectre/Invisibility.
 //
 
-#define FUZZTABLE 50 
 
-// killough 11/98: convert fuzzoffset to be screenwidth-independent
+#define FUZZTABLE 50 
+#define FUZZOFF (SCREENWIDTH)
+
 static const int fuzzoffset[FUZZTABLE] = {
-  0,-1,0,-1,0,0,-1,
-  0,0,-1,0,0,0,-1,
-  0,0,0,-1,-1,-1,-1,
-  0,-1,-1,0,0,0,0,-1,
-  0,-1,0,0,-1,-1,0,
-  0,-1,-1,-1,-1,0,0,
-  0,0,-1,0,0,-1,0 
+  1,0,1,0,1,1,0,
+  1,1,0,1,1,1,0,
+  1,1,1,0,0,0,0,
+  1,0,0,1,1,1,1,0,
+  1,0,1,1,0,0,1,
+  1,0,0,0,0,1,1,
+  1,1,0,1,1,0,1 
 }; 
 
 static int fuzzpos = 0; 
@@ -302,10 +304,14 @@ static int fuzzpos = 0;
 //  i.e. spectres and invisible players.
 //
 
+// sf: restored original fuzz effect (changed in mbf)
+
 void R_DrawFuzzColumn(void) 
 { 
   int      count; 
   byte     *dest; 
+  fixed_t  frac;
+  fixed_t  fracstep;     
 
   // Adjust borders. Low... 
   if (!dc_yl) 
@@ -322,9 +328,9 @@ void R_DrawFuzzColumn(void)
     return; 
     
 #ifdef RANGECHECK 
-  if ((unsigned) dc_x >= MAX_SCREENWIDTH
+  if ((unsigned) dc_x >= SCREENWIDTH
       || dc_yl < 0 
-      || dc_yh >= MAX_SCREENHEIGHT)
+      || dc_yh >= SCREENHEIGHT)
     I_Error ("R_DrawFuzzColumn: %i to %i at %i",
              dc_yl, dc_yh, dc_x);
 #endif
@@ -335,28 +341,35 @@ void R_DrawFuzzColumn(void)
   // Does not work with blocky mode.
   dest = ylookup[dc_yl] + columnofs[dc_x];
   
+  // Looks familiar.
+  fracstep = dc_iscale; 
+  frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+
   // Looks like an attempt at dithering,
   // using the colormap #6 (of 0-31, a bit brighter than average).
-
-  count++;        // killough 1/99: minor tuning
 
   do 
     {
       // Lookup framebuffer, and retrieve
-      // a pixel that is either one row
-      // above or below the current one.
+      //  a pixel that is either one column
+      //  left or right of the current one.
       // Add index from colormap to index.
       // killough 3/20/98: use fullcolormap instead of colormaps
-      // killough 11/98: use linesize
 
-      *dest = fullcolormap[6*256+dest[fuzzoffset[fuzzpos] ^ linesize]]; 
+                //sf : hires
+      *dest = fullcolormap[6*256+dest[
+      fuzzoffset[fuzzpos] ? SCREENWIDTH<<hires : -(SCREENWIDTH<<hires)
+      ]];
 
-      dest += linesize;             // killough 11/98
 
       // Clamp table lookup index.
-      fuzzpos &= (fuzzpos - FUZZTABLE) >> (8*sizeof fuzzpos-1); //killough 1/99
-    } 
-  while (--count);
+      if (++fuzzpos == FUZZTABLE) 
+        fuzzpos = 0;
+        
+      dest += SCREENWIDTH<<hires;
+
+      frac += fracstep; 
+    } while (count--); 
 }
 
 //
@@ -424,25 +437,40 @@ void R_DrawTranslatedColumn (void)
 // Could be read from a lump instead.
 //
 
+typedef struct
+{
+        int start;      // start of the sequence of colours
+        int number;     // number of colours
+} translat_t;
+
+translat_t translations[] = {
+  {96,  16},     // indigo
+  {64,  16},     // brown
+  {32,  16},     // red
+  {16,  16},     // pink                 /*** NEW COLOURS ***/
+  {176, 16},     // tomato
+  {56,  8},      // cream
+  {88,  8},      // white
+  {128, 16},     // dirt
+  {200, 8},      // blue
+  {216, 8},      // vomit yellow
+  {0,   1}       // bleeacckk!!
+};
+        // sf : rewritten
+
 void R_InitTranslationTables (void)
 {
-  int i;
+  int i, c;
         
-  // killough 5/2/98:
-  // Remove dependency of colormaps aligned on 256-byte boundary
+  translationtables = Z_Malloc(256 * TRANSLATIONCOLOURS, PU_STATIC, 0);
 
-  translationtables = Z_Malloc(256*3, PU_STATIC, 0);
-    
-  // translate just the 16 green colors
-  for (i=0; i<256; i++)
-    if (i >= 0x70 && i<= 0x7f)
-      {   // map green ramp to gray, brown, red
-        translationtables[i] = 0x60 + (i&0xf);
-        translationtables [i+256] = 0x40 + (i&0xf);
-        translationtables [i+512] = 0x20 + (i&0xf);
-      }
-    else  // Keep all other colors as is.
-      translationtables[i]=translationtables[i+256]=translationtables[i+512]=i;
+  for(i=0; i<TRANSLATIONCOLOURS; i++)
+  {
+        for(c=0; c<256; c++)
+           translationtables[i*256 + c] =
+            (c < 0x70 || c > 0x7f) ? c : translations[i].start +
+                ((c & 0xf) * (translations[i].number-1))/15;
+  }
 }
 
 //
@@ -543,6 +571,77 @@ void R_DrawSpan (void)
 } 
 
 #endif
+
+
+        // sf: 
+void R_DrawTLSpan (void)
+{ 
+  register unsigned position;
+  unsigned step;
+
+  byte *source;
+  byte *colormap;
+  byte *dest;
+    
+  unsigned count;
+  unsigned spot; 
+  unsigned xtemp;
+  unsigned ytemp;
+                
+  position = ((ds_xfrac<<10)&0xffff0000) | ((ds_yfrac>>6)&0xffff);
+  step = ((ds_xstep<<10)&0xffff0000) | ((ds_ystep>>6)&0xffff);
+                
+  source = ds_source;
+  colormap = ds_colormap;
+  dest = ylookup[ds_y] + columnofs[ds_x1];       
+  count = ds_x2 - ds_x1 + 1; 
+        
+  while (count >= 4)
+    { 
+      ytemp = position>>4;
+      ytemp = ytemp & 4032;
+      xtemp = position>>26;
+      spot = xtemp | ytemp;
+      position += step;
+      dest[0] = tranmap[(dest[0]<<8)+colormap[source[spot]] ]; 
+
+      ytemp = position>>4;
+      ytemp = ytemp & 4032;
+      xtemp = position>>26;
+      spot = xtemp | ytemp;
+      position += step;
+      dest[1] = tranmap[(dest[1]<<8)+colormap[source[spot]] ]; 
+        
+      ytemp = position>>4;
+      ytemp = ytemp & 4032;
+      xtemp = position>>26;
+      spot = xtemp | ytemp;
+      position += step;
+      dest[2] = tranmap[(dest[2]<<8)+colormap[source[spot]] ]; 
+        
+      ytemp = position>>4;
+      ytemp = ytemp & 4032;
+      xtemp = position>>26;
+      spot = xtemp | ytemp;
+      position += step;
+      dest[3] = tranmap[(dest[3]<<8)+colormap[source[spot]] ]; 
+                
+      dest += 4;
+      count -= 4;
+    } 
+
+  while (count)
+    { 
+      ytemp = position>>4;
+      ytemp = ytemp & 4032;
+      xtemp = position>>26;
+      spot = xtemp | ytemp;
+      position += step;
+      *dest++ = tranmap[(*dest<<8)+colormap[source[spot]] ];
+      count--;
+    } 
+} 
+
 
 //
 // R_InitBuffer 
@@ -695,10 +794,7 @@ void R_DrawViewBorder(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_draw.c,v $
 // Revision 1.16  1998/05/03  22:41:46  killough
 // beautification
 //

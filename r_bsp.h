@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_bsp.h,v 1.5 1998/05/03 22:48:03 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -49,14 +49,13 @@ int R_DoorClosed(void);   // killough 1/17/98
 // killough 4/13/98: fake floors/ceilings for deep water / fake ceilings:
 sector_t *R_FakeFlat(sector_t *, sector_t *, int *, int *, boolean);
 
+extern int detaillevel;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_bsp.h,v $
 // Revision 1.5  1998/05/03  22:48:03  killough
 // beautification, use new headers, change decls
 //

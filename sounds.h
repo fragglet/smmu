@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: sounds.h,v 1.3 1998/05/03 22:44:30 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -63,13 +63,17 @@ struct sfxinfo_struct {
   // sound data
   void *data;
 
+        // sf: skin sound number to use in place
+  int skinsound;
+
   // this is checked every second to see if sound
   // can be thrown out (if 0, then decrement, if -1,
   // then throw out, if > 0, then it is in use)
   int usefulness;
 
   // lump number of sfx
-  int lumpnum;
+//        int lumpnum; // sf: now redundant
+  int length;
 };
 
 //
@@ -169,6 +173,7 @@ typedef enum {
   mus_read_m,
   mus_dm2ttl,
   mus_dm2int,
+  mus_new,
   NUMMUSIC
 } musicenum_t;
 
@@ -299,14 +304,13 @@ typedef enum {
   NUMSFX
 } sfxenum_t;
 
+extern sfxinfo_t chgun;
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: sounds.h,v $
 // Revision 1.3  1998/05/03  22:44:30  killough
 // beautification
 //

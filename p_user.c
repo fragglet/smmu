@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_user.c,v 1.14 1998/05/12 12:47:25 phares Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,10 +23,12 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_user.c,v 1.14 1998/05/12 12:47:25 phares Exp $";
 
 #include "doomstat.h"
 #include "d_event.h"
+#include "c_net.h"
+#include "g_game.h"
 #include "r_main.h"
 #include "p_map.h"
 #include "p_spec.h"
@@ -100,7 +102,7 @@ void P_CalcHeight (player_t* player)
   player->bob = player_bobbing ? (FixedMul(player->momx,player->momx) + 
 				  FixedMul(player->momy,player->momy))>>2 : 0;
 
-  if (player->bob > MAXBOB)                             
+  if (player->bob > MAXBOB)
     player->bob = MAXBOB;
 
   if (!onground || player->cheats & CF_NOMOMENTUM)
@@ -309,7 +311,23 @@ void P_PlayerThink (player_t* player)
   if (player->mo->reactiontime)
     player->mo->reactiontime--;
   else
+  {
     P_MovePlayer (player);
+    if (cmd->updownangle)      // wait til teleport finishes to look around
+       player->updownangle += cmd->updownangle;
+        
+  }
+
+        // looking up/down checks
+  if(player->updownangle < -50) player->updownangle = -50;
+  if(player->updownangle > 50) player->updownangle = 50;
+  if(!allowmlook) player->updownangle = 0;
+  if(player->readyweapon == wp_bfg)
+  {
+       if(bfglook == 0) player->updownangle = 0;
+       if(bfglook == 2 && player->updownangle < -10)
+              player->updownangle = -10;
+  }
 
   P_CalcHeight (player); // Determines view height and bobbing
 
@@ -407,8 +425,19 @@ void P_PlayerThink (player_t* player)
     player->powers[pw_invulnerability]--;
 
   if (player->powers[pw_invisibility] > 0)    // killough
-    if (! --player->powers[pw_invisibility] )
-      player->mo->flags &= ~MF_SHADOW;
+  {
+    player->mo->flags &= ~MF_SHADOW;    //sf: flash the invisibility like
+    player->powers[pw_invisibility]--;  // in the psprites
+    player->mo->flags |=               
+      player->powers[pw_invisibility] &&
+      (player->powers[pw_invisibility] > 4*32 ||
+        player->powers[pw_invisibility] & 8)
+        ? MF_SHADOW : 0;
+  }
+
+//      old code
+//    if (! --player->powers[pw_invisibility] )
+//      player->mo->flags &= ~MF_SHADOW;
 
   if (player->powers[pw_infrared] > 0)        // killough
     player->powers[pw_infrared]--;
@@ -449,10 +478,7 @@ void P_PlayerThink (player_t* player)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_user.c,v $
 // Revision 1.14  1998/05/12  12:47:25  phares
 // Removed OVER_UNDER code
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_segs.h,v 1.5 1998/05/03 23:02:40 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -25,14 +25,13 @@
 void R_RenderMaskedSegRange(drawseg_t *ds, int x1, int x2);
 void R_StoreWallRange(int start, int stop);
 
+fixed_t R_PointToDist2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2);
+
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_segs.h,v $
 // Revision 1.5  1998/05/03  23:02:40  killough
 // beautification, add R_StoreWallRange() decl
 //

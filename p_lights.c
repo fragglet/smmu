@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_lights.c,v 1.11 1998/05/18 09:04:41 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,7 +23,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_lights.c,v 1.11 1998/05/18 09:04:41 jim Exp $";
 
 #include "doomstat.h" //jff 5/18/98
 #include "doomdef.h"
@@ -431,10 +431,7 @@ int EV_LightTurnOnPartway(line_t *line, fixed_t level)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_lights.c,v $
 // Revision 1.11  1998/05/18  09:04:41  jim
 // fix compatibility decl
 //

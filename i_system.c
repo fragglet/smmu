@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: i_system.c,v 1.14 1998/05/03 22:33:13 killough Exp $";
 
 #include <stdio.h>
 
@@ -66,6 +66,13 @@ END_OF_FUNCTION(I_timer);
 int  I_GetTime_RealTime (void)
 {
   return realtic;
+}
+
+void I_SetTime(int newtime)
+{
+        asm("cli");
+        realtic = newtime;
+        asm("sti");
 }
 
 // killough 4/13/98: Make clock rate adjustable by scale factor
@@ -211,6 +218,7 @@ void I_Init(void)
     if (!(nomusicparm && nosfxparm))
       I_InitSound();
   }
+
 }
 
 //
@@ -223,16 +231,18 @@ static int has_exited;
 
 void I_Quit (void)
 {
-  has_exited=1;   /* Prevent infinitely recursive exits -- killough */
+  has_exited = 1;   /* Prevent infinitely recursive exits -- killough */
 
   if (demorecording)
     G_CheckDemoStatus();
-  M_SaveDefaults ();
 
+        // sf : rearrange this so the errmsg doesn't get messed up
   if (*errmsg)
     puts(errmsg);   // killough 8/8/98
   else
     I_EndDoom();
+
+  M_SaveDefaults ();
 }
 
 //
@@ -266,16 +276,13 @@ void I_EndDoom(void)
     {  // killough 8/19/98: simplify
       memcpy(0xb8000 + (byte *) __djgpp_conventional_base,
 	     W_CacheLumpNum(lump, PU_CACHE), 0xf00);
-      gotoxy(0,24);
+      gotoxy(1,24);
     }
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_system.c,v $
 // Revision 1.14  1998/05/03  22:33:13  killough
 // beautification
 //

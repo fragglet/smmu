@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_cheat.h,v 1.5 1998/05/03 22:10:56 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -44,6 +44,7 @@ extern struct cheat_s {
 } cheat[];
 
 boolean M_FindCheats(int key);
+void M_DoCheat(char *cheatname);
 
 extern int idmusnum;
 
@@ -51,10 +52,7 @@ extern int idmusnum;
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_cheat.h,v $
 // Revision 1.5  1998/05/03  22:10:56  killough
 // Cheat engine, moved from st_stuff
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: f_finale.h,v 1.3 1998/05/04 21:58:52 thldrmn Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -45,10 +45,7 @@ void F_StartFinale (void);
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: f_finale.h,v $
 // Revision 1.3  1998/05/04  21:58:52  thldrmn
 // commenting and reformatting
 //

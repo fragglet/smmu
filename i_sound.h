@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_sound.h,v 1.4 1998/05/03 22:31:58 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -37,6 +37,8 @@ extern char* sndserver_filename;
 // Init at program start...
 void I_InitSound();
 
+void I_CacheSound(sfxinfo_t *sound);
+
 // ... update sound buffer and audio device at runtime...
 void I_UpdateSound(void);
 void I_SubmitSound(void);
@@ -55,7 +57,7 @@ void I_SetChannels();
 int I_GetSfxLumpNum (sfxinfo_t *sfxinfo);
 
 // Starts a sound in a particular sound channel.
-int I_StartSound(int id, int vol, int sep, int pitch, int priority);
+int I_StartSound(sfxinfo_t *sound, int   vol, int sep, int pitch, int pri);
 
 // Stops a sound channel.
 void I_StopSound(int handle);
@@ -106,10 +108,7 @@ extern  int detect_voices; // jff 3/4/98 option to disable voice detection
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_sound.h,v $
 // Revision 1.4  1998/05/03  22:31:58  killough
 // beautification, add some external declarations
 //

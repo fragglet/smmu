@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_saveg.h,v 1.5 1998/05/03 23:10:40 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -48,10 +48,7 @@ void CheckSaveGame(size_t);              // killough
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: p_saveg.h,v $
 // Revision 1.5  1998/05/03  23:10:40  killough
 // beautification
 //

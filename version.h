@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: version.h,v 1.3 1998/04/20 13:29:58 jim Exp $
 //
 //-----------------------------------------------------------------------------
 
@@ -11,18 +11,17 @@
 #include "z_zone.h"  /* memory allocation wrappers -- killough */
 
 // DOOM version
-enum { VERSION =  203 };
+// enum { VERSION =  203 };
+extern int VERSION;     // sf: made version an int
 
 extern const char version_date[];
+extern const char version_name[];
 
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: version.h,v $
 // Revision 1.3  1998/04/20  13:29:58  jim
 // Update BOOM version, BOOM.TXT
 //

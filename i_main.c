@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_main.c,v 1.8 1998/05/15 00:34:03 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: i_main.c,v 1.8 1998/05/15 00:34:03 killough Exp $";
 
 #include "doomdef.h"
 #include "m_argv.h"
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
   allegro_init();
   Z_Init();                  // 1/18/98 killough: start up memory stuff first
   atexit(I_Quit);
-  signal(SIGSEGV, handler);
+//  signal(SIGSEGV, handler);
   signal(SIGTERM, handler);
   signal(SIGILL,  handler);
   signal(SIGFPE,  handler);
@@ -104,10 +104,7 @@ int main(int argc, char **argv)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: i_main.c,v $
 // Revision 1.8  1998/05/15  00:34:03  killough
 // Remove unnecessary crash hack
 //

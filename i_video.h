@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: i_video.h,v 1.4 1998/05/03 22:40:58 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -52,6 +52,7 @@ void I_ResetScreen(void);   // killough 10/98
 extern int use_vsync;  // killough 2/8/98: controls whether vsync is called
 extern int page_flip;  // killough 8/15/98: enables page flipping (320x200)
 extern int disk_icon;  // killough 10/98
+extern int vesamode;
 extern int hires;      // killough 11/98
 extern BITMAP *screens0_bitmap;   // killough 12/98
 
@@ -59,10 +60,7 @@ extern BITMAP *screens0_bitmap;   // killough 12/98
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: i_video.h,v $
 // Revision 1.4  1998/05/03  22:40:58  killough
 // beautification
 //

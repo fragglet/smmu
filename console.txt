@@ -1,0 +1,52 @@
+flattranslation
+textures *
+texturecolumnlump *
+texturecolumnofs *
+texturecomposite
+texturecompositesize
+texturewidthmask
+textureheight
+texturetranslation
+colormaps *
+spritewidth
+spriteoffset
+spritetopoffset
+main_tranmap
+
+console commands to add:
+
++right
++left
++forward
++back
++attack
++use
++strafe
++speed
++mlook
+help
+{ menus
+savegame       
+loadgame
+soundvolume
+}
+togglehud
+quicksave
+endgame
+togglemessages
+quickload
+quit
+togglegamma
+togglespy      - switch player view
+pause
+chatmode       't'
+automap
+change weapon 1-9
+screenshot
+
+screenshot_pcx
+mapcolor_*
+hucolor_*
+weapon_choice ?
+say
+skin

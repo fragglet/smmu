@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: f_wipe.h,v 1.3 1998/05/03 22:11:27 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -26,26 +26,18 @@
 // SCREEN WIPE PACKAGE
 //
 
-enum {
-  // simple gradual pixel change for 8-bit only
-  wipe_ColorXForm,
-  wipe_Melt,        // weird screen melt
-  wipe_NUMWIPES
-};
+void wipe_Drawer();
+void wipe_Ticker();
+void wipe_StartScreen();
 
-int wipe_ScreenWipe (int wipeno,
-                     int x, int y, int width, int height, int ticks);
-int wipe_StartScreen(int x, int y, int width, int height);
-int wipe_EndScreen  (int x, int y, int width, int height);
+extern int inwipe;
+extern int wipe_speed;
 
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: f_wipe.h,v $
 // Revision 1.3  1998/05/03  22:11:27  killough
 // beautification
 //

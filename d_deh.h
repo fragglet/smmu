@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_deh.h,v 1.5 1998/05/04 21:36:33 thldrmn Exp $
 //
 // Dehacked file support
 // New for the TeamTNT "Boom" engine
@@ -1043,14 +1043,13 @@ extern char *startup5;
 // from g_game.c, prefix for savegame name like "boomsav"
 extern char *savegamename;
 
+extern boolean deh_loaded; // sf
+
 #endif
 
 //--------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: d_deh.h,v $
 // Revision 1.5  1998/05/04  21:36:33  thldrmn
 // commenting, reformatting and savegamename change
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: p_switch.c,v 1.25 1998/06/01 14:48:19 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: p_switch.c,v 1.25 1998/06/01 14:48:19 jim Exp $";
 
 #include "doomstat.h"
 #include "w_wad.h"
@@ -1127,10 +1127,7 @@ P_UseSpecialLine
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: p_switch.c,v $
 // Revision 1.25  1998/06/01  14:48:19  jim
 // Fix switch use from back side
 //

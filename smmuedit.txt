@@ -1,0 +1,232 @@
+                            Editing for SMMU
+                            ----------------
+                                23-5-99
+
+[1-1] Overview
+--------------
+
+SMMU is based upon the MBF sources, and therefore contains support
+for all standard BOOM and MBF linedef and sector types, 'dehacked' lumps,
+etc. Basically anything they can do, SMMU can do.
+
+SMMU also contains further support for a number of extra linedef
+types which will only work with it.
+
+[1-2] The level header
+----------------------
+
+By 'the level header', I mean the wad resource which starts a level.
+For example, the level headers for all the original doom levels were
+all in the format "mapxy" or "exmy".
+
+In SMMU, the level header can take any name, for example, the SMMU
+'start map' has the name "start". Levels with nonstandard names can
+be accessed from the console using the "map" command: eg "map start".
+
+[1-3] The level info lump
+-------------------------
+
+In original doom, the level header resource was empty: it was always
+0 bytes long. This is not to say that it _had_ to be 0 bytes long:
+any data in the level header was simply ignored.
+
+In SMMU, the level header is used to hold information about the level.
+The format is a simple ascii text file, similar in style to the '.ini'
+files which are found in a typical windows directory.
+
+There are a number of sections which hold different types of information,
+each begins with a different section header:
+        - [level info] : holds information about the level: the name,
+                par time, etc. See section [2].
+        - [console commands] : anything put in this section will be
+                considered a console command and executed when the
+                level is loaded.
+        - [level commands] : Holds more console commands which are to be
+                executed upon the activating of certain types of linedef.
+                See section [3].
+        - [finale text] : Holds text to be displayed after completing the
+                level. As used in original doom to show how the story
+                develops.
+
+Comments may begin with a '#', ';' or '//'
+
+[2-1] The level info section
+----------------------------
+The level info section described in section [1-3] contains certain 
+information about the level. This is in the format:
+        variable = value
+The '=' equals sign is not actually neccesary: any '=' sign is simply
+ignored.
+
+Legal variables are:
+
+Variable name		Description
+--------------------------------------------------
+levelpic		Name of a graphic resource containing the level name
+			to be displayed in intermission screens
+levelname		The name of the level
+partime			The par time (time it should take to finish the
+			level) in seconds
+music			Name of the music resource to be played in the level
+			(eg. 'fragme' will play 'd_fragme')
+skyname			Name of a resource containing the sky for the
+			'f_sky1' flat
+creator			Your name (user can find the value of this by
+			typing 'creator' at the console')
+interpic		graphic to be displayed in the intermission screen
+nextlevel		The name of the resource starting the next level
+			(eg. 'nextlevel=map01' will take the player to map01
+			after finishing this level)
+gravity			Gravity in the level as a percentage of normal
+inter-backdrop		For intermission 'story' text screens, this allows
+			you to specify a 320x200 resource or flat to be
+			displayed in the background
+
+_example_ A typical level info section
+
+[level info]
+levelname = chadders' lair
+partime = 200
+music = d_cheese
+creator = Edwin Chadwick 'chadders'
+nextlevel = chad2
+
+This sets a number of settings, but uses the default interpic and sky.
+The automap shows the level name 'chadders lair', and the par time is
+200 seconds (3:20). The music 'd_cheese' is used, and when the player
+exits the level, play advances to the next map, 'chad2'.
+
+[3-1] The console commands section
+----------------------------------
+Four new linedef types are available in SMMU:
+
+linedef #       type                    direction       works in netgame
+---------------------------------------------------------------------
+2048            WR console command      2way            Yes
+2049            WR console command      1way            Yes
+2050            WR console command      2way            No
+2051            WR console command      1way            No
+
+The sector tag of the linedef is used to link to an entry in the
+[console commands] section of the level information lump. The entries
+have the format:
+
+startscript <n>
+        <command>
+        ...
+        <command>
+endscript
+
+Example [console commands] section:
+
+///////////////////////////////////////////////
+[console commands]
+
+startscript 1
+        centremsg "this area is closed off!"
+        kill
+endscript
+
+startscript 2
+        playermsg "ooer, a cyberdemon!"
+        spawn 150 -390 16
+endscript
+
+///////////////////////////////////////////////
+
+[3-2] Useful level-editing commands
+-----------------------------------
+
+Command                 Description
+------------------------------------------------------------------------
+centremsg               Display a message in the centre of the screen.
+                        Note the british spelling :). A 'centermsg'
+                        alias is also available.
+playermsg               Display a message in the usual heads up display,
+                        rather than in the middle of the screen.
+kill                    Kill the player
+spawn                   Spawn a thing, arguments:
+                        spawn x y type [angle]
+                        x, y: position in level
+                        type: thing number (same as for level editing)
+                        angle: optional, angle for thing to face
+linetrigger             activate a line special, just as though the marine
+                        had walked across/pressed on a line. Arguments:
+                        linetrigger trignum [tag]
+                        trignum: the trigger number, the same as used in
+                                 level editing
+                        tag: optional, the sector tag
+delay                   wait for a few tics. There are 35 tics per second.
+                        Arguments:
+                                delay [tics]
+                        tics - optional, the number of tics. If this is not
+                               specified, the game waits 1 tic.
+t_dump                  t_dump <scriptnum>. Dump a level script. Useful in
+                        developing levels.
+t_run                   t_run <scriptnum>. Run a level script.
+
+NB. You may experience a slight delay for certain commands when playing
+    network games.
+
+[3-3] FraggleScript
+-------------------
+The next version of SMMU will hopefully include a C-like scripting
+language which I have named 'FraggleScript'. It is already in quite
+advanced stages but I hope to have it to a functional level by the next
+version. This should replace the rather kludgy system of executing
+console commands that the current scripting uses.
+
+[4] Thing options
+-----------------
+
+[4-1] Directions
+----------------
+In original doom, you could place things in levels, but their directions
+were rounded down to the nearest 45 degrees. However, in SMMU you can
+specify any angle right down to the nearest degree.
+
+This does not require any kind of change in wad format. The original
+system allowed you to specify angles that were not 45 degree 'aligned'.
+However these were simply rounded down. SMMU has greater accuracy so you
+can specify any angle.
+
+[4-2] Intermission cameras
+--------------------------
+SMMU allows you to change the background in intermission screens but I
+have also devised a more advanced system that allows you to see a view of
+the after you have left it. If you place a thing of type 5003 in the level,
+when you get to the intermission screen you will see a view from that
+point rather than the standard 'still' background.
+
+Placing more than one camera in a level works, also. If you make more
+than one camera, one of them is simply chosen at random.
+
+[5] Other
+---------
+
+[5-1] Swirly flats
+------------------
+The console variable 'r_swirl', when set to 1, will stop all animated flats
+from animating and instead give them a 'swirling' effect similar to the
+quake water effect. However, this affects all flats and for some animated
+flats it doesn't look right.
+
+You can specify when to use the 'swirl' effect on individual animated flats
+using the boom 'animated' resource. You can use the SWANTBLS.EXE program to
+create your own set of animated flats. If the delay between flat frames is
+set greater than 65535, that flat will be given the swirl effect.
+
+[5-2] Sector Flags
+------------------
+Boom once promised two extra sector flags, if you look in boomref.txt:
+
+  Bits 10 and 11 are not implemented yet, but are reserved for use in
+  sound control. Bit 10 will suppress all sounds within the sector,
+  while bit 11 will disable any sounds due to floor or ceiling motion
+  by the sector.
+
+Anyway, looking at some levels, I found particularly annoying the way that
+3-D bridges 'clunked' when you walked over them. So I decided to implement
+the sector flags which the boom team planned to implement. You may now use
+bits 10 and 11 in your wads as you please.
+

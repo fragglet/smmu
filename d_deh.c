@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $
 //
 // Dehacked file support
 // New for the TeamTNT "Boom" engine
@@ -11,7 +11,7 @@
 //--------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: d_deh.c,v 1.20 1998/06/01 22:30:38 thldrmn Exp $";
 
 // killough 5/2/98: fixed headers, removed rendunant external declarations:
 #include "doomdef.h"
@@ -74,6 +74,7 @@ int dehfgetc(DEHFILE *fp)
 
 // variables used in other routines
 boolean deh_pars = FALSE; // in wi_stuff to allow pars in modified games
+boolean deh_loaded = false; // sf
 
 // #include "d_deh.h" -- we don't do that here but we declare the
 // variables.  This externalizes everything that there is a string
@@ -1274,6 +1275,7 @@ extern void A_Scratch();         // killough 11/98
 extern void A_PlaySound();       // killough 11/98
 extern void A_RandomJump();      // killough 11/98
 extern void A_LineEffect();      // killough 11/98
+extern void A_Nailbomb();
 
 typedef struct {
   actionf_t cptr;  // actual pointer to the subroutine
@@ -1366,6 +1368,7 @@ deh_bexptr deh_bexptrs[] =
   {A_PlaySound,      "A_PlaySound"},      // killough 11/98
   {A_RandomJump,     "A_RandomJump"},     // killough 11/98
   {A_LineEffect,     "A_LineEffect"},     // killough 11/98
+  {A_Nailbomb,       "A_Nailbomb"},      //sf
 
   // This NULL entry must be the last in the list
   {NULL,             "A_NULL"},  // Ty 05/16/98
@@ -1424,7 +1427,7 @@ void ProcessDehFile(char *filename, char *outfilename, int lumpnum)
       filename = "(WAD)";
     }
 
-  printf("Loading DEH file %s\n",filename);
+//  printf("Loading DEH file %s\n",filename);
   if (fileout) fprintf(fileout,"\nLoading DEH file %s\n\n",filename);
 
   {
@@ -1432,6 +1435,8 @@ void ProcessDehFile(char *filename, char *outfilename, int lumpnum)
     for (; i<NUMSTATES; i++)  // remember what they start as for deh xref
       deh_codeptr[i] = states[i].action;
   }
+
+  deh_loaded = true;
 
   // loop until end of file
 
@@ -1894,7 +1899,8 @@ void deh_procSounds(DEHFILE *fpin, FILE* fpout, char *line)
                       S_sfx[indexnum].usefulness = value;
                     else
                       if (!strcasecmp(key,deh_sfxinfo[8]))  // Neg. One 2
-                        S_sfx[indexnum].lumpnum = value;
+                //sf: lumpnum no longer used
+;//                        S_sfx[indexnum].lumpnum = value;
                       else
                         if (fpout) fprintf(fpout,
                                            "Invalid sound string index for '%s'\n",key);
@@ -2525,6 +2531,9 @@ boolean deh_procStringSub(char *key, char *lookfor, char *newstring, FILE *fpout
         !stricmp(*deh_strlookup[i].ppstr,lookfor) :
         !stricmp(deh_strlookup[i].lookup,key);
 
+     if (fpout) fprintf(fpout,
+                     "sf: %s\n",*deh_strlookup[i].ppstr);   
+
       if (found)
         {
           *deh_strlookup[i].ppstr = strdup(newstring); // orphan originalstring
@@ -2703,10 +2712,7 @@ boolean deh_GetData(char *s, char *k, long *l, char **strval, FILE *fpout)
 
 //---------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: d_deh.c,v $
 // Revision 1.20  1998/06/01  22:30:38  thldrmn
 // fix .acv pointer for new GCC version
 //

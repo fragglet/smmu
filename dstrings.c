@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -14,30 +14,35 @@
 // FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
 // for more details.
 //
+// $Log:$
 //
 // DESCRIPTION:
-//   Globally defined strings.
+//	Globally defined strings.
 // 
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 
+
+#ifdef __GNUG__
+#pragma implementation "dstrings.h"
+#endif
 #include "dstrings.h"
 
-// killough 1/18/98: remove hardcoded limit, add const:
-const char *const endmsg[]=
+
+
+char* endmsg[/*NUM_QUITMESSAGES+1*/]=
 {
   // DOOM1
   QUITMSG,
-
   "please don't leave, there's more\ndemons to toast!",
   "let's beat it -- this is turning\ninto a bloodbath!",
   "i wouldn't leave if i were you.\ndos is much worse.",
   "you're trying to say you like dos\nbetter than me, right?",
   "don't leave yet -- there's a\ndemon around that corner!",
   "ya know, next time you come in here\ni'm gonna toast ya.",
-  "go ahead and leave. see if i care.",  // 1/15/98 killough
+  "go ahead and leave. see if i care.\n",
 
   // QuitDOOM II messages
   "you want to quit?\nthen, thou hast lost an eighth!",
@@ -46,50 +51,23 @@ const char *const endmsg[]=
   "if i were your boss, i'd \n deathmatch ya in a minute!",
   "look, bud. you leave now\nand you forfeit your body count!",
   "just leave. when you come\nback, i'll be waiting with a bat.",
-  "you're lucky i don't smack\nyou for thinking about leaving.",  // 1/15/98 killough
+  "you're lucky i don't smack\nyou for thinking about leaving.",
 
   // FinalDOOM?
-
-// Note that these ending "bad taste" strings were commented out
-// in the original id code as the #else case of an #if 1
-// Obviously they were internal playthings before the release of
-// DOOM2 and were not intended for public use.
-//
-// Following messages commented out for now. Bad taste.   // phares
-
-//  "fuck you, pussy!\nget the fuck out!",
-//  "you quit and i'll jizz\nin your cystholes!",
-//  "if you leave, i'll make\nthe lord drink my jizz.",
-//  "hey, ron! can we say\n'fuck' in the game?",
-//  "i'd leave: this is just\nmore monsters and levels.\nwhat a load.",
-//  "suck it down, asshole!\nyou're a fucking wimp!",
-//  "don't quit now! we're \nstill spending your money!",
+  "User survey:\npress y if you are a frad",
+  "isn't this the greatest doom port ever?\nPress y to agree",
+  "press y now and\njoin the cacodemon\nrights movement",
+  "enough of the 'jizz' already..",
+  "press y if you thought final\ndoom was good value for money",
+  "Don't leave yet, remember:\n\"Practice makes perfect\"..",
+  "You may only leave if you\nvisit my page:\nhttp://fraggle.tsx.org/",
 
   // Internal debug. Different style, too.
-  "THIS IS NO MESSAGE!\nPage intentionally left blank.",  // 1/15/98 killough
+  "What? How can you see this message?\nGo away."
+
 };
 
-// killough 1/18/98: remove hardcoded limit and replace with var (silly hack):
-const size_t NUM_QUITMESSAGES = sizeof(endmsg)/sizeof(*endmsg) - 1;
 
   
-//----------------------------------------------------------------------------
-//
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
-// Revision 1.5  1998/05/04  21:34:24  thldrmn
-// commenting and reformatting
-//
-// Revision 1.3  1998/01/27  21:11:17  phares
-// Commented out last section of end msgs.
-//
-// Revision 1.2  1998/01/26  19:23:13  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:03:07  rand
-// Lee's Jan 19 sources
-//
-//
-//----------------------------------------------------------------------------
+
+

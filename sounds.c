@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: sounds.c,v 1.3 1998/05/03 22:44:25 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,12 +22,13 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: sounds.c,v 1.3 1998/05/03 22:44:25 killough Exp $";
 
 // killough 5/3/98: reformatted
 
 #include "doomtype.h"
 #include "sounds.h"
+#include "p_skin.h"
 
 //
 // Information about all the music
@@ -102,6 +103,7 @@ musicinfo_t S_music[] = {
   { "read_m", 0 },
   { "dm2ttl", 0 },
   { "dm2int", 0 },
+  { "newmus", 0 },
 };
 
 //
@@ -137,16 +139,16 @@ sfxinfo_t S_sfx[] = {
   { "stnmov", sg_none,  119, 0, -1, -1, 0 },
   { "swtchn", sg_none,   78, 0, -1, -1, 0 },
   { "swtchx", sg_none,   78, 0, -1, -1, 0 },
-  { "plpain", sg_none,   96, 0, -1, -1, 0 },
+  { "plpain", sg_none,   96, 0, -1, -1, 0, sk_plpain+1 },
   { "dmpain", sg_none,   96, 0, -1, -1, 0 },
   { "popain", sg_none,   96, 0, -1, -1, 0 },
   { "vipain", sg_none,   96, 0, -1, -1, 0 },
   { "mnpain", sg_none,   96, 0, -1, -1, 0 },
   { "pepain", sg_none,   96, 0, -1, -1, 0 },
-  { "slop",   sg_none,   78, 0, -1, -1, 0 },
+  { "slop",   sg_none,   78, 0, -1, -1, 0, sk_slop+1 },
   { "itemup", sg_itemup, 78, 0, -1, -1, 0 },
   { "wpnup",  sg_wpnup,  78, 0, -1, -1, 0 },
-  { "oof",    sg_oof,    96, 0, -1, -1, 0 },
+  { "oof",    sg_oof,    96, 0, -1, -1, 0, sk_oof+1 },
   { "telept", sg_none,   32, 0, -1, -1, 0 },
   { "posit1", sg_none,   98, 0, -1, -1, 0 },
   { "posit2", sg_none,   98, 0, -1, -1, 0 },
@@ -169,8 +171,8 @@ sfxinfo_t S_sfx[] = {
   { "vilatk", sg_none,   70, 0, -1, -1, 0 },
   { "claw",   sg_none,   70, 0, -1, -1, 0 },
   { "skeswg", sg_none,   70, 0, -1, -1, 0 },
-  { "pldeth", sg_none,   32, 0, -1, -1, 0 },
-  { "pdiehi", sg_none,   32, 0, -1, -1, 0 },
+  { "pldeth", sg_none,   32, 0, -1, -1, 0, sk_pldeth+1 },
+  { "pdiehi", sg_none,   32, 0, -1, -1, 0, sk_pdiehi+1 },
   { "podth1", sg_none,   70, 0, -1, -1, 0 },
   { "podth2", sg_none,   70, 0, -1, -1, 0 },
   { "podth3", sg_none,   70, 0, -1, -1, 0 },
@@ -193,9 +195,9 @@ sfxinfo_t S_sfx[] = {
   { "bspact", sg_none,  100, 0, -1, -1, 0 },
   { "bspwlk", sg_none,  100, 0, -1, -1, 0 },
   { "vilact", sg_none,  100, 0, -1, -1, 0 },
-  { "noway",  sg_oof,    78, 0, -1, -1, 0 },
+  { "noway",  sg_oof,    78, 0, -1, -1, 0, sk_oof+1  },
   { "barexp", sg_none,   60, 0, -1, -1, 0 },
-  { "punch",  sg_none,   64, 0, -1, -1, 0 },
+  { "punch",  sg_none,   64, 0, -1, -1, 0, sk_punch+1 },
   { "hoof",   sg_none,   70, 0, -1, -1, 0 },
   { "metal",  sg_none,   70, 0, -1, -1, 0 },
   { "chgun",  sg_none,   64, &S_sfx[sfx_pistol], 150, 0, 0 },
@@ -231,13 +233,12 @@ sfxinfo_t S_sfx[] = {
   { "dgpain", sg_none,   96, 0, -1, -1, 0 },
 #endif
 };
+sfxinfo_t chgun=
+  { "chgun",  sg_none,   64, 0, -1, -1, 0 };
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: sounds.c,v $
 // Revision 1.3  1998/05/03  22:44:25  killough
 // beautification
 //

@@ -1,110 +1,46 @@
-// Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
-//
-// $Id$
-//
-// Copyright (C) 1993-1996 by id Software, Inc.
-//
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
-//
-// DESCRIPTION:  Head up display
-//
-//-----------------------------------------------------------------------------
-
 #ifndef __HU_STUFF_H__
 #define __HU_STUFF_H__
 
 #include "d_event.h"
+#include "v_video.h"
 
-//
-// Globally visible constants.
-//
-#define HU_FONTSTART    '!'     /* the first font characters */
-#define HU_FONTEND      (0x7f) /*jff 2/16/98 '_' the last font characters */
+#define MAXHUDMESSAGES 16
 
-// Calculate # of glyphs in font.
-#define HU_FONTSIZE     (HU_FONTEND - HU_FONTSTART + 1) 
+#define MAXWIDGETS 16
 
-#define HU_BROADCAST    5
+typedef struct textwidget_s textwidget_t;
 
-//#define HU_MSGREFRESH   KEYD_ENTER                                // phares
-#define HU_MSGX         0
-#define HU_MSGY         0
-#define HU_MSGWIDTH     64      /* in characters */
-#define HU_MSGHEIGHT    1       /* in lines */
+struct textwidget_s
+{
+        int x, y;       // co-ords on screen
+        char *message;
+        void (*handler)();      // controller function
+        int cleartic;   // gametic in which to clear the widget (0=never)
+};
 
-#define HU_MSGTIMEOUT   (4*TICRATE)
+extern int show_vpo;
+extern int obituaries;
+extern int death_colour;
 
-//
-// Heads up text
-//
-void HU_Init(void);
-void HU_Start(void);
+void HU_Init();
+void HU_Drawer();
+void HU_Ticker();
+boolean HU_Responder(event_t *ev);
+void HU_NewLevel();
 
-boolean HU_Responder(event_t* ev);
+void HU_Start();
+void HU_End();
 
-void HU_Ticker(void);
-void HU_Drawer(void);
-char HU_dequeueChatChar(void);
-void HU_Erase(void);
+void HU_WriteText(unsigned char *s, int x, int y);
+void HU_playermsg(char *s);
+void HU_centremsg();
+void HU_Erase();
 
-// killough 5/2/98: moved from m_misc.c:
-
-//jff 2/16/98 hud supported automap colors added
-extern int hudcolor_titl;   // color range of automap level title
-extern int hudcolor_xyco;   // color range of new coords on automap
-//jff 2/16/98 hud text colors, controls added
-extern int hudcolor_mesg;   // color range of scrolling messages
-extern int hudcolor_chat;   // color range of chat lines
-//jff 2/26/98 hud message list color and background enable
-extern int hudcolor_list;   // color of list of past messages
-extern int hud_list_bgon;   // solid window background for list of messages
-extern int hud_msg_lines;   // number of message lines in window up to 16
-extern int hud_msg_scrollup;// killough 11/98: whether message list scrolls up
-extern int hud_msg_timed;   // killough 11/98: whether message list is timed
-extern int message_list;    // killough 11/98: whether message list is active
-extern int hud_msg_timer;   // killough 11/98: timer used for review messages
-extern int message_timer;   // killough 11/98: timer used for normal messages
-extern int chat_msg_timer;  // killough 11/98: timer used for chat messages
-extern int hud_distributed; // whether hud is all in lower left or distributed
-//jff 2/23/98 hud is currently displayed
-extern int hud_displayed;   // hud is displayed
-//jff 2/18/98 hud/status control
-extern int hud_active;      // hud mode 0=off, 1=small, 2=full
-extern int hud_nosecrets;   // status does not list secrets/items/kills
+#define CROSSHAIRS 3
+extern int crosshairnum;       // 0= none
+void HU_CrossHairDraw();
+void HU_CrossHairInit();
+void HU_CrossHairTick();
+void HU_CrossHairConsole();
 
 #endif
-
-//----------------------------------------------------------------------------
-//
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
-// Revision 1.6  1998/05/10  19:03:50  jim
-// formatted/documented hu_stuff
-//
-// Revision 1.5  1998/05/03  22:25:03  killough
-// add external declarations for hud options
-//
-// Revision 1.4  1998/02/18  00:59:04  jim
-// Addition of HUD
-//
-// Revision 1.3  1998/02/15  02:48:12  phares
-// User-defined keys
-//
-// Revision 1.2  1998/01/26  19:26:54  phares
-// First rev with no ^Ms
-//
-// Revision 1.1.1.1  1998/01/19  14:02:56  rand
-// Lee's Jan 19 sources
-//
-//
-//----------------------------------------------------------------------------

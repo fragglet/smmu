@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -23,7 +23,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: st_stuff.c,v 1.46 1998/05/06 16:05:40 jim Exp $";
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -62,20 +62,6 @@ rcsid[] = "$Id$";
 // Should be set to patch width
 //  for tall numbers later on
 #define ST_TALLNUMWIDTH         (tallnum[0]->width)
-
-// Number of status faces.
-#define ST_NUMPAINFACES         5
-#define ST_NUMSTRAIGHTFACES     3
-#define ST_NUMTURNFACES         2
-#define ST_NUMSPECIALFACES      3
-
-#define ST_FACESTRIDE \
-          (ST_NUMSTRAIGHTFACES+ST_NUMTURNFACES+ST_NUMSPECIALFACES)
-
-#define ST_NUMEXTRAFACES        2
-
-#define ST_NUMFACES \
-          (ST_FACESTRIDE*ST_NUMPAINFACES+ST_NUMEXTRAFACES)
 
 #define ST_TURNOFFSET           (ST_NUMSTRAIGHTFACES)
 #define ST_OUCHOFFSET           (ST_TURNOFFSET + ST_NUMTURNFACES)
@@ -236,13 +222,14 @@ static patch_t *shortnum[10];
 
 // 3 key-cards, 3 skulls, 3 card/skull combos
 // jff 2/24/98 extend number of patches by three skull/card combos
-static patch_t *keys[NUMCARDS+3];
+// sf: unstaticed for overlay 
+patch_t *keys[NUMCARDS+3];
 
 // face status patches
-static patch_t *faces[ST_NUMFACES];
+patch_t *default_faces[ST_NUMFACES];
 
 // face background
-static patch_t *faceback[MAXPLAYERS]; // killough 3/7/98: make array
+static patch_t *faceback; // sf: change to one and colormap
 
  // main bar right
 static patch_t *armsbg;
@@ -312,6 +299,7 @@ static int      keyboxes[3];
 static int      st_randomnumber;
 
 extern char     *mapnames[];
+extern byte     *translationtables;
 
 //
 // STATUS BAR CODE
@@ -326,10 +314,18 @@ void ST_refreshBackground(void)
       V_DrawPatch(ST_X, 0, BG, sbar);
 
       // killough 3/7/98: make face background change with displayplayer
-      if (netgame)
-        V_DrawPatch(ST_FX, 0, BG, faceback[displayplayer]);
+      if (netgame)                      //sf: new colours
+        V_DrawPatchTranslated(ST_FX, 0, BG, faceback,
+                        players[displayplayer].colormap ?
+                (char*)translationtables + 256*(players[displayplayer].colormap-1) :
+                        cr_red, -1);
+
 
       V_CopyRect(ST_X, 0, BG, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y, FG);
+
+          // faces
+      STlib_initMultIcon(&w_faces,  ST_FACESX, ST_FACESY, //default_faces,
+       players[displayplayer].skin->faces, &st_faceindex, &st_statusbaron);
     }
 }
 
@@ -675,6 +671,8 @@ void ST_doPaletteStuff(void)
       else
         palette = 0;
 
+  if (chasecam_active || walkcam_active) palette = 0;     //sf
+
   if (palette != st_palette)
     {
       st_palette = palette;
@@ -769,6 +767,11 @@ void ST_Drawer(boolean fullscreen, boolean refresh)
 
   ST_doPaletteStuff();  // Do red-/gold-shifts from damage/items
 
+          // sf: draw nothing in fullscreen
+          // tiny bit faster and also removes the problem of status bar
+          // percent '%' signs being drawn in fullscreen
+  if(fullscreen && !automapactive) return;
+
   if (st_firsttime)
     ST_doRefresh();     // If just after ST_Start(), refresh all
   else
@@ -777,7 +780,7 @@ void ST_Drawer(boolean fullscreen, boolean refresh)
 
 void ST_loadGraphics(void)
 {
-  int  i, facenum;
+  int  i;
   char namebuf[9];
 
   // Load the numbers, tall and short
@@ -818,14 +821,18 @@ void ST_loadGraphics(void)
   // face backgrounds for different color players
   // killough 3/7/98: add better support for spy mode by loading all
   // player face backgrounds and using displayplayer to choose them:
-  for (i=0; i<MAXPLAYERS; i++)
-    {
-      sprintf(namebuf, "STFB%d", i);
-      faceback[i] = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
-    }
+  faceback = (patch_t *) W_CacheLumpName("STFB0", PU_STATIC);
 
   // status bar background bits
   sbar = (patch_t *) W_CacheLumpName("STBAR", PU_STATIC);
+
+  ST_CacheFaces(default_faces, "STF");
+}
+
+void ST_CacheFaces(patch_t **faces, char *facename)
+{
+  int i, facenum;
+  char namebuf[9];
 
   // face states
   facenum = 0;
@@ -834,22 +841,24 @@ void ST_loadGraphics(void)
       int j;
       for (j=0;j<ST_NUMSTRAIGHTFACES;j++)
         {
-          sprintf(namebuf, "STFST%d%d", i, j);
+          sprintf(namebuf, "%sST%d%d",facename, i, j);
           faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
         }
-      sprintf(namebuf, "STFTR%d0", i);        // turn right
+      sprintf(namebuf, "%sTR%d0", facename, i);        // turn right
       faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-      sprintf(namebuf, "STFTL%d0", i);        // turn left
+      sprintf(namebuf, "%sTL%d0", facename, i);        // turn left
       faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-      sprintf(namebuf, "STFOUCH%d", i);       // ouch!
+      sprintf(namebuf, "%sOUCH%d", facename, i);       // ouch!
       faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-      sprintf(namebuf, "STFEVL%d", i);        // evil grin ;)
+      sprintf(namebuf, "%sEVL%d", facename, i);        // evil grin ;)
       faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
-      sprintf(namebuf, "STFKILL%d", i);       // pissed off
+      sprintf(namebuf, "%sKILL%d", facename, i);       // pissed off
       faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
     }
-  faces[facenum++] = W_CacheLumpName("STFGOD0", PU_STATIC);
-  faces[facenum++] = W_CacheLumpName("STFDEAD0", PU_STATIC);
+  sprintf(namebuf, "%sGOD0",facename);
+  faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
+  sprintf(namebuf, "%sDEAD0",facename);
+  faces[facenum++] = W_CacheLumpName(namebuf, PU_STATIC);
 }
 
 void ST_loadData(void)
@@ -887,10 +896,10 @@ void ST_unloadGraphics(void)
 
   // killough 3/7/98: free each face background color
   for (i=0;i<MAXPLAYERS;i++)
-    Z_ChangeTag(faceback[i], PU_CACHE);
+    Z_ChangeTag(faceback, PU_CACHE);
 
   for (i=0;i<ST_NUMFACES;i++)
-    Z_ChangeTag(faces[i], PU_CACHE);
+    Z_ChangeTag(default_faces[i], PU_CACHE);
 
   // Note: nobody ain't seen no unloading of stminus yet. Dude.
 }
@@ -985,7 +994,7 @@ void ST_createWidgets(void)
   STlib_initMultIcon(&w_faces,
                      ST_FACESX,
                      ST_FACESY,
-                     faces,
+                     default_faces,
                      &st_faceindex,
                      &st_statusbaron);
 
@@ -1115,10 +1124,7 @@ void ST_Init(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: st_stuff.c,v $
 // Revision 1.46  1998/05/06  16:05:40  jim
 // formatting and documenting
 //

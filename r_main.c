@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,7 +22,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: r_main.c,v 1.13 1998/05/07 00:47:52 killough Exp $";
 
 #include "doomstat.h"
 #include "r_main.h"
@@ -31,6 +31,7 @@ static const char rcsid[] = "$Id$";
 #include "r_bsp.h"
 #include "r_draw.h"
 #include "m_bbox.h"
+#include "p_chase.h"
 #include "r_sky.h"
 #include "v_video.h"
 
@@ -41,6 +42,7 @@ static const char rcsid[] = "$Id$";
 // had Left/Mid/Right viewing. +/-ANG90 offsets were placed here on each
 // node, by d_net.c, to set up a L/M/R session.
 
+int viewdir;    // 0 = forward, 1 = left, 2 = right
 int viewangleoffset;
 int validcount = 1;         // increment every time a check is made
 lighttable_t *fixedcolormap;
@@ -52,6 +54,11 @@ angle_t  viewangle;
 fixed_t  viewcos, viewsin;
 player_t *viewplayer;
 extern lighttable_t **walllights;
+boolean  showpsprites=1; //sf
+camera_t *viewcamera;
+
+void R_HOMdrawer();
+
 
 //
 // precalculated math tables
@@ -195,10 +202,16 @@ angle_t R_PointToAngle2(fixed_t viewx, fixed_t viewy, fixed_t x, fixed_t y)
 
 fixed_t R_ScaleFromGlobalAngle(angle_t visangle)
 {
-  int     anglea = ANG90 + (visangle-viewangle);
-  int     angleb = ANG90 + (visangle-rw_normalangle);
-  int     den = FixedMul(rw_distance, finesine[anglea>>ANGLETOFINESHIFT]);
-  fixed_t num = FixedMul(projection, finesine[angleb>>ANGLETOFINESHIFT]);
+  int     anglea;
+  int     angleb;
+  int     den;
+  fixed_t num;
+
+  anglea = ANG90 + (visangle-viewangle);
+  angleb = ANG90 + (visangle-rw_normalangle);
+  den = FixedMul(rw_distance, finesine[anglea>>ANGLETOFINESHIFT]);
+  num = FixedMul(projection, finesine[angleb>>ANGLETOFINESHIFT]);
+
   return den > num>>16 ? (num = FixedDiv(num, den)) > 64*FRACUNIT ?
     64*FRACUNIT : num < 256 ? 256 : num : 64*FRACUNIT;
 }
@@ -361,14 +374,20 @@ void R_ExecuteSetViewSize (void)
     
   // thing clipping
   for (i=0 ; i<viewwidth ; i++)
+  {
     screenheightarray[i] = viewheight;
-    
+  }
+
   // planes
-  for (i=0 ; i<viewheight ; i++)
-    {   // killough 5/2/98: reformatted
-      fixed_t dy = abs(((i-viewheight/2)<<FRACBITS)+FRACUNIT/2);
-      yslope[i] = FixedDiv(viewwidth*(FRACUNIT/2), dy);
+  for (i=0 ; i<viewheight*2 ; i++)
+    {
+        fixed_t dy;
+
+//      fixed_t dy = abs(((i-viewheight/2)<<FRACBITS)+FRACUNIT/2);
+        dy = abs(((i-viewheight)<<FRACBITS)+FRACUNIT/2);
+      origyslope[i] = FixedDiv(viewwidth*(FRACUNIT/2), dy);
     }
+   yslope=origyslope+(viewheight/2);
         
   for (i=0 ; i<viewwidth ; i++)
     {
@@ -409,16 +428,11 @@ extern int screenblocks;
 void R_Init (void)
 {
   R_InitData();
-  puts("\nR_InitData");
   R_SetViewSize(screenblocks);
   R_InitPlanes();
-  puts("R_InitPlanes");
   R_InitLightTables();
-  puts("R_InitLightTables");
   R_InitSkyMap();
-  puts("R_InitSkyMap");
   R_InitTranslationTables();
-  puts("R_InitTranslationsTables");
 }
 
 //
@@ -434,41 +448,57 @@ subsector_t *R_PointInSubsector(fixed_t x, fixed_t y)
   return &subsectors[nodenum & ~NF_SUBSECTOR];
 }
 
+int autodetect_hom = 0;       // killough 2/7/98: HOM autodetection flag
+long updownangle = 0;
+
 //
 // R_SetupFrame
 //
 
-void R_SetupFrame (player_t *player)
+void R_SetupFrame (player_t *player, camera_t *camera)
 {               
-  int i, cm;
-    
-  viewplayer = player;
-  viewx = player->mo->x;
-  viewy = player->mo->y;
-  viewangle = player->mo->angle + viewangleoffset;
-  extralight = player->extralight;
+  int i;
+  mobj_t *mobj;
 
-  viewz = player->viewz;
-    
+  viewplayer = player;
+  mobj = player->mo;
+
+  viewcamera = camera;
+  if(!camera)
+  {
+          viewx = mobj->x;
+          viewy = mobj->y;
+          viewz = player->viewz;
+          viewangle = mobj->angle;// + viewangleoffset;
+                 // y shearing
+          updownangle = player->updownangle;
+  }
+  else
+  {
+          viewx = camera->x;
+          viewy = camera->y;
+          viewz = camera->z;
+          viewangle = camera->angle;
+          updownangle = camera->updownangle;
+  }
+
+  extralight = player->extralight;
   viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
   viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
 
-  // killough 3/20/98, 4/4/98: select colormap based on player status
+        // y shearing
+                // check for limits
+  updownangle = updownangle >  50 ?  50 :
+                updownangle < -50 ? -50 : updownangle;
+        // scale to screen size
+  updownangle = (updownangle * viewheight) / 100;
 
-  if (player->mo->subsector->sector->heightsec != -1)
-    {
-      const sector_t *s = player->mo->subsector->sector->heightsec + sectors;
-      cm = viewz < s->floorheight ? s->bottommap : viewz > s->ceilingheight ?
-        s->topmap : s->midmap;
-      if (cm < 0 || cm > numcolormaps)
-        cm = 0;
-    }
-  else
-    cm = 0;
+  centery = (viewheight>>1) + updownangle;
+  yslope = origyslope + (viewheight>>1) - updownangle;
+  centeryfrac = (centery<<FRACBITS);
 
-  fullcolormap = colormaps[cm];
-  zlight = c_zlight[cm];
-  scalelight = c_scalelight[cm];
+        // use drawcolumn
+  colfunc = R_DrawColumn; //sf
 
   if (player->fixedcolormap)
     {
@@ -489,14 +519,82 @@ void R_SetupFrame (player_t *player)
   validcount++;
 }
 
-int autodetect_hom = 0;       // killough 2/7/98: HOM autodetection flag
+//
+
+typedef enum
+{
+        area_normal,
+        area_below,
+        area_above
+} area_t;
+
+void R_SectorColormap(sector_t *s)
+{
+  int cm;
+  // killough 3/20/98, 4/4/98: select colormap based on player status
+
+  if(s->heightsec == -1) cm = 0;
+  else
+  {
+        sector_t *viewsector;
+        area_t viewarea;
+        viewsector = R_PointInSubsector(viewx,viewy)->sector;
+
+                // find which area the viewpoint (player) is in
+        if(viewsector->heightsec == -1) viewarea = area_normal;
+        else
+           viewarea =
+           viewz < sectors[viewsector->heightsec].floorheight ? area_below :
+           viewz > sectors[viewsector->heightsec].ceilingheight ? area_above :
+           area_normal;
+
+//        dprintf("%i",viewarea);
+
+      s = s->heightsec + sectors;
+
+        cm = viewarea==area_normal ? s->midmap :
+             viewarea==area_above ? s->topmap : s->bottommap;
+  }
+
+  fullcolormap = colormaps[cm];
+  zlight = c_zlight[cm];
+  scalelight = c_scalelight[cm];
+
+}
+
+/*
+  if (s->heightsec != -1)
+    {
+      s = s->heightsec + sectors;
+      cm = viewz < s->floorheight ? s->bottommap : viewz > s->ceilingheight ?
+        s->topmap : s->midmap;
+      if (cm < 0 || cm > numcolormaps)
+        cm = 0;
+    }
+  else
+    cm = 0;
+*/
+
+angle_t R_WadToAngle(int wadangle)
+{
+        return (wadangle/45) *ANG45;
+
+        if(demo_version<302)
+                return (wadangle/45)*ANG45;
+
+        return wadangle*(ANG45/45);     // allows wads to specify angles to
+                                      // the nearest degree, not nearest 45
+}
+
+static int render_ticker = 0;
+int flatskip = 0;
 
 //
 // R_RenderView
 //
-void R_RenderPlayerView (player_t* player)
+void R_RenderPlayerView (player_t* player, camera_t *camerapoint)
 {       
-  R_SetupFrame (player);
+  R_SetupFrame (player, camerapoint);
 
   // Clear buffers.
   R_ClearClipSegs ();
@@ -505,75 +603,7 @@ void R_RenderPlayerView (player_t* player)
   R_ClearSprites ();
     
   if (autodetect_hom)
-    { // killough 2/10/98: add flashing red HOM indicators
-      char c[47*47];
-      extern int lastshottic;
-      int i , color = !flashing_hom || (gametic % 20) < 9 ? 0xb0 : 0;
-      memset(*screens+viewwindowy*linesize,color,viewheight*linesize);
-      for (i=0;i<47*47;i++)
-        {
-          char t =
-"/////////////////////////////////////////////////////////////////////////////"
-"/////////////////////////////////////////////////////////////////////////////"
-"///////jkkkkklk////////////////////////////////////hkllklklkklkj/////////////"
-"///////////////////jkkkkklklklkkkll//////////////////////////////kkkkkklklklk"
-"lkkkklk//////////////////////////jllkkkkklklklklklkkklk//////////////////////"
-"//klkkllklklklkllklklkkklh//////////////////////kkkkkjkjjkkj\3\205\214\3lllkk"
-"lkllh////////////////////kllkige\211\210\207\206\205\204\203\203\203\205`\206"
-"\234\234\234\234kkllg//////////////////klkkjhfe\210\206\203\203\203\202\202"
-"\202\202\202\202\203\205`\207\211eikkk//////////////////kkkk\3g\211\207\206"
-"\204\203\202\201\201\200\200\200\200\200\201\201\202\204b\210\211\3lkh///////"
-"//////////lklki\213\210b\206\203\201\201\200\200\200\200\200Z\200\200\200\202"
-"\203\204\205\210\211jll/////////////////lkkk\3\212\210b\205\202\201\200\200"
-"\200XW\200\200\200\200\200\200\202\203\204\206\207eklj////////////////lkkjg"
-"\211b\206\204\202\200\200\200YWWX\200Z\200\200\200\202\203\203\205bdjkk//////"
-"//////////llkig\211a\205\203\202\200\200\200YXWX\200\200\200\200\200\201\202"
-"\203\203\206\207ekk////////////////lkki\3\211\206\204\202\201\200\200XXWWWXX"
-"\200\200\200\200\202\202\204\206\207ekk////////////////lkkj\3e\206\206\204\\"
-"\200\200XWVVWWWXX\200\200\200\\\203\205\207\231kk////////////////lkkjjgcccfd"
-"\207\203WVUVW\200\200\202\202\204\204\205\204\206\210gkk////////////////kkkkj"
-"e``\210hjjgb\200W\200\205\206fhghcbdcdfkk////////////////jkkj\3\207ab\211e"
-"\213j\3g\204XX\207\213jii\212\207\203\204\210gfkj///////////////j\211lkjf\210"
-"\214\3\3kj\213\213\211\205X\200\205\212\210\213\213\213\211\210\203\205gelj//"
-"////////////hf\211\213kh\212\212i\212gkh\202\203\210\210\202\201\206\207\206"
-"\\kkhf\210aabkk//////////////je\210\210\3g\210\207\210e\210c\205\204\202\210"
-"\207\203\202\210\205\203\203fjbe\213\210bbieW/////////////ke\207\206ie\206"
-"\203\203\203\205\205\204\203\210\211\207\202\202\206\210\203\204\206\207\210"
-"\211\231\206\206`\206\206]/////////////kf\\\202ig\204\203\202\201\\\202\202"
-"\205\207\210\207\203\202\206\206\206\205\203\203\203\202\202\203\204b\206\204"
-"Z/////////////i\3\\\204j\212\204\202\201\200\202\202\202\203\206\211\210\203"
-"\203c\205\202\201\201\201\200\200\201\202\204a\204\201W/////////////j\3\207"
-"\210jh\206\202\200\200\200\200\200\202\206\211\205\202\202bb\201\200\200\200"
-"\200\200\200\202\203b\\WW/////////////jke\206jic\203\201\200\200\200\200\202"
-"\211\211\201\200\200\204\210\201\200\200W\200\200\200\201\204c\\\200]////////"
-"//////kd\210\3\3e\205\202\200\200W\200\202\211\210\210\201\202\207\210\203"
-"\200WWW\200\200\202\205d\\\202///////////////kkdhigb\203\201\200\200\200\202"
-"\206\210\210\205\210\211\206\203\200WWW\200\201\203ce\203\205////////////////"
-"ijkig\211\203\201\200\200\202\206\207\207\205\206\207\210\206\203\200\200WW"
-"\200\203\206ce\202_//////////////////jig\210\203\202\200\201\206\210\210\205"
-"\204\204\205\206\206\204\202\200\200\200\200\203bcd////////////////////hjgc"
-"\205\202\201\203\206\210\206\204\204\202\202\204\205\206\204\200\200\200\201"
-"\206\207c//////////////////////j\3\207\204\203\202\202\211c\204\201W\200\200"
-"\203\205\206\203\200\200\200\203\206b///////////////////////ihd\204\203\202"
-"\201\207f\205VTVTW\202\210\206Z\200\200\203aa////////////////////////jg\204"
-"\204\203\201\202\210\211\211c\206\205\210d\210\200\200\200\202\204ac/////////"
-"///////////////j\3b\203\203\202\202\205\207\206\205\207\207\206\206\202\200"
-"\201\202\203ac/////////////////////////iid\206\204\203\202\204\205\377\205"
-"\204\205\204\203\201\200\202\203\203bc//////////////////////////ej\207\205"
-"\203\201\202\202\203\207\204\203\202\202\201\201\203\203bd///////////////////"
-"////////ee\3a\204\201\200\201\202\205\203\201\200\200\201\202\204\205cc//////"
-"//////////////////////c\3ec\203\201\200\200\201\202\201\200\200\202\203\206cc"
-"//////////////////////////////c\3f\206\203\201\200\200\200\200\200\201\203bdc"
-"////////////////////////////////g\3\211\206\202\\\201\200\201\202\203dde/////"
-"/////////////////////////////\234\3db\203\203\203\203adec////////////////////"
-"/////////////////hffed\211de////////////////////"[i];
-          c[i] = t=='/' ? color : t;
-        }
-      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8)
-        V_DrawBlock((viewwindowx +  viewwidth/2 - 24)>>hires,
-                    (viewwindowy + viewheight/2 - 24)>>hires, 0, 47, 47, c);
-      R_DrawViewBorder();
-    }
+        R_HOMdrawer();
 
   // check for new console commands.
   NetUpdate ();
@@ -583,8 +613,8 @@ void R_RenderPlayerView (player_t* player)
     
   // Check for new console commands.
   NetUpdate ();
-    
-  R_DrawPlanes ();
+     
+  if(!flatskip || render_ticker % flatskip) R_DrawPlanes ();
     
   // Check for new console commands.
   NetUpdate ();
@@ -593,14 +623,32 @@ void R_RenderPlayerView (player_t* player)
 
   // Check for new console commands.
   NetUpdate ();
+
+  render_ticker++;
+}
+
+        // sf: rewritten
+
+void R_HOMdrawer()
+{
+      int y, colour;
+      char *dest;
+
+      colour = !flashing_hom || (gametic % 20) < 9 ? 0xb0 : 0;
+      dest = screens[0] + viewwindowy*(SCREENWIDTH<<hires) + viewwindowx;
+
+      for(y=viewwindowy; y<viewwindowy+viewheight; y++)
+      {
+           memset(dest, colour, viewwidth);
+           dest += SCREENWIDTH<<hires;
+      }
+
+//      if (gametic-lastshottic < TICRATE*2 && gametic-lastshottic > TICRATE/8);
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_main.c,v $
 // Revision 1.13  1998/05/07  00:47:52  killough
 // beautification
 //

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: tables.h,v 1.3 1998/05/03 22:58:56 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -71,15 +71,13 @@ extern const angle_t tantoangle[SLOPERANGE+1];
 
 // Utility function, called by R_PointToAngle.
 int SlopeDiv(unsigned num, unsigned den);
+int arctan(int x, int y); //sf
 
 #endif
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: tables.h,v $
 // Revision 1.3  1998/05/03  22:58:56  killough
 // beautification
 //

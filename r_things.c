@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: r_things.c,v 1.22 1998/05/03 22:46:41 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -21,10 +21,13 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: r_things.c,v 1.22 1998/05/03 22:46:41 killough Exp $";
 
 #include "doomstat.h"
 #include "w_wad.h"
+#include "g_game.h"
+#include "d_main.h"
+#include "p_skin.h"
 #include "r_main.h"
 #include "r_bsp.h"
 #include "r_segs.h"
@@ -49,6 +52,9 @@ typedef struct {
 //  which increases counter clockwise (protractor).
 // There was a lot of stuff grabbed wrong, so I changed it...
 //
+extern int updownangle;
+
+short pscreenheightarray[MAX_SCREENWIDTH]; // for psprites
 
 fixed_t pspritescale;
 fixed_t pspriteiscale;
@@ -60,6 +66,7 @@ static lighttable_t **spritelights;        // killough 1/25/98 made static
 
 short negonearray[MAX_SCREENWIDTH];        // killough 2/8/98:
 short screenheightarray[MAX_SCREENWIDTH];  // change to MAX_*
+int lefthanded=0;
 
 //
 // INITIALIZATION FUNCTIONS
@@ -148,8 +155,7 @@ void R_InitSpriteDefs(char **namelist)
     return;
 
   // count the number of sprite names
-  for (i=0; namelist[i]; i++)
-    ;
+  for (i=0; namelist[i]; i++) ;
 
   numsprites = i;
 
@@ -165,7 +171,7 @@ void R_InitSpriteDefs(char **namelist)
 
   for (i=0; i<numentries; i++)             // Prepend each sprite to hash chain
     {                                      // prepend so that later ones win
-      int j = R_SpriteNameHash(lumpinfo[i+firstspritelump].name) % numentries;
+      int j = R_SpriteNameHash(lumpinfo[i+firstspritelump]->name) % numentries;
       hash[i].next = hash[j].index;
       hash[j].index = i;
     }
@@ -178,13 +184,15 @@ void R_InitSpriteDefs(char **namelist)
       const char *spritename = namelist[i];
       int j = hash[R_SpriteNameHash(spritename) % numentries].index;
 
+//      printf("\n%s: ",spritename); //debug
+
       if (j >= 0)
         {
           memset(sprtemp, -1, sizeof(sprtemp));
           maxframe = -1;
           do
             {
-              register lumpinfo_t *lump = lumpinfo + j + firstspritelump;
+              register lumpinfo_t *lump = lumpinfo[j + firstspritelump];
 
               // Fast portable comparison -- killough
               // (using int pointer cast is nonportable):
@@ -327,7 +335,7 @@ void R_DrawMaskedColumn(column_t *column)
         dc_yl = mceilingclip[dc_x]+1;
 
       // killough 3/2/98, 3/27/98: Failsafe against overflow/crash:
-      if (dc_yl <= dc_yh && dc_yh < viewheight)
+      if (dc_yl <= dc_yh && dc_yh < viewheight )
         {
           dc_source = (byte *) column + 3;
           dc_texturemid = basetexturemid - (column->topdelta<<FRACBITS);
@@ -359,13 +367,14 @@ void R_DrawVisSprite(vissprite_t *vis, int x1, int x2)
   // mixed with translucent/non-translucent 2s normals
 
   if (!dc_colormap)   // NULL colormap = shadow draw
+  {
     colfunc = R_DrawFuzzColumn;    // killough 3/14/98
+  }
   else
-    if (vis->mobjflags & MF_TRANSLATION)
+    if (vis->colour)
       {
         colfunc = R_DrawTranslatedColumn;
-        dc_translation = translationtables - 256 +
-          ((vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT-8) );
+        dc_translation = translationtables + vis->colour*256 - 256;
       }
     else
       if (vis->mobjflags & MF_TRANSLUCENT && general_translucency) // phares
@@ -448,8 +457,8 @@ void R_ProjectSprite (mobj_t* thing)
   sprdef = &sprites[thing->sprite];
 
   if ((thing->frame&FF_FRAMEMASK) >= sprdef->numframes)
-    I_Error ("R_ProjectSprite: invalid frame %i for sprite %s",
-             thing->frame & FF_FRAMEMASK, sprnames[thing->sprite]);
+    I_Error ("R_ProjectSprite:invalid frame %i for sprite %s",
+             thing->frame & FF_FRAMEMASK, spritelist[thing->sprite]);
 
   sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
 
@@ -486,8 +495,10 @@ void R_ProjectSprite (mobj_t* thing)
   gzt = thing->z + spritetopoffset[lump];
 
   // killough 4/9/98: clip things which are out of view due to height
-  if (thing->z > viewz + FixedDiv(centeryfrac, xscale) ||
-      gzt      < viewz - FixedDiv(centeryfrac-viewheight, xscale))
+  // sf : fix for look up/down
+//        centeryfrac=(viewheight<<(FRACBITS-1));
+  if (thing->z > viewz + FixedDiv((viewheight<<(FRACBITS)), xscale) ||
+      gzt      < viewz - FixedDiv((viewheight<<(FRACBITS))-viewheight, xscale))
     return;
 
   // killough 3/27/98: exclude things totally separated
@@ -517,6 +528,7 @@ void R_ProjectSprite (mobj_t* thing)
   vis->heightsec = heightsec;
 
   vis->mobjflags = thing->flags;
+  vis->colour = thing->colour;
   vis->scale = xscale;
   vis->gx = thing->x;
   vis->gy = thing->y;
@@ -623,18 +635,18 @@ void R_DrawPSprite (pspdef_t *psp)
   if ((psp->state->frame&FF_FRAMEMASK) >= sprdef->numframes)
     I_Error ("R_DrawPSprite: invalid frame %i for sprite %s",
              (int)(psp->state->frame & FF_FRAMEMASK),
-             sprnames[psp->state->sprite]);
+             spritelist[psp->state->sprite]);
 #endif
 
   sprframe = &sprdef->spriteframes[psp->state->frame & FF_FRAMEMASK];
 
   lump = sprframe->lump[0];
-  flip = (boolean) sprframe->flip[0];
+  flip = ( (boolean) sprframe->flip[0] ) ^ lefthanded;
 
   // calculate edges of the shape
   tx = psp->sx-160*FRACUNIT;
-
   tx -= spriteoffset[lump];
+
   x1 = (centerxfrac + FixedMul (tx,pspritescale))>>FRACBITS;
 
   // off the right side
@@ -647,6 +659,13 @@ void R_DrawPSprite (pspdef_t *psp)
   // off the left side
   if (x2 < 0)
     return;
+ 
+  if(lefthanded)
+  {
+        int tmpx=x1;
+        x1=viewwidth-x2;
+        x2=viewwidth-tmpx;    // viewwidth-x1
+  }
 
   // store information in a vissprite
   vis = &avis;
@@ -659,6 +678,7 @@ void R_DrawPSprite (pspdef_t *psp)
   vis->x1 = x1 < 0 ? 0 : x1;
   vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;
   vis->scale = pspritescale;
+  vis->colour = 0;      // default colourmap
 
   if (flip)
     {
@@ -693,12 +713,28 @@ void R_DrawPSprite (pspdef_t *psp)
   else
     vis->colormap = spritelights[MAXLIGHTSCALE-1];  // local light
 
-  R_DrawVisSprite(vis, vis->x1, vis->x2);
+  if(vis->colormap!=NULL && psp->trans) // translucent gunflash
+    vis->mobjflags |= MF_TRANSLUCENT;
+
+  if(viewplayer->readyweapon == wp_bfg && bfglook==2)
+  {
+    R_DrawVisSprite (vis, vis->x1, vis->x2);
+  }
+  else
+  {
+    centery=(viewheight/2);
+    centeryfrac=centery<<16;
+    R_DrawVisSprite (vis, vis->x1, vis->x2);
+    centery=viewheight/2+(updownangle>>16);
+    centeryfrac=((viewheight/2)<<16)+updownangle;
+  }
 }
 
 //
 // R_DrawPlayerSprites
 //
+
+int R_Pspriteclip();
 
 void R_DrawPlayerSprites(void)
 {
@@ -706,6 +742,12 @@ void R_DrawPlayerSprites(void)
   pspdef_t *psp;
   sector_t tmpsec;
   int floorlightlevel, ceilinglightlevel;
+  int a, b;
+
+        // sf: psprite switch
+  if(!showpsprites || viewcamera) return;
+
+  R_SectorColormap(viewplayer->mo->subsector->sector);
 
   // get light level
   // killough 9/18/98: compute lightlevel from floor and ceiling lightlevels
@@ -723,8 +765,19 @@ void R_DrawPlayerSprites(void)
   else
     spritelights = scalelight[lightnum];
 
+  a = viewheight;
+
+  b = R_Pspriteclip();
+//  dprintf("%i",b);
+  a -= b;  
+
+  for(i=0;i<viewwidth;i++)
+  {
+    pscreenheightarray[i] = a;
+  }
+
   // clip to screen bounds
-  mfloorclip = screenheightarray;
+  mfloorclip = pscreenheightarray;
   mceilingclip = negonearray;
 
   // add all active psprites
@@ -815,6 +868,13 @@ void R_SortVisSprites (void)
 
       msort(vissprite_ptrs, vissprite_ptrs + num_vissprite, num_vissprite);
     }
+}
+
+// clip the psprite against the floor
+
+int R_Pspriteclip()
+{
+        return 0;
 }
 
 //
@@ -980,10 +1040,7 @@ void R_DrawMasked(void)
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: r_things.c,v $
 // Revision 1.22  1998/05/03  22:46:41  killough
 // beautification
 //

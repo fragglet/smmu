@@ -1,0 +1,323 @@
+/******************************* Chasecam code *****************************/
+//
+// Chasecam
+//
+// Follows the displayplayer. It does exactly what it says on the
+// cover!
+//
+
+#include "c_io.h"
+#include "c_runcmd.h"
+#include "doomdef.h"
+#include "doomstat.h"
+#include "info.h"
+#include "d_main.h"
+#include "p_chase.h"
+#include "p_map.h"
+#include "p_maputl.h"
+#include "p_mobj.h"
+#include "r_main.h"
+#include "g_game.h"
+
+boolean PTR_chasetraverse(intercept_t *in);
+
+camera_t chasecam;
+long chaseviewz;
+int chasecam_active = 0;
+long targetx, targety, targetz;
+int chasecam_turnoff = 0;
+
+        // time out eventually if the chasecam fails to get inside the
+        // marines head
+#define TURNOFF_TICS 100
+int turnoff_timeout;
+
+void P_ChaseSetupFrame()
+{
+        viewx = chasecam.x;
+        viewy = chasecam.y;
+        viewz = chaseviewz;
+        viewangle = chasecam.angle;
+}
+
+#define CHASESPEED 33
+
+                // for simplicity
+#define playermobj players[displayplayer].mo
+#define playerangle (playermobj->angle)
+
+
+void P_ChaseTicker()
+{
+        int xdist,ydist, zdist;
+        int sin, cos;
+        subsector_t *ss;
+        int ceilingheight, floorheight;
+        int aimfor;
+
+                // aimfor is the preferred height of the chasecam above
+                // the player
+        aimfor = 68*FRACUNIT - players[displayplayer].updownangle*FRACUNIT;
+
+        sin = finesine[playerangle>>ANGLETOFINESHIFT];
+        cos = finecosine[playerangle>>ANGLETOFINESHIFT];
+
+        if(chasecam_turnoff)    // turning off chasecam
+        {
+            targetx = playermobj->x;
+            targety = playermobj->y;
+            targetz = playermobj->z + 41*FRACUNIT;
+            turnoff_timeout--;  // decrease timeout
+        }
+        else
+        {
+            targetx = playermobj->x-(cos>>9)*FRACUNIT;
+            targety = playermobj->y-(sin>>9)*FRACUNIT;
+            targetz = playermobj->z+aimfor;
+        }
+
+                // check for intersections
+        P_PathTraverse(playermobj->x, playermobj->y, targetx, targety,
+                PT_ADDLINES, PTR_chasetraverse);
+
+        ss = R_PointInSubsector (targetx, targety);
+
+        floorheight = ss->sector->floorheight;
+        ceilingheight = ss->sector->ceilingheight;
+        if(aimfor > ceilingheight-floorheight-20*FRACUNIT)
+                aimfor = ceilingheight-floorheight-20*FRACUNIT;
+
+
+                // don't aim above the ceiling or below the floor
+        if(targetz > ceilingheight-3*FRACUNIT)
+                targetz = ceilingheight-3*FRACUNIT;
+        if(targetz < floorheight+3*FRACUNIT)
+                targetz = floorheight+3*FRACUNIT;
+
+                // find distance to target..
+        xdist = targetx-chasecam.x;
+        ydist = targety-chasecam.y;
+        zdist = targetz-chasecam.z;
+
+                // and move it!
+        chasecam.x += (xdist*CHASESPEED)/100;
+        chasecam.y += (ydist*CHASESPEED)/100;
+        chasecam.z += (zdist*CHASESPEED)/100;
+
+        chasecam.updownangle = players[displayplayer].updownangle;
+        chasecam.angle =
+                // point to the player if in a demo
+                demoplayback ?
+        R_PointToAngle2(chasecam.x, chasecam.y, playermobj->x,
+                        playermobj->y)
+                :
+        // use player angle otherwise because its hard to control (icy)
+                playerangle;
+
+        if(chasecam_turnoff)
+        {
+                if( ( (abs(chasecam.x-targetx) < 4*FRACUNIT) &&
+                      (abs(chasecam.y-targety) < 4*FRACUNIT) &&
+                      (abs(chasecam.z-targetz) < 4*FRACUNIT) )
+                    || turnoff_timeout == 0)
+                {
+                        chasecam_active = 0;
+                        camera = NULL;
+                        chasecam_turnoff = false;
+                }
+        }
+}
+
+// console command
+
+void P_ToggleChasecam()
+{
+        if(atoi(c_argv[0])) P_ChaseStart();
+        else P_ChaseEnd();
+}
+
+void P_ChaseStart()
+{
+        if(chasecam_turnoff) chasecam_turnoff = false;
+        if(chasecam_active) return;     // already active
+
+        chasecam_active = true;
+        chasecam_turnoff = false;
+        camera = &chasecam;
+        P_ResetChasecam();
+}
+
+void P_ChaseEnd()
+{
+//        chasecam_active = 0;
+//        camera = NULL;
+        chasecam_turnoff = true;
+        turnoff_timeout = TURNOFF_TICS;
+}       
+
+                // Z of the line at the point of intersection.
+                // this function is really just to cast all the
+                // variables to long longs
+
+long zi(long long dist, long long totaldist, long long ztarget,
+                        long long playerz)
+{
+        long long thezi;
+
+        thezi = (dist * (ztarget - playerz)) / totaldist;
+        thezi += playerz;
+
+        return thezi;
+}
+
+// go til you hit a wall
+// set the chasecam target x and ys if you hit one
+// originally based on the shooting traverse function in p_maputl.c
+
+extern fixed_t attackrange;
+extern fixed_t shootz;
+extern fixed_t aimslope;
+
+boolean PTR_chasetraverse(intercept_t *in)
+{
+  fixed_t dist, frac;
+  subsector_t *ss;
+  long x, y;
+  long z;
+  sector_t *hitsector, *othersector;
+
+  if (in->isaline)
+    {
+      line_t *li = in->d.line;
+
+      dist = FixedMul(attackrange, in->frac);
+      frac = in->frac - FixedDiv(12*FRACUNIT,attackrange);
+
+      // hit line
+      // position a bit closer
+
+      x = trace.x + FixedMul(trace.dx, frac);
+      y = trace.y + FixedMul(trace.dy, frac);
+
+      if (li->flags & ML_TWOSIDED)
+        {  // crosses a two sided line
+
+                // sf: find which side it hit
+          
+            ss = R_PointInSubsector (x, y);
+
+            hitsector = li->frontsector; othersector=li->backsector;
+
+            if(ss->sector==li->backsector)      // other side
+            {
+                    hitsector = li->backsector;
+                    othersector = li->frontsector;
+            }
+
+            // interpolate, find z at the point of intersection
+
+            z = zi(dist, attackrange, targetz, playermobj->z+28*FRACUNIT);
+
+                // found which side, check for intersections
+            if( (li->flags & ML_BLOCKING) ||
+            (othersector->floorheight>z) || (othersector->ceilingheight<z)
+             || (othersector->ceilingheight-othersector->floorheight
+                        < 40*FRACUNIT) );          // hit
+            else
+            {
+                return true;    // continue
+            }
+	}
+
+      targetx = x;        // point the new chasecam target at the intersection
+      targety = y;
+      targetz = zi(dist, attackrange, targetz, playermobj->z+28*FRACUNIT);
+
+      // don't go any farther
+
+      return false;
+    }
+
+  return true;
+}
+
+// reset chasecam eg after teleporting etc
+
+void P_ResetChasecam()
+{
+        if(chasecam_turnoff) chasecam_active = false;
+        if(!chasecam_active) return;
+        if(gamestate != GS_LEVEL) return;       // only in level
+
+        chasecam.x = players[displayplayer].mo->x;
+        chasecam.y = players[displayplayer].mo->y;
+        chasecam.z = players[displayplayer].mo->z;
+
+                // the intersections test mucks up the first time, but
+                // aiming at something seems to cure it
+        P_AimLineAttack(players[consoleplayer].mo, 0, MELEERANGE, 0);
+}
+
+
+/*******************
+ WALK AROUND CAMERA
+ *******************/
+
+// walk around inside demos without
+// upsetting demo sync
+
+camera_t walkcamera;
+int walkcam_active = 0;
+
+void P_WalkTicker()
+{
+        ticcmd_t *walktic = &netcmds[consoleplayer][(gametic/ticdup)%BACKUPTICS];
+
+        walkcamera.angle += walktic->angleturn << 16;
+
+                // moving forward
+        walkcamera.x += FixedMul((ORIG_FRICTION/4) * walktic->forwardmove,
+                      finecosine[walkcamera.angle >> ANGLETOFINESHIFT]);
+        walkcamera.y += FixedMul((ORIG_FRICTION/4) * walktic->forwardmove,
+                      finesine[walkcamera.angle >> ANGLETOFINESHIFT]);
+
+                // strafing
+        walkcamera.x += FixedMul((ORIG_FRICTION/6) * walktic->sidemove,
+                  finecosine[(walkcamera.angle-ANG90) >> ANGLETOFINESHIFT]);
+        walkcamera.y += FixedMul((ORIG_FRICTION/6) * walktic->sidemove,
+                  finesine[(walkcamera.angle-ANG90) >> ANGLETOFINESHIFT]);
+
+                // keep on the ground
+        walkcamera.z = R_PointInSubsector(walkcamera.x, walkcamera.y)
+                        ->sector->floorheight + 41*FRACUNIT;
+
+                // looking up/down
+        walkcamera.updownangle += walktic->updownangle;
+        walkcamera.updownangle = walkcamera.updownangle < -50 ? -50 :
+                                 walkcamera.updownangle > 50 ? 50 :
+                                 walkcamera.updownangle;
+}
+
+        // console command
+void P_ToggleWalk()
+{
+        if(!c_argc)
+                walkcam_active = !walkcam_active;
+        else
+                walkcam_active = atoi(c_argv[0]);
+
+        if(walkcam_active)
+        {
+                camera = &walkcamera;
+                P_ResetWalkcam();
+        }
+        else
+                camera = NULL;
+}
+
+void P_ResetWalkcam()
+{
+        walkcamera.x = playerstarts[0].x << FRACBITS;
+        walkcamera.y = playerstarts[0].y << FRACBITS;
+        walkcamera.angle = R_WadToAngle(playerstarts[0].angle);
+}

@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: d_player.h,v 1.3 1998/05/04 21:34:15 thldrmn Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -22,6 +22,8 @@
 #ifndef __D_PLAYER__
 #define __D_PLAYER__
 
+typedef struct player_s player_t;
+
 // The player data structure depends on a number
 // of other structs: items (internal inventory),
 // animation states (closely tied to the sprites
@@ -37,6 +39,11 @@
 // is buffered within the player data struct,
 // as commands per game tick.
 #include "d_ticcmd.h"
+
+
+// skins.
+#include "p_skin.h"
+
 
 //
 // Player states.
@@ -71,7 +78,7 @@ typedef enum
 //
 // Extended player object info: player_t
 //
-typedef struct player_s
+struct player_s
 {
   mobj_t*             mo;
   playerstate_t       playerstate;
@@ -108,6 +115,7 @@ typedef struct player_s
   
   // Frags, kills of other players.
   int                 frags[MAXPLAYERS];
+  int                 totalfrags;
   weapontype_t        readyweapon;
   
   // Is wp_nochange if not changing.
@@ -134,7 +142,8 @@ typedef struct player_s
   int                 secretcount;
 
   // Hint messages.
-  char*               message;        
+        // sf: now done with dprintf
+//  char*               message;        
   
   // For screen flashing (red or bright).
   int                 damagecount;
@@ -152,15 +161,20 @@ typedef struct player_s
 
   // Player skin colorshift,
   //  0-3 for which color to draw player.
-  int                 colormap;       
+  int                 colormap;
+  skin_t*             skin;
 
   // Overlay view sprites (gun, etc).
   pspdef_t            psprites[NUMPSPRITES];
 
+  int                 updownangle;
+
   // True if secret level has been done.
   boolean             didsecret;      
 
-} player_t;
+  char                name[20];
+
+};
 
 
 //
@@ -212,10 +226,7 @@ typedef struct
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: d_player.h,v $
 // Revision 1.3  1998/05/04  21:34:15  thldrmn
 // commenting and reformatting
 //

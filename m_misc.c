@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -24,7 +24,7 @@
 //-----------------------------------------------------------------------------
 
 static const char
-rcsid[] = "$Id$";
+rcsid[] = "$Id: m_misc.c,v 1.60 1998/06/03 20:32:12 jim Exp $";
 
 #include "doomstat.h"
 #include "m_argv.h"
@@ -43,9 +43,14 @@ rcsid[] = "$Id$";
 #include "s_sound.h"
 #include "sounds.h"
 #include "d_main.h"
+#include "r_draw.h"
+#include "c_io.h"
+#include "c_net.h"
 
 #include <unistd.h>
 #include <errno.h>
+
+extern int vesamode;
 
 //
 // DEFAULTS
@@ -73,6 +78,14 @@ extern int showMessages;
 
 extern char *chat_macros[], *wad_files[], *deh_files[];  // killough 10/98
 
+extern int hud_msg_timer;   // killough 11/98: timer used for review messages
+extern int hud_msg_lines;   // number of message lines in window up to 16
+extern int hud_msg_scrollup;// killough 11/98: whether message list scrolls up
+extern int hud_overlaystyle;  // sf: overlay style
+extern int hud_enabled;       // sf: fullscreen hud on/off
+extern int message_timer;   // killough 11/98: timer used for normal messages
+int show_vpo = 0;
+
 //jff 3/3/98 added min, max, and help string to all entries
 //jff 4/10/98 added isstr field to specify whether value is string or int
 //
@@ -85,6 +98,20 @@ default_t defaults[] = {
     &config_help, NULL,
     1, {0,1}, number, ss_none, wad_no,
     "1 to show help strings about each variable in config file"
+  },
+
+  {
+    "colour",
+    &default_colour, NULL,
+    0, {0,TRANSLATIONCOLOURS}, number, ss_none, wad_no,
+    "the default player colour (green, indigo,brown, red)"
+  },
+
+  {
+    "name",
+    (int*)&default_name, NULL,
+    (int) "player", {0}, string, ss_none, wad_no,
+    "the default player name"
   },
 
   { // jff 3/24/98 allow default skill setting
@@ -119,6 +146,12 @@ default_t defaults[] = {
     "hires", &hires, NULL,
     0, {0,1}, number, ss_gen, wad_no,
     "1 to enable 640x400 resolution for rendering scenes"
+  },
+
+  { // sf vesa mode
+    "vesamode", &vesamode, NULL,
+    0,{0,1},number,ss_gen,wad_no,
+    "1 to use a VESA screen mode, 0 to autodetect"
   },
 
   { // killough 8/15/98: page flipping option
@@ -166,7 +199,7 @@ default_t defaults[] = {
   { // killough 2/21/98
     "tran_filter_pct",
     &tran_filter_pct, NULL,
-    66, {0,100}, number, ss_gen, wad_yes,
+    50, {0,100}, number, ss_gen, wad_yes,
     "set percentage of foreground/background translucency mix"
   },
 
@@ -175,6 +208,13 @@ default_t defaults[] = {
     &default_bodyquesize, NULL,
     32, {UL,UL},number, ss_gen, wad_no,
     "number of dead bodies in view supported (negative value = no limit)"
+  },
+
+  {
+    "show_vpo",
+    &show_vpo, NULL,
+    1, {0,1}, number, ss_gen, wad_yes,
+    "1 to enable VPO warninig indicator"
   },
 
   { // killough 10/98
@@ -198,14 +238,26 @@ default_t defaults[] = {
     "1 to enable recoil from weapon fire"
   },
 
-#ifdef BETA
-  { // killough 7/19/98
-    "classic_bfg",
-    &default_classic_bfg, &classic_bfg,
-    0, {0,1}, number, ss_weap, wad_yes,
-    "1 to enable pre-beta BFG2704"
+  { // killough 7/19/98         // sf:changed to bfgtype
+    "bfgtype",
+    (int*)&default_bfgtype, (int*)&bfgtype,
+    0, {0,2}, number, ss_weap, wad_yes,
+    "0 - normal, 1 - classic, 2 - bouncing!"
   },
-#endif
+
+  {             //sf
+    "crosshair",
+    &crosshairnum, NULL,
+    0, {0,CROSSHAIRS}, number, ss_weap, wad_yes,
+    "0 - none, 1 - cross, 2 - angle"
+  },
+
+  {
+     "lefthanded",
+     &lefthanded, NULL,
+     0, {0,1}, number, ss_gen, wad_yes,
+     "0 - right handed, 1 - left handed"
+  },
 
   { // killough 10/98
     "doom_weapon_toggles",
@@ -216,7 +268,7 @@ default_t defaults[] = {
 
   { // phares 2/25/98
     "player_bobbing",
-    &default_player_bobbing, &player_bobbing,
+    &player_bobbing, NULL,      //sf: bobbing not needed for game sync 
     1, {0,1}, number, ss_weap, wad_no,
     "1 to enable player bobbing (view moving up/down slightly)"
   },
@@ -738,6 +790,13 @@ default_t defaults[] = {
   },
 
   {
+    "key_frags",
+    &key_frags,NULL,
+    '#',{0,255},number,ss_keys,wad_no,
+    "key to show multiplayer scores"
+  },
+
+  {
     "key_gamma",
     &key_gamma, NULL,
     KEYD_F11, {0,255}, number, ss_keys, wad_no,
@@ -1003,6 +1062,48 @@ default_t defaults[] = {
     "shortcut key to enter setup menu"
   },
 
+  {
+    "key_mlook",
+    &key_mlook, NULL,
+    0, {0,255}, number, ss_keys, wad_no,
+    "key to enable mouselook"
+  },
+
+  {
+    "key_lookup",
+    &key_lookup, NULL,
+    KEYD_PAGEUP, {0,255}, number, ss_keys, wad_no,
+    "key to enable look up"
+  },
+
+  {
+    "key_lookdown",
+    &key_lookdown, NULL,
+    KEYD_PAGEDOWN, {0,255}, number, ss_keys, wad_no,
+    "key to look down"
+  },
+
+  {
+    "key_centerview",
+    &key_centerview, NULL,
+    0, {0,255}, number, ss_keys, wad_no,
+    "key to centre the view"
+  },
+
+  {
+    "automlook",
+    &automlook, NULL,
+    0, {0,1}, number, ss_gen, wad_no,
+    "set to 1 to always mouselook"
+  },
+
+  {
+    "invert_mouse",
+    &invert_mouse, NULL,
+    1, {0,1}, number, ss_gen, wad_no,
+    "set to 1 to invert mouse during mouselooking"
+  },
+
   { // jff 3/30/98 add ability to take screenshots in BMP format
     "screenshot_pcx",
     &screenshot_pcx, NULL,
@@ -1169,28 +1270,28 @@ default_t defaults[] = {
   { // red-brown
     "mapcolor_wall",
     &mapcolor_wall, NULL,
-    23, {0,255}, number, ss_auto, wad_yes,
+    181, {0,255}, number, ss_auto, wad_yes,
     "color used for one side walls on automap"
   },
 
   { // lt brown
     "mapcolor_fchg",
     &mapcolor_fchg, NULL,
-    55, {0,255}, number, ss_auto, wad_yes,
+    166, {0,255}, number, ss_auto, wad_yes,
     "color used for lines floor height changes across"
   },
 
   { // orange
     "mapcolor_cchg",
     &mapcolor_cchg, NULL,
-    215, {0,255}, number, ss_auto, wad_yes,
+    231, {0,255}, number, ss_auto, wad_yes,
     "color used for lines ceiling height changes across"
   },
 
   { // white
     "mapcolor_clsd",
     &mapcolor_clsd, NULL,
-    208, {0,255}, number, ss_auto, wad_yes,
+    231, {0,255}, number, ss_auto, wad_yes,
     "color used for lines denoting closed doors, objects"
   },
 
@@ -1246,7 +1347,7 @@ default_t defaults[] = {
   { // purple
     "mapcolor_secr",
     &mapcolor_secr, NULL,
-    252, {0,255}, number, ss_auto, wad_yes,
+    176, {0,255}, number, ss_auto, wad_yes,
     "color used for lines around secret sectors"
   },
 
@@ -1260,7 +1361,7 @@ default_t defaults[] = {
   { // dk gray
     "mapcolor_unsn",
     &mapcolor_unsn, NULL,
-    104, {0,255}, number, ss_auto, wad_yes,
+    0, {0,255}, number, ss_auto, wad_yes,
     "color used for lines not seen without computer map"
   },
 
@@ -1347,48 +1448,6 @@ default_t defaults[] = {
 
   //jff 2/16/98 defaults for color ranges in hud and status
 
-  { // gold range
-    "hudcolor_titl",
-    &hudcolor_titl, NULL,
-    5, {0,9}, number, ss_auto, wad_yes,
-    "color range used for automap level title"
-  },
-
-  { // green range
-    "hudcolor_xyco",
-    &hudcolor_xyco, NULL,
-    3, {0,9}, number, ss_auto, wad_yes,
-    "color range used for automap coordinates"
-  },
-
-  { // red range
-    "hudcolor_mesg",
-    &hudcolor_mesg, NULL,
-    6, {0,9}, number, ss_mess, wad_yes,
-    "color range used for messages during play"
-  },
-
-  { // gold range
-    "hudcolor_chat",
-    &hudcolor_chat, NULL,
-    5, {0,9}, number, ss_mess, wad_yes,
-    "color range used for chat messages and entry"
-  },
-
-  { // killough 11/98
-    "chat_msg_timer",
-    &chat_msg_timer, NULL,
-    4000, {0,UL}, 0, ss_mess, wad_yes,
-    "Duration of chat messages (ms)"
-  },
-
-  { // gold range  //jff 2/26/98
-    "hudcolor_list",
-    &hudcolor_list, NULL,
-    5, {0,9}, number, ss_mess, wad_yes,
-    "color range used for message review"
-  },
-
   { // 1 line scrolling window
     "hud_msg_lines",
     &hud_msg_lines, NULL,
@@ -1404,24 +1463,10 @@ default_t defaults[] = {
   },
 
   { // killough 11/98
-    "hud_msg_timed",
-    &hud_msg_timed, NULL,
-    1, {0,1}, 0, ss_mess, wad_yes,
-    "1 enables temporary message review list"
-  },
-
-  { // killough 11/98
     "hud_msg_timer",
     &hud_msg_timer, NULL,
     4000, {0,UL}, 0, ss_mess, wad_yes,
     "Duration of temporary message review list (ms)"
-  },
-
-  { // killough 11/98
-    "message_list",
-    &message_list, NULL,
-    0, {0,1}, number, ss_mess, wad_yes,
-    "1 means multiline message list is active"
   },
 
   { // killough 11/98
@@ -1431,18 +1476,18 @@ default_t defaults[] = {
     "Duration of normal Doom messages (ms)"
   },
 
-  { // solid window bg ena //jff 2/26/98
-    "hud_list_bgon",
-    &hud_list_bgon, NULL,
-    0, {0,1}, number, ss_mess, wad_yes,
-    "1 enables background window behind message review"
+  {     //sf : fullscreen hud style
+    "hud_overlaystyle",
+    &hud_overlaystyle, NULL,
+    1, {0,3}, 0, ss_mess, wad_yes,
+    "fullscreen hud style"
   },
 
-  { // hud broken up into 3 displays //jff 3/4/98
-    "hud_distributed",
-    &hud_distributed, NULL,
-    0, {0,1}, number, ss_none, wad_yes,
-    "1 splits HUD into three 2 line displays"
+  {
+    "hud_enabled",
+    &hud_enabled, NULL,
+    1, {0,1}, 0, ss_mess, wad_yes,
+    "fullscreen hud enabled"
   },
 
   { // below is red
@@ -1499,27 +1544,6 @@ default_t defaults[] = {
     &ammo_yellow, NULL,
     50, {0,100}, number, ss_stat, wad_yes,
     "percent of ammo for yellow to green transition"
-  },
-
-  { // 0=off, 1=small, 2=full //jff 2/16/98 HUD and status feature controls
-    "hud_active",
-    &hud_active, NULL,
-    2, {0,2}, number, ss_none, wad_yes,
-    "0 for HUD off, 1 for HUD small, 2 for full HUD"
-  },
-
-  {  // whether hud is displayed //jff 2/23/98
-    "hud_displayed",
-    &hud_displayed, NULL,
-    0, {0,1}, number, ss_none, wad_yes,
-    "1 to enable display of HUD"
-  },
-
-  { // no secrets/items/kills HUD line
-    "hud_nosecrets",
-    &hud_nosecrets, NULL,
-    1, {0,1}, number, ss_stat, wad_yes,
-    "1 to disable display of kills/items/secrets on HUD"
   },
 
   {  // killough 2/8/98: weapon preferences set by user:
@@ -1585,6 +1609,34 @@ default_t defaults[] = {
     "ninth choice for weapon (worst)"
   },
 
+  {
+    "c_speed",
+    &c_speed, NULL,
+    10, {1,200}, number, ss_none, wad_no,
+    "console speed, pixels/tic"
+  },
+
+  {
+    "c_height",
+    &c_height, NULL,
+    100, {0,200}, number, ss_none, wad_no,
+    "console height, pixels"
+  },
+
+  {
+    "obituaries",
+    &obituaries, NULL,
+    0, {0,1}, number, ss_none, wad_no,
+    "obituaries on/off"
+  },
+
+  {
+    "obcolour",
+    &death_colour, NULL,
+    0, {0,9}, number, ss_none, wad_no,
+    "obituaries colour"
+  },
+
   {NULL}         // last entry
 };
 
@@ -1616,9 +1668,9 @@ default_t *M_LookupDefault(const char *name)
   if (!hash_init)
     for (hash_init = 1, dp = defaults; dp->name; dp++)
       {
-        unsigned h = default_hash(dp->name);
-        dp->next = defaults[h].first;
-        defaults[h].first = dp;
+	unsigned h = default_hash(dp->name);
+	dp->next = defaults[h].first;
+	defaults[h].first = dp;
       }
 
   // Look up name in hash table
@@ -1667,13 +1719,13 @@ void M_SaveDefaults (void)
       int brackets = 0, value;
 
       for (;line < comment && comments[line].line <= dp-defaults; line++)
-        if (*comments[line].text != '[' || (brackets = 1, config_help))
+	if (*comments[line].text != '[' || (brackets = 1, config_help))
 
 	    // If we haven't seen any blank lines
 	    // yet, and this one isn't blank,
 	    // output a blank line for separation
 
-            if ((!blanks && (blanks = 1, 
+	    if ((!blanks && (blanks = 1, 
 			     *comments[line].text != '\n' &&
 			     putc('\n',f) == EOF)) ||
 		fputs(comments[line].text, f) == EOF)
@@ -1686,7 +1738,7 @@ void M_SaveDefaults (void)
 	goto error;
 
       if (!dp->name)      // If we're at end of defaults table, exit loop
-        break;
+	break;
 
       //jff 3/3/98 output help string
       //
@@ -1769,10 +1821,10 @@ boolean M_ParseOption(const char *p, boolean wad)
       int len = strlen(strparm)-1;
 
       while (isspace(strparm[len]))
-        len--;
+	len--;
 
       if (strparm[len] == '"')
-        len--;
+	len--;
 
       strparm[len+1] = 0;
 
@@ -1904,34 +1956,34 @@ void M_LoadDefaults (void)
       char s[256];
 
       while (fgets(s, sizeof s, f))
-        if (!M_ParseOption(s, false))
-          line++;       // Line numbers
-        else
-          {             // Remember comment lines
-            const char *p = s;
+	if (!M_ParseOption(s, false))
+	  line++;       // Line numbers
+	else
+	  {             // Remember comment lines
+	    const char *p = s;
 
-            while (isspace(*p))  // killough 10/98: skip leading whitespace
-              p++;
+	    while (isspace(*p))  // killough 10/98: skip leading whitespace
+	      p++;
 
-            if (*p)                // If this is not a blank line,
-              {
-                skipblanks = 0;    // stop skipping blanks.
-                if (strstr(p, ".cfg format:"))
-                  config_help_header = 1;
-              }
-            else
-              if (skipblanks)      // If we are skipping blanks, skip line
-                continue;
-              else            // Skip multiple blanks, but remember this one
-                skipblanks = 1, p = "\n";
+	    if (*p)                // If this is not a blank line,
+	      {
+		skipblanks = 0;    // stop skipping blanks.
+		if (strstr(p, ".cfg format:"))
+		  config_help_header = 1;
+	      }
+	    else
+	      if (skipblanks)      // If we are skipping blanks, skip line
+		continue;
+	      else            // Skip multiple blanks, but remember this one
+		skipblanks = 1, p = "\n";
 
-            if (comment >= comment_alloc)
-              comments = realloc(comments, sizeof *comments *
-                                 (comment_alloc = comment_alloc ?
-                                  comment_alloc * 2 : 10));
-            comments[comment].line = line;
-            comments[comment++].text = strdup(p);
-          }
+	    if (comment >= comment_alloc)
+	      comments = realloc(comments, sizeof *comments *
+				 (comment_alloc = comment_alloc ?
+				  comment_alloc * 2 : 10));
+	    comments[comment].line = line;
+	    comments[comment++].text = strdup(p);
+	  }
       fclose (f);
     }
 
@@ -1945,40 +1997,7 @@ void M_LoadDefaults (void)
 // Returns the final X coordinate
 // HU_Init must have been called to init the font
 //
-
-extern patch_t* hu_font[HU_FONTSIZE];
-
-int M_DrawText(int x,int y,boolean direct,char* string)
-{
-  int c;
-  int w;
-
-  while (*string)
-    {
-      c = toupper(*string) - HU_FONTSTART;
-      string++;
-      if (c < 0 || c> HU_FONTSIZE)
-        {
-          x += 4;
-          continue;
-        }
-
-      w = SHORT (hu_font[c]->width);
-      if (x+w > SCREENWIDTH)
-        break;
-
-//  killough 11/98: makes no difference anymore:
-//      if (direct)
-//        V_DrawPatchDirect(x, y, 0, hu_font[c]);
-//      else
-
-        V_DrawPatch(x, y, 0, hu_font[c]);
-      x+=w;
-    }
-
-  return x;
-}
-
+// sf: removed as it wasnt being used
 
 //
 // M_WriteFile
@@ -2026,11 +2045,11 @@ int M_ReadFile(char const *name, byte **buffer)
       fseek(fp, 0, SEEK_SET);
       *buffer = Z_Malloc(length, PU_STATIC, 0);
       if (fread(*buffer, 1, length, fp) == length)
-        {
-          fclose(fp);
-          I_EndRead();
-          return length;
-        }
+	{
+	  fclose(fp);
+	  I_EndRead();
+	  return length;
+	}
       fclose(fp);
     }
 
@@ -2076,7 +2095,7 @@ typedef struct
 //
 
 boolean WritePCXfile(char *filename, byte *data, int width,
-                     int height, byte *palette)
+		     int height, byte *palette)
 {
   int    i;
   int    length;
@@ -2111,8 +2130,8 @@ boolean WritePCXfile(char *filename, byte *data, int width,
       *pack++ = *data++;
     else
       {
-        *pack++ = 0xc1;
-        *pack++ = *data++;
+	*pack++ = 0xc1;
+	*pack++ = *data++;
       }
 
   // write the palette
@@ -2181,7 +2200,7 @@ typedef struct tagBITMAPINFOHEADER
 //
 
 boolean WriteBMPfile(char *filename, byte *data, int width,
-                     int height, byte *palette)
+		     int height, byte *palette)
 {
   int i,wid;
   BITMAPFILEHEADER bmfh;
@@ -2239,18 +2258,18 @@ boolean WriteBMPfile(char *filename, byte *data, int width,
 
       // write the palette, in blue-green-red order, gamma corrected
       for (i=0;i<768;i+=3)
-        {
-          c=gammatable[usegamma][palette[i+2]];
-          SafeWrite(&c,sizeof(char),1,st);
-          c=gammatable[usegamma][palette[i+1]];
-          SafeWrite(&c,sizeof(char),1,st);
-          c=gammatable[usegamma][palette[i+0]];
-          SafeWrite(&c,sizeof(char),1,st);
-          SafeWrite(&zero,sizeof(char),1,st);
-        }
+	{
+	  c=gammatable[usegamma][palette[i+2]];
+	  SafeWrite(&c,sizeof(char),1,st);
+	  c=gammatable[usegamma][palette[i+1]];
+	  SafeWrite(&c,sizeof(char),1,st);
+	  c=gammatable[usegamma][palette[i+0]];
+	  SafeWrite(&c,sizeof(char),1,st);
+	  SafeWrite(&zero,sizeof(char),1,st);
+	}
 
       for (i = 0 ; i < height ; i++)
-        SafeWrite(data+(height-1-i)*width,sizeof(byte),wid,st);
+	SafeWrite(data+(height-1-i)*width,sizeof(byte),wid,st);
 
       fclose(st);
     }
@@ -2278,36 +2297,37 @@ void M_ScreenShot (void)
       int tries = 10000;
 
       do
-        sprintf(lbmname,                         //jff 3/30/98 pcx or bmp?
-                screenshot_pcx ? "doom%02d.pcx" : "doom%02d.bmp", shot++);
+	sprintf(lbmname,                         //jff 3/30/98 pcx or bmp?
+                        // sf: changed to smmu from doom
+                screenshot_pcx ? "smmu%02d.pcx" : "smmu%02d.bmp", shot++);
       while (!access(lbmname,0) && --tries);
 
       if (tries)
-        {
-          // killough 4/18/98: make palette stay around
-          // (PU_CACHE could cause crash)
+	{
+	  // killough 4/18/98: make palette stay around
+	  // (PU_CACHE could cause crash)
 
-          byte *pal = W_CacheLumpName ("PLAYPAL", PU_STATIC);
-          byte *linear = screens[2];
+	  byte *pal = W_CacheLumpName ("PLAYPAL", PU_STATIC);
+	  byte *linear = screens[2];
 
-          I_ReadScreen(linear);
+	  I_ReadScreen(linear);
 
-          // save the pcx file
-          //jff 3/30/98 write pcx or bmp depending on mode
+	  // save the pcx file
+	  //jff 3/30/98 write pcx or bmp depending on mode
 
-          // killough 10/98: detect failure and remove file if error
+	  // killough 10/98: detect failure and remove file if error
 	  // killough 11/98: add hires support
-          if (!(success = (screenshot_pcx ? WritePCXfile : WriteBMPfile)
-                (lbmname,linear, SCREENWIDTH<<hires, SCREENHEIGHT<<hires,pal)))
+	  if (!(success = (screenshot_pcx ? WritePCXfile : WriteBMPfile)
+		(lbmname,linear, SCREENWIDTH<<hires, SCREENHEIGHT<<hires,pal)))
 	    {
 	      int t = errno;
 	      remove(lbmname);
 	      errno = t;
 	    }
 
-          // killough 4/18/98: now you can mark it PU_CACHE
-          Z_ChangeTag(pal, PU_CACHE);
-        }
+	  // killough 4/18/98: now you can mark it PU_CACHE
+	  Z_ChangeTag(pal, PU_CACHE);
+	}
     }
 
   // 1/18/98 killough: replace "SCREEN SHOT" acknowledgement with sfx
@@ -2316,17 +2336,14 @@ void M_ScreenShot (void)
   // killough 10/98: print error message and change sound effect if error
   S_StartSound(NULL, !success ? dprintf(errno ? strerror(errno) :
 					"Could not take screenshot"), sfx_oof :
-               gamemode==commercial ? sfx_radio : sfx_tink);
-
+               sfx_tink);        // just tink, no radio
+				// tink is in doom2 too
 
 }
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:39  fraggle
-// Initial revision
-//
+// $Log: m_misc.c,v $
 // Revision 1.60  1998/06/03  20:32:12  jim
 // Fixed mispelling of key_chat string
 //

@@ -1,6 +1,6 @@
 ################################################################
 #
-# $Id$
+# $Id: makefile,v 1.38 1998/05/18 22:59:22 killough Exp $
 #
 ################################################################
 
@@ -12,8 +12,11 @@ RM = del
 # the command you use to copy files
 CP = copy /y
 
+# the exe file name -sf
+EXE = smmu.exe
+
 # options common to all builds
-CFLAGS_COMMON = -Wall
+CFLAGS_COMMON = -Wall -g
 
 # new features; comment out what you don't want at the moment
 CFLAGS_NEWFEATURES = -DDOGS -DBETA
@@ -24,7 +27,8 @@ LDFLAGS_DEBUG =
 
 # optimized (release) options
 CFLAGS_RELEASE = -O3 -ffast-math -fomit-frame-pointer -m486 -mreg-alloc=adcbSDB
-LDFLAGS_RELEASE = -s
+LDFLAGS_RELEASE = 
+# -s
 
 # libraries to link in
 LIBS = -lalleg -lm -lemu
@@ -43,9 +47,19 @@ O_DEBUG = objdebug
 
 # object files
 OBJS=	\
+	$(O)/ser_main.o	    \
+	$(O)/ser_port.o	    \
+	$(O)/p_info.o	    \
+	$(O)/lumps.o        \
+	$(O)/c_io.o	    \
+	$(O)/c_runcmd.o	    \
+	$(O)/c_cmdlst.o     \
+	$(O)/c_handle.o     \
+	$(O)/c_net.o	    \
 	$(O)/doomdef.o      \
         $(O)/doomstat.o     \
         $(O)/dstrings.o     \
+	$(O)/i_input.o	    \
         $(O)/i_system.o     \
         $(O)/i_sound.o      \
         $(O)/i_video.o      \
@@ -65,6 +79,7 @@ OBJS=	\
         $(O)/m_random.o     \
         $(O)/am_map.o       \
         $(O)/p_ceilng.o     \
+	$(O)/p_chase.o	    \
         $(O)/p_doors.o      \
         $(O)/p_enemy.o      \
         $(O)/p_floor.o      \
@@ -76,6 +91,7 @@ OBJS=	\
         $(O)/p_pspr.o       \
         $(O)/p_setup.o      \
         $(O)/p_sight.o      \
+	$(O)/p_skin.o	    \
         $(O)/p_spec.o       \
         $(O)/p_switch.o     \
         $(O)/p_mobj.o       \
@@ -89,6 +105,7 @@ OBJS=	\
         $(O)/r_main.o       \
         $(O)/r_plane.o      \
         $(O)/r_segs.o       \
+	$(O)/r_ripple.o     \
         $(O)/r_sky.o        \
         $(O)/r_things.o     \
         $(O)/w_wad.o        \
@@ -97,7 +114,8 @@ OBJS=	\
         $(O)/st_lib.o       \
         $(O)/st_stuff.o     \
         $(O)/hu_stuff.o     \
-        $(O)/hu_lib.o       \
+	$(O)/hu_over.o      \
+	$(O)/hu_frags.o	    \
         $(O)/s_sound.o      \
         $(O)/z_zone.o       \
 	$(O)/keyboard.o     \
@@ -110,10 +128,11 @@ OBJS=	\
         $(O)/drawcol.o      \
         $(O)/p_genlin.o     \
         $(O)/d_deh.o	    \
-	$(O)/emu8kmid.o
+	$(O)/emu8kmid.o     \
+	$(O)/t_script.o
+#        $(O)/hu_lib.o       \
 
-doom all: $(O)/mbf.exe
-	$(CP) $(O)\mbf.exe .
+doom all: $(O)/$(EXE)
 
 release: clean
 	$(RM) tranmap.dat
@@ -134,13 +153,13 @@ debug:
 	$(MAKE) MODE=DEBUG
 
 clean:
-	$(RM) mbf.exe
+	$(RM) $(O)\$(EXE)
 	$(RM) $(O_RELEASE)\*.exe
 	$(RM) $(O_DEBUG)\*.exe
 	$(RM) $(O_RELEASE)\*.o
 	$(RM) $(O_DEBUG)\*.o
 
-$(O)/mbf.exe: $(OBJS) $(O)/version.o
+$(O)/$(EXE): $(OBJS) $(O)/version.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) $(O)/version.o -o $@ $(LIBS)
 	$(RM) $(O)\version.o
 
@@ -154,7 +173,7 @@ $(O)/%.o:   %.s
 $(OBJS): z_zone.h
 
 # If you change the makefile, everything should rebuild
-$(OBJS): Makefile
+# $(OBJS): Makefile
 
 # individual file depedencies follow
 
@@ -507,10 +526,7 @@ $(O)/bin2c.exe: $(O)/bin2c.o
 $(O)/bin2c.o: bin2c.c
 
 ###############################################################################
-# $Log$
-# Revision 1.1  2000-07-29 13:20:41  fraggle
-# Initial revision
-#
+# $Log: makefile,v $
 # Revision 1.38  1998/05/18  22:59:22  killough
 # Update p_lights.o depedencies
 #
@@ -617,3 +633,4 @@ $(O)/bin2c.o: bin2c.c
 # Lee's Jan 19 sources
 #
 ###############################################################################
+

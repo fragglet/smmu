@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// $Id$
+// $Id: s_sound.h,v 1.4 1998/05/03 22:57:36 killough Exp $
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
@@ -41,6 +41,7 @@ void S_Start(void);
 //  using <sound_id> from sounds.h
 //
 void S_StartSound(const mobj_t *origin, int sound_id);
+void S_Startsfxinfo(const mobj_t *origin, sfxinfo_t *sfx);
 
 // Stop sound for thing at <origin>
 void S_StopSound(const mobj_t *origin);
@@ -53,10 +54,16 @@ void S_ChangeMusic(int music_id, int looping);
 
 // Stops the music fer sure.
 void S_StopMusic(void);
+void S_StopSounds();
 
 // Stop and resume music, during game PAUSE.
 void S_PauseSound(void);
 void S_ResumeSound(void);
+
+sfxinfo_t *S_sfxinfoForname(char *name);
+void S_UpdateSound(int lumpnum);
+void S_Chgun();
+
 
 //
 // Updates music & sounds
@@ -64,6 +71,9 @@ void S_ResumeSound(void);
 void S_UpdateSounds(const mobj_t *listener);
 void S_SetMusicVolume(int volume);
 void S_SetSfxVolume(int volume);
+
+// precache sound?
+extern int s_precache;
 
 // machine-independent sound params
 extern int numChannels;
@@ -76,10 +86,7 @@ extern int idmusnum;
 
 //----------------------------------------------------------------------------
 //
-// $Log$
-// Revision 1.1  2000-07-29 13:20:41  fraggle
-// Initial revision
-//
+// $Log: s_sound.h,v $
 // Revision 1.4  1998/05/03  22:57:36  killough
 // beautification, add external declarations
 //
