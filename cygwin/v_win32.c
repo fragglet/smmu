@@ -5,21 +5,23 @@
 //
 //-----------------------------------------------------------------------------
 
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <wingdi.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 
 #define NOASM
+#define DIRECTX
 
 // proff 07/04/98: Added for CYGWIN32 compatibility
 #ifdef _MSC_VER
 #define DIRECTX
 #endif
 #ifdef DIRECTX
-#define __BYTEBOOL__
-#define false 0
-#define true !false
+//#define __BYTEBOOL__
+//#define false 0
+//#define true !false
 #include <ddraw.h>
 #endif
 
@@ -44,7 +46,7 @@ static char szTitle[128];
 
 static WNDCLASS wndclass;  //sf: globalled
 
-static HWND ghWnd;
+HWND ghWnd;
 static char szAppName[] = "PrBoomWinClass";
 static char szTitlePrefix[] = "";
 static HINSTANCE win_hInstance;
@@ -568,6 +570,210 @@ static void Init_Dib(void)
   SetStretchBltMode(ViewDC,COLORONCOLOR);
 }
 
+static void Init_Mouse(void)
+{
+  // proff 08/15/98: Made -grabmouse default
+  //  if (M_CheckParm("-grabmouse"))
+  //    grabMouse=true;
+  //    if (M_CheckParm("-nomouse"))
+  //      noMouse=true;
+  noMouse=(usemouse==0);
+}
+
+
+#ifdef DIRECTX
+static void Done_DDraw(void)
+{
+    if (lpDD)
+        IDirectDraw_RestoreDisplayMode(lpDD);
+    if (lpDD)
+        IDirectDraw_SetCooperativeLevel(lpDD,NULL,DDSCL_NORMAL);
+    if (lpDDPal)
+        IDirectDrawPalette_Release(lpDDPal);
+    if (lpDDPSF)
+        IDirectDrawSurface_Release(lpDDPSF);
+    if (lpDD)
+        IDirectDraw_Release(lpDD);
+    lpDDPal=NULL;
+    lpDDPSF=NULL;
+    lpDD=NULL;
+    MoveWindow(ghWnd, 0, 0, MainWinWidth, MainWinHeight, TRUE);
+    BringWindowToTop(ghWnd);
+}
+
+static void DDrawFullscreen(int fullscreen)
+{
+  HRESULT error;
+  DDSURFACEDESC ddSD;
+  DDSCAPS ddSDC;
+  int c;
+  
+  if (fullscreen)
+    {
+      vidFullScreen = 0;
+      error = DirectDrawCreate(NULL,&lpDD,NULL);
+      if (error != DD_OK)
+	{
+	  printf("Error: DirectDrawCreate failed!\n");
+	  FullscreenProc=WinFullscreen;
+	  Done_DDraw();
+	  return;
+	}
+      error = IDirectDraw_SetCooperativeLevel(lpDD,ghWnd,DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
+      if (error != DD_OK)
+	{
+	  printf("Error: DirectDraw_SetCooperativeLevel failed!\n");
+	  FullscreenProc=WinFullscreen;
+	  Done_DDraw();
+	  return;
+	}
+      error = IDirectDraw_SetDisplayMode(lpDD,BestWidth,BestHeight,8);
+      if (error != DD_OK)
+	{
+	  printf("Error: DirectDraw_SetDisplayMode %ix%ix8 failed!\n",BestWidth,BestHeight);
+	  FullscreenProc=WinFullscreen;
+	  Done_DDraw();
+	  return;
+	}
+      else
+	printf("DDrawMode %ix%i\n",BestWidth,BestHeight);
+      ddSD.dwSize = sizeof(ddSD);
+      ddSD.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+      ddSD.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
+      ddSD.dwBackBufferCount = 1;
+      error = IDirectDraw_CreateSurface(lpDD,&ddSD,&lpDDPSF,NULL);
+      if (error != DD_OK)
+	{
+	  lpDDPSF = NULL;
+	  printf("Error: DirectDraw_CreateSurface failed!\n");
+	  FullscreenProc=WinFullscreen;
+	  Done_DDraw();
+	  return;
+	}
+      ddSDC.dwCaps = DDSCAPS_BACKBUFFER;
+      error = IDirectDrawSurface_GetAttachedSurface(lpDDPSF,&ddSDC,&lpDDBSF);
+      if (error != DD_OK)
+	{
+	  lpDDBSF = NULL;
+	  printf("Error: DirectDraw_GetAttachedSurface failed!\n");
+	  FullscreenProc=WinFullscreen;
+	  Done_DDraw();
+	  return;
+	}
+      error = IDirectDraw_CreatePalette(lpDD,DDPCAPS_8BIT | DDPCAPS_ALLOW256,ADDPal,&lpDDPal,NULL);
+      if (error != DD_OK)
+	{
+	  lpDDPal = NULL;
+	  printf("Error: DirectDraw_CreatePal failed!\n");
+	  FullscreenProc=WinFullscreen;
+	  Done_DDraw();
+	  return;
+	}
+      error = IDirectDrawSurface_SetPalette(lpDDPSF,lpDDPal);
+      error = IDirectDrawSurface_SetPalette(lpDDBSF,lpDDPal);
+      for (c=0; c<256; c++)
+	{
+	  ADDPal[c].peRed = View_bmi->bmiColors[c].rgbRed;
+	  ADDPal[c].peGreen = View_bmi->bmiColors[c].rgbGreen;
+	  ADDPal[c].peBlue = View_bmi->bmiColors[c].rgbBlue;
+	  ADDPal[c].peFlags = 0;
+	}
+      IDirectDrawPalette_SetEntries(lpDDPal,0,0,256,ADDPal);
+      vidFullScreen = 1;
+      printf("Fullscreen-Mode\n");
+    }
+  else
+    {
+      //      Done_DDraw();
+      if (ViewScale==Scale_Own)
+	ViewMemPitch=SCREENWIDTH*2;
+      else
+	ViewMemPitch=SCREENWIDTH;
+      for (c=0; c<256; c++)
+	{
+	  View_bmi->bmiColors[c].rgbRed = ADDPal[c].peRed;
+	  View_bmi->bmiColors[c].rgbGreen = ADDPal[c].peGreen;
+	  View_bmi->bmiColors[c].rgbBlue = ADDPal[c].peBlue;
+	}
+      printf("Windows-Mode\n");
+    }
+}
+
+static HRESULT WINAPI MyEnumModesCallback(LPDDSURFACEDESC lpDDSDesc, LPVOID lpContext)
+{
+  int SearchedWidth=SCREENWIDTH;
+  int SearchedHeight=SCREENHEIGHT;
+
+  if (ViewScale!=Scale_None)
+    {
+      SearchedWidth *= 2;
+      SearchedHeight *= 2;
+    }
+  if(hires)
+    {
+      SearchedWidth *= 2;
+      SearchedHeight *= 2;
+    }
+    
+  //  lprintf(LO_INFO,"W: %4i",lpDDSDesc->dwWidth);
+  //  lprintf(LO_INFO,", H: %4i",lpDDSDesc->dwHeight);
+  //  lprintf(LO_INFO,"\n");
+  if (((int)lpDDSDesc->dwWidth>=SearchedWidth) & ((int)lpDDSDesc->dwHeight>=SearchedHeight))
+    if ((BestWidth>SearchedWidth) & (BestHeight>SearchedHeight))
+    {
+      BestWidth=lpDDSDesc->dwWidth;
+      BestHeight=lpDDSDesc->dwHeight;
+    }
+  return DDENUMRET_OK;
+}
+
+static void Init_DDraw(void)
+{
+  HRESULT error;
+  DDSURFACEDESC DDSDesc;
+
+  FullscreenProc = DDrawFullscreen;
+  error = DirectDrawCreate(NULL,&lpDD,NULL);
+
+  if (error != DD_OK)
+    {
+      printf("Error: DirectDrawCreate failed!\n");
+      FullscreenProc=WinFullscreen;
+      return;
+    }
+
+  DDSDesc.dwSize=sizeof(DDSURFACEDESC);
+  DDSDesc.dwFlags=DDSD_PIXELFORMAT;
+  DDSDesc.ddpfPixelFormat.dwSize=sizeof(DDPIXELFORMAT);
+  DDSDesc.ddpfPixelFormat.dwFlags=DDPF_PALETTEINDEXED8 | DDPF_RGB;
+  DDSDesc.ddpfPixelFormat.u1.dwRGBBitCount=8;
+  BestWidth=INT_MAX;
+  BestHeight=INT_MAX;
+  IDirectDraw_EnumDisplayModes(lpDD,0,&DDSDesc,NULL,&MyEnumModesCallback);
+  if (((BestWidth==INT_MAX) | (BestHeight==INT_MAX)) & (ViewScale!=Scale_None))
+    {
+      ViewScale=Scale_None;
+      BestWidth=INT_MAX;
+      BestHeight=INT_MAX;
+      IDirectDraw_EnumDisplayModes(lpDD,0,&DDSDesc,NULL,&MyEnumModesCallback);
+    }
+  if ((BestWidth==INT_MAX) | (BestHeight==INT_MAX))
+    {
+      BestWidth=0;
+      BestHeight=0;
+      printf("Error: No DirectDraw mode, which suits the needs, found!\n");
+      printf("Searched Mode: W: %i, H: %i, BPP 8\n",SCREENWIDTH,SCREENHEIGHT);
+      FullscreenProc=WinFullscreen;
+      return;
+    }
+  //  lprintf(LO_INFO,"BestWidth: %i, BestHeight: %i\n",BestWidth,BestHeight);
+  if (lpDD)
+    IDirectDraw_Release(lpDD);
+  lpDD=NULL;
+}
+#endif
+
+
 static boolean Win32_SetMode(int mode)
 {
   // proff 08/17/98: Changed for high-res
@@ -575,6 +781,7 @@ static boolean Win32_SetMode(int mode)
   ViewScale=Scale_None;
   multiply=1;
   ViewMemPitch=SCREENWIDTH;
+  vidFullScreen=0;
   hires=0;
   
   switch(mode)
@@ -602,8 +809,17 @@ static boolean Win32_SetMode(int mode)
 	hires=1;
 	multiply=2;
 	break;
+
+      case 5:         // dx fullscreen
+	vidFullScreen = 1;
+	break;
+
+      case 6:         // dx fullscreen/hires
+	hires=1;
+	vidFullScreen = 1;
+	break;
     }
-  
+
   // proff 08/18/98: This disables the setting of the priority-class
   if (M_CheckParm("-noidle"))
     noidle=true;
@@ -643,6 +859,16 @@ static boolean Win32_SetMode(int mode)
 
   //    lprintf (LO_DEBUG, "I_InitGraphics: Client area: %ux%u\n",
   //            ViewRect.right-ViewRect.left, ViewRect.bottom-ViewRect.top);
+  
+ 
+ FullscreenProc = WinFullscreen;
+
+#ifdef DIRECTX
+  if (!M_CheckParm("-noddraw"))
+    Init_DDraw();
+#endif
+ 
+  FullscreenProc(vidFullScreen);
 
   return true;       // opened ok
 }
@@ -653,6 +879,10 @@ static void Win32_UnsetMode()
 {
   if(ghWnd)
     DestroyWindow(ghWnd);
+#ifdef DIRECTX
+  Done_DDraw();
+#endif
+
 }
 
 static void Win32_SetPalette(unsigned char *pal)
@@ -689,200 +919,6 @@ static void Win32_SetPalette(unsigned char *pal)
     }
 }
 
-static void Init_Mouse(void)
-{
-  // proff 08/15/98: Made -grabmouse default
-  //  if (M_CheckParm("-grabmouse"))
-  //    grabMouse=true;
-  //    if (M_CheckParm("-nomouse"))
-  //      noMouse=true;
-  noMouse=(usemouse==0);
-}
-
-
-#ifdef DIRECTX
-static void Done_DDraw(void)
-{
-    if (lpDD)
-        IDirectDraw_RestoreDisplayMode(lpDD);
-    if (lpDD)
-        IDirectDraw_SetCooperativeLevel(lpDD,NULL,DDSCL_NORMAL);
-    if (lpDDPal)
-        IDirectDrawPalette_Release(lpDDPal);
-    if (lpDDPSF)
-        IDirectDrawSurface_Release(lpDDPSF);
-    if (lpDD)
-        IDirectDraw_Release(lpDD);
-    lpDDPal=NULL;
-    lpDDPSF=NULL;
-    lpDD=NULL;
-    MoveWindow(ghWnd, 0, 0, MainWinWidth, MainWinHeight, TRUE);
-    BringWindowToTop(ghWnd);
-}
-
-static void DDrawFullscreen(int fullscreen)
-{
-  HRESULT error;
-  DDSURFACEDESC ddSD;
-  DDSCAPS ddSDC;
-  int c;
-
-  if (fullscreen)
-  {
-    vidFullScreen = 0;
-    error = DirectDrawCreate(NULL,&lpDD,NULL);
-    if (error != DD_OK)
-    {
-      doom_printf("Error: DirectDrawCreate failed!");
-      FullscreenProc=WinFullscreen;
-      Done_DDraw();
-      return;
-    }
-    error = IDirectDraw_SetCooperativeLevel(lpDD,ghWnd,DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
-    if (error != DD_OK)
-    {
-      doom_printf("Error: DirectDraw_SetCooperativeLevel failed!");
-      FullscreenProc=WinFullscreen;
-      Done_DDraw();
-      return;
-    }
-    error = IDirectDraw_SetDisplayMode(lpDD,BestWidth,BestHeight,8);
-    if (error != DD_OK)
-    {
-      doom_printf("Error: DirectDraw_SetDisplayMode %ix%ix8 failed!",BestWidth,BestHeight);
-      FullscreenProc=WinFullscreen;
-      Done_DDraw();
-      return;
-    }
-    else
-      dprintf("DDrawMode %ix%i",BestWidth,BestHeight);
-    ddSD.dwSize = sizeof(ddSD);
-    ddSD.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-    ddSD.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
-    ddSD.dwBackBufferCount = 1;
-    error = IDirectDraw_CreateSurface(lpDD,&ddSD,&lpDDPSF,NULL);
-    if (error != DD_OK)
-    {
-      lpDDPSF = NULL;
-      doom_printf("Error: DirectDraw_CreateSurface failed!");
-      FullscreenProc=WinFullscreen;
-      Done_DDraw();
-      return;
-    }
-    ddSDC.dwCaps = DDSCAPS_BACKBUFFER;
-    error = IDirectDrawSurface_GetAttachedSurface(lpDDPSF,&ddSDC,&lpDDBSF);
-    if (error != DD_OK)
-    {
-      lpDDBSF = NULL;
-      doom_printf("Error: DirectDraw_GetAttachedSurface failed!");
-      FullscreenProc=WinFullscreen;
-      Done_DDraw();
-      return;
-    }
-    error = IDirectDraw_CreatePalette(lpDD,DDPCAPS_8BIT | DDPCAPS_ALLOW256,ADDPal,&lpDDPal,NULL);
-    if (error != DD_OK)
-    {
-      lpDDPal = NULL;
-      doom_printf("Error: DirectDraw_CreatePal failed!");
-      FullscreenProc=WinFullscreen;
-      Done_DDraw();
-      return;
-    }
-    error = IDirectDrawSurface_SetPalette(lpDDPSF,lpDDPal);
-    error = IDirectDrawSurface_SetPalette(lpDDBSF,lpDDPal);
-    for (c=0; c<256; c++)
-    {
-      ADDPal[c].peRed = View_bmi->bmiColors[c].rgbRed;
-      ADDPal[c].peGreen = View_bmi->bmiColors[c].rgbGreen;
-      ADDPal[c].peBlue = View_bmi->bmiColors[c].rgbBlue;
-      ADDPal[c].peFlags = 0;
-    }
-    IDirectDrawPalette_SetEntries(lpDDPal,0,0,256,ADDPal);
-    vidFullScreen = 1;
-    doom_printf("Fullscreen-Mode");
-  }
-  else
-  {
-    Done_DDraw();
-    if (ViewScale==Scale_Own)
-      ViewMemPitch=SCREENWIDTH*2;
-    else
-      ViewMemPitch=SCREENWIDTH;
-    for (c=0; c<256; c++)
-    {
-      View_bmi->bmiColors[c].rgbRed = ADDPal[c].peRed;
-      View_bmi->bmiColors[c].rgbGreen = ADDPal[c].peGreen;
-      View_bmi->bmiColors[c].rgbBlue = ADDPal[c].peBlue;
-    }
-    doom_printf("Windows-Mode");
-  }
-}
-
-static HRESULT WINAPI MyEnumModesCallback(LPDDSURFACEDESC lpDDSDesc, LPVOID lpContext)
-{
-  int SearchedWidth,SearchedHeight;
-
-  SearchedWidth=SCREENWIDTH;
-  if (ViewScale!=Scale_None)
-    SearchedWidth*=2;
-  SearchedHeight=SCREENHEIGHT;
-  if (ViewScale!=Scale_None)
-    SearchedHeight*=2;
-  //  lprintf(LO_INFO,"W: %4i",lpDDSDesc->dwWidth);
-  //  lprintf(LO_INFO,", H: %4i",lpDDSDesc->dwHeight);
-  //  lprintf(LO_INFO,"\n");
-  if (((int)lpDDSDesc->dwWidth>=SearchedWidth) & ((int)lpDDSDesc->dwHeight>=SearchedHeight))
-    if ((BestWidth>SearchedWidth) & (BestHeight>SearchedHeight))
-    {
-      BestWidth=lpDDSDesc->dwWidth;
-      BestHeight=lpDDSDesc->dwHeight;
-    }
-  return DDENUMRET_OK;
-}
-
-static void Init_DDraw(void)
-{
-  HRESULT error;
-  DDSURFACEDESC DDSDesc;
-
-  FullscreenProc = DDrawFullscreen;
-  error = DirectDrawCreate(NULL,&lpDD,NULL);
-  if (error != DD_OK)
-  {
-    //    lprintf(LO_WARN,"Error: DirectDrawCreate failed!\n");
-    FullscreenProc=WinFullscreen;
-    return;
-  }
-  DDSDesc.dwSize=sizeof(DDSURFACEDESC);
-  DDSDesc.dwFlags=DDSD_PIXELFORMAT;
-  DDSDesc.ddpfPixelFormat.dwSize=sizeof(DDPIXELFORMAT);
-  DDSDesc.ddpfPixelFormat.dwFlags=DDPF_PALETTEINDEXED8 | DDPF_RGB;
-  DDSDesc.ddpfPixelFormat.dwRGBBitCount=8;
-  BestWidth=INT_MAX;
-  BestHeight=INT_MAX;
-  IDirectDraw_EnumDisplayModes(lpDD,0,&DDSDesc,NULL,&MyEnumModesCallback);
-  if (((BestWidth==INT_MAX) | (BestHeight==INT_MAX)) & (ViewScale!=Scale_None))
-  {
-    ViewScale=Scale_None;
-    BestWidth=INT_MAX;
-    BestHeight=INT_MAX;
-    IDirectDraw_EnumDisplayModes(lpDD,0,&DDSDesc,NULL,&MyEnumModesCallback);
-  }
-  if ((BestWidth==INT_MAX) | (BestHeight==INT_MAX))
-  {
-    BestWidth=0;
-    BestHeight=0;
-    //    lprintf(LO_WARN,"Error: No DirectDraw mode, which suits the needs, found!\n");
-    //    lprintf(LO_WARN,"Searched Mode: W: %i, H: %i, BPP 8\n",SCREENWIDTH,SCREENHEIGHT);
-    FullscreenProc=WinFullscreen;
-    return;
-  }
-  //  lprintf(LO_INFO,"BestWidth: %i, BestHeight: %i\n",BestWidth,BestHeight);
-  if (lpDD)
-    IDirectDraw_Release(lpDD);
-  lpDD=NULL;
-}
-#endif
 
 static boolean Win32_Init()
 {
@@ -911,14 +947,7 @@ static boolean Win32_Init()
   capY = GetSystemMetrics(SM_CYCAPTION);
 
   // ----- end -----
-  
-  FullscreenProc = WinFullscreen;
-
-#ifdef DIRECTX
-  if (!M_CheckParm("-noddraw"))
-    Init_DDraw();
-#endif
-  
+   
   //  BringWindowToTop(ghWnd);
   Init_Mouse();
 
@@ -927,7 +956,6 @@ static boolean Win32_Init()
     vidFullScreen=1;
   if (M_CheckParm("-nofullscr"))
     vidFullScreen=0;
-  FullscreenProc(vidFullScreen);
   
   return TRUE;
 }
@@ -950,37 +978,37 @@ static void Win32_Shutdown(void)
 
 static void V_ScaleBy2D (void)
 {
-    unsigned int *olineptrs[2];
-    register unsigned int *ilineptr;
-    int x, y;
-    register unsigned int twoopixels;
-    register unsigned int twomoreopixels;
-    register unsigned int fouripixels;
-
-    ilineptr = (unsigned int *) screens[0];
-    olineptrs[0] = (unsigned int *) &ScaledVMem[0];
-    olineptrs[1] = (unsigned int *) &ScaledVMem[ViewMemPitch];
-
-// proff 06/30/98: Changed form constant value to defined value
-    for (y=SCREENHEIGHT; y>0; y--)
+  unsigned int *olineptrs[2];
+  register unsigned int *ilineptr;
+  int x, y;
+  register unsigned int twoopixels;
+  register unsigned int twomoreopixels;
+  register unsigned int fouripixels;
+  
+  ilineptr = (unsigned int *) screens[0];
+  olineptrs[0] = (unsigned int *) &ScaledVMem[0];
+  olineptrs[1] = (unsigned int *) &ScaledVMem[ViewMemPitch];
+  
+  // proff 06/30/98: Changed form constant value to defined value
+  for (y=SCREENHEIGHT; y>0; y--)
     {
-// proff 06/30/98: Changed form constant value to defined value
-        for (x=(SCREENWIDTH/4); x>0; x--)
+      // proff 06/30/98: Changed form constant value to defined value
+      for (x=(SCREENWIDTH/4); x>0; x--)
         {
-        fouripixels = *ilineptr++;
-        twoopixels =    (fouripixels & 0xff000000)
+	  fouripixels = *ilineptr++;
+	  twoopixels =    (fouripixels & 0xff000000)
             |    ((fouripixels>>8) & 0xffff00)
             |    ((fouripixels>>16) & 0xff);
-        twomoreopixels =    ((fouripixels<<16) & 0xff000000)
+	  twomoreopixels =    ((fouripixels<<16) & 0xff000000)
             |    ((fouripixels<<8) & 0xffff00)
             |    (fouripixels & 0xff);
-        *olineptrs[0]++ = twomoreopixels;
-        *olineptrs[0]++ = twoopixels;
-        *olineptrs[1]++ = twomoreopixels;
-        *olineptrs[1]++ = twoopixels;
+	  *olineptrs[0]++ = twomoreopixels;
+	  *olineptrs[0]++ = twoopixels;
+	  *olineptrs[1]++ = twomoreopixels;
+	  *olineptrs[1]++ = twoopixels;
         }
-        olineptrs[0] += ViewMemPitch>>2;
-        olineptrs[1] += ViewMemPitch>>2;
+      olineptrs[0] += ViewMemPitch>>2;
+      olineptrs[1] += ViewMemPitch>>2;
     }
 }
 
@@ -1057,34 +1085,51 @@ static void Win32_FinishUpdate(void)
 	  for (y=0; (DWORD)y<ddSD.dwHeight; y++)
             {
 	      memset(Surface,0,ddSD.dwWidth);
-	      Surface += ddSD.lPitch;
+	      Surface += ddSD.u1.lPitch;
             }
         }
-      if (ViewScale==Scale_None)
+
+      if (1) //ViewScale==Scale_None)
         {  
-	  Surface =    (char *)ddSD.lpSurface
-	    +(((ddSD.dwHeight-SCREENHEIGHT)/2)*ddSD.lPitch)
-	    +((ddSD.dwWidth-SCREENWIDTH)/2);
+	  int wid = SCREENWIDTH << hires;
+	  int hi = SCREENHEIGHT << hires;
+
+	  Surface = 
+	    (char *)ddSD.lpSurface + 
+	    ((ddSD.dwWidth - wid) / 2) +
+	    (((ddSD.dwHeight - hi) / 2) * ddSD.u1.lPitch);
+
 	  doommem = screens[0];
-	  for (y=0; y<SCREENHEIGHT; y++)
-            {
-	      memcpy(Surface, doommem, SCREENWIDTH);
-	      Surface += ddSD.lPitch;
-	      doommem += SCREENWIDTH;
-            }
+
+	  // sf: speedup by removing loop if possible
+
+	  if(wid == ddSD.u1.lPitch)
+	    memcpy(Surface, doommem, wid * hi);
+	  else
+	    {
+	      for (y=0; y<hi; y++)
+		{
+		  memcpy(Surface, doommem, wid);
+		  Surface += ddSD.u1.lPitch;
+		  doommem += wid;
+		}
+	    }
         }
       else
         {
-	  ViewMemPitch = ddSD.lPitch;
-	  ScaledVMem =(char *)ddSD.lpSurface
-	    +(((ddSD.dwHeight-(SCREENHEIGHT*2))/2)*ddSD.lPitch)
-	    +((ddSD.dwWidth-(SCREENWIDTH*2))/2);
+	  ViewMemPitch = ddSD.u1.lPitch;
+	  ScaledVMem = 
+	    (char *)ddSD.lpSurface + 
+	    ((ddSD.dwWidth / 2) - SCREENWIDTH) +
+	    ((ddSD.dwHeight / 2) - SCREENHEIGHT) * ddSD.u1.lPitch;
+	    
 #ifndef NOASM
 	  V_ScaleBy2Da();
 #else
 	  V_ScaleBy2D();
 #endif
         }
+
       error = IDirectDrawSurface_Unlock(lpDDBSF,ddSD.lpSurface);
       if (error != DD_OK)
 	return;
@@ -1150,7 +1195,7 @@ static void Win32_StartTic(void)
   
   if (!noMouse)
     {
-      if(!mouse_grabbed && grabnow && fActive)
+      if(!mouse_grabbed && ((grabnow && fActive) || vidFullScreen))
 	{
 	  RECT rect;
 	  RECT rectc;
@@ -1167,7 +1212,7 @@ static void Win32_StartTic(void)
 	  ShowCursor(FALSE);
 	  mouse_grabbed = true;
 	}
-      if(mouse_grabbed && !(grabnow && fActive))
+      if(mouse_grabbed && !((grabnow && fActive) || vidFullScreen))
 	{
 	  ClipCursor(NULL);
 	  ShowCursor(TRUE);
@@ -1182,6 +1227,7 @@ static void Win32_StartTic(void)
 	  if ( (prevX != point.x) || (prevY != point.y) )
 	    {
 	      event.type = ev_mouse;
+	      event.data1 = 0;
 	      event.data2 = ((point.x - prevX))/2;
 	      event.data3 = ((prevY - point.y))/2;
 	      D_PostEvent(&event);
@@ -1190,7 +1236,7 @@ static void Win32_StartTic(void)
 	      prevY = point.y;
 	    }
 	  
-	  if(grabnow)
+	  if(grabnow || vidFullScreen)
 	    {
 	      GetWindowRect(ghWnd, &rectw);
 	      prevX = (rectw.left + rectw.right) / 2;
@@ -1226,6 +1272,10 @@ static char *win32_modenames[] =
     "320x200 stretched x3 (windows)",
     "320x200 stretched x2 (internal)",
     "640x400",
+
+    "320x200 Fullscreen",
+    "640x400 Fullscreen",
+
     NULL
   };
 
