@@ -808,13 +808,16 @@ void P_DeathMessage(mobj_t *source, mobj_t *target, mobj_t *inflictor)
   else
     // find what weapon caused the kill
     {
-      switch(inflictor->type)
-	{
-	  case MT_BFG: killweapon = wp_bfg; break;
-	  case MT_ROCKET: killweapon = wp_missile; break;
-	  case MT_PLASMA: killweapon = wp_plasma; break;
-	  default: killweapon = NUMWEAPONS; break;
-	}
+      if(inflictor)
+	switch(inflictor->type)
+	  {
+	    case MT_BFG: killweapon = wp_bfg; break;
+	    case MT_ROCKET: killweapon = wp_missile; break;
+	    case MT_PLASMA: killweapon = wp_plasma; break;
+	    default: killweapon = NUMWEAPONS; break;
+	  }
+      else
+	killweapon = NUMWEAPONS;
     }
   
   if(source->player == target->player)    // suicide ?
@@ -1041,7 +1044,10 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 //----------------------------------------------------------------------------
 //
 // $Log$
-// Revision 1.2  2000-05-02 15:43:40  fraggle
+// Revision 1.3  2000-06-22 18:28:24  fraggle
+// fix null pointer dereference
+//
+// Revision 1.2  2000/05/02 15:43:40  fraggle
 // client movement prediction
 //
 // Revision 1.1.1.1  2000/04/30 19:12:08  fraggle
